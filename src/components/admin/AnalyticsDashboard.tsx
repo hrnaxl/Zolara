@@ -1,131 +1,290 @@
 import { useEffect, useState } from "react";
-import { getRevenueStats, getBookingStats, getTopServices, getClientAnalytics } from "@/lib/analytics";
+import { supabase } from "@/integrations/supabase/client";
+import { getTopServices, getTopClients, getRevenueByDay, getRevenueByWeek, getPaymentMethodBreakdown } from "@/lib/analytics";
 import { toast } from "sonner";
+import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie, Legend, LineChart, Line, CartesianGrid
+} from "recharts";
+
+const NAVY    = "#0F1E35";
+const GOLD    = "#C9A84C";
+const G_LIGHT = "#F5ECD6";
+const CREAM   = "#FAFAF8";
+const BORDER  = "#EDE8E0";
+const TXT     = "#1C1917";
+const TXT_MID = "#57534E";
+const TXT_SOFT= "#A8A29E";
+const WHITE   = "#FFFFFF";
+const COLORS  = [GOLD, "#3B82F6", "#10B981", "#8B5CF6", "#EF4444", "#F59E0B", "#06B6D4", "#EC4899"];
+
+type Range = "7d" | "30d" | "3m" | "thisMonth" | "lastMonth";
+
+const RANGE_OPTIONS: { label: string; value: Range }[] = [
+  { label: "7 Days",      value: "7d" },
+  { label: "30 Days",     value: "30d" },
+  { label: "3 Months",    value: "3m" },
+  { label: "This Month",  value: "thisMonth" },
+  { label: "Last Month",  value: "lastMonth" },
+];
+
+const getRangeDates = (range: Range) => {
+  const now = new Date();
+  switch (range) {
+    case "7d":        return { start: format(subDays(now, 6), "yyyy-MM-dd"),             end: format(now, "yyyy-MM-dd") };
+    case "30d":       return { start: format(subDays(now, 29), "yyyy-MM-dd"),            end: format(now, "yyyy-MM-dd") };
+    case "3m":        return { start: format(subDays(now, 89), "yyyy-MM-dd"),            end: format(now, "yyyy-MM-dd") };
+    case "thisMonth": return { start: format(startOfMonth(now), "yyyy-MM-dd"),           end: format(endOfMonth(now), "yyyy-MM-dd") };
+    case "lastMonth": return { start: format(startOfMonth(subMonths(now,1)), "yyyy-MM-dd"), end: format(endOfMonth(subMonths(now,1)), "yyyy-MM-dd") };
+  }
+};
+
+const fmt = (n: number) => `GHS ${n.toLocaleString("en-GH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+const KPICard = ({ label, value, sub, color = GOLD }: any) => (
+  <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "22px 24px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
+    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: 8 }}>{label.toUpperCase()}</div>
+    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 30, fontWeight: 700, color: TXT, lineHeight: 1 }}>{value}</div>
+    {sub && <div style={{ fontSize: 11, color: TXT_SOFT, marginTop: 6 }}>{sub}</div>}
+  </div>
+);
+
+const SectionTitle = ({ children }: any) => (
+  <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 600, color: TXT, marginBottom: 16 }}>{children}</div>
+);
+
+const Card = ({ children, style = {} }: any) => (
+  <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "24px", boxShadow: "0 1px 6px rgba(0,0,0,0.04)", ...style }}>
+    {children}
+  </div>
+);
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: NAVY, color: WHITE, borderRadius: 10, padding: "10px 14px", fontSize: 12 }}>
+      <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ color: p.color || GOLD }}>{p.name}: {typeof p.value === "number" && p.name?.toLowerCase().includes("revenue") ? fmt(p.value) : p.value}</div>
+      ))}
+    </div>
+  );
+};
 
 export default function AnalyticsDashboard() {
-  const [revenue, setRevenue] = useState<any[]>([]);
+  const [range, setRange] = useState<Range>("30d");
+  const [sales, setSales] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [topServices, setTopServices] = useState<any[]>([]);
-  const [clientAnalytics, setClientAnalytics] = useState<any[]>([]);
+  const [topClients, setTopClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [r, b, s, c] = await Promise.all([getRevenueStats(), getBookingStats(), getTopServices(), getClientAnalytics()]);
-        setRevenue(r || []);
-        setBookings(b || []);
-        setTopServices(s || []);
-        setClientAnalytics(c || []);
-      } catch { toast.error("Failed to load analytics"); } finally { setLoading(false); }
-    };
     load();
-  }, []);
+  }, [range]);
 
-  const totalRevenue = revenue.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const completedBookings = bookings.filter(b => b.status === "completed").length;
-  const cancelledBookings = bookings.filter(b => b.status === "cancelled").length;
-  const completionRate = bookings.length > 0 ? Math.round((completedBookings / bookings.length) * 100) : 0;
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { start, end } = getRangeDates(range);
+      const [salesRes, bookingsRes, svc, clients] = await Promise.all([
+        supabase.from("sales").select("amount, created_at, payment_method, service_name, client_name").eq("status", "completed").gte("created_at", start).lte("created_at", end + "T23:59:59"),
+        supabase.from("bookings").select("status, preferred_date, service_name, client_name, staff_name, price").gte("preferred_date", start).lte("preferred_date", end),
+        getTopServices(),
+        getTopClients(),
+      ]);
+      setSales(salesRes.data || []);
+      setBookings(bookingsRes.data || []);
+      setTopServices(svc);
+      setTopClients(clients);
+    } catch { toast.error("Failed to load analytics"); }
+    finally { setLoading(false); }
+  };
 
-  const tierCounts = clientAnalytics.reduce((acc, c) => {
-    acc[c.client_tier] = (acc[c.client_tier] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Derived metrics
+  const totalRevenue   = sales.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const avgTicket      = sales.length ? totalRevenue / sales.length : 0;
+  const completed      = bookings.filter(b => b.status === "completed").length;
+  const cancelled      = bookings.filter(b => b.status === "cancelled").length;
+  const compRate       = bookings.length ? Math.round((completed / bookings.length) * 100) : 0;
+  const noShows        = bookings.filter(b => b.status === "no_show").length;
 
-  const paymentMethodTotals = revenue.reduce((acc, p) => {
-    acc[p.payment_method] = (acc[p.payment_method] || 0) + p.amount;
-    return acc;
-  }, {} as Record<string, number>);
+  // Revenue chart
+  const { start } = getRangeDates(range);
+  const daysSpan = Math.ceil((new Date().getTime() - new Date(start).getTime()) / 86400000) + 1;
+  const revenueChart = daysSpan <= 30 ? getRevenueByDay(sales, daysSpan) : getRevenueByWeek(sales);
 
-  const statCards = [
-    { label: "Total Revenue", value: `GHS ${totalRevenue.toLocaleString("en-GH", { minimumFractionDigits: 2 })}`, color: "text-green-600" },
-    { label: "Total Bookings", value: bookings.length.toString(), color: "text-blue-600" },
-    { label: "Completed", value: completedBookings.toString(), color: "text-green-600" },
-    { label: "Completion Rate", value: `${completionRate}%`, color: completionRate >= 80 ? "text-green-600" : "text-yellow-600" },
-    { label: "Cancellations", value: cancelledBookings.toString(), color: "text-red-600" },
-    { label: "Total Clients", value: clientAnalytics.length.toString(), color: "text-purple-600" },
-  ];
+  // Payment methods
+  const paymentBreakdown = getPaymentMethodBreakdown(sales);
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading analytics...</div>;
+  // Booking status pie
+  const statusData = [
+    { name: "Completed", value: completed,                              color: "#10B981" },
+    { name: "Cancelled", value: cancelled,                              color: "#EF4444" },
+    { name: "No Show",   value: noShows,                               color: "#F59E0B" },
+    { name: "Pending",   value: bookings.filter(b => b.status === "pending").length, color: "#3B82F6" },
+    { name: "Confirmed", value: bookings.filter(b => b.status === "confirmed").length, color: GOLD },
+  ].filter(d => d.value > 0);
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+      <div style={{ width: 36, height: 36, border: `3px solid ${G_LIGHT}`, borderTop: `3px solid ${GOLD}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
+    <div style={{ padding: "28px 32px", maxWidth: 1300, margin: "0 auto", fontFamily: "'Montserrat',sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');`}</style>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {statCards.map(s => (
-          <div key={s.label} className="border rounded-xl p-5 bg-card">
-            <p className="text-sm text-muted-foreground">{s.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
-          </div>
-        ))}
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT, marginBottom: 4 }}>ZOLARA BEAUTY STUDIO</div>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 32, fontWeight: 700, color: TXT, lineHeight: 1 }}>Analytics</div>
+        </div>
+        {/* Range filter */}
+        <div style={{ display: "flex", gap: 6, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 5 }}>
+          {RANGE_OPTIONS.map(o => (
+            <button key={o.value} onClick={() => setRange(o.value)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "'Montserrat',sans-serif", background: range === o.value ? NAVY : "transparent", color: range === o.value ? WHITE : TXT_MID, transition: "all 0.15s" }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      {/* KPI Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 28 }}>
+        <KPICard label="Revenue"        value={fmt(totalRevenue)}       sub={`${sales.length} transactions`} />
+        <KPICard label="Avg Ticket"     value={fmt(avgTicket)}          sub="per transaction" />
+        <KPICard label="Total Bookings" value={bookings.length}         sub={`${completed} completed`} />
+        <KPICard label="Completion Rate" value={`${compRate}%`}         sub={`${cancelled} cancelled`} />
+        <KPICard label="No Shows"       value={noShows}                 sub="missed appointments" />
+        <KPICard label="Top Clients"    value={topClients.length}       sub="all-time" />
+      </div>
+
+      {/* Revenue Chart */}
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>Revenue Over Time</SectionTitle>
+        {revenueChart.every(d => d.revenue === 0) ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: TXT_SOFT, fontSize: 13 }}>No revenue data for this period</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={revenueChart} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={BORDER} vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: TXT_SOFT }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: TXT_SOFT }} axisLine={false} tickLine={false} tickFormatter={v => `GHS ${v >= 1000 ? (v/1000).toFixed(0)+"K" : v}`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="revenue" name="Revenue" fill={GOLD} radius={[6,6,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Card>
+
+      {/* Row 2: Top Services + Payment Methods */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+
         {/* Top Services */}
-        <div className="border rounded-xl p-5">
-          <h3 className="font-semibold mb-4">Top Services (by completions)</h3>
-          <div className="space-y-3">
-            {topServices.map((s, i) => (
-              <div key={s.name} className="flex items-center gap-3">
-                <span className="text-sm font-bold text-muted-foreground w-5">{i + 1}</span>
-                <div className="flex-1">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{s.name}</span>
-                    <span className="font-medium">{s.count} bookings</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: `${topServices[0]?.count ? (s.count / topServices[0].count) * 100 : 0}%` }} />
-                  </div>
+        <Card>
+          <SectionTitle>Top Services</SectionTitle>
+          {topServices.length === 0 ? (
+            <div style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No data yet</div>
+          ) : topServices.map((s, i) => (
+            <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < topServices.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+              <div style={{ width: 26, height: 26, borderRadius: 8, background: i === 0 ? G_LIGHT : CREAM, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: i === 0 ? GOLD : TXT_SOFT, flexShrink: 0 }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: TXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</div>
+                <div style={{ marginTop: 4, height: 4, borderRadius: 2, background: BORDER, overflow: "hidden" }}>
+                  <div style={{ height: "100%", borderRadius: 2, background: GOLD, width: `${topServices[0]?.count ? (s.count / topServices[0].count) * 100 : 0}%` }} />
                 </div>
               </div>
-            ))}
-            {topServices.length === 0 && <p className="text-sm text-muted-foreground">No data yet</p>}
-          </div>
-        </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: TXT }}>{s.count}×</div>
+                <div style={{ fontSize: 10, color: TXT_SOFT }}>{fmt(s.revenue)}</div>
+              </div>
+            </div>
+          ))}
+        </Card>
 
         {/* Payment Methods */}
-        <div className="border rounded-xl p-5">
-          <h3 className="font-semibold mb-4">Revenue by Payment Method</h3>
-          <div className="space-y-3">
-            {Object.entries(paymentMethodTotals).map(([method, amount]) => (
-              <div key={method} className="flex justify-between items-center">
-                <span className="text-sm capitalize">{method.replace("_", " ")}</span>
-                <span className="font-semibold text-sm">GHS {(amount as number).toLocaleString("en-GH", { minimumFractionDigits: 2 })}</span>
+        <Card>
+          <SectionTitle>Revenue by Payment</SectionTitle>
+          {paymentBreakdown.length === 0 ? (
+            <div style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No payment data yet</div>
+          ) : (
+            <>
+              <div style={{ height: 6, borderRadius: 3, display: "flex", gap: 2, marginBottom: 20, overflow: "hidden" }}>
+                {paymentBreakdown.map((d, i) => (
+                  <div key={d.method} style={{ flex: d.amount, background: COLORS[i % COLORS.length], minWidth: 4 }} />
+                ))}
               </div>
-            ))}
-            {Object.keys(paymentMethodTotals).length === 0 && <p className="text-sm text-muted-foreground">No payment data yet</p>}
-          </div>
-        </div>
+              {paymentBreakdown.map((d, i) => (
+                <div key={d.method} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < paymentBreakdown.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 9, height: 9, borderRadius: 3, background: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 500, color: TXT_MID, textTransform: "capitalize" }}>{d.method.replace(/_/g, " ")}</span>
+                    <span style={{ fontSize: 10, color: TXT_SOFT }}>{d.count}×</span>
+                  </div>
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 600, color: TXT }}>{fmt(d.amount)}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </Card>
+      </div>
 
-        {/* Client Tiers */}
-        <div className="border rounded-xl p-5">
-          <h3 className="font-semibold mb-4">Client Tiers</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[["new","New","bg-gray-100 text-gray-800"],["regular","Regular","z-badge z-badge-blue"],["vip","VIP","z-badge z-badge-purple"],["platinum","Platinum","z-badge z-badge-amber"]].map(([tier,label,color])=>(
-              <div key={tier} className={`rounded-lg p-3 ${color}`}>
-                <p className="text-xs font-medium">{label}</p>
-                <p className="text-xl font-bold">{tierCounts[tier] || 0}</p>
+      {/* Row 3: Booking Status Pie + Top Clients */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+
+        {/* Booking Status */}
+        <Card>
+          <SectionTitle>Booking Status Breakdown</SectionTitle>
+          {statusData.length === 0 ? (
+            <div style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No bookings in this period</div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+              <ResponsiveContainer width={180} height={180}>
+                <PieChart>
+                  <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+                    {statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => [v, ""]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ flex: 1 }}>
+                {statusData.map((d, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: i < statusData.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }} />
+                      <span style={{ fontSize: 12, color: TXT_MID }}>{d.name}</span>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: TXT }}>{d.value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
+        </Card>
 
         {/* Top Clients */}
-        <div className="border rounded-xl p-5">
-          <h3 className="font-semibold mb-4">Top Clients by Spend</h3>
-          <div className="space-y-2">
-            {clientAnalytics.slice(0, 5).map((c, i) => (
-              <div key={c.id} className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">{i + 1}.</span>
-                <span className="flex-1 px-2 truncate">{c.client_id}</span>
-                <span className="font-semibold">GHS {(c.total_spent || 0).toLocaleString("en-GH", { minimumFractionDigits: 2 })}</span>
+        <Card>
+          <SectionTitle>Top Clients by Spend</SectionTitle>
+          {topClients.length === 0 ? (
+            <div style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No client data yet</div>
+          ) : topClients.map((c, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < topClients.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: i === 0 ? G_LIGHT : CREAM, border: `1.5px solid ${i === 0 ? GOLD : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: i === 0 ? GOLD : TXT_SOFT, flexShrink: 0 }}>
+                {i < 3 ? ["🥇","🥈","🥉"][i] : i + 1}
               </div>
-            ))}
-            {clientAnalytics.length === 0 && <p className="text-sm text-muted-foreground">No client data yet</p>}
-          </div>
-        </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: TXT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                <div style={{ fontSize: 10, color: TXT_SOFT }}>{c.total_visits || 0} visits · {c.loyalty_points || 0} pts</div>
+              </div>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 700, color: TXT, flexShrink: 0 }}>{fmt(c.total_spent || 0)}</div>
+            </div>
+          ))}
+        </Card>
       </div>
     </div>
   );
