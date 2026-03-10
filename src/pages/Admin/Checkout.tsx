@@ -49,6 +49,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { format } from "date-fns";
+import { sendSMS, SMS } from "@/lib/sms";
 
 type PaymentMethod = "cash" | "momo" | "card" | "bank_transfer" | "gift_card";
 
@@ -98,6 +99,8 @@ const Checkout = () => {
   const [notes, setNotes] = useState("");
   const [completed, setCompleted] = useState(false);
   const [pending, setPending] = useState(false);
+  const [depositPaid, setDepositPaid] = useState(false);
+  const [depositAmount] = useState(50);
   const [amount, setAmount] = useState<string>("");
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [giftCode, setGiftCode] = useState<string>("");
@@ -517,6 +520,23 @@ const Checkout = () => {
         setPaymentMethod(paymentMethod);
         setCompleted(true);
         toast.success("Checkout completed successfully!");
+        // Send thank you SMS
+        try {
+          const clientPhone = booking.clients?.phone || (booking as any).client_phone;
+          if (clientPhone) {
+            const currentStamps = (booking as any).clients?.loyalty_stamps || 0;
+            const newStamps = currentStamps + Math.floor(paymentAmount / 100);
+            // Update loyalty stamps
+            await supabase.from("clients" as any).update({
+              loyalty_stamps: newStamps
+            }).eq("id", booking.clients?.id || (booking as any).client_id);
+            await sendSMS(clientPhone, SMS.checkoutThankYou(
+              booking.clients?.full_name || "Valued Client",
+              booking.services?.name || "service",
+              newStamps
+            ));
+          }
+        } catch(smsErr) { console.error("SMS error:", smsErr); }
         return;
       }
 
@@ -1367,20 +1387,51 @@ const Checkout = () => {
                 />
               </div>
 
+              {/* Deposit Tracking */}
+              <div className="p-4 rounded-lg border space-y-3" style={{background: "rgba(184,150,110,0.06)", borderColor: "rgba(184,150,110,0.25)"}}>
+                <p className="text-xs font-semibold tracking-wider uppercase" style={{color:"#B8966E"}}>Deposit Tracking</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${depositPaid ? "bg-green-500" : "bg-amber-500"}`} />
+                    <span className="text-sm">GHS {depositAmount} deposit</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${depositPaid ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                      {depositPaid ? "PAID" : "UNPAID"}
+                    </span>
+                    <button
+                      onClick={() => setDepositPaid(d => !d)}
+                      className="text-xs underline"
+                      style={{color:"#B8966E", background:"none", border:"none", cursor:"pointer"}}
+                    >{depositPaid ? "Mark Unpaid" : "Mark Paid"}</button>
+                  </div>
+                </div>
+                {!depositPaid && (
+                  <p className="text-xs text-muted-foreground">Balance due at checkout includes full service amount as deposit was not collected.</p>
+                )}
+                {depositPaid && (
+                  <p className="text-xs text-green-600">Deposit collected. Balance due: GH₵ {Math.max(0, (Number(booking?.services?.price) || 0) - depositAmount).toFixed(2)}</p>
+                )}
+              </div>
+
               {/* Price Summary */}
               <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Service Price</span>
-                  <span>
-                    GH₵{" "}
-                    {Number(Math.max(0, parseFloat(amount) || 0)).toFixed(2)}
-                  </span>
+                  <span>GH₵ {Number(booking?.services?.price || 0).toFixed(2)}</span>
                 </div>
+                {depositPaid && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Deposit Paid</span>
+                    <span>- GH₵ {depositAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="border-t pt-3 flex justify-between text-lg">
-                  <span className="font-semibold">Total Amount</span>
+                  <span className="font-semibold">Balance Due</span>
                   <span className="font-bold text-primary">
-                    GH₵{" "}
-                    {Number(Math.max(0, parseFloat(amount) || 0)).toFixed(2)}
+                    GH₵ {depositPaid
+                      ? Math.max(0, (Number(booking?.services?.price) || 0) - depositAmount).toFixed(2)
+                      : Number(Math.max(0, parseFloat(amount) || 0)).toFixed(2)}
                   </span>
                 </div>
               </div>

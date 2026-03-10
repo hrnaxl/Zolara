@@ -1,552 +1,382 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import {
-  Sparkles,
-  Calendar,
-  Clock,
-  ChevronLeft,
-  Loader2,
-  Check,
-  Phone,
-  Mail,
-  User,
-} from "lucide-react";
-import { useSettings } from "@/context/SettingsContext";
+import { Loader2, Calendar, Clock, User, Sparkles, Phone, CreditCard, ChevronLeft, Check, MessageCircle, AlertCircle } from "lucide-react";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
-import { z } from "zod";
+import { sendSMS, SMS } from "@/lib/sms";
+import { useSettings } from "@/context/SettingsContext";
+import { format } from "date-fns";
 
-const bookingSchema = z.object({
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  serviceId: z.string().min(1, "Please select a service"),
-  preferredDate: z.string().min(1, "Please select a date"),
-  preferredTime: z.string().min(1, "Please select a time"),
-  notes: z.string().optional(),
-});
+const C = {
+  bg: "#0F0D0B",
+  card: "rgba(255,255,255,0.04)",
+  cardBorder: "rgba(255,255,255,0.09)",
+  gold: "#B8966E",
+  goldLight: "#D4AF7A",
+  goldDark: "#8B6A3E",
+  cream: "#FAF7F2",
+  white: "#FFFFFF",
+  muted: "rgba(255,255,255,0.55)",
+  input: "rgba(255,255,255,0.06)",
+  inputBorder: "rgba(255,255,255,0.12)",
+  success: "#10B981",
+};
 
-const PublicBooking = () => {
+export default function PublicBooking() {
   const { settings } = useSettings();
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [bookingRef, setBookingRef] = useState("");
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [serviceId, setServiceId] = useState("");
-  const [preferredDate, setPreferredDate] = useState("");
-  const [preferredTime, setPreferredTime] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
+  useEffect(() => { fetchServices(); }, []);
 
   const fetchServices = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .order("name");
-
-      setServices(data || []);
-    } catch (error) {
-      console.error("Error fetching services:", error);
-      toast.error("Failed to load services");
-    } finally {
-      setLoading(false);
-    }
+    const { data } = await supabase.from("services").select("*").eq("is_active", true).order("category").order("name");
+    setServices(data || []);
+    setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const selectedService = services.find(s => s.id === serviceId);
+  const today = new Date().toISOString().split("T")[0];
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!name.trim() || name.trim().length < 2) e.name = "Please enter your full name";
+    if (!phone.trim() || phone.replace(/\D/g,"").length < 9) e.phone = "Please enter a valid phone number";
+    if (!serviceId) e.service = "Please select a service";
+    if (!date) e.date = "Please select a date";
+    if (!time) e.time = "Please select a time";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Please enter a valid email";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
     setSubmitting(true);
 
     try {
-      // Validate input
-      const validated = bookingSchema.parse({
-        fullName,
-        email,
-        phone,
-        serviceId,
-        preferredDate,
-        preferredTime,
-        notes,
-      });
-
-      // Normalize & validate time
-      const normalizedTime = normalizeTimeTo24(validated.preferredTime);
-
-      if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(normalizedTime)) {
-        throw new Error("Please enter a valid time in HH:mm format");
-      }
-
-      const openTime = (settings as any)?.open_time;
-      const closeTime = (settings as any)?.close_time;
-
-      if (
-        openTime &&
-        closeTime &&
-        !isTimeWithinRange(normalizedTime, openTime, closeTime)
-      ) {
-        throw new Error(
-          `Preferred time must be within operating hours (${openTime} — ${closeTime})`
-        );
-      }
-
-      validated.preferredTime = normalizedTime;
-
-      // Prevent Sunday bookings
-      const selectedDate = new Date(`${validated.preferredDate}T00:00:00`);
+      const normalizedTime = normalizeTimeTo24(time);
+      const selectedDate = new Date(`${date}T00:00:00`);
       if (selectedDate.getDay() === 0) {
-        throw new Error(
-          "Bookings cannot be scheduled on Sundays. Please choose another date."
-        );
+        toast.error("We are closed on Sundays. Please choose another date.");
+        setSubmitting(false);
+        return;
       }
 
-      // Check if client already exists
-      const { data: existingClient, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("email", email);
+      // Find or create client by phone
+      const { data: existing } = await supabase
+        .from("clients" as any)
+        .select("id, name, phone")
+        .eq("phone", phone.replace(/\s/g, ""))
+        .maybeSingle();
 
-      console.log("Raw clients data:", existingClient, "Error:", error);
+      let clientId: string;
 
-      if (error) throw error;
-
-      let clientId: string | null = null;
-      console.log("Existing client", existingClient);
-
-      // Create client if not found
-      if (existingClient && existingClient.length > 0) {
-        clientId = existingClient[0].id;
+      if (existing) {
+        clientId = (existing as any).id;
       } else {
-        const { data, error } = await supabase.functions.invoke("invite-user", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrdmpueWRvbWZyZXNua2VhbHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2MjE1MjgsImV4cCI6MjA3ODE5NzUyOH0.9Yg5H0x4AFptSnGu7PRhMPL33z4cUuCJDBt4VlvuMQc`,
-          },
-          body: JSON.stringify({
-            role: "client",
-            full_name: validated.fullName,
-            email: validated.email,
-            phone: validated.phone,
-          }),
-        });
-
-        if (error) throw error;
-
-        let parsedData = data;
-
-        if (typeof data === "string") {
-          try {
-            parsedData = JSON.parse(data);
-          } catch {
-            throw new Error("Invalid JSON response from server");
-          }
-        }
-
-        if (!parsedData?.userId) {
-          console.error("Invalid client response:", parsedData);
-          throw new Error("Failed to create client");
-        }
-
-        clientId = parsedData.userId;
-      }
-
-      if (!clientId) {
-        throw new Error("Client ID missing. Booking not created.");
+        const { data: newClient, error: clientErr } = await supabase
+          .from("clients" as any)
+          .insert({ name: name.trim(), phone: phone.replace(/\s/g,""), email: email || null })
+          .select("id")
+          .single();
+        if (clientErr) throw clientErr;
+        clientId = (newClient as any).id;
       }
 
       // Create booking request
-      const { error: bookingError } = await supabase
-        .from("booking_requests") //@ts-ignore
+      const ref = "ZBS-" + Date.now().toString(36).toUpperCase();
+      const { error: bookingErr } = await supabase
+        .from("booking_requests" as any)
         .insert({
           client_id: clientId,
-          service_id: validated.serviceId,
-          preferred_date: validated.preferredDate,
-          preferred_time: validated.preferredTime,
-          notes: validated.notes || null,
+          service_id: serviceId,
+          preferred_date: date,
+          preferred_time: normalizedTime,
+          notes: notes || null,
           status: "pending",
+          deposit_amount: 50,
+          deposit_paid: false,
+          booking_ref: ref,
+          client_name: name.trim(),
+          client_phone: phone,
         });
 
-      if (bookingError) throw bookingError;
+      if (bookingErr) throw bookingErr;
 
-      // Success
+      setBookingRef(ref);
+
+      // Send SMS confirmation
+      const formattedDate = format(new Date(`${date}T00:00:00`), "EEEE, MMMM d yyyy");
+      await sendSMS(phone, SMS.bookingConfirmation(name.trim(), selectedService?.name || "Beauty Service", formattedDate, normalizedTime));
+
       setSubmitted(true);
-      toast.success("Booking request submitted successfully!");
     } catch (err: any) {
-      console.error("Error submitting booking:", err);
-      toast.error(err?.message || "Failed to submit booking request");
+      console.error(err);
+      toast.error(err?.message || "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const selectedService = services.find((s) => s.id === serviceId);
+  // Group services by category
+  const grouped = services.reduce((acc: Record<string, any[]>, s) => {
+    const cat = s.category || "Other";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(s);
+    return acc;
+  }, {});
 
-  // Get minimum date (today)
-  const today = new Date().toISOString().split("T")[0];
+  const inputStyle = {
+    width: "100%",
+    padding: "13px 16px",
+    background: C.input,
+    border: `1px solid ${C.inputBorder}`,
+    borderRadius: 10,
+    color: C.white,
+    fontSize: 14,
+    outline: "none",
+    fontFamily: "Jost, sans-serif",
+    boxSizing: "border-box" as const,
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.1em",
+    color: C.muted,
+    marginBottom: 6,
+    fontFamily: "Jost, sans-serif",
+    textTransform: "uppercase" as const,
+  };
 
   if (submitted) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4 relative"
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute inset-0 bg-black/60" />
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Jost:wght@300;400;500;600&display=swap');`}</style>
+        <div style={{ maxWidth: 480, width: "100%", textAlign: "center" }}>
+          <div style={{ width: 80, height: 80, borderRadius: "50%", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px" }}>
+            <Check size={36} color={C.bg} strokeWidth={2.5} />
+          </div>
+          <h2 style={{ fontSize: 32, fontWeight: 400, color: C.white, marginBottom: 12, fontFamily: "Cormorant Garamond, serif" }}>Booking Received!</h2>
+          <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7, marginBottom: 8, fontFamily: "Jost, sans-serif" }}>
+            Reference: <span style={{ color: C.gold, fontWeight: 600 }}>{bookingRef}</span>
+          </p>
+          <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7, marginBottom: 32, fontFamily: "Jost, sans-serif" }}>
+            A confirmation SMS has been sent to <span style={{ color: C.white }}>{phone}</span>. Your slot is secured once the GHS 50 deposit is received.
+          </p>
 
-        <Card className="w-full max-w-md relative z-10 bg-white/10 backdrop-blur-xl border-white/20 rounded-2xl text-center">
-          <CardContent className="p-8 space-y-6">
-            <div className="w-20 h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
-              <Check className="w-10 h-10 text-green-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-white">
-              Booking Request Submitted!
-            </h2>
-            <p className="text-white/70">
-              Thank you for your booking request. Our team will review it and
-              contact you shortly to confirm your appointment.
-            </p>
-            <div className="flex flex-col gap-3 pt-4">
-              <Link to="/">
-                <Button className="w-full bg-champagne hover:bg-champagne-dark text-white">
-                  Return to Home
-                </Button>
-              </Link>
-              <Button
-                variant="outline"
-                className="w-full border-white/30 text-white hover:bg-white/10"
-                onClick={() => {
-                  setSubmitted(false);
-                  setFullName("");
-                  setEmail("");
-                  setPhone("");
-                  setServiceId("");
-                  setPreferredDate("");
-                  setPreferredTime("");
-                  setNotes("");
-                }}
-              >
-                Book Another Appointment
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: 24, marginBottom: 32, textAlign: "left" }}>
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.15em", color: C.gold, marginBottom: 16, fontFamily: "Jost, sans-serif" }}>NEXT STEPS</p>
+            {[
+              { num: "1", label: "Send GHS 50 deposit", sub: "MTN MoMo: 0594 365 314 (Zolara Beauty Studio)" },
+              { num: "2", label: "Wait for confirmation", sub: "We will confirm your slot via SMS or call" },
+              { num: "3", label: "Show up and be pampered", sub: `${selectedService?.name || "Your service"} on ${date ? format(new Date(date + "T00:00:00"), "MMM d") : date} at ${time}` },
+            ].map(({ num, label, sub }) => (
+              <div key={num} style={{ display: "flex", gap: 14, marginBottom: 16 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: C.bg }}>{num}</div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: C.white, fontFamily: "Jost, sans-serif" }}>{label}</p>
+                  <p style={{ fontSize: 12, color: C.muted, fontFamily: "Jost, sans-serif" }}>{sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <a href="https://wa.me/233594365314" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              <button style={{ width: "100%", padding: "14px", background: "#25D366", border: "none", borderRadius: 10, color: C.white, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "Jost, sans-serif" }}>
+                <MessageCircle size={16} /> Chat on WhatsApp
+              </button>
+            </a>
+            <Link to="/" style={{ textDecoration: "none" }}>
+              <button style={{ width: "100%", padding: "14px", background: "transparent", border: `1px solid ${C.inputBorder}`, borderRadius: 10, color: C.muted, fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "Jost, sans-serif" }}>
+                Return to Home
+              </button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-screen relative py-20"
-      style={{
-        backgroundImage:
-          "url('https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-      }}
-    >
-      <div className="absolute inset-0 bg-black/60" />
+    <div style={{ minHeight: "100vh", background: C.bg, color: C.white }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Jost:wght@300;400;500;600&display=swap');
+        * { box-sizing: border-box; }
+        input[type=date]::-webkit-calendar-picker-indicator,
+        input[type=time]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); }
+        input::placeholder { color: rgba(255,255,255,0.25); }
+        select option { background: #1A1A1A; color: white; }
+        .booking-input:focus { border-color: #B8966E !important; box-shadow: 0 0 0 3px rgba(184,150,110,0.12); }
+        @media(max-width:640px) { .two-col { grid-template-columns: 1fr !important; } }
+      `}</style>
 
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-md border-b border-champagne/20">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-champagne">
-              <img
-                src={
-                  settings?.logo_url ||
-                  "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg"
-                }
-                alt="Logo"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span className="text-xl font-bold text-white">
-              {/* @ts-ignore */}
-              {settings?.business_name || "Zolara Beauty Studio"}
-            </span>
-          </Link>
-          <Link to="/">
-            <Button variant="ghost" className="text-white hover:text-champagne">
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
-        </div>
+      {/* Navbar */}
+      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(15,13,11,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
+          <img src="/logo.png" alt="Zolara" style={{ width: 36, height: 36, objectFit: "contain" }} />
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 500, color: C.white, letterSpacing: "0.12em" }}>ZOLARA</p>
+            <p style={{ fontSize: 9, color: C.gold, letterSpacing: "0.2em", fontFamily: "Jost, sans-serif" }}>BEAUTY STUDIO</p>
+          </div>
+        </Link>
+        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.muted, fontFamily: "Jost, sans-serif" }}>
+          <ChevronLeft size={14} /> Back to Home
+        </Link>
       </nav>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 pt-16 relative z-10">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="mx-auto w-20 h-20 rounded-full overflow-hidden border-4 border-champagne mb-4 shadow-xl">
-              <img
-                src={
-                  settings?.logo_url ||
-                  "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg"
-                }
-                alt="Logo"
-                className="w-full h-full object-cover"
-              />
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 20px 80px" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <img src="/logo.png" alt="Zolara" style={{ width: 64, height: 64, objectFit: "contain", margin: "0 auto 16px" }} />
+          <h1 style={{ fontSize: "clamp(32px, 6vw, 48px)", fontWeight: 400, color: C.white, marginBottom: 8, fontFamily: "Cormorant Garamond, serif" }}>Book an Appointment</h1>
+          <p style={{ fontSize: 14, color: C.muted, fontFamily: "Jost, sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Sparkles size={14} color={C.gold} /> Where Luxury Meets Beauty in Tamale
+          </p>
+        </div>
+
+        {/* Deposit Notice */}
+        <div style={{ background: `linear-gradient(135deg, rgba(184,150,110,0.12), rgba(184,150,110,0.06))`, border: `1px solid rgba(184,150,110,0.3)`, borderRadius: 14, padding: "18px 20px", marginBottom: 28, display: "flex", gap: 14, alignItems: "flex-start" }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <CreditCard size={18} color={C.bg} />
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: C.gold, marginBottom: 4, fontFamily: "Jost, sans-serif" }}>GHS 50 Non-Refundable Deposit Required</p>
+            <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, fontFamily: "Jost, sans-serif" }}>After booking, you will receive an SMS with payment details. Your appointment is only secured once the deposit is confirmed. Send to MTN MoMo: <span style={{ color: C.white }}>0594 365 314</span></p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+            <Loader2 size={28} style={{ color: C.gold, animation: "spin 1s linear infinite" }} />
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+
+            {/* Section 1: Your Info */}
+            <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: 28, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${C.gold}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <User size={15} color={C.gold} />
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 500, color: C.white, fontFamily: "Cormorant Garamond, serif" }}>Your Information</p>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>Full Name <span style={{ color: C.gold }}>*</span></label>
+                <input className="booking-input" value={name} onChange={e => setName(e.target.value)} placeholder="Enter your full name" style={{ ...inputStyle, borderColor: errors.name ? "#EF4444" : C.inputBorder }} />
+                {errors.name && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: "Jost, sans-serif" }}>{errors.name}</p>}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="two-col">
+                <div>
+                  <label style={labelStyle}>Phone Number <span style={{ color: C.gold }}>*</span></label>
+                  <input className="booking-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0594 365 314" type="tel" style={{ ...inputStyle, borderColor: errors.phone ? "#EF4444" : C.inputBorder }} />
+                  {errors.phone && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: "Jost, sans-serif" }}>{errors.phone}</p>}
+                </div>
+                <div>
+                  <label style={labelStyle}>Email <span style={{ color: C.muted, fontWeight: 400 }}>(optional)</span></label>
+                  <input className="booking-input" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" type="email" style={{ ...inputStyle, borderColor: errors.email ? "#EF4444" : C.inputBorder }} />
+                  {errors.email && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: "Jost, sans-serif" }}>{errors.email}</p>}
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              Book an Appointment
-            </h1>
-            <p className="text-champagne flex items-center justify-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              Where Beauty Meets Excellence
-              <Sparkles className="w-5 h-5" />
+
+            {/* Section 2: Service */}
+            <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: 28, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${C.gold}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Sparkles size={15} color={C.gold} />
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 500, color: C.white, fontFamily: "Cormorant Garamond, serif" }}>Select a Service</p>
+              </div>
+
+              <select className="booking-input" value={serviceId} onChange={e => setServiceId(e.target.value)} style={{ ...inputStyle, borderColor: errors.service ? "#EF4444" : C.inputBorder, cursor: "pointer" }}>
+                <option value="">Choose a service...</option>
+                {Object.entries(grouped).map(([cat, svcs]) => (
+                  <optgroup key={cat} label={cat}>
+                    {(svcs as any[]).map(s => (
+                      <option key={s.id} value={s.id}>{s.name} {s.price ? `- GHS ${s.price}` : ""}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              {errors.service && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: "Jost, sans-serif" }}>{errors.service}</p>}
+
+              {selectedService && (
+                <div style={{ marginTop: 14, padding: "14px 16px", background: `${C.gold}0A`, border: `1px solid ${C.gold}30`, borderRadius: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: C.white, fontFamily: "Jost, sans-serif" }}>{selectedService.name}</p>
+                      {selectedService.description && <p style={{ fontSize: 12, color: C.muted, fontFamily: "Jost, sans-serif", marginTop: 2 }}>{selectedService.description}</p>}
+                    </div>
+                    {selectedService.price && <p style={{ fontSize: 16, fontWeight: 600, color: C.gold, fontFamily: "Cormorant Garamond, serif" }}>GHS {selectedService.price}</p>}
+                  </div>
+                  {selectedService.duration_minutes && <p style={{ fontSize: 11, color: C.muted, marginTop: 6, fontFamily: "Jost, sans-serif" }}>Estimated duration: {selectedService.duration_minutes} minutes</p>}
+                </div>
+              )}
+            </div>
+
+            {/* Section 3: Date & Time */}
+            <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: 28, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${C.gold}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Calendar size={15} color={C.gold} />
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 500, color: C.white, fontFamily: "Cormorant Garamond, serif" }}>Date and Time</p>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="two-col">
+                <div>
+                  <label style={labelStyle}>Preferred Date <span style={{ color: C.gold }}>*</span></label>
+                  <input className="booking-input" type="date" value={date} onChange={e => setDate(e.target.value)} min={today} style={{ ...inputStyle, borderColor: errors.date ? "#EF4444" : C.inputBorder }} />
+                  {errors.date && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: "Jost, sans-serif" }}>{errors.date}</p>}
+                </div>
+                <div>
+                  <label style={labelStyle}>Preferred Time <span style={{ color: C.gold }}>*</span></label>
+                  <input className="booking-input" type="time" value={time} onChange={e => setTime(e.target.value)} min="08:30" max="21:00" style={{ ...inputStyle, borderColor: errors.time ? "#EF4444" : C.inputBorder }} />
+                  {errors.time && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: "Jost, sans-serif" }}>{errors.time}</p>}
+                </div>
+              </div>
+              <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
+                <AlertCircle size={12} color={C.muted} />
+                <p style={{ fontSize: 11, color: C.muted, fontFamily: "Jost, sans-serif" }}>Open Monday to Saturday, 8:30 AM to 9:00 PM. Closed Sundays.</p>
+              </div>
+            </div>
+
+            {/* Section 4: Notes */}
+            <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: 28, marginBottom: 24 }}>
+              <label style={labelStyle}>Special Requests <span style={{ color: C.muted, fontWeight: 400 }}>(optional)</span></label>
+              <textarea className="booking-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any special requests, style references, or notes for your appointment..." rows={3} style={{ ...inputStyle, resize: "vertical", minHeight: 90 }} />
+            </div>
+
+            {/* Submit */}
+            <button onClick={handleSubmit} disabled={submitting} style={{ width: "100%", padding: "18px", background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, border: "none", borderRadius: 12, color: C.bg, fontSize: 13, fontWeight: 700, letterSpacing: "0.14em", cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1, fontFamily: "Jost, sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              {submitting ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Processing...</> : "REQUEST APPOINTMENT"}
+            </button>
+
+            <p style={{ textAlign: "center", fontSize: 12, color: C.muted, marginTop: 12, fontFamily: "Jost, sans-serif" }}>
+              By booking, you agree to our GHS 50 deposit policy and 24-hour cancellation notice requirement.
             </p>
           </div>
-
-          {/* Booking Form Card */}
-          <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-2xl shadow-2xl">
-            <CardHeader>
-              <CardTitle className="text-xl text-white">
-                Your Information
-              </CardTitle>
-              <CardDescription className="text-white/60">
-                Fill in your details and preferred appointment time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-champagne" />
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Personal Information */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label
-                        htmlFor="fullName"
-                        className="text-white/90 flex items-center gap-2"
-                      >
-                        <User className="w-4 h-4 text-champagne" />
-                        Full Name
-                      </Label>
-                      <Input
-                        id="fullName"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Enter your full name"
-                        required
-                        className="mt-1 bg-white/10 border-white/30 text-white placeholder:text-white/50"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label
-                          htmlFor="email"
-                          className="text-white/90 flex items-center gap-2"
-                        >
-                          <Mail className="w-4 h-4 text-champagne" />
-                          Email
-                        </Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="your@email.com"
-                          required
-                          className="mt-1 bg-white/10 border-white/30 text-white placeholder:text-white/50"
-                        />
-                      </div>
-                      <div>
-                        <Label
-                          htmlFor="phone"
-                          className="text-white/90 flex items-center gap-2"
-                        >
-                          <Phone className="w-4 h-4 text-champagne" />
-                          Phone Number
-                        </Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="+233 XX XXX XXXX"
-                          required
-                          className="mt-1 bg-white/10 border-white/30 text-white placeholder:text-white/50"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Service Selection */}
-                  <div>
-                    <Label
-                      htmlFor="service"
-                      className="text-white/90 flex items-center gap-2"
-                    >
-                      <Sparkles className="w-4 h-4 text-champagne" />
-                      Select Service
-                    </Label>
-                    <Select value={serviceId} onValueChange={setServiceId}>
-                      <SelectTrigger className="mt-1 bg-white/10 border-white/30 text-white">
-                        <SelectValue placeholder="Choose a service" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {services.map((service) => (
-                          <SelectItem key={service.id} value={service.id}>
-                            <span className="flex items-center justify-between w-full gap-4">
-                              <span>{service.name}</span>
-                              {/* <span className="text-muted-foreground">
-                                GH₵ {service.price.toFixed(2)}
-                              </span> */}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedService && (
-                      <div className="mt-2 p-3 bg-champagne/10 rounded-lg border border-champagne/20">
-                        <p className="text-white text-sm">
-                          <span className="font-medium">
-                            {selectedService.name}
-                          </span>
-                          {selectedService.description && (
-                            <span className="text-white/70">
-                              {" "}
-                              - {selectedService.description}
-                            </span>
-                          )}
-                        </p>
-                        {/* <p className="text-champagne text-sm mt-1">
-                          Duration: {selectedService.duration_minutes} mins • Price: GH₵ {selectedService.price.toFixed(2)}
-                        </p> */}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Date and Time */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label
-                        htmlFor="date"
-                        className="text-white/90 flex items-center gap-2"
-                      >
-                        <Calendar className="w-4 h-4 text-champagne" />
-                        Preferred Date
-                      </Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={preferredDate}
-                        onChange={(e) => setPreferredDate(e.target.value)}
-                        min={today}
-                        required
-                        className="mt-1 bg-white/10 border-white/30 text-white"
-                      />
-                    </div>
-                    <div>
-                      <Label
-                        htmlFor="time"
-                        className="text-white/90 flex items-center gap-2"
-                      >
-                        <Clock className="w-4 h-4 text-champagne" />
-                        Preferred Time
-                      </Label>
-                      <Input
-                        id="time"
-                        type="time"
-                        value={preferredTime}
-                        onChange={(e) => setPreferredTime(e.target.value)}
-                        required
-                        className="mt-1 bg-white/10 border-white/30 text-white"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  <div>
-                    <Label htmlFor="notes" className="text-white/90">
-                      Special Requests (optional)
-                    </Label>
-                    <Textarea
-                      id="notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any special requests or notes for your appointment..."
-                      className="mt-1 bg-white/10 border-white/30 text-white placeholder:text-white/50 min-h-[100px]"
-                    />
-                  </div>
-
-                  {/* Submit Button */}
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-champagne hover:bg-champagne-dark text-white font-semibold py-6 text-lg"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      "Request Appointment"
-                    )}
-                  </Button>
-
-                  <p className="text-center text-white/50 text-sm">
-                    Our team will contact you to confirm your appointment
-                  </p>
-                </form>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="relative z-10 mt-12 text-center">
-        <p className="text-white/50 text-sm">
-          Powered by Zolara Management System
-        </p>
-        <Link
-          to="/app/auth"
-          className="text-champagne/70 hover:text-champagne text-sm transition-colors"
-        >
-          Staff Login
-        </Link>
+        )}
       </div>
     </div>
   );
-};
-
-export default PublicBooking;
+}
