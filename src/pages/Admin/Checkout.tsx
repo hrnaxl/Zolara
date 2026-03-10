@@ -102,7 +102,7 @@ const Checkout = () => {
   const [completed, setCompleted] = useState(false);
   const [pending, setPending] = useState(false);
   const [depositPaid, setDepositPaid] = useState(false);
-  const [depositAmount] = useState(50);
+  const depositAmount = Math.round((originalPrice || 0) * 0.5);
   const [amount, setAmount] = useState<string>("");
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [giftCode, setGiftCode] = useState<string>("");
@@ -399,7 +399,9 @@ const Checkout = () => {
       }
       setAppliedPromo(promo);
       setPromoDiscount(discount);
-      const newAmount = Math.max(0, base - discount - (appliedPromo ? promoDiscount : 0) - (redeemedCard?.value ?? 0));
+      // Update amount field to reflect discount
+      const dep = depositPaid ? Math.round(base * 0.5) : 0;
+      const newAmount = Math.max(0, base - discount - (redeemedCard?.value ?? 0) - dep);
       setAmount(newAmount.toFixed(2));
       toast.success(`Promo applied: GH₵${discount.toFixed(2)} off`);
     } catch (e: any) {
@@ -426,13 +428,9 @@ const Checkout = () => {
     // - If a gift card was redeemed, prefer originalPrice - giftValue (clamped at 0)
     // - Otherwise use the amount entered (clamped at 0)
     const giftValue = redeemedCard?.value ?? 0;
-    const base = Number(originalPrice) || parseFloat(amount) || 0;
-    const computedRemaining = Math.max(0, base - promoDiscount - giftValue);
-    const paymentAmount = (redeemedCard || appliedPromo)
-      ? computedRemaining
-      : Math.max(0, parseFloat(amount));
-    // Keep amount state in sync with computed remaining when gift applied
-    if (redeemedCard) setAmount(String(computedRemaining.toFixed(2)));
+    const base = Number(originalPrice) || 0;
+    const dep = depositPaid ? depositAmount : 0;
+    const paymentAmount = Math.max(0, base - promoDiscount - giftValue - dep);
     setProcessing(true);
 
     try {
@@ -1069,13 +1067,12 @@ const Checkout = () => {
                     <p className="text-green-600 text-sm">Gift card: -GH₵{redeemedCard.value.toFixed(2)}</p>
                   ) : null}
                   <p className="font-medium">
-                    Remaining: GH₵{" "}
+                    Balance Due: GH₵{" "}
                     {(() => {
+                      const base = Number(originalPrice) || 0;
                       const giftValue = redeemedCard?.value ?? 0;
-                      const remaining = redeemedCard
-                        ? Math.max(0, Number(originalPrice) - giftValue)
-                        : Math.max(0, parseFloat(amount) || 0);
-                      return remaining.toFixed(2);
+                      const dep = depositPaid ? depositAmount : 0;
+                      return Math.max(0, base - promoDiscount - giftValue - dep).toFixed(2);
                     })()}
                   </p>
                 </div>
@@ -1452,20 +1449,40 @@ const Checkout = () => {
               <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="z-subtitle">Service Price</span>
-                  <span>GH₵ {Number(booking?.services?.price || 0).toFixed(2)}</span>
+                  <span>GH₵ {Number(originalPrice || booking?.services?.price || 0).toFixed(2)}</span>
                 </div>
+                {appliedPromo && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Promo ({appliedPromo.code}){appliedPromo.discount_type === "percentage" ? ` (${appliedPromo.discount_value}%)` : ""}</span>
+                    <span>- GH₵ {promoDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {redeemedCard && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Gift Card</span>
+                    <span>- GH₵ {redeemedCard.value.toFixed(2)}</span>
+                  </div>
+                )}
                 {depositPaid && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Deposit Paid</span>
+                    <span>Deposit Paid (50%)</span>
                     <span>- GH₵ {depositAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                {!depositPaid && (
+                  <div className="flex justify-between text-sm text-amber-600">
+                    <span>50% Deposit</span>
+                    <span>GH₵ {depositAmount.toFixed(2)} unpaid</span>
                   </div>
                 )}
                 <div className="border-t pt-3 flex justify-between text-lg">
                   <span className="font-semibold">Balance Due</span>
                   <span className="font-bold text-primary">
-                    GH₵ {depositPaid
-                      ? Math.max(0, (Number(booking?.services?.price) || 0) - depositAmount).toFixed(2)
-                      : Number(Math.max(0, parseFloat(amount) || 0)).toFixed(2)}
+                    GH₵ {(() => {
+                      const base = Number(originalPrice || booking?.services?.price || 0);
+                      const dep = depositPaid ? depositAmount : 0;
+                      return Math.max(0, base - promoDiscount - (redeemedCard?.value ?? 0) - dep).toFixed(2);
+                    })()}
                   </span>
                 </div>
               </div>
@@ -1498,7 +1515,11 @@ const Checkout = () => {
                   <>
                     <CheckCircle2 className="w-5 h-5 mr-2" />
                     Complete Checkout - GH₵{" "}
-                    {Number(Math.max(0, parseFloat(amount) || 0)).toFixed(2)}
+                    {(() => {
+                      const base = Number(originalPrice || booking?.services?.price || 0);
+                      const dep = depositPaid ? depositAmount : 0;
+                      return Math.max(0, base - promoDiscount - (redeemedCard?.value ?? 0) - dep).toFixed(2);
+                    })()}
                   </>
                 )}
               </Button>
