@@ -43,7 +43,7 @@ import { formatTo12Hour, timeToMinutes } from "@/lib/time";
 
 // Schema for validation
 const staffSchema = z.object({
-  full_name: z
+  name: z
     .string()
     .trim()
     .min(1, "Name is required")
@@ -268,12 +268,8 @@ const Staff = () => {
         phone: validated.phone,
         ...(validated.email && { email: validated.email }),
         ...(validated.specialization && { specialties: [validated.specialization] }),
-        ...(validated.emergency_contact && {
-          emergency_contact: validated.emergency_contact,
-        }),
         role: validated.role,
-        //@ts-ignore
-        ...(formData.status ? { status: formData.status } : { is_active: formData.is_active }),
+        is_active: formData.is_active,
       };
 
       // Upload image if selected
