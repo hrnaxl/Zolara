@@ -301,7 +301,7 @@ const Bookings = () => {
         supabase
           .from("clients")
           .select("*")
-          .or("archived.is.null,archived.eq.false"),
+          .order("name"),
         supabase.from("staff").select("*"),
         supabase.from("services").select("*").order("created_at"),
       ]);

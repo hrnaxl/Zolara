@@ -98,7 +98,7 @@ const ReceptionistDashboard = () => {
       const { count: clientCount, error } = await supabase
         .from("clients")
         .select("*", { count: "exact", head: true })
-        .or("archived.is.null,archived.eq.false");
+        ;
 
       // Calculate stats
       const checkedIn = bookings.filter((b) => b.status === "confirmed").length;

@@ -218,7 +218,7 @@ const AdminDashboard = () => {
         supabase
           .from("clients")
           .select("*", { count: "exact", head: true })
-          .or("archived.is.null,archived.eq.false"),
+          ,
         supabase
           .from("clients")
           .select("*", { count: "exact" })
