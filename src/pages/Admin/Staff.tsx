@@ -395,7 +395,7 @@ const Staff = () => {
                 <Label>Full Name *</Label>
                 <Input
                   placeholder="Jane Smith"
-                  value={formData.full_name}
+                  value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, full_name: e.target.value })
                   }
@@ -570,7 +570,7 @@ const Staff = () => {
                     {member.image ? (
                       <img
                         src={member.image}
-                        alt={member.full_name}
+                        alt={member.name}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -586,7 +586,7 @@ const Staff = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <CardTitle className="text-lg font-semibold">
-                        {member.full_name}
+                        {member.name}
                       </CardTitle>
                       {member.role && (
                         <span className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700">
@@ -704,7 +704,7 @@ const Staff = () => {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
-              {selectedStaff ? selectedStaff.full_name : "Staff Profile"}
+              {selectedStaff ? selectedStaff.name : "Staff Profile"}
             </DialogTitle>
           </DialogHeader>
 
@@ -718,11 +718,11 @@ const Staff = () => {
                     {selectedStaff.image ? (
                       <img
                         src={selectedStaff.image}
-                        alt={selectedStaff.full_name}
+                        alt={selectedStaff.name}
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      (selectedStaff.full_name || "")
+                      (selectedStaff.name || "")
                         .split(" ")
                         .map((n: string) => n[0])
                         .join("")
@@ -731,7 +731,7 @@ const Staff = () => {
 
                   <div>
                     <h3 className="text-xl font-semibold">
-                      {selectedStaff.full_name}
+                      {selectedStaff.name}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {selectedStaff.role}
@@ -779,7 +779,7 @@ const Staff = () => {
                             {b.services?.name || "Service"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {b.clients?.full_name || "Client"} •{" "}
+                            {b.clients?.name || "Client"} •{" "}
                             {b.appointment_date
                               ? format(new Date(b.appointment_date), "PPP")
                               : "Date N/A"}
@@ -897,7 +897,7 @@ const Staff = () => {
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Assign Services to {selectedStaff?.full_name}</DialogTitle>
+            <DialogTitle>Assign Services to {selectedStaff?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="max-h-64 overflow-auto">
@@ -941,7 +941,7 @@ const Staff = () => {
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Schedule & Off days for {selectedStaff?.full_name}</DialogTitle>
+            <DialogTitle>Schedule & Off days for {selectedStaff?.name}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-4 bg-white/5 rounded-lg border">

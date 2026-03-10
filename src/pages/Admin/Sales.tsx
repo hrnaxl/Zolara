@@ -101,7 +101,7 @@ const SalesRevenue = () => {
     try {
       // Build same rows as printReport
       const rows = filteredPayments.map((p) => ({
-        client: p.bookings?.clients?.full_name || "N/A",
+        client: p.bookings?.clients?.name || "N/A",
         service: p.bookings?.services?.name || "N/A",
         method: p.payment_method || "",
         amount:
@@ -344,7 +344,7 @@ const SalesRevenue = () => {
   // Attribute staff revenue only from completed payments tied to completed bookings and having a payment_method
   const staffContributions = Object.values(
     completedPayments.reduce((acc: any, p: any) => {
-      const staffName = p.bookings?.staff?.full_name || "Unassigned";
+      const staffName = p.bookings?.staff?.name || "Unassigned";
       if (!acc[staffName]) acc[staffName] = { name: staffName, revenue: 0 };
       acc[staffName].revenue += Number(p.amount || 0);
       return acc;
@@ -409,7 +409,7 @@ const SalesRevenue = () => {
   const printReport = () => {
     try {
       const rows = filteredPayments.map((p) => ({
-        client: p.bookings?.clients?.full_name || "N/A",
+        client: p.bookings?.clients?.name || "N/A",
         service: p.bookings?.services?.name || "N/A",
         method: p.payment_method || "",
         amount:
@@ -549,7 +549,7 @@ const SalesRevenue = () => {
 
     doc.setFontSize(9);
     for (const p of rows) {
-      const client = p.bookings?.clients?.full_name || "N/A";
+      const client = p.bookings?.clients?.name || "N/A";
       const service = p.bookings?.services?.name || "N/A";
       const method = p.payment_method || "";
       const amount =
@@ -673,7 +673,7 @@ const SalesRevenue = () => {
               .filter((p) => exportScope === "all" || p.payment_status === exportScope)
               .filter((p) => exportPaymentType === "all" || p.payment_method === exportPaymentType)
               .map((p) => ({
-                client: p.bookings?.clients?.full_name,
+                client: p.bookings?.clients?.name,
                 service: p.bookings?.services?.name,
                 method: p.payment_method,
                 status: p.payment_status,
@@ -784,7 +784,7 @@ const SalesRevenue = () => {
             <ul className="text-sm list-disc ml-5 text-muted-foreground">
               {pendingPayments.slice(0, 5).map((p) => (
                 <li key={p.id}>
-                  {p.bookings?.clients?.full_name} — {p.payment_method} — {
+                  {p.bookings?.clients?.name} — {p.payment_method} — {
                     p.payment_status === "pending" ? "Awaiting payment" : p.payment_status === "failed" ? "Payment failed" : "Manual follow up required"
                   }
                 </li>
@@ -818,7 +818,7 @@ const SalesRevenue = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg">
-                      {payment.bookings?.clients?.full_name}
+                      {payment.bookings?.clients?.name}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       {payment.bookings?.services?.name}
@@ -887,7 +887,7 @@ const SalesRevenue = () => {
             <div className="space-y-4">
               <div>
                 <h3 className="font-semibold">Client</h3>
-                <p>{selectedPayment.bookings?.clients?.full_name}</p>
+                <p>{selectedPayment.bookings?.clients?.name}</p>
                 <p className="text-sm text-muted-foreground">
                   {selectedPayment.bookings?.clients?.phone}
                 </p>
@@ -907,7 +907,7 @@ const SalesRevenue = () => {
               <div>
                 <h3 className="font-semibold">Staff</h3>
                 <p>
-                  {selectedPayment.bookings?.staff?.full_name || "Unassigned"}
+                  {selectedPayment.bookings?.staff?.name || "Unassigned"}
                 </p>
               </div>
 

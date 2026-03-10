@@ -12,7 +12,7 @@ export type AttendanceRecord = {
 
 export type Staff = {
   id: string;
-  full_name: string;
+  name: string;
   email?: string;
 };
 

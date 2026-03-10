@@ -23,7 +23,7 @@ interface BulkActionsProps {
   onBulkComplete: () => void;
   onBulkCancel: (reason: string) => void;
   onBulkAssignStaff: (staffId: string) => void;
-  staff: { id: string; full_name: string }[];
+  staff: { id: string; name: string }[];
 }
 
 const CANCELLATION_REASONS = [
@@ -179,7 +179,7 @@ export const BulkActions = ({
                 <SelectContent>
                   {staff.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      {s.full_name}
+                      {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

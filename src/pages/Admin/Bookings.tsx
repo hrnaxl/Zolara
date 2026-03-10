@@ -332,7 +332,7 @@ const Bookings = () => {
     const results = clients
       .filter((c) => {
         if (!c) return false;
-        const name = (c.full_name || "").toLowerCase();
+        const name = (c.name || "").toLowerCase();
         const email = (c.email || "").toLowerCase();
         const phone = (c.phone || "").toLowerCase();
         return name.includes(q) || email.includes(q) || phone.includes(q);
@@ -768,7 +768,7 @@ const Bookings = () => {
 
       const staffMember = staff.find((s) => s.id === staffId);
       toast.success(
-        `${selectedBookings.size} bookings assigned to ${staffMember?.full_name}`,
+        `${selectedBookings.size} bookings assigned to ${staffMember?.name}`,
       );
       handleClearSelection();
       fetchBookings();
@@ -873,7 +873,7 @@ const Bookings = () => {
                     {(filteredClients.length ? filteredClients : clients).map(
                       (c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.full_name}
+                          {c.name}
                         </SelectItem>
                       ),
                     )}
@@ -916,7 +916,7 @@ const Bookings = () => {
                   <SelectContent>
                     {staff.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.full_name}
+                        {s.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1155,7 +1155,7 @@ const Bookings = () => {
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     <span className="font-medium">Client:</span>{" "}
-                    {r.clients?.full_name || "Unknown"}
+                    {r.clients?.name || "Unknown"}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {r.appointment_date ? format(new Date(r.appointment_date), "MMM dd, yyyy") : "Date TBD"} at{" "}
@@ -1228,7 +1228,7 @@ const Bookings = () => {
         bookingInfo={
           bookingToCancel
             ? {
-                clientName: bookingToCancel.clients?.full_name,
+                clientName: bookingToCancel.clients?.name,
                 serviceName: bookingToCancel.services?.name,
               }
             : undefined

@@ -76,11 +76,11 @@ export default function PublicBooking() {
         return;
       }
 
-      // Find or create client by phone (clients table uses full_name not name)
+      // Find or create client by phone
       const cleanPhone = phone.replace(/\s/g, "");
       const { data: existing } = await supabase
         .from("clients")
-        .select("id, full_name, phone")
+        .select("id, name, phone")
         .eq("phone", cleanPhone)
         .maybeSingle();
 
@@ -89,11 +89,11 @@ export default function PublicBooking() {
       if (existing) {
         clientId = (existing as any).id;
         // Update name if it changed
-        await supabase.from("clients").update({ full_name: name.trim() }).eq("id", clientId);
+        await supabase.from("clients").update({ name: name.trim() }).eq("id", clientId);
       } else {
         const { data: newClient, error: clientErr } = await supabase
           .from("clients")
-          .insert({ full_name: name.trim(), phone: cleanPhone, email: email || null })
+          .insert({ name: name.trim(), phone: cleanPhone, email: email || null })
           .select("id")
           .single();
         if (clientErr) throw clientErr;

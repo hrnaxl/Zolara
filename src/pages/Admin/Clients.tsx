@@ -360,7 +360,7 @@ const Clients = () => {
       const term = searchTerm.toLowerCase();
       data = data.filter(
         (item: any) =>
-          item.full_name?.toLowerCase().includes(term) ||
+          item.name?.toLowerCase().includes(term) ||
           (item.phone || "").toLowerCase().includes(term) ||
           (item.email || "").toLowerCase().includes(term)
       );
@@ -431,7 +431,7 @@ const Clients = () => {
 
       const clientData: any = {
         role: "client",
-        full_name: validated.full_name,
+        name: validated.name,
         phone: validated.phone,
         email: validated.email,
         ...(validated.address && { address: validated.address }),
@@ -571,7 +571,7 @@ const Clients = () => {
                 <Label>Full Name *</Label>
                 <Input
                   placeholder="John Doe"
-                  value={formData.full_name}
+                  value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, full_name: e.target.value })
                   }
@@ -933,12 +933,12 @@ const Clients = () => {
                       {client.image ? (
                         <img
                           src={client.image}
-                          alt={client.full_name}
+                          alt={client.name}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-green-500 to-teal-500 text-white flex items-center justify-center font-semibold text-lg">
-                          {client.full_name
+                          {client.name
                             .split(" ")
                             .map((n: string) => n[0])
                             .join("")}
@@ -950,7 +950,7 @@ const Clients = () => {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <CardTitle className="text-lg truncate">
-                          {client.full_name}
+                          {client.name}
                         </CardTitle>
 
                         {/* Status */}
@@ -1113,7 +1113,7 @@ const Clients = () => {
             <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>
-                  {selectedClient ? selectedClient.full_name : "Client Profile"}
+                  {selectedClient ? selectedClient.name : "Client Profile"}
                 </DialogTitle>
               </DialogHeader>
 
@@ -1125,11 +1125,11 @@ const Clients = () => {
                         {selectedClient.image ? (
                           <img
                             src={selectedClient.image}
-                            alt={selectedClient.full_name}
+                            alt={selectedClient.name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          (selectedClient.full_name || "")
+                          (selectedClient.name || "")
                             .split(" ")
                             .map((n: string) => n[0])
                             .join("")
@@ -1138,7 +1138,7 @@ const Clients = () => {
 
                       <div>
                         <h3 className="text-xl font-semibold">
-                          {selectedClient.full_name}
+                          {selectedClient.name}
                         </h3>
                         <p className="text-sm text-muted-foreground">
                           {selectedClient.email}
@@ -1192,7 +1192,7 @@ const Clients = () => {
                                 {b.services?.name || "Service"}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {b.staff?.full_name ||
+                                {b.staff?.name ||
                                   b.staff?.name ||
                                   "Unassigned"}{" "}
                                 •{" "}
@@ -1240,7 +1240,7 @@ const Clients = () => {
                           > = {};
                           (selectedClient.bookings || []).forEach((bk: any) => {
                             const name =
-                              bk.staff?.full_name ||
+                              bk.staff?.name ||
                               bk.staff?.name ||
                               "Unassigned";
                             if (!name) return;

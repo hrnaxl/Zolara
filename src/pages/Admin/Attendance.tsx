@@ -340,7 +340,7 @@ export default function Attendance() {
               <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} className="border rounded px-3 py-2 min-w-[180px]">
                 <option value="all">All staff</option>
                 {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>{s.full_name}</option>
+                  <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
             </div>
@@ -407,7 +407,7 @@ export default function Attendance() {
                 ) : (
                   filteredRows.map((r) => (
                     <TableRow key={r.staff.id}>
-                      <TableCell className="font-medium">{r.staff.full_name}</TableCell>
+                      <TableCell className="font-medium">{r.staff.name}</TableCell>
                       <TableCell>{r.record ? formatTimeShort(r.record.check_in) : "—"}</TableCell>
                       <TableCell>{r.record ? formatTimeShort(r.record.check_out || null) : "—"}</TableCell>
                       <TableCell>{r.total.toFixed(2)}h{r.overtime ? ` (+${r.overtime} OT)` : ""}</TableCell>

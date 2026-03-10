@@ -181,7 +181,7 @@ const ClientBookings = () => {
     if (!existingClient) {
       const clientData = {
         id: user.id,
-        full_name: user.user_metadata.full_name,
+        name: user.user_metadata.full_name || user.user_metadata.name,
         email: user.email,
         phone: user.user_metadata.phone || "",
       };
@@ -377,7 +377,7 @@ const ClientBookings = () => {
                     <div>
                       <CardTitle>{booking.services?.name}</CardTitle>
                       <p className="text-sm text-gray-500">
-                        {booking.staff?.full_name || "Unassigned"}
+                        {booking.staff?.name || "Unassigned"}
                       </p>
                     </div>
                     <Badge className={getStatusColor(booking.status)}>
@@ -469,7 +469,7 @@ const ClientBookings = () => {
                         {booking.services?.name || "Service"}
                       </CardTitle>
                       <p className="text-sm text-gray-500 mt-1">
-                        {booking.staff?.full_name || "Unassigned"}
+                        {booking.staff?.name || "Unassigned"}
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
                         Preferred payment method:{" "}

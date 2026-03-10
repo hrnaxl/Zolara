@@ -109,7 +109,7 @@ const Reports = () => {
           rating,
           services:service_id (id, name, category, price, duration_minutes),
           staff:staff_id (id, full_name),
-          clients:client_id (id, full_name)
+          clients:client_id (id, name)
         )
       `
         )
@@ -143,7 +143,7 @@ const Reports = () => {
         rows = (rows || []).filter((p: any) => {
           const booking = getBooking(p);
           const clientRel = normalizeRel(booking?.clients);
-          const cid = clientRel?.id ?? clientRel?.full_name ?? "";
+          const cid = clientRel?.id ?? clientRel?.name ?? "";
           // Coerce to string because client ids may be numbers/uuids
           return String(cid) === String(selectedClientId);
         });
@@ -195,8 +195,8 @@ const Reports = () => {
       const mostActiveClients = rows.reduce((acc: any, row: any) => {
         const booking = getBooking(row);
         const clientRel = normalizeRel(booking?.clients);
-        const clientId = clientRel?.id ?? clientRel?.full_name ?? "unknown";
-        const clientName = clientRel?.full_name || "Unknown";
+        const clientId = clientRel?.id ?? clientRel?.name ?? "unknown";
+        const clientName = clientRel?.name || "Unknown";
 
         const key = String(clientId);
         if (!acc[key]) acc[key] = { id: clientId, name: clientName, count: 0, revenue: 0 };
@@ -217,7 +217,7 @@ const Reports = () => {
         const rowsForClient = (data || []).filter((p: any) => {
           const booking = getBooking(p);
           const clientRel = normalizeRel(booking?.clients);
-          const cid = clientRel?.id ?? clientRel?.full_name ?? "";
+          const cid = clientRel?.id ?? clientRel?.name ?? "";
           return String(cid) === String(selectedClientId);
         }) || [];
 
@@ -237,7 +237,7 @@ const Reports = () => {
     ============================== */
       const staffBreakdown = rows.reduce((acc: any, row: any) => {
         const staffObj = Array.isArray(row.bookings) ? row.bookings[0]?.staff : row.bookings?.staff;
-        const name = staffObj?.full_name || "Unassigned";
+        const name = staffObj?.name || "Unassigned";
         const staffId = staffObj?.id || name || "unknown";
         if (!acc[staffId]) acc[staffId] = { name, count: 0, revenue: 0, ratingSum: 0, ratingCount: 0 };
 
@@ -326,8 +326,8 @@ const Reports = () => {
 
         return {
           AppointmentDateTime: formatDateTime(appointmentDate, appointmentTime),
-          Client: clientRel?.full_name ?? "",
-          Staff: staffRel?.full_name ?? "",
+          Client: clientRel?.name ?? "",
+          Staff: staffRel?.name ?? "",
           Service: serviceRel?.name ?? "",
           ServiceCategory: serviceRel?.category ?? "",            // @ts-ignore
           Amount: p?.amount ?? 0,               // @ts-ignore
@@ -350,7 +350,7 @@ const Reports = () => {
         if (user?.id) {
           const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).single();
           // @ts-ignore
-          generatedBy = profile?.role ? `${profile.role}` : profile?.full_name || "User";
+          generatedBy = profile?.role ? `${profile.role}` : profile?.name || "User";
         }
       } catch (e) {
         // ignore
@@ -540,7 +540,7 @@ const Reports = () => {
                       <SelectItem value="all">All clients</SelectItem>
                     {clients.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.full_name}
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -561,7 +561,7 @@ const Reports = () => {
                     <SelectItem value="all">All clients</SelectItem>
                     {clients.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.full_name}
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -920,7 +920,7 @@ const Reports = () => {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  Service History for {clients.find((c) => c.id === selectedClientId)?.full_name || "Client"}
+                  Service History for {clients.find((c) => c.id === selectedClientId)?.name || "Client"}
                 </CardTitle>
               </CardHeader>
               <CardContent>

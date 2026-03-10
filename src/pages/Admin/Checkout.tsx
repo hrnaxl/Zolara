@@ -61,7 +61,7 @@ interface BookingData {
   notes: string | null;
   clients: {
     id: string;
-    full_name: string;
+    name: string;
     email: string | null;
     phone: string;
   };
@@ -74,14 +74,14 @@ interface BookingData {
   };
   staff: {
     id: string;
-    full_name: string;
+    name: string;
     specialization: string | null;
   } | null;
 }
 
 interface StaffMember {
   id: string;
-  full_name: string;
+  name: string;
   specialization: string | null;
 }
 
@@ -531,7 +531,7 @@ const Checkout = () => {
               loyalty_stamps: newStamps
             }).eq("id", booking.clients?.id || (booking as any).client_id);
             await sendSMS(clientPhone, SMS.checkoutThankYou(
-              booking.clients?.full_name || "Valued Client",
+              booking.clients?.name || "Valued Client",
               booking.services?.name || "service",
               newStamps
             ));
@@ -592,7 +592,7 @@ const Checkout = () => {
             payment_method: paymentMethod,
             metadata: {
               booking_id: booking.id,
-              client_name: booking.clients?.full_name,
+              client_name: booking.clients?.name,
               service_name: booking.services?.name,
             },
           },
@@ -690,12 +690,12 @@ const Checkout = () => {
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Client</span>
-                <span className="font-medium">{booking.clients.full_name}</span>
+                <span className="font-medium">{booking.clients.name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Staff</span>
                 <span className="font-medium">
-                  {staff.find((s) => s.id === selectedStaff)?.full_name ||
+                  {staff.find((s) => s.id === selectedStaff)?.name ||
                     "Assigned"}
                 </span>
               </div>
@@ -772,12 +772,12 @@ const Checkout = () => {
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Client</span>
-                <span className="font-medium">{booking.clients.full_name}</span>
+                <span className="font-medium">{booking.clients.name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Staff</span>
                 <span className="font-medium">
-                  {staff.find((s) => s.id === selectedStaff)?.full_name ||
+                  {staff.find((s) => s.id === selectedStaff)?.name ||
                     "Assigned"}
                 </span>
               </div>
@@ -886,7 +886,7 @@ const Checkout = () => {
                     <User className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-semibold">{booking.clients.full_name}</p>
+                    <p className="font-semibold">{booking.clients.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {booking.clients.phone}
                     </p>
@@ -975,7 +975,7 @@ const Checkout = () => {
                     {staff.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         <div className="flex flex-col">
-                          <span>{member.full_name}</span>
+                          <span>{member.name}</span>
                           {member.specialization && (
                             <span className="text-xs text-muted-foreground">
                               {member.specialization}

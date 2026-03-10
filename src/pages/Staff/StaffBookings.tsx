@@ -156,7 +156,7 @@ const StaffBookings = () => {
     if (!existingClient) {
       await supabase.from("clients").insert({
         id: user.id,
-        full_name: user.user_metadata.full_name,
+        name: user.user_metadata.full_name || user.user_metadata.name,
         email: user.email,
         phone: user.user_metadata.phone || "",
       });
@@ -300,7 +300,7 @@ const StaffBookings = () => {
                   <div>
                     <CardTitle>{booking.services?.name}</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {booking.staff?.full_name || "Unassigned"}
+                      {booking.staff?.name || "Unassigned"}
                     </p>
                   </div>
                   <Badge className={getStatusColor(booking.status)}>
@@ -355,7 +355,7 @@ const StaffBookings = () => {
                   <div>
                     <CardTitle>{booking.services?.name}</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {booking.staff?.full_name || "Unassigned"}
+                      {booking.staff?.name || "Unassigned"}
                     </p>
                   </div>
                   <Badge className={getStatusColor(booking.status)}>

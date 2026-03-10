@@ -237,7 +237,7 @@ const AdminDashboard = () => {
           .lte("appointment_date", endOfThisMonth),
         supabase
           .from("bookings")
-          .select("*, services(name), clients(full_name)")
+          .select("*, services(name), clients(name)")
           .order("created_at", { ascending: false })
           .limit(5),
         supabase
@@ -256,7 +256,7 @@ const AdminDashboard = () => {
           .eq("status", "pending"),
         supabase
           .from("bookings")
-          .select("*, services(name), clients(full_name)")
+          .select("*, services(name), clients(name)")
           .eq("appointment_date", todayStart)
           .in("status", ["scheduled", "confirmed"])
           .order("appointment_date", { ascending: true })
@@ -472,7 +472,7 @@ const AdminDashboard = () => {
       const upcomingList =
         upcomingBookingsRes.data?.map((b: any) => ({
           id: b.id,
-          clientName: b.clients?.full_name || "Unknown",
+          clientName: b.clients?.name || "Unknown",
           serviceName: b.services?.name || "Service",
           date: b.appointment_date,
           time: b.appointment_time,
@@ -533,7 +533,7 @@ const AdminDashboard = () => {
         recentBookingsRes.data?.map((b) => ({
           id: b.id,
           title: b.services?.name || "Service",
-          subtitle: b.clients?.full_name || "Client",
+          subtitle: b.clients?.name || "Client",
           date: b.created_at,
           status: b.status,
         })) || []

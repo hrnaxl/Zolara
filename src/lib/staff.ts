@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type Staff = {
   id: string;
-  full_name: string;
+  name: string;
   phone: string;
   email?: string;
   specialization_id?: string | null;

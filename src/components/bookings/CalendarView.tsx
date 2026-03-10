@@ -163,7 +163,7 @@ export const CalendarView = ({ bookings, onBookingClick }: CalendarViewProps) =>
                             )}
                           >
                             <p className="font-medium truncate">
-                              {booking.clients?.full_name}
+                              {booking.clients?.name}
                             </p>
                             <p className="truncate opacity-80">
                               {booking.services?.name}
@@ -199,7 +199,7 @@ export const CalendarView = ({ bookings, onBookingClick }: CalendarViewProps) =>
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-medium">
-                            {booking.clients?.full_name}
+                            {booking.clients?.name}
                           </span>
                           <Badge variant="outline" className="text-xs">
                             {booking.appointment_time}
@@ -208,9 +208,9 @@ export const CalendarView = ({ bookings, onBookingClick }: CalendarViewProps) =>
                         <p className="text-sm opacity-80">
                           {booking.services?.name}
                         </p>
-                        {booking.staff?.full_name && (
+                        {booking.staff?.name && (
                           <p className="text-xs opacity-60">
-                            Staff: {booking.staff.full_name}
+                            Staff: {booking.staff.name}
                           </p>
                         )}
                       </div>

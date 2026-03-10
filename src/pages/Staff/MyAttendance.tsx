@@ -14,7 +14,7 @@ interface AttendanceRecord {
   status: string;
   created_at: string;
   staff?: {
-    full_name: string;
+    name: string;
     email: string;
   };
 }
@@ -109,7 +109,7 @@ export default function MyAttendance() {
               >
                 <div className="p-4 flex flex-col justify-between gap-4">
                   <div>
-                    <p className="text-lg font-semibold">{record.staff?.full_name || "You"}</p>
+                    <p className="text-lg font-semibold">{record.staff?.name || "You"}</p>
                     <p className="text-sm text-gray-500">{record.staff?.email}</p>
 
                     <div className="flex flex-wrap gap-2 mt-2 text-gray-600">

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 interface StaffMember {
   id: string;
-  full_name: string;
+  name: string;
   // role may be stored separately in user_roles; keep optional
   role?: string | null;
   specialization?: string | null;

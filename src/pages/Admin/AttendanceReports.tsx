@@ -37,7 +37,7 @@ interface AttendanceRecord {
 
 interface Staff {
   id: string;
-  full_name: string;
+  name: string;
   email: string;
 }
 
@@ -229,7 +229,7 @@ export default function Attendance() {
   const exportExcel = () => {
     try {
       const data = attendanceRecords.map(r => ({
-        Staff: r.staff?.full_name || r.staff_id,
+        Staff: r.staff?.name || r.staff_id,
         Date: r.check_in ? r.check_in.split('T')[0] : '',
         CheckIn: r.check_in ? format(new Date(r.check_in), 'HH:mm') : '',
         CheckOut: r.check_out ? format(new Date(r.check_out), 'HH:mm') : '',
@@ -286,7 +286,7 @@ export default function Attendance() {
     const map: Record<string, any> = {};
     filteredRecords.forEach(r => {
       const id = r.staff_id;
-      const name = r.staff?.full_name || id;
+      const name = r.staff?.name || id;
       if (!map[id]) map[id] = { staff_id: id, staff: name, days_present: 0, absences: 0, late: 0, early: 0, total_hours: 0, overtime: 0, disciplinary: 0 };
       const entry = map[id];
       if (r.status === 'absent') entry.absences += 1; else entry.days_present += 1;
@@ -355,7 +355,7 @@ export default function Attendance() {
                 <SelectTrigger><SelectValue placeholder="All staff"/></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
-                  {staffList.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                  {staffList.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -462,7 +462,7 @@ export default function Attendance() {
                   <TableRow><TableCell colSpan={10} className="text-center py-8">No records</TableCell></TableRow>
                 ) : filteredRecords.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium"><button className="flex items-center gap-2" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, full_name: r.staff?.full_name||'Staff', email: r.staff?.email||''})}>{r.staff?.full_name || r.staff_id} <ChevronRight className="w-4 h-4"/></button></TableCell>
+                    <TableCell className="font-medium"><button className="flex items-center gap-2" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, full_name: r.staff?.full_name||'Staff', email: r.staff?.email||''})}>{r.staff?.name || r.staff_id} <ChevronRight className="w-4 h-4"/></button></TableCell>
                     <TableCell>{r.staff?.email || '-'}</TableCell>
                     <TableCell>{r.check_in ? format(new Date(r.check_in), 'yyyy-MM-dd') : ''}</TableCell>
                     <TableCell>{r.check_in ? format(new Date(r.check_in), 'HH:mm') : '-'}</TableCell>
@@ -486,7 +486,7 @@ export default function Attendance() {
         <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>{profileStaff?.full_name || 'Staff Profile'}</DialogTitle>
+              <DialogTitle>{profileStaff?.name || 'Staff Profile'}</DialogTitle>
             </DialogHeader>
             <div className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

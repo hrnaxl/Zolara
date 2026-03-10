@@ -27,9 +27,9 @@ interface TodayBooking {
   id: string;
   appointment_time: string;
   status: string;
-  clients: { full_name: string; phone: string } | null;
+  clients: { name: string; phone: string } | null;
   services: { name: string; duration_minutes: number } | null;
-  staff: { full_name: string } | null;
+  staff: { name: string } | null;
 }
 
 const ReceptionistDashboard = () => {
@@ -76,7 +76,7 @@ const ReceptionistDashboard = () => {
       const { data: bookings = [] } = await supabase
         .from("bookings")
         .select(
-          "*, clients(full_name, phone), services(name, duration_minutes), staff(full_name)"
+          "*, clients(name, phone), services(name, duration_minutes), staff(full_name)"
         )
         .eq("appointment_date", todayStart)
         .order("appointment_time", { ascending: true });
@@ -86,7 +86,7 @@ const ReceptionistDashboard = () => {
       // Fetch pending booking requests
       const { data: requests = [] } = await supabase
         .from("bookings")
-        .select("*, clients(full_name), services(name)")
+        .select("*, clients(name), services(name)")
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(10);
@@ -182,7 +182,7 @@ const ReceptionistDashboard = () => {
   const pendingRequestItems = pendingRequests.map((r) => ({
     id: r.id,
     title: r.services?.name || "Service Request",
-    subtitle: r.clients?.full_name || "Client",
+    subtitle: r.clients?.name || "Client",
     date: r.created_at,
     status: "pending",
   }));
@@ -310,11 +310,11 @@ const ReceptionistDashboard = () => {
                       <div className="h-12 w-px bg-border" />
                       <div>
                         <p className="font-medium">
-                          {booking.clients?.full_name || "Unknown Client"}
+                          {booking.clients?.name || "Unknown Client"}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {booking.services?.name || "Service"} •{" "}
-                          {booking.staff?.full_name || "Unassigned"}
+                          {booking.staff?.name || "Unassigned"}
                         </p>
                       </div>
                     </div>

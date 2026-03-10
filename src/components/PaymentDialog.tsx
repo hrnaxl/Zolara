@@ -121,7 +121,7 @@ export default function PaymentDialog({
               callback_url: callbackUrl,
               metadata: {
                 booking_id: booking.id,
-                client_name: booking.clients?.full_name,
+                client_name: booking.clients?.name,
                 service_name: booking.services?.name,
               },
             },
@@ -212,7 +212,7 @@ export default function PaymentDialog({
           {admin && (
             <p>
               <span className="font-medium">Client:</span>{" "}
-              {booking?.clients?.full_name || "N/A"}
+              {booking?.clients?.name || "N/A"}
             </p>
           )}
           <p>
@@ -225,7 +225,7 @@ export default function PaymentDialog({
           </p>
           <p>
             <span className="font-medium">Staff:</span>{" "}
-            {booking?.staff?.full_name || "Unassigned"}
+            {booking?.staff?.name || "Unassigned"}
           </p>
           <p>
             <span className="font-medium">Payment Method:</span>{" "}
