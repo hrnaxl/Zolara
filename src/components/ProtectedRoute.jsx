@@ -9,24 +9,28 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        // Safe fallback - never crash on missing metadata
+        const metaRole = user.user_metadata?.role || null;
+        setUserRole(roleData?.role || metaRole || null);
+      } catch (err) {
+        console.error("ProtectedRoute error:", err);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-      const metaDataRole = user.user_metadata.role;
-
-      setUserRole(roleData?.role || metaDataRole);
-      setLoading(false);
     };
 
     fetchUserRole();
@@ -34,15 +38,14 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5EFE6" }}>
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#C9A87C" }} />
       </div>
     );
   }
 
-  // If no role or role not allowed → redirect to login
   if (!userRole || !allowedRoles.includes(userRole)) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/app/auth" replace />;
   }
 
   return <Outlet />;
