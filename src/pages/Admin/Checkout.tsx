@@ -367,21 +367,12 @@ const Checkout = () => {
     fetchPaymentInfo();
   }, []);
 
-  // set default payment method from settings if current is not enabled
+  // set default payment method
   useEffect(() => {
-    const enabled =
-      settings?.payment_methods
-        ?.filter((m: any) => m.enabled)
-        .map((m: any) => m.id) || [];
-    if (enabled.length) {
-      if (!enabled.includes(paymentMethod)) {
-        setPaymentMethod(enabled[0]);
-      }
-    } else {
-      // no enabled methods - clear selection
-      setPaymentMethod("");
+    if (!paymentMethod) {
+      setPaymentMethod("cash");
     }
-  }, [settings]);
+  }, []);
 
   const handleCheckout = async () => {
     if (!booking) return;
@@ -409,15 +400,10 @@ const Checkout = () => {
     setProcessing(true);
 
     try {
-      // ensure selected method is enabled
-      const enabled =
-        settings?.payment_methods
-          ?.filter((m: any) => m.enabled)
-          .map((m: any) => m.id) || [];
-      // If paymentAmount is zero (covered by gift card), we will create a 0-amount completed payment record.
+      const enabled = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
       if (paymentAmount > 0) {
         if (!paymentMethod || !enabled.includes(paymentMethod)) {
-          toast.error("Selected payment method is not available");
+          toast.error("Please select a payment method");
           setProcessing(false);
           return;
         }
@@ -548,9 +534,6 @@ const Checkout = () => {
 
       // BANK TRANSFER chosen and user opts for manual transfer
       if (paymentMethod === "bank_transfer" && !usePaystackForTransfer) {
-        if (!enabled.includes("bank_transfer")) {
-          throw new Error("Bank transfer is not enabled");
-        }
         const { error: paymentError } = await supabase.from("sales").insert({
           booking_id: booking.id,
           amount: paymentAmount,
@@ -995,26 +978,14 @@ const Checkout = () => {
               <div className="space-y-3">
                 <Label>Payment Method</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {settings?.payment_methods
-                    ?.filter((m) => m.enabled)
-                    .map((m) => {
-                      const icon =
-                        m.id === "cash"
-                          ? Banknote
-                          : m.id === "card"
-                          ? CreditCard
-                          : m.id === "mobile_money"
-                          ? Smartphone
-                          : Building;
-                      const label =
-                        m.name ||
-                        (m.id === "cash"
-                          ? "Cash"
-                          : m.id === "card"
-                          ? "Card"
-                          : m.id === "mobile_money"
-                          ? "Mobile Money"
-                          : "Bank Transfer");
+                  {[
+                    { id: "cash", name: "Cash", icon: Banknote },
+                    { id: "mobile_money", name: "Mobile Money", icon: Smartphone },
+                    { id: "card", name: "Card", icon: CreditCard },
+                    { id: "bank_transfer", name: "Bank Transfer", icon: Building },
+                  ].map((m) => {
+                      const icon = m.icon;
+                      const label = m.name;
                       return (
                         <button
                           key={m.id}
