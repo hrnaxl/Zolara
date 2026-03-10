@@ -100,7 +100,7 @@ export default function PublicBooking() {
       // Create booking request
       const ref = "ZBS-" + Date.now().toString(36).toUpperCase();
       const { error: bookingErr } = await supabase
-        .from("booking_requests" as any)
+        .from("bookings" as any)
         .insert({
           client_id: clientId,
           service_id: serviceId,
