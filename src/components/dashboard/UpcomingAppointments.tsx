@@ -42,7 +42,7 @@ export const UpcomingAppointments = ({ appointments, title = "Upcoming Appointme
     switch (status) {
       case "confirmed":
         return "bg-success/20 text-success border-success/30";
-      case "scheduled":
+      case "pending":
         return "bg-primary/20 text-primary border-primary/30";
       default:
         return "bg-muted text-muted-foreground";

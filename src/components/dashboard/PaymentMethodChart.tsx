@@ -80,7 +80,7 @@ export const PaymentMethodChart = ({ data, title = "Payment Methods" }: PaymentM
                   transition={{ duration: 0.8, delay: index * 0.1 }}
                   className={`h-full rounded-full ${
                     item.method === "cash" ? "bg-success" :
-                    item.method === "momo" ? "bg-warning" :
+                    item.method === "mobile_money" ? "bg-warning" :
                     item.method === "card" ? "bg-primary" :
                     item.method === "gift_card" ? "bg-amber-400" :
                     "bg-info"

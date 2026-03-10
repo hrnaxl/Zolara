@@ -59,7 +59,7 @@ const bookingSchema = z.object({
     .string()
     .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format"),
   status: z
-    .enum(["scheduled", "confirmed", "completed", "cancelled", "no_show"])
+    .enum(["pending", "confirmed", "in_progress", "completed", "cancelled", "no_show"])
     .optional(),
   notes: z.string().max(1000, "Notes too long").optional(),
 });
@@ -109,7 +109,7 @@ const Bookings = () => {
     service_id: "",
     preferred_date: "",
     preferred_time: "",
-    status: "scheduled",
+    status: "pending",
     notes: "",
   });
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
@@ -365,8 +365,8 @@ const Bookings = () => {
         case "confirmed":
           return status === "confirmed";
 
-        case "scheduled":
-          return status === "scheduled";
+        case "pending":
+          return status === "pending";
 
         default:
           return true;
@@ -491,7 +491,7 @@ const Bookings = () => {
         staff_id: validated.staff_id || null,
         preferred_date: validated.preferred_date,
         preferred_time: validated.preferred_time,
-        status: validated.status || "scheduled",
+        status: validated.status || "pending",
         notes: validated.notes || "",
       };
 
@@ -544,7 +544,7 @@ const Bookings = () => {
       service_id: "",
       preferred_date: "",
       preferred_time: "",
-      status: "scheduled",
+      status: "pending",
       notes: "",
     });
   };
@@ -574,7 +574,7 @@ const Bookings = () => {
 
   const handleRequestStatus = async (
     requestId: string,
-    status: "approved" | "declined",
+    status: "confirmed" | "cancelled",
   ) => {
     const request = requests.find((r) => r.id === requestId);
     if (!request) return;
@@ -587,7 +587,7 @@ const Bookings = () => {
 
       if (updateError) throw updateError;
 
-      if (status === "approved") {
+      if (status === "confirmed") {
         // Prevent creating bookings on Sundays when approving requests
         const dateToCheck = request.preferred_date;
         if (dateToCheck) {
@@ -606,7 +606,7 @@ const Bookings = () => {
             service_id: request.service_id,
             preferred_date: request.preferred_date,
             preferred_time: request.preferred_time,
-            status: "scheduled",
+            status: "pending",
             notes: request.notes,
           },
         ]);
@@ -793,7 +793,7 @@ const Bookings = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "scheduled":
+      case "pending":
         return "bg-blue-100 text-blue-800";
       case "confirmed":
         return "bg-yellow-100 text-yellow-800";
@@ -1121,8 +1121,12 @@ const Bookings = () => {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="no_show">No Show</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -1137,8 +1141,8 @@ const Bookings = () => {
               }}
             >
               <option value="all">All</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="approved">Approved</option>
+              <option value="pending">Scheduled</option>
+              <option value="confirmed">Confirmed</option>
               <option value="rejected">Rejected</option>
             </select> */}
 
@@ -1175,14 +1179,14 @@ const Bookings = () => {
                 <CardContent className="flex gap-3 pt-2">
                   <Button
                     className="flex-1 rounded-xl"
-                    onClick={() => handleRequestStatus(r.id, "approved")}
+                    onClick={() => handleRequestStatus(r.id, "confirmed")}
                   >
                     Approve
                   </Button>
                   <Button
                     className="flex-1 rounded-xl"
                     variant="destructive"
-                    onClick={() => handleRequestStatus(r.id, "declined")}
+                    onClick={() => handleRequestStatus(r.id, "cancelled")}
                   >
                     Decline
                   </Button>

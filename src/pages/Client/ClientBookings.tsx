@@ -124,7 +124,7 @@ const ClientBookings = () => {
       .update({
         preferred_date: newDate,
         preferred_time: newTime,
-        status: "scheduled",
+        status: "pending",
       })
       .eq("id", selectedBooking.id);
 
@@ -304,7 +304,7 @@ const ClientBookings = () => {
                       value as
                         | "cash"
                         | "card"
-                        | "momo"
+                        | "mobile_money"
                         | "bank_transfer"
                         | "gift_card"
                     )
@@ -396,7 +396,7 @@ const ClientBookings = () => {
                     </div>
 
                     <div className="flex gap-2 mt-4 flex-wrap">
-                      {/* {booking.status === "scheduled" && (
+                      {/* {booking.status === "pending" && (
                         <>
                           <Button
                             variant="outline"
@@ -419,7 +419,7 @@ const ClientBookings = () => {
                       )} */}
 
                       {/* Make Payment button - visible for pending or scheduled bookings */}
-                      {["scheduled", "pending_payment"].includes(
+                      {["pending", "pending_payment"].includes(
                         booking.status
                       ) && (
                         <Button
@@ -509,7 +509,7 @@ const ClientBookings = () => {
                         {booking.status}
                       </Badge>
 
-                      {booking.status === "scheduled" && (
+                      {booking.status === "pending" && (
                         <div className="flex gap-2 flex-wrap">
                           <Button
                             variant="outline"

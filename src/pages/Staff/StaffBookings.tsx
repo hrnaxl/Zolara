@@ -97,7 +97,7 @@ const StaffBookings = () => {
       .update({
         preferred_date: newDate,
         preferred_time: newTime,
-        status: "scheduled",
+        status: "pending",
       })
       .eq("id", selectedBooking.id);
 
@@ -318,7 +318,7 @@ const StaffBookings = () => {
                   </div>
 
                   <div className="flex gap-2 mt-4">
-                    {booking.status === "scheduled" && (
+                    {booking.status === "pending" && (
                       <>
                         <Button
                           variant="outline"
@@ -373,7 +373,7 @@ const StaffBookings = () => {
                   </div>
 
                   <div className="flex gap-2 mt-4">
-                    {booking.status === "scheduled" && (
+                    {booking.status === "pending" && (
                       <>
                         <Button
                           variant="outline"

@@ -34,7 +34,7 @@ const defaultSettings: Settings = {
   paystack_enabled: true,
   payment_methods: [
     { id: "cash", name: "Cash", enabled: true },
-    { id: "momo", name: "Mobile Money (MoMo)", enabled: true },
+    { id: "mobile_money", name: "Mobile Money (MoMo)", enabled: true },
     { id: "card", name: "Card", enabled: true },
     { id: "bank_transfer", name: "Bank Transfer", enabled: true },
   ],

@@ -117,7 +117,7 @@ const Clients = () => {
   const totalPages = Math.ceil(totalClients / pageSize);
 
   const [formData, setFormData] = useState<any>({
-    full_name: "",
+    name: "",
     phone: "",
     email: "",
     address: "",
@@ -492,7 +492,7 @@ const Clients = () => {
       setDialogOpen(false);
       setEditingClientId(null);
       setFormData({
-        full_name: "",
+        name: "",
         phone: "",
         email: "",
         address: "",
@@ -573,7 +573,7 @@ const Clients = () => {
                   placeholder="John Doe"
                   value={formData.name}
                   onChange={(e) =>
-                    setFormData({ ...formData, full_name: e.target.value })
+                    setFormData({ ...formData, name: e.target.value })
                   }
                   required
                 />

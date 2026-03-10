@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, LayoutGrid, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type BookingFilter = "all" | "today"| "completed" | "cancelled" | "confirmed" | "scheduled";
+export type BookingFilter = "all" | "today"| "completed" | "cancelled" | "confirmed" | "pending";
 export type ViewMode = "card" | "calendar";
 
 interface BookingFiltersProps {
@@ -16,7 +16,7 @@ interface BookingFiltersProps {
 const filters: { key: BookingFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "today", label: "Today" },
-  { key: "scheduled", label: "Scheduled" },
+  { key: "pending", label: "Scheduled" },
   { key: "confirmed", label: "Confirmed" },
   { key: "completed", label: "Completed" },
   { key: "cancelled", label: "Cancelled" },

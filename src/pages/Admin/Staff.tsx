@@ -78,7 +78,7 @@ const Staff = () => {
   const [deleteStaffId, setDeleteStaffId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>("");
   const [formData, setFormData] = useState({
-    full_name: "",
+    name: "",
     phone: "",
     email: "",
     specialization: "",
@@ -161,7 +161,7 @@ const Staff = () => {
       const { data, error } = await supabase
         .from("staff")
         .select("*")
-        .order("full_name");
+        .order("name");
       if (error) throw error;
       setStaff(data || []);
 
@@ -178,7 +178,7 @@ const Staff = () => {
   const handleEditMember = (member: any) => {
     setEditingMemberId(member.id);
     setFormData({
-      full_name: member.full_name,
+      name: member.name,
       phone: member.phone,
       email: member.email || "",
       specialization: member.specialization || member.specialization_id || "",
@@ -264,12 +264,10 @@ const Staff = () => {
       const validated = staffSchema.parse(formData);
 
       const staffData: any = {
-        full_name: validated.full_name,
+        name: validated.name,
         phone: validated.phone,
         ...(validated.email && { email: validated.email }),
-        ...(validated.specialization && {
-          specialization: validated.specialization,
-        }),
+        ...(validated.specialization && { specialties: [validated.specialization] }),
         ...(validated.emergency_contact && {
           emergency_contact: validated.emergency_contact,
         }),
@@ -328,7 +326,7 @@ const Staff = () => {
       setDialogOpen(false);
       setEditingMemberId(null);
       setFormData({
-        full_name: "",
+        name: "",
         phone: "",
         email: "",
         specialization: "",
@@ -397,7 +395,7 @@ const Staff = () => {
                   placeholder="Jane Smith"
                   value={formData.name}
                   onChange={(e) =>
-                    setFormData({ ...formData, full_name: e.target.value })
+                    setFormData({ ...formData, name: e.target.value })
                   }
                   required
                 />
@@ -575,7 +573,7 @@ const Staff = () => {
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-lg shadow-md">
-                        {member.full_name
+                        {member.name
                           .split(" ")
                           .map((n: string) => n[0])
                           .join("")}

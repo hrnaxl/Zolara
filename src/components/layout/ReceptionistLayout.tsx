@@ -76,7 +76,7 @@ const ReceptionistDashboard = () => {
       const { data: bookings = [] } = await supabase
         .from("bookings")
         .select(
-          "*, client_name, client_phone, services(name, duration_minutes), staff(full_name)"
+          "*, client_name, client_phone, services(name, duration_minutes), staff(name)"
         )
         .eq("preferred_date", todayStart)
         .order("preferred_time", { ascending: true });
@@ -104,7 +104,7 @@ const ReceptionistDashboard = () => {
       const checkedIn = bookings.filter((b) => b.status === "confirmed").length;
       const completed = bookings.filter((b) => b.status === "completed").length;
       const pendingBookings = bookings.filter(
-        (b) => b.status === "scheduled"
+        (b) => b.status === "pending"
       ).length;
 
       // Status distribution
@@ -327,7 +327,7 @@ const ReceptionistDashboard = () => {
                       >
                         {booking.status}
                       </Badge>
-                      {booking.status === "scheduled" && (
+                      {booking.status === "pending" && (
                         <Button
                           size="sm"
                           onClick={() => handleCheckIn(booking.id)}

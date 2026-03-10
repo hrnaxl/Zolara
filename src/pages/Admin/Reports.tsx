@@ -122,7 +122,7 @@ const Reports = () => {
         // include gift_card as a valid payment method option
         query = query.eq(
           "payment_method",
-          selectedPaymentMethod as "cash" | "momo" | "card" | "bank_transfer" | "gift_card"
+          selectedPaymentMethod as "cash" | "mobile_money" | "card" | "bank_transfer" | "gift_card"
         );
       }
       if (filterType === "payment_status" && selectedPaymentStatus && selectedPaymentStatus !== "all") {

@@ -654,7 +654,7 @@ const SalesRevenue = () => {
         {/* Payment Method Buttons */}
         {[
           "cash",
-          "momo",
+          "mobile_money",
           "card",
           "bank_transfer",
           "gift_card",

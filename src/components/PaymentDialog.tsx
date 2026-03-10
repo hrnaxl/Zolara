@@ -247,7 +247,7 @@ export default function PaymentDialog({
               value={paymentMethod}
               onValueChange={(value) =>
                 setPaymentMethod(
-                  value as "card" | "momo" | "bank_transfer" | "cash" | "gift_card"
+                  value as "card" | "mobile_money" | "bank_transfer" | "cash" | "gift_card"
                 )
               }
             >

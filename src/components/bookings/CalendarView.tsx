@@ -15,7 +15,7 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "scheduled":
+    case "pending":
       return "bg-blue-100 border-blue-300 text-blue-800";
     case "confirmed":
       return "bg-yellow-100 border-yellow-300 text-yellow-800";

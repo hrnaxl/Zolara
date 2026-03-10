@@ -212,7 +212,7 @@ export default function Attendance() {
   const exportCSV = () => {
     const headers = ['Staff','Date','Check-in','Check-out','Total Hours','Overtime','Late','Early','Status'];
     const rows = attendanceRecords.map(r => [
-      r.staff?.full_name||r.staff_id,
+      r.staff?.name||r.staff_id,
       r.check_in? r.check_in.split('T')[0] : '',
       r.check_in||'',
       r.check_out||'',
@@ -462,7 +462,7 @@ export default function Attendance() {
                   <TableRow><TableCell colSpan={10} className="text-center py-8">No records</TableCell></TableRow>
                 ) : filteredRecords.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium"><button className="flex items-center gap-2" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, full_name: r.staff?.full_name||'Staff', email: r.staff?.email||''})}>{r.staff?.name || r.staff_id} <ChevronRight className="w-4 h-4"/></button></TableCell>
+                    <TableCell className="font-medium"><button className="flex items-center gap-2" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, name: r.staff?.name||'Staff', email: r.staff?.email||''})}>{r.staff?.name || r.staff_id} <ChevronRight className="w-4 h-4"/></button></TableCell>
                     <TableCell>{r.staff?.email || '-'}</TableCell>
                     <TableCell>{r.check_in ? format(new Date(r.check_in), 'yyyy-MM-dd') : ''}</TableCell>
                     <TableCell>{r.check_in ? format(new Date(r.check_in), 'HH:mm') : '-'}</TableCell>
@@ -472,7 +472,7 @@ export default function Attendance() {
                     <TableCell>{r.late_flag ? <span className="text-red-600">Late</span> : r.early_flag ? <span className="text-orange-600">Early</span> : '-'}</TableCell>
                     <TableCell className="capitalize">{r.status.replace('_',' ')}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, full_name: r.staff?.full_name||'Staff', email: r.staff?.email||''})}>View</Button>
+                      <Button size="sm" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, name: r.staff?.name||'Staff', email: r.staff?.email||''})}>View</Button>
                     </TableCell>
                   </TableRow>
                 ))}

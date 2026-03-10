@@ -43,7 +43,7 @@ interface BookingCardProps {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "scheduled":
+    case "pending":
       return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
     case "confirmed":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
@@ -51,6 +51,8 @@ const getStatusColor = (status: string) => {
       return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
     case "cancelled":
       return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+    case "in_progress":
+      return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
     case "no_show":
       return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
     default:
@@ -229,8 +231,9 @@ export const BookingCard = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="pending">Scheduled</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
               <SelectItem value="no_show">No Show</SelectItem>
@@ -240,7 +243,7 @@ export const BookingCard = ({
 
         {/* Action buttons */}
         <div className="flex justify-end gap-2 pt-2 flex-wrap">
-          {["scheduled", "confirmed"].includes(booking.status) && (
+          {["pending", "confirmed"].includes(booking.status) && (
             <Button
               size="sm"
               className="rounded-xl flex items-center gap-1 gradient-green text-white"

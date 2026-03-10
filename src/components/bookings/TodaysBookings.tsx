@@ -11,7 +11,7 @@ interface TodaysBookingsProps {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "scheduled":
+    case "pending":
       return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
     case "confirmed":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
@@ -30,7 +30,7 @@ export const TodaysBookings = ({ bookings, onBookingClick }: TodaysBookingsProps
     .sort((a, b) => a.preferred_time.localeCompare(b.preferred_time));
 
   const pendingCount = todaysBookings.filter(
-    (b) => b.status === "scheduled" || b.status === "confirmed"
+    (b) => b.status === "pending" || b.status === "confirmed"
   ).length;
   const completedCount = todaysBookings.filter((b) => b.status === "completed").length;
 

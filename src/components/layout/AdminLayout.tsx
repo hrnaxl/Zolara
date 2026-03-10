@@ -258,14 +258,14 @@ const AdminDashboard = () => {
           .from("bookings")
           .select("*")
           .eq("preferred_date", todayStart)
-          .in("status", ["scheduled", "confirmed"])
+          .in("status", ["pending", "confirmed"])
           .order("preferred_date", { ascending: true })
           .order("preferred_time", { ascending: true })
           .limit(5),
         supabase
           .from("bookings")
           .select(
-            "staff_id, staff(full_name, specialization), services(price), payments(amount, payment_status, payment_method)"
+            "staff_id, staff(name, specialties), services(price)"
           )
           .gte("preferred_date", periodStart)
           .lte("preferred_date", periodEnd)
@@ -441,7 +441,7 @@ const AdminDashboard = () => {
           if (!acc[staffId]) {
             acc[staffId] = {
               id: staffId,
-              name: booking.staff.full_name,
+              name: booking.staff.name,
               specialization: booking.staff.specialization,
               bookings: 0,
               revenue: 0,
@@ -485,12 +485,12 @@ const AdminDashboard = () => {
       const allActiveStaff = staffRes.data || [];
       const absentStaffNames = allActiveStaff
         .filter((s: any) => !checkedInStaffIds.includes(s.id))
-        .map((s: any) => s.full_name);
+        .map((s: any) => s.name);
 
       // Pending bookings count
       const pendingBookings =
         todayBookingsRes.data?.filter(
-          (b) => b.status === "scheduled" || b.status === "confirmed"
+          (b) => b.status === "pending" || b.status === "confirmed"
         ).length || 0;
 
       // Generate alerts

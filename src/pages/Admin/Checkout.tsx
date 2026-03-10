@@ -51,7 +51,7 @@ import {
 import { format } from "date-fns";
 import { sendSMS, SMS } from "@/lib/sms";
 
-type PaymentMethod = "cash" | "momo" | "card" | "bank_transfer" | "gift_card";
+type PaymentMethod = "cash" | "mobile_money" | "card" | "bank_transfer" | "gift_card";
 
 interface BookingData {
   id: string;
@@ -230,9 +230,9 @@ const Checkout = () => {
     try {
       const { data, error } = await supabase
         .from("staff")
-        .select("id, full_name, specialization")
+        .select("id, name, specialties")
         .eq("is_active", true)
-        .order("full_name");
+        .order("name");
 
       if (error) throw error;
       setStaff(data || []);
@@ -624,7 +624,7 @@ const Checkout = () => {
         return <Banknote className="w-5 h-5" />;
       case "card":
         return <CreditCard className="w-5 h-5" />;
-      case "momo":
+      case "mobile_money":
         return <Smartphone className="w-5 h-5" />;
       case "bank_transfer":
         return <Building className="w-5 h-5" />;
@@ -703,7 +703,7 @@ const Checkout = () => {
                 <span className="text-muted-foreground">Payment Method</span>
                 <span className="font-medium capitalize flex items-center gap-2">
                   {getPaymentIcon(paymentMethod)}
-                  {paymentMethod === "momo"
+                  {paymentMethod === "mobile_money"
                     ? "Mobile Money"
                     : paymentMethod === "bank_transfer"
                     ? "Bank Transfer"
@@ -785,7 +785,7 @@ const Checkout = () => {
                 <span className="text-muted-foreground">Payment Method</span>
                 <span className="font-medium capitalize flex items-center gap-2">
                   {getPaymentIcon(paymentMethod)}
-                  {paymentMethod === "momo"
+                  {paymentMethod === "mobile_money"
                     ? "Mobile Money"
                     : paymentMethod === "bank_transfer"
                     ? "Bank Transfer"
@@ -929,7 +929,7 @@ const Checkout = () => {
                   variant="outline"
                   className={`
                     ${
-                      booking.status === "scheduled" &&
+                      booking.status === "pending" &&
                       "border-blue-500 text-blue-600 bg-blue-50"
                     }
                     ${
@@ -1000,7 +1000,7 @@ const Checkout = () => {
                           ? Banknote
                           : m.id === "card"
                           ? CreditCard
-                          : m.id === "momo"
+                          : m.id === "mobile_money"
                           ? Smartphone
                           : Building;
                       const label =
@@ -1009,7 +1009,7 @@ const Checkout = () => {
                           ? "Cash"
                           : m.id === "card"
                           ? "Card"
-                          : m.id === "momo"
+                          : m.id === "mobile_money"
                           ? "Mobile Money"
                           : "Bank Transfer");
                       return (

@@ -146,7 +146,7 @@ export const fetchStaffPayments = async (staffId: string) => {
       (b) => b.status === "cancelled"
     ).length;
     const upcoming = staffBookings.filter((b) =>
-      ["scheduled", "confirmed"].includes(b.status)
+      ["pending", "confirmed"].includes(b.status)
     ).length;
 
     // Staff earnings = successful payments for completed bookings
@@ -254,7 +254,7 @@ export const fetchClientPayments = async (clientId: string) => {
       completed: clientBookings.filter((b) => b.status === "completed").length,
       cancelled: clientBookings.filter((b) => b.status === "cancelled").length,
       upcoming: clientBookings.filter((b) =>
-        ["scheduled", "confirmed"].includes(b.status)
+        ["pending", "confirmed"].includes(b.status)
       ).length,
       totalSpent: paymentsWithBooking
         .filter((p) => p.booking?.status === "completed")
