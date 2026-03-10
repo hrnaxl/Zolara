@@ -62,12 +62,12 @@ const ReceptionistDashboard = () => {
 
       // Get user profile name
       const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
+        .from("staff")
+        .select("name")
+        .eq("user_id", user.id)
         .single();
 
-      if (profile) setUserName(profile.full_name);
+      if (profile) setUserName(profile.name);
 
       const today = new Date();
       const todayStart = format(startOfDay(today), "yyyy-MM-dd");

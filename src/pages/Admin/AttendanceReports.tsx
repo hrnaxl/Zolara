@@ -32,7 +32,7 @@ interface AttendanceRecord {
   early_flag?: boolean | null;
   edit_reason?: string | null;
   // joined staff
-  staff?: { id?: string; full_name?: string; email?: string };
+  staff?: { id?: string; name?: string; email?: string };
 }
 
 interface Staff {
@@ -89,7 +89,7 @@ export default function Attendance() {
 
   const fetchStaff = async () => {
     try {
-      const { data, error } = await supabase.from("staff").select("id, full_name, email").order("full_name");
+      const { data, error } = await supabase.from("staff").select("id, name, email").order("name");
       if (error) throw error;
       setStaffList(data || []);
     } catch (err: any) {
@@ -130,7 +130,7 @@ export default function Attendance() {
       const startIso = new Date(`${filterStart}T00:00:00`).toISOString();
       const endIso = new Date(`${filterEnd}T23:59:59`).toISOString();
       // Always fetch by date range (and staff if specified). Status filtering for 'late'/'early' is applied client-side.
-      let q: any = supabase.from("attendance").select("*, staff:staff!staff_id(id,full_name,email)").gte("check_in", startIso).lte("check_in", endIso).order("check_in", { ascending: true });
+      let q: any = supabase.from("attendance").select("*, staff:staff!staff_id(id,name,email)").gte("check_in", startIso).lte("check_in", endIso).order("check_in", { ascending: true });
       if (filterStaff && filterStaff !== "all") q = q.eq("staff_id", filterStaff);
       const { data, error } = await q;
       if (error) throw error;
@@ -204,7 +204,7 @@ export default function Attendance() {
     try {
       setProfileStaff(staff); setProfileOpen(true);
       const end = new Date(); const start = new Date(); start.setDate(end.getDate()-30);
-      const { data, error } = await supabase.from('attendance').select('*, staff:staff!staff_id(id,full_name,email)').eq('staff_id', staff.id).gte('check_in', start.toISOString()).lte('check_in', end.toISOString()).order('check_in', { ascending: false });
+      const { data, error } = await supabase.from('attendance').select('*, staff:staff!staff_id(id,name,email)').eq('staff_id', staff.id).gte('check_in', start.toISOString()).lte('check_in', end.toISOString()).order('check_in', { ascending: false });
       if (error) throw error; setProfileAttendance((data||[]).map((r:any)=>computeDerived(r)));
     } catch (err:any) { console.error(err); toast.error('Failed to load profile'); }
   };

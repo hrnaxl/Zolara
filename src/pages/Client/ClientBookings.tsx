@@ -186,10 +186,6 @@ const ClientBookings = () => {
         phone: user.user_metadata.phone || "",
       };
 
-      const { data, error } = await supabase.functions.invoke("invite-user", {
-        method: "POST",
-        body: JSON.stringify(clientData),
-      });
     }
     // @ts-ignore
     const { error } = await supabase.from("bookings").insert([

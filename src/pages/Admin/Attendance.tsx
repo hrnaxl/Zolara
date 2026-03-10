@@ -88,7 +88,7 @@ export default function Attendance() {
     try {
       const { data, error } = await supabase
         .from("staff")
-        .select("id, full_name, email");
+        .select("id, name, email");
       if (error) throw error;
       setStaffList(data || []);
     } catch (err) {
@@ -103,7 +103,7 @@ export default function Attendance() {
       const { start, end } = isoForDateRange(selectedDate);
       const { data, error } = await supabase
         .from("attendance")
-        .select("*, staff:staff!staff_id(full_name, email)")
+        .select("*, staff:staff!staff_id(name, email)")
         .gte("check_in", start)
         .lte("check_in", end);
       if (error) throw error;

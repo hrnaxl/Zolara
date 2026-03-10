@@ -33,11 +33,6 @@ const serviceSchema = z.object({
   price: z.number().positive().max(1000000),
   duration_minutes: z.number().int().positive().max(1440),
   description: z.string().max(500).optional().or(z.literal("")),
-  specialization: z
-    .string()
-    .max(100, "Specialization too long")
-    .optional()
-    .or(z.literal("")),
   order: z.number().int().optional(),
 });
 
@@ -94,19 +89,19 @@ const Services = () => {
         price: parseFloat(formData.price),
         duration_minutes: parseInt(formData.duration_minutes),
         description: formData.description,
-        specialization: formData.specialization,
       });
+
+      const { specialization: _unused, order: _order, ...serviceData } = validated as any;
 
       if (editingServiceId) {
         const { error } = await supabase
           .from("services")
-          .update(validated)
+          .update(serviceData)
           .eq("id", editingServiceId);
         if (error) throw error;
         toast.success("Service updated successfully");
       } else {
-        //@ts-ignore
-        const { error } = await supabase.from("services").insert([validated]);
+        const { error } = await supabase.from("services").insert([serviceData]);
         if (error) throw error;
         toast.success("Service added successfully");
       }

@@ -44,7 +44,7 @@ export const fetchUserBookings = async ({
     // Conditional SELECT and ORDER
     let selectQuery =
       table === "bookings"
-        ? "*, staff(full_name), services(name)"
+        ? "*, staff(name), services(name)"
         : "*, services(name)";
 
     let orderField = table === "bookings" ? "preferred_date" : "created_at";

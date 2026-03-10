@@ -108,7 +108,7 @@ const Reports = () => {
           status,
           rating,
           services:service_id (id, name, category, price, duration_minutes),
-          staff:staff_id (id, full_name),
+          staff:staff_id (id, name),
           clients:client_id (id, name)
         )
       `
@@ -348,7 +348,7 @@ const Reports = () => {
         const authRes: any = await (supabase.auth as any).getUser?.();
         const user = authRes?.data?.user || authRes?.user || null;
         if (user?.id) {
-          const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).single();
+          const { data: profile } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
           // @ts-ignore
           generatedBy = profile?.role ? `${profile.role}` : profile?.name || "User";
         }
@@ -387,8 +387,8 @@ const Reports = () => {
       try {
         const { data } = await supabase
           .from("clients")
-          .select("id, full_name")
-          .order("full_name");
+          .select("id, name")
+          .order("name");
         if (data) setClients(data);
       } catch (err) {
         console.error("Failed to fetch clients", err);

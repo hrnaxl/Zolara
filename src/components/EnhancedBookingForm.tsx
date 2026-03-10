@@ -173,7 +173,7 @@ export default function EnhancedBookingForm({ onSubmitted }: Props) {
       const { data: existingClient } = await supabase.from("clients").select("id").eq("phone", cleanPhone).maybeSingle();
       let clientId = existingClient?.id;
       if (!clientId) {
-        const { data: newClient } = await supabase.from("clients").insert({ full_name: name, phone: cleanPhone, email: email || null }).select("id").single();
+        const { data: newClient } = await supabase.from("clients").insert({ name: name, phone: cleanPhone, email: email || null }).select("id").single();
         clientId = newClient?.id;
       }
 

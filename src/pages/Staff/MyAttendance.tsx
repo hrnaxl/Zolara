@@ -50,7 +50,7 @@ export default function MyAttendance() {
     try {
       const { data, error } = await supabase
         .from("attendance")
-        .select("*, staff:staff!staff_id(full_name, email)")
+        .select("*, staff:staff!staff_id(name, email)")
         .eq("staff_id", userId)
         .order("check_in", { ascending: false });
 
