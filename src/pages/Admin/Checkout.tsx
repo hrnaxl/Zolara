@@ -60,6 +60,10 @@ interface BookingData {
   preferred_time: string;
   status: string;
   notes: string | null;
+  client_name: string | null;
+  service_name: string | null;
+  client_phone: string | null;
+  service_id: string | null;
   clients: {
     id: string;
     name: string;
@@ -263,7 +267,7 @@ const Checkout = () => {
       // Validate server-side first (pass service id so server can enforce allowed services/categories)
       const { data: valData, error: valError } = await validateGiftCard(
         giftCode.trim(),
-        booking.services.id
+        (booking.services?.id || booking.service_id || "")
       );
       if (valError) {
         console.error("validateGiftCard error", valError);
@@ -291,8 +295,8 @@ const Checkout = () => {
         )
           ? giftCardMeta.allowed_service_categories.map(String)
           : [];
-        const svcId = String(booking.services.id);
-        const svcCat = String(booking.services.category || "");
+        const svcId = String(booking.services?.id || booking.service_id || "");
+        const svcCat = String(booking.services?.category || "");
 
         // If allowed service ids are specified, the service must be included
         if (allowedIds.length > 0 && !allowedIds.includes(svcId)) {
@@ -316,7 +320,7 @@ const Checkout = () => {
         booking_id: booking.id,
         client_id: booking.clients?.id ?? null,
         staff_id: selectedStaff,
-        service_ids: [booking.services.id],
+        service_ids: [booking.services?.id || booking.service_id].filter(Boolean),
       } as any);
 
       if (error) throw error;
@@ -726,7 +730,7 @@ const Checkout = () => {
               <div className="flex justify-between items-center text-lg">
                 <span className="font-semibold">Total Paid</span>
                 <span className="font-bold text-primary">
-                  GH₵ {booking.services.price.toFixed(2)}
+                  GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -808,7 +812,7 @@ const Checkout = () => {
               <div className="flex justify-between items-center text-lg">
                 <span className="font-semibold">Total Due</span>
                 <span className="font-bold text-primary">
-                  GH₵ {booking.services.price.toFixed(2)}
+                  GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -1057,7 +1061,7 @@ const Checkout = () => {
                   <p>
                     Original price: GH₵{" "}
                     {Number(
-                      originalPrice || booking.services.price || 0
+                      originalPrice || booking.services?.price || 0
                     ).toFixed(2)}
                   </p>
                   {appliedPromo ? (
