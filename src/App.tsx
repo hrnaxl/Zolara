@@ -34,6 +34,7 @@ import ClientBookings from "./pages/Client/ClientBookings";
 import ViewServices from "./pages/Client/ViewServices";
 import SettingsPage from "./pages/Admin/Settings";
 import { CatalogProvider } from "./context/CatalogContext";
+import { SettingsProvider } from "./context/SettingsContext";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <CatalogProvider>
+        <SettingsProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -124,6 +126,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         </BrowserRouter>
+      </SettingsProvider>
       </CatalogProvider>
     </TooltipProvider>
   </QueryClientProvider>

@@ -24,9 +24,6 @@ const Auth = () => {
       if (err) { setError("Invalid email or password."); setLoading(false); return; }
       if (!data.session) { setError("Login failed. Please try again."); setLoading(false); return; }
 
-      // Wait for session to persist
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
@@ -34,7 +31,6 @@ const Auth = () => {
         .maybeSingle();
 
       const role = roleData?.role || data.user.user_metadata?.role || null;
-
       if (!role) { setError("No role assigned. Contact admin."); setLoading(false); return; }
 
       if (role === "owner" || role === "admin") navigate("/app/admin/dashboard", { replace: true });
@@ -44,6 +40,7 @@ const Auth = () => {
 
     } catch (e) {
       setError("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
