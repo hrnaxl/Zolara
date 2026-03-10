@@ -33,6 +33,7 @@ import MyAttendance from "./pages/Staff/MyAttendance";
 import ClientBookings from "./pages/Client/ClientBookings";
 import ViewServices from "./pages/Client/ViewServices";
 import SettingsPage from "./pages/Admin/Settings";
+import Loyalty from "./pages/Admin/Loyalty";
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
 
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="/app/admin/attendance" element={<Attendance />} />
               <Route path="/app/admin/attendance-reports" element={<AttendanceReports />} />
               <Route path="/app/admin/gift-cards" element={<GiftCards />} />
+              <Route path="/app/admin/loyalty" element={<Loyalty />} />
               <Route path="/app/admin/settings" element={<SettingsPage />} />
             </Route>
           </Route>

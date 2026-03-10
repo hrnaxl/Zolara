@@ -28,6 +28,7 @@ import {
   Settings,
   CheckIcon,
   Gift,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -119,6 +120,7 @@ const DashboardLayout = () => {
     { icon: CreditCard, label: "Sales", path: "sales" },
     { icon: Gift, label: "Gift Cards", path: "gift-cards" },
     { icon: CheckIcon, label: "Checkout", path: "checkout" },
+    { icon: Star, label: "Loyalty", path: "loyalty" },
     { icon: FileText, label: "Reports", path: "reports" },
     { icon: Clock, label: "Attendance", path: "attendance" },
     { icon: FileText, label: "Attendance Reports", path: "attendance-reports" },
@@ -247,7 +249,7 @@ const DashboardLayout = () => {
                   src={
                     settings.logo_url !== null
                       ? settings.logo_url
-                      : "/assets/zolara-logo.jpg"
+                      : "/logo.png"
                   }
                   className="w-full h-full object-cover"
                   onClick={()=> navigate("/")}

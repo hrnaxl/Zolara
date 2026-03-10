@@ -182,9 +182,7 @@ export default function LandingPage() {
       {/* ── NAVBAR ── */}
       <nav style={navStyle} className="nav-pad">
         <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 38, height: 38, borderRadius: "50%", border: `1.5px solid ${C.gold}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: C.gold, letterSpacing: "0.05em" }}>Z</span>
-          </div>
+          <img src="/logo.png" alt="Zolara" style={{ width: 44, height: 44, objectFit: "contain" }} />
           <div>
             <p style={{ fontSize: 16, fontWeight: 500, color: C.charcoal, letterSpacing: "0.15em", lineHeight: 1 }}>ZOLARA</p>
             <p className="jost" style={{ fontSize: 9, color: C.warmGrey, letterSpacing: "0.2em", marginTop: 2 }}>BEAUTY STUDIO</p>
