@@ -127,7 +127,6 @@ const AdminDashboard = () => {
         999
       ).toISOString();
 
-      console.log("Today date string:", format(today, "yyyy-MM-dd"));
       const periodStart = format(dateRange.start, "yyyy-MM-dd");
       const periodEnd = format(dateRange.end, "yyyy-MM-dd");
       const startOfThisWeek = format(
@@ -186,7 +185,8 @@ const AdminDashboard = () => {
         supabase
           .from("bookings")
           .select("id, status, preferred_date")
-          .eq("preferred_date", format(today, "yyyy-MM-dd")),
+          .gte("preferred_date", format(today, "yyyy-MM-dd"))
+          .lt("preferred_date", format(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1), "yyyy-MM-dd")),
         supabase
           .from("bookings")
           .select("*")
@@ -358,7 +358,6 @@ const AdminDashboard = () => {
             100
           : 0;
 
-      console.log("Today bookings result:", todayBookingsRes.data?.length, todayBookingsRes.error);
       // Yesterday comparisons
       const yesterdayBookingsCount = yesterdayBookingsRes.count || 0;
       const yesterdayRevenue = yesterdayRevenueRes.data?.reduce((s, p) => s + Number(p.amount), 0) || 0;
@@ -762,7 +761,7 @@ const AdminDashboard = () => {
               </div>
             )}
             {bellOpen && (
-              <div style={{ position:"absolute", top:"50px", right:0, width:"320px", background:"#fff", borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.14)", border:`1px solid ${BORDER}`, zIndex:200, overflow:"hidden" }}>
+              <div style={{ position:"fixed", top:"70px", right:"40px", width:"320px", background:"#fff", borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.18)", border:"1px solid #e8e0d4", zIndex:9999, overflow:"hidden" }}>
                 <div style={{ padding:"16px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontWeight:700, fontSize:"14px" }}>Notifications</span>
                   <span onClick={() => setBellOpen(false)} style={{ cursor:"pointer", fontSize:"18px", color:TXT_SOFT }}>✕</span>
@@ -849,7 +848,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ══ GOLD HIGHLIGHT PANEL ════════════════════════════════ */}
-      <div className="fade-up" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"20px", overflow:"hidden", marginBottom:"20px", padding:"36px 40px", background:`linear-gradient(115deg, #C9A84C 0%, #E8D27A 45%, #BF9640 100%)`, boxShadow:`0 8px 40px ${G}44` }}>
+      <div className="fade-up" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"20px", overflow:"hidden", marginBottom:"20px", padding:"20px 40px", background:`linear-gradient(115deg, #C9A84C 0%, #E8D27A 45%, #BF9640 100%)`, boxShadow:`0 8px 40px ${G}44` }}>
         <div style={{ maxWidth:"520px" }}>
         {/* Decorative circles */}
         <div style={{ position:"absolute", top:"-50px", right:"80px", width:"200px", height:"200px", borderRadius:"50%", background:"rgba(255,255,255,0.10)", pointerEvents:"none" }} />
@@ -862,7 +861,7 @@ const AdminDashboard = () => {
         </div>
 
         <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(255,255,255,0.7)", marginBottom:"10px" }}>TOP SERVICE THIS MONTH</div>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(26px,4vw,42px)", fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:"28px", textShadow:"0 2px 12px rgba(0,0,0,0.12)" }}>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,26px)", fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:"14px", textShadow:"0 2px 12px rgba(0,0,0,0.12)" }}>
           {stats.topService === "N/A" ? "No data yet" : stats.topService}
         </div>
 
@@ -874,7 +873,7 @@ const AdminDashboard = () => {
           ].map((s, i) => (
             <div key={i}>
               <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.65)", marginBottom:"8px" }}>{s.label}</div>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2.8vw,30px)", fontWeight:700, color:"#fff" }}>{s.val}</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color:"#fff" }}>{s.val}</div>
             </div>
           ))}
         </div>
