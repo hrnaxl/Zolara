@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const NOTE_TYPES = ["general","medical","preference","behavior","allergy"];
-const TYPE_COLORS: Record<string,string> = { general:"bg-blue-100 text-blue-800", medical:"bg-red-100 text-red-800", preference:"bg-purple-100 text-purple-800", behavior:"bg-yellow-100 text-yellow-800", allergy:"bg-orange-100 text-orange-800" };
+const TYPE_COLORS: Record<string,string> = { general:"z-badge z-badge-blue", medical:"z-badge z-badge-red", preference:"z-badge z-badge-purple", behavior:"z-badge z-badge-amber", allergy:"bg-orange-100 text-orange-800" };
 
 export default function ClientNotesAndHistory() {
   const [notes, setNotes] = useState<any[]>([]);
@@ -94,7 +94,7 @@ export default function ClientNotesAndHistory() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm">{n.profiles?.full_name || "Unknown client"}</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${TYPE_COLORS[n.note_type] || "bg-gray-100"}`}>{n.note_type}</span>
-                  {n.is_important && <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">⭐ Important</span>}
+                  {n.is_important && <span className="px-2 py-0.5 rounded-full text-xs font-medium z-badge z-badge-amber">⭐ Important</span>}
                   {n.is_private && <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">🔒 Private</span>}
                 </div>
                 <p className="text-sm">{n.content}</p>

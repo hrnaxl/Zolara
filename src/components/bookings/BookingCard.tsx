@@ -43,20 +43,13 @@ interface BookingCardProps {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "pending":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-    case "confirmed":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
-    case "completed":
-      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-    case "cancelled":
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-    case "in_progress":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
-    case "no_show":
-      return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
-    default:
-      return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
+    case "pending":      return "z-badge z-badge-blue";
+    case "confirmed":    return "z-badge z-badge-amber";
+    case "completed":    return "z-badge z-badge-green";
+    case "cancelled":    return "z-badge z-badge-red";
+    case "in_progress":  return "z-badge z-badge-purple";
+    case "no_show":      return "z-badge z-badge-gray";
+    default:             return "z-badge z-badge-gray";
   }
 };
 
@@ -64,21 +57,21 @@ const getPaymentStatusBadge = (status?: string) => {
   switch (status) {
     case "paid":
       return (
-        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs">
+        <Badge className="z-badge z-badge-green  text-xs">
           <DollarSign className="w-3 h-3 mr-0.5" />
           Paid
         </Badge>
       );
     case "partial":
       return (
-        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 text-xs">
+        <Badge className="z-badge z-badge-amber  text-xs">
           <DollarSign className="w-3 h-3 mr-0.5" />
           Partial
         </Badge>
       );
     default:
       return (
-        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 text-xs">
+        <Badge className="z-badge z-badge-red  text-xs">
           <DollarSign className="w-3 h-3 mr-0.5" />
           Unpaid
         </Badge>

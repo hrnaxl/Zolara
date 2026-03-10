@@ -361,12 +361,12 @@ const Staff = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="z-page">
       {/* Header and Add Button */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Staff</h1>
-          <p className="text-muted-foreground">Manage your salon staff</p>
+          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Staff</h1>
+          <p className="z-subtitle">Manage your salon staff</p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -587,7 +587,7 @@ const Staff = () => {
                         {member.name}
                       </CardTitle>
                       {member.role && (
-                        <span className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700">
+                        <span className="text-xs px-2 py-1 rounded-md z-badge z-badge-gray">
                           {member.role}
                         </span>
                       )}
@@ -689,7 +689,7 @@ const Staff = () => {
         {staff.length === 0 && (
           <Card className="col-span-full">
             <CardContent className="text-center py-12">
-              <p className="text-muted-foreground">
+              <p className="z-subtitle">
                 No staff members yet. Add your first staff or receptionist!
               </p>
             </CardContent>
@@ -795,7 +795,7 @@ const Staff = () => {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="p-3 bg-cream dark:bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-500">Services Completed</p>
                     <p className="text-lg font-semibold mt-1">
                       {
@@ -806,7 +806,7 @@ const Staff = () => {
                     </p>
                   </div>
 
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="p-3 bg-cream dark:bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-500">Total Earned</p>
                     <p className="text-lg font-semibold mt-1">
                       GH₵
@@ -821,7 +821,7 @@ const Staff = () => {
                     </p>
                   </div>
 
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="p-3 bg-cream dark:bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-500">
                       Monthly Hours (this month)
                     </p>
@@ -850,7 +850,7 @@ const Staff = () => {
                     </p>
                   </div>
 
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="p-3 bg-cream dark:bg-gray-800 rounded-lg">
                     <p className="text-sm text-gray-500">Attendance Records</p>
                     <p className="text-lg font-semibold mt-1">
                       {staffAttendance.length}

@@ -387,11 +387,11 @@ const GiftCards = () => {
     });
 
   return (
-    <div className="space-y-6">
+    <div className="z-page">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Gift Cards</h1>
-          <p className="text-muted-foreground">Manage and import gift cards</p>
+          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Gift Cards</h1>
+          <p className="z-subtitle">Manage and import gift cards</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={fetchList} disabled={loadingList}>

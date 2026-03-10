@@ -791,17 +791,17 @@ const Bookings = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-blue-100 text-blue-800";
+        return "z-badge z-badge-blue";
       case "confirmed":
-        return "bg-yellow-100 text-yellow-800";
+        return "z-badge z-badge-amber";
       case "completed":
-        return "bg-green-100 text-green-800";
+        return "z-badge z-badge-green";
       case "cancelled":
-        return "bg-red-100 text-red-800";
+        return "z-badge z-badge-red";
       case "no_show":
-        return "bg-gray-100 text-gray-700";
+        return "z-badge z-badge-gray";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "z-badge z-badge-gray";
     }
   };
 
@@ -814,11 +814,11 @@ const Bookings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="z-page">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Bookings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Bookings</h1>
+          <p className="z-subtitle">
             Manage and track all appointments
           </p>
         </div>

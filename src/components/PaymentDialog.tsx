@@ -208,7 +208,7 @@ export default function PaymentDialog({
         </DialogHeader>
 
         {/* --- Booking / Payment Info Display --- */}
-        <div className="bg-gray-50 p-4 rounded-md space-y-1 mb-4 border border-gray-200">
+        <div className="bg-cream p-4 rounded-md space-y-1 mb-4 border border-gray-200">
           {admin && (
             <p>
               <span className="font-medium">Client:</span>{" "}

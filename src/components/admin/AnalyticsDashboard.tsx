@@ -103,7 +103,7 @@ export default function AnalyticsDashboard() {
         <div className="border rounded-xl p-5">
           <h3 className="font-semibold mb-4">Client Tiers</h3>
           <div className="grid grid-cols-2 gap-3">
-            {[["new","New","bg-gray-100 text-gray-800"],["regular","Regular","bg-blue-100 text-blue-800"],["vip","VIP","bg-purple-100 text-purple-800"],["platinum","Platinum","bg-yellow-100 text-yellow-800"]].map(([tier,label,color])=>(
+            {[["new","New","bg-gray-100 text-gray-800"],["regular","Regular","z-badge z-badge-blue"],["vip","VIP","z-badge z-badge-purple"],["platinum","Platinum","z-badge z-badge-amber"]].map(([tier,label,color])=>(
               <div key={tier} className={`rounded-lg p-3 ${color}`}>
                 <p className="text-xs font-medium">{label}</p>
                 <p className="text-xl font-bold">{tierCounts[tier] || 0}</p>

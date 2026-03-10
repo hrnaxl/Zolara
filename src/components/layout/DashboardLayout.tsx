@@ -176,214 +176,162 @@ const DashboardLayout = () => {
                 "Sales",
                 "Reports",
                 "Attendance Reports",
-                "Staff",
-                "Settings",
-                "Analytics",
-                "Add-ons",
-                "Subscriptions",
-                "Products",
-                "SMS Campaigns",
-              ].includes(item.label)
-          )
-          .map((item) => ({
-            ...item,
-            path: `/app/receptionist/${item.path}`,
-          }));
-
-      // ------------------------------------------------------
-      // STAFF: MOST LIMITED
-      // REMOVE: Staff, Clients, Sales, Reports, Attendance Reports
-      // They ONLY see their own attendance (NOT other users)
-      // ------------------------------------------------------
-      case "staff":
-        return baseNavItems
-          .filter(
-            (item) =>
-              ![
-                "Clients",
-                "Sales",
-                "Staff",
-                "Reports",
-                "Attendance Reports",
-                "Checkout",
-                "Gift Cards",
-                "Settings",
-              ].includes(item.label)
-          )
-          .map((item) => ({
-            ...item,
-            path: `/app/staff/${item.path}`,
-          }));
-
-      // ------------------------------------------------------
-      // CLIENT
-      // ------------------------------------------------------
-      case "client":
-        return baseNavItems
-          .filter((item) =>
-            ["Dashboard", "Bookings", "Services"].includes(item.label)
-          )
-          .map((item) => ({
-            ...item,
-            path: `/app/client/${item.path}`,
-          }));
-
-      default:
-        return [];
-    }
-  };
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-
   const navItems = getNavItemsForRole(currentRole || storedUser.role || "");
 
   const roleLabels: Record<string, string> = {
     owner: "Owner Access",
     admin: "Admin Access",
-    receptionist: "Reception Access",
+    receptionist: "Reception",
     staff: "Staff Access",
+    client: "Client",
   };
 
+  // ── palette ──────────────────────────────────────────
+  const GOLD       = "#B8975A";
+  const GOLD_LIGHT = "#F5ECD6";
+  const CREAM      = "#FAFAF8";
+  const WHITE      = "#FFFFFF";
+  const BORDER     = "#EDE8E0";
+  const TXT        = "#1C1917";
+  const TXT_MID    = "#78716C";
+  const TXT_SOFT   = "#A8A29E";
+
   return (
-    <div className="min-h-screen bg-background text-sm">
-      {/* Mobile Overlay */}
+    <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        .nav-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; text-decoration:none; transition:all 0.18s; font-family:'Montserrat',sans-serif; font-size:12px; font-weight:500; color:${TXT_MID}; }
+        .nav-link:hover { background:${GOLD_LIGHT}; color:${GOLD}; }
+        .nav-link.active { background:${GOLD_LIGHT}; color:${GOLD}; font-weight:600; }
+        .nav-link.active svg { color:${GOLD} !important; }
+        .nav-link:hover svg { color:${GOLD} !important; }
+        .sidebar-overlay { position:fixed; inset:0; background:rgba(28,25,23,0.4); z-index:40; backdrop-filter:blur(2px); }
+        @keyframes slideIn { from{transform:translateX(-100%)} to{transform:translateX(0)} }
+      `}</style>
+
+      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-deep-navy/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="sidebar-overlay lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* SIDEBAR */}
-      <aside
-        className={cn(
-          "fixed top-0 left-0 h-full w-64 bg-deep-navy text-white z-50 transition-transform duration-300 lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 flex items-center justify-between border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden">
-                <img
-                  src={
-                    settings.logo_url !== null
-                      ? settings.logo_url
-                      : "/logo.png"
-                  }
-                  className="w-full h-full object-cover"
-                  onClick={()=> navigate("/")}
-                />
-              </div>
-              <div>
-                <h1 className="font-bold text-base">Zolara</h1>
-                <p className="text-[11px] opacity-60">Beauty Studio</p>
-                <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white/80">
-                  {roleLabels[storedUser.role]}
-                </div>
+      {/* ── SIDEBAR ─────────────────────────────────── */}
+      <aside style={{
+        position: "fixed", top: 0, left: 0, height: "100%", width: "240px",
+        background: WHITE,
+        borderRight: `1px solid ${BORDER}`,
+        boxShadow: "2px 0 20px rgba(0,0,0,0.05)",
+        zIndex: 50, display: "flex", flexDirection: "column",
+        transform: sidebarOpen ? "translateX(0)" : undefined,
+      }} className={`transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
+
+        {/* Logo / Brand */}
+        <div style={{ padding: "20px 20px 16px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ width: "40px", height: "40px", borderRadius: "12px", overflow: "hidden", border: `2px solid ${GOLD_LIGHT}`, flexShrink: 0 }}>
+              <img
+                src={settings.logo_url !== null ? settings.logo_url : "/logo.png"}
+                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }}
+                onClick={() => navigate("/")}
+                alt="Zolara"
+              />
+            </div>
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", fontWeight: 700, color: TXT, lineHeight: 1 }}>Zolara</div>
+              <div style={{ fontSize: "9px", fontWeight: 500, letterSpacing: "0.14em", color: TXT_SOFT, marginTop: "1px" }}>BEAUTY STUDIO</div>
+              <div style={{ marginTop: "5px", display: "inline-flex", alignItems: "center", background: GOLD_LIGHT, borderRadius: "20px", padding: "2px 8px" }}>
+                <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", color: GOLD }}>
+                  {roleLabels[storedUser.role] || "Access"}
+                </span>
               </div>
             </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X className="w-5 h-5 text-white" />
-            </Button>
           </div>
-
-          {/* NAV */}
-          <nav
-            className="flex-1 overflow-auto p-4 space-y-1"
-            style={{
-              scrollbarWidth: "none", // Firefox
-              msOverflowStyle: "none", // IE 10+
-            }}
+          <button
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: TXT_SOFT, padding: "4px" }}
           >
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+            <X size={18} />
+          </button>
+        </div>
 
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "hover:bg-sidebar-accent/50 text-sidebar-foreground"
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+        {/* Nav */}
+        <nav style={{ flex: 1, overflowY: "auto", padding: "12px 12px", scrollbarWidth: "none" }}>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={`nav-link${isActive ? " active" : ""}`}
+              >
+                <Icon size={16} style={{ flexShrink: 0, color: isActive ? GOLD : TXT_SOFT }} />
+                <span>{item.label}</span>
+                {isActive && (
+                  <div style={{ marginLeft: "auto", width: "5px", height: "5px", borderRadius: "50%", background: GOLD }} />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-          {/* USER FOOTER */}
-          <div className="p-4 border-t border-white/10">
-            <div className="flex items-center gap-3 mb-3 px-4 py-2">
-              <div className="w-8 h-8 bg-white text-black rounded-full flex items-center justify-center">
-                {user?.email?.[0]?.toUpperCase()}
-              </div>
-              <p className="text-sm truncate">{user?.email}</p>
+        {/* User Footer */}
+        <div style={{ padding: "12px 16px", borderTop: `1px solid ${BORDER}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "10px", background: CREAM, marginBottom: "6px" }}>
+            <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: GOLD_LIGHT, border: `1.5px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: GOLD }}>{user?.email?.[0]?.toUpperCase()}</span>
             </div>
-
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-white hover:bg-white/20"
-              onClick={() => setOpen(true)}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-            <AlertDialog open={open} onOpenChange={setOpen}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Log out?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You will be signed out of your account.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      setOpen(false);
-                      handleLogout();
-                    }}
-                  >
-                    Logout
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "11px", fontWeight: 600, color: TXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
+            </div>
           </div>
+          <button
+            onClick={() => setOpen(true)}
+            style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", padding: "9px 12px", borderRadius: "8px", background: "none", border: "none", cursor: "pointer", fontSize: "12px", fontWeight: 500, color: TXT_SOFT, fontFamily: "'Montserrat', sans-serif", transition: "all 0.18s" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FEF2F2"; (e.currentTarget as HTMLElement).style.color = "#DC2626"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "none"; (e.currentTarget as HTMLElement).style.color = TXT_SOFT; }}
+          >
+            <LogOut size={14} />
+            Sign Out
+          </button>
+
+          <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogContent style={{ fontFamily: "'Montserrat', sans-serif", borderColor: "#E8E3DC" }}>
+              <AlertDialogHeader>
+                <AlertDialogTitle style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px" }}>Sign out?</AlertDialogTitle>
+                <AlertDialogDescription style={{ fontSize: "12px" }}>You will be signed out of your Zolara account.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "12px" }}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  style={{ background: "linear-gradient(135deg,#C9A84C,#B8975A)", fontFamily: "'Montserrat', sans-serif", fontSize: "12px" }}
+                  onClick={() => { setOpen(false); handleLogout(); }}
+                >
+                  Sign Out
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <div className="lg:ml-64">
-        {/* Mobile Header */}
-  <header className="lg:hidden sticky top-0 z-30 bg-card border-b border-border p-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
+      {/* ── MAIN CONTENT ─────────────────────────────── */}
+      <div className="lg:ml-[240px]" style={{ minHeight: "100vh" }}>
+        {/* Mobile top bar */}
+        <header className="lg:hidden" style={{ position: "sticky", top: 0, zIndex: 30, background: WHITE, borderBottom: `1px solid ${BORDER}`, padding: "14px 16px", display: "flex", alignItems: "center", gap: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+          <button
             onClick={() => setSidebarOpen(true)}
+            style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "8px", padding: "7px", cursor: "pointer", display: "flex", alignItems: "center", color: TXT_MID }}
           >
-            <Menu className="w-5 h-5" />
-          </Button>
-          <h1 className="font-semibold text-base">Zolara Beauty Studio</h1>
+            <Menu size={16} />
+          </button>
+          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", fontWeight: 600, color: TXT }}>Zolara</span>
         </header>
 
-        <main className="p-4 lg:p-8">
+        <main style={{ background: CREAM, minHeight: "100vh" }}>
           <Outlet />
         </main>
       </div>

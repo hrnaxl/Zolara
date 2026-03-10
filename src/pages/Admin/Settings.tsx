@@ -195,10 +195,10 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="z-page">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Settings</h1>
+          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Settings</h1>
           <Button onClick={updateSettings} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Save Settings

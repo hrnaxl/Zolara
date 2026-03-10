@@ -42,7 +42,7 @@ export default function SMSCampaignsManagement() {
     try { await deleteSMSCampaign(id); toast.success("Deleted"); load(); } catch { toast.error("Failed"); }
   };
 
-  const statusColors: Record<string,string> = { pending:"bg-yellow-100 text-yellow-800", sent:"bg-green-100 text-green-800", failed:"bg-red-100 text-red-800", cancelled:"bg-gray-100 text-gray-600" };
+  const statusColors: Record<string,string> = { pending:"z-badge z-badge-amber", sent:"z-badge z-badge-green", failed:"z-badge z-badge-red", cancelled:"bg-gray-100 text-gray-600" };
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
@@ -88,8 +88,8 @@ export default function SMSCampaignsManagement() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold">{c.name}</p>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${c.is_active?"bg-green-100 text-green-800":"bg-gray-100 text-gray-600"}`}>{c.is_active?"Active":"Inactive"}</span>
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">{c.trigger_type.replace("_"," ")}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${c.is_active?"z-badge z-badge-green":"bg-gray-100 text-gray-600"}`}>{c.is_active?"Active":"Inactive"}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs z-badge z-badge-blue">{c.trigger_type.replace("_"," ")}</span>
                   </div>
                   <p className="text-sm text-muted-foreground italic">"{c.message_template}"</p>
                   {c.send_hours_before && <p className="text-xs text-muted-foreground">Sends {c.send_hours_before}h before appointment</p>}

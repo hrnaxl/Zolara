@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 const BILLING_CYCLES = ["monthly", "quarterly", "yearly"];
 const TIER_COLORS: Record<string, string> = {
-  "Beauty Basic": "border-gray-300 bg-gray-50",
+  "Beauty Basic": "border-gray-300 bg-cream",
   "Beauty Plus": "border-blue-300 bg-blue-50",
   "Beauty Premium": "border-yellow-400 bg-yellow-50",
 };
@@ -69,8 +69,8 @@ export default function SubscriptionManagement() {
   };
 
   const statusColors: Record<string, string> = {
-    active: "bg-green-100 text-green-800", cancelled: "bg-red-100 text-red-800",
-    paused: "bg-yellow-100 text-yellow-800", expired: "bg-gray-100 text-gray-600",
+    active: "z-badge z-badge-green", cancelled: "z-badge z-badge-red",
+    paused: "z-badge z-badge-amber", expired: "bg-gray-100 text-gray-600",
   };
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">Loading subscriptions...</div>;

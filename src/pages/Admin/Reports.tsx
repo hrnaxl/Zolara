@@ -437,10 +437,10 @@ const Reports = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="z-page">
       <div>
-        <h1 className="text-3xl font-bold">Reports</h1>
-        <p className="text-muted-foreground">
+        <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Reports</h1>
+        <p className="z-subtitle">
           Generate and analyze business reports
         </p>
       </div>
@@ -703,7 +703,7 @@ const Reports = () => {
                 <CardTitle>Total Completed Bookings</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{reportData.totalBookings}</p>
+                <p className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>{reportData.totalBookings}</p>
               </CardContent>
             </Card>
           </div>

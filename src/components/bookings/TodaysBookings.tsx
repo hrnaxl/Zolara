@@ -12,15 +12,15 @@ interface TodaysBookingsProps {
 const getStatusColor = (status: string) => {
   switch (status) {
     case "pending":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+      return "z-badge z-badge-blue ";
     case "confirmed":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+      return "z-badge z-badge-amber ";
     case "completed":
-      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+      return "z-badge z-badge-green ";
     case "cancelled":
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+      return "z-badge z-badge-red ";
     default:
-      return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
+      return "z-badge z-badge-gray ";
   }
 };
 
@@ -46,7 +46,7 @@ export const TodaysBookings = ({ bookings, onBookingClick }: TodaysBookingsProps
             <Badge variant="outline" className="bg-primary/10">
               {pendingCount} pending
             </Badge>
-            <Badge variant="outline" className="bg-green-100 text-green-800">
+            <Badge variant="outline" className="z-badge z-badge-green">
               {completedCount} completed
             </Badge>
           </div>

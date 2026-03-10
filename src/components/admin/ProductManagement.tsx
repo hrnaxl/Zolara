@@ -97,8 +97,8 @@ export default function ProductManagement() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 flex-wrap">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${p.is_active?"bg-green-100 text-green-800":"bg-gray-100 text-gray-600"}`}>{p.is_active?"Active":"Inactive"}</span>
-                    {p.is_featured && <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">Featured</span>}
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${p.is_active?"z-badge z-badge-green":"bg-gray-100 text-gray-600"}`}>{p.is_active?"Active":"Inactive"}</span>
+                    {p.is_featured && <span className="px-2 py-0.5 rounded-full text-xs z-badge z-badge-amber">Featured</span>}
                   </div>
                 </td>
                 <td className="px-4 py-3">

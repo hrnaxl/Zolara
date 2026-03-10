@@ -641,7 +641,7 @@ const Checkout = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Loading checkout...</p>
+          <p className="z-subtitle">Loading checkout...</p>
         </div>
       </div>
     );
@@ -656,7 +656,7 @@ const Checkout = () => {
               <Receipt className="w-8 h-8 text-muted-foreground" />
             </div>
             <h2 className="text-xl font-bold">No Booking Selected</h2>
-            <p className="text-muted-foreground">
+            <p className="z-subtitle">
               Please select a booking from the bookings page to proceed with
               checkout.
             </p>
@@ -688,22 +688,22 @@ const Checkout = () => {
             {/* Receipt Summary */}
             <div className="space-y-4">
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Service</span>
+                <span className="z-subtitle">Service</span>
                 <span className="font-medium">{booking.service_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Client</span>
+                <span className="z-subtitle">Client</span>
                 <span className="font-medium">{booking.client_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Staff</span>
+                <span className="z-subtitle">Staff</span>
                 <span className="font-medium">
                   {staff.find((s) => s.id === selectedStaff)?.name ||
                     "Assigned"}
                 </span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Payment Method</span>
+                <span className="z-subtitle">Payment Method</span>
                 <span className="font-medium capitalize flex items-center gap-2">
                   {getPaymentIcon(paymentMethod)}
                   {paymentMethod === "mobile_money"
@@ -770,22 +770,22 @@ const Checkout = () => {
             {/* Receipt Summary (same layout as Completed) */}
             <div className="space-y-4">
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Service</span>
+                <span className="z-subtitle">Service</span>
                 <span className="font-medium">{booking.service_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Client</span>
+                <span className="z-subtitle">Client</span>
                 <span className="font-medium">{booking.client_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Staff</span>
+                <span className="z-subtitle">Staff</span>
                 <span className="font-medium">
                   {staff.find((s) => s.id === selectedStaff)?.name ||
                     "Assigned"}
                 </span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
-                <span className="text-muted-foreground">Payment Method</span>
+                <span className="z-subtitle">Payment Method</span>
                 <span className="font-medium capitalize flex items-center gap-2">
                   {getPaymentIcon(paymentMethod)}
                   {paymentMethod === "mobile_money"
@@ -836,7 +836,7 @@ const Checkout = () => {
   const checkoutDisabled = processing || !selectedStaff;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted p-4 md:p-8">
+    <div style={{ background:"#FAFAF8", minHeight:"100vh", padding:"32px 24px" }}>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -845,7 +845,7 @@ const Checkout = () => {
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Checkout</h1>
-            <p className="text-muted-foreground">
+            <p className="z-subtitle">
               Complete the service and record payment
             </p>
           </div>
@@ -941,7 +941,7 @@ const Checkout = () => {
                     }
                     ${
                       booking.status === "completed" &&
-                      "border-gray-500 text-gray-600 bg-gray-50"
+                      "border-gray-500 text-gray-600 bg-cream"
                     }
                   `}
                 >
@@ -1399,7 +1399,7 @@ const Checkout = () => {
                     <span className="text-sm">GHS {depositAmount} deposit</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${depositPaid ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${depositPaid ? "z-badge z-badge-green" : "bg-amber-100 text-amber-700"}`}>
                       {depositPaid ? "PAID" : "UNPAID"}
                     </span>
                     <button
@@ -1420,7 +1420,7 @@ const Checkout = () => {
               {/* Price Summary */}
               <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Service Price</span>
+                  <span className="z-subtitle">Service Price</span>
                   <span>GH₵ {Number(booking?.services?.price || 0).toFixed(2)}</span>
                 </div>
                 {depositPaid && (

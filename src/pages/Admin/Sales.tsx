@@ -597,10 +597,10 @@ const SalesRevenue = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="z-page">
       <div>
-        <h1 className="text-3xl font-bold">Sales & Revenue</h1>
-        <p className="text-muted-foreground">
+        <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Sales & Revenue</h1>
+        <p className="z-subtitle">
           Track salon revenue and payments
         </p>
         <p className="text-sm text-muted-foreground mt-1">Note: Redeemed gift cards (payment_method = <code>gift_card</code>) are included in completed revenue totals.</p>
@@ -796,7 +796,7 @@ const SalesRevenue = () => {
       </Card>
 
       {/* Refunds / Adjustments placeholder */}
-      <Card className="bg-gray-50 border border-gray-200">
+      <Card className="bg-cream border border-gray-200">
         <CardHeader>
           <CardTitle className="text-gray-700">Refunds & Adjustments</CardTitle>
         </CardHeader>
@@ -872,7 +872,7 @@ const SalesRevenue = () => {
         ) : (
           <Card>
             <CardContent className="text-center py-12">
-              <p className="text-muted-foreground">No payments recorded yet.</p>
+              <p className="z-subtitle">No payments recorded yet.</p>
             </CardContent>
           </Card>
         )}

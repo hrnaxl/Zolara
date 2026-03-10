@@ -3,11 +3,11 @@ import { getWaitlist, updateWaitlistStatus, deleteWaitlistEntry } from "@/lib/wa
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
-  waiting: "bg-yellow-100 text-yellow-800",
-  notified: "bg-blue-100 text-blue-800",
-  booked: "bg-green-100 text-green-800",
+  waiting: "z-badge z-badge-amber",
+  notified: "z-badge z-badge-blue",
+  booked: "z-badge z-badge-green",
   expired: "bg-gray-100 text-gray-600",
-  cancelled: "bg-red-100 text-red-800",
+  cancelled: "z-badge z-badge-red",
 };
 
 export default function WaitlistManagement() {
@@ -59,7 +59,7 @@ export default function WaitlistManagement() {
                   <td className="px-4 py-3">{e.preferred_date}</td>
                   <td className="px-4 py-3">{e.preferred_time}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.priority === 3 ? "bg-purple-100 text-purple-800" : e.priority === 2 ? "bg-orange-100 text-orange-800" : "bg-gray-100 text-gray-700"}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.priority === 3 ? "z-badge z-badge-purple" : e.priority === 2 ? "bg-orange-100 text-orange-800" : "z-badge z-badge-gray"}`}>
                       {e.priority === 3 ? "VIP" : e.priority === 2 ? "High" : "Normal"}
                     </span>
                   </td>

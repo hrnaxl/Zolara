@@ -211,11 +211,11 @@ const Services = () => {
   }
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="z-page">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Services</h1>
-          <p className="text-muted-foreground">Manage your salon services</p>
+          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Services</h1>
+          <p className="z-subtitle">Manage your salon services</p>
         </div>
         {/* <div className="hidden sm:flex items-center gap-3 text-sm text-muted-foreground">
           <div className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -709,7 +709,7 @@ const Services = () => {
       {services.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-muted-foreground">
+            <p className="z-subtitle">
               No services yet. Add your first service!
             </p>
           </CardContent>

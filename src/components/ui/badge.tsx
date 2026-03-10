@@ -4,14 +4,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+        default:     "border-transparent bg-[#F5ECD6] text-[#8B6A2E] text-[9px] tracking-[0.08em] uppercase",
+        secondary:   "border-transparent bg-[#F5F0E8] text-[#57534E] text-[9px] tracking-[0.08em] uppercase",
+        destructive: "border-transparent bg-[#FEF2F2] text-[#DC2626] text-[9px] tracking-[0.08em] uppercase",
+        outline:     "border-[#EAE5DC] text-[#57534E] text-[9px] tracking-[0.08em] uppercase",
+        success:     "border-transparent bg-[#F0FDF4] text-[#16A34A] text-[9px] tracking-[0.08em] uppercase",
+        warning:     "border-transparent bg-[#FFFBEB] text-[#B45309] text-[9px] tracking-[0.08em] uppercase",
+        info:        "border-transparent bg-[#EFF6FF] text-[#1D4ED8] text-[9px] tracking-[0.08em] uppercase",
       },
     },
     defaultVariants: {

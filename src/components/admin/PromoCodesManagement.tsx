@@ -87,7 +87,7 @@ export default function PromoCodesManagement() {
                 <td className="px-4 py-3">{c.minimum_amount > 0 ? `GHS ${c.minimum_amount}` : "—"}</td>
                 <td className="px-4 py-3">{c.used_count} {c.max_uses ? `/ ${c.max_uses}` : "/ ∞"}</td>
                 <td className="px-4 py-3">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}</td>
-                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>{c.is_active ? "Active" : "Inactive"}</span></td>
+                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.is_active ? "z-badge z-badge-green" : "bg-gray-100 text-gray-600"}`}>{c.is_active ? "Active" : "Inactive"}</span></td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button onClick={()=>handleToggle(c.id,c.is_active)} className="text-xs border px-2 py-1 rounded hover:bg-muted">{c.is_active ? "Disable" : "Enable"}</button>

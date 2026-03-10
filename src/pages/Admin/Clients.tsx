@@ -64,7 +64,7 @@ const clientSchema = z.object({
 // Small stat tile used in profile dialog
 const Stat = ({ label, value }: { label: string; value: () => string }) => {
   return (
-    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+    <div className="p-3 bg-cream dark:bg-gray-800 rounded-lg">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="text-lg font-semibold mt-1">{value()}</p>
     </div>
@@ -542,11 +542,11 @@ const Clients = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="z-page">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Clients</h1>
-          <p className="text-muted-foreground">Manage your clients</p>
+          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Clients</h1>
+          <p className="z-subtitle">Manage your clients</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -895,7 +895,7 @@ const Clients = () => {
           )}
         </div>
       </div>
-      <div className="space-y-6">
+      <div className="z-page">
         {/* Client Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr items-stretch">
           {filteredClients.map((client) => {
@@ -957,13 +957,13 @@ const Clients = () => {
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full ${
                             client.noShowCount >= 3
-                              ? "bg-red-100 text-red-700"
+                              ? "z-badge z-badge-red"
                               : client.totalSpent > 5000 ||
                                 client.visitsCount > 10
-                              ? "bg-yellow-100 text-yellow-700"
+                              ? "z-badge z-badge-amber"
                               : client.visitsCount === 0
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
+                              ? "z-badge z-badge-green"
+                              : "z-badge z-badge-gray"
                           }`}
                         >
                           {client.noShowCount >= 3
