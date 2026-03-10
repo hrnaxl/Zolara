@@ -124,11 +124,14 @@ export const SettingsProvider = ({ children }: Props) => {
   useEffect(() => {
     const init = async () => {
       setLoading(true);
+      // Safety timeout - never block the app forever
+      const timeout = setTimeout(() => setLoading(false), 4000);
       try {
         await Promise.all([fetchSettings(), fetchUserRole()]);
       } catch (err) {
         console.error("Failed to initialize settings:", err);
       } finally {
+        clearTimeout(timeout);
         setLoading(false);
       }
     };
