@@ -101,99 +101,455 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const today = new Date();
-      const todayStr = format(today, "yyyy-MM-dd");
-      const startOfThisMonth = format(startOfMonth(today), "yyyy-MM-dd");
-      const endOfThisMonth = format(endOfMonth(today), "yyyy-MM-dd");
-      const previousMonthStart = format(startOfMonth(subMonths(today, 1)), "yyyy-MM-dd");
-      const previousMonthEnd = format(endOfMonth(subMonths(today, 1)), "yyyy-MM-dd");
+      const todayStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        0,
+        0,
+        0,
+        0
+      ).toISOString();
+
+      const todayEnd = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        23,
+        59,
+        59,
+        999
+      ).toISOString();
+
+      console.log("Start of day", todayStart);
+      console.log("End of day", todayEnd);
       const periodStart = format(dateRange.start, "yyyy-MM-dd");
       const periodEnd = format(dateRange.end, "yyyy-MM-dd");
+      const startOfThisWeek = format(
+        startOfWeek(today, { weekStartsOn: 1 }),
+        "yyyy-MM-dd"
+      );
+      const endOfThisWeek = format(
+        endOfWeek(today, { weekStartsOn: 1 }),
+        "yyyy-MM-dd"
+      );
+      const startOfThisMonth = format(startOfMonth(today), "yyyy-MM-dd");
+      const endOfThisMonth = format(endOfMonth(today), "yyyy-MM-dd");
+      const previousMonthStart = format(
+        startOfMonth(subMonths(today, 1)),
+        "yyyy-MM-dd"
+      );
+      const previousMonthEnd = format(
+        endOfMonth(subMonths(today, 1)),
+        "yyyy-MM-dd"
+      );
 
-      // Run all queries independently so one failure doesn't kill everything
+      // Fetch all data in parallel
       const [
         todayBookingsRes,
         periodBookingsRes,
-        allClientsRes,
-        activeStaffRes,
-        pendingBookingsRes,
-        upcomingBookingsRes,
-        todaySalesRes,
-        monthlySalesRes,
-        prevMonthSalesRes,
+        todayPaymentsRes,
+        periodPaymentsRes,
+        weeklyPaymentsRes,
+        monthlyPaymentsRes,
+        previousMonthPaymentsRes,
+        clientsRes,
+        previousMonthClientsRes,
+        staffRes,
+        thisMonthServicesRes,
+        allBookingsRes,
         recentBookingsRes,
-        monthlyBookingStatusRes,
+        recentPaymentsRes,
+        last30DaysPaymentsRes,
+        pendingRequestsRes,
+        upcomingBookingsRes,
+        staffBookingsRes,
+        completedBookingsPaymentsRes,
+        todayAttendanceRes,
       ] = await Promise.all([
-        supabase.from("bookings").select("*").eq("preferred_date", todayStr),
-        supabase.from("bookings").select("*").gte("preferred_date", periodStart).lte("preferred_date", periodEnd),
-        supabase.from("clients").select("*", { count: "exact", head: true }),
+        supabase
+          .from("bookings")
+          .select("*")
+          .eq("preferred_date", format(today, "yyyy-MM-dd")),
+        supabase
+          .from("bookings")
+          .select("*")
+          .gte("preferred_date", periodStart)
+          .lte("preferred_date", periodEnd),
+        // Only consider completed payments when calculating revenue numbers
+        // Only consider payments that are completed and are for bookings marked completed
+        supabase
+          .from("sales")
+          .select("amount, payment_method, status, booking_id, client_name")
+          .eq("status", "completed")
+          .gte("created_at", todayStart)
+          .lte("created_at", todayEnd)
+          .eq("bookings.status", "completed"),
+
+        supabase
+          .from("sales")
+          .select("amount, payment_method, status, booking_id, client_name")
+          .eq("status", "completed")
+          .gte("created_at", periodStart)
+          .lte("created_at", periodEnd)
+          .eq("bookings.status", "completed"),
+        supabase
+          .from("sales")
+          .select("amount, bookings(status, preferred_date)")
+          .eq("status", "completed")
+          .gte("created_at", startOfThisWeek)
+          .lte("created_at", endOfThisWeek)
+          .eq("bookings.status", "completed"),
+        supabase
+          .from("sales")
+          .select("amount, bookings(status, preferred_date)")
+          .eq("status", "completed")
+          .gte("created_at", startOfThisMonth)
+          .lte("created_at", endOfThisMonth)
+          .eq("bookings.status", "completed"),
+        supabase
+          .from("sales")
+          .select("amount, bookings(status, preferred_date)")
+          .eq("status", "completed")
+          .gte("created_at", previousMonthStart)
+          .lte("created_at", previousMonthEnd)
+          .eq("bookings.status", "completed"),
+        // @ts-ignore
+        supabase
+          .from("clients")
+          .select("*", { count: "exact", head: true })
+          ,
+        supabase
+          .from("clients")
+          .select("*", { count: "exact" })
+          .lte("created_at", previousMonthEnd), // @ts-ignore
         supabase.from("staff").select("*").eq("is_active", true),
-        supabase.from("bookings").select("*", { count: "exact" }).eq("status", "pending"),
-        supabase.from("bookings").select("*").eq("preferred_date", todayStr).in("status", ["pending", "confirmed"]).order("preferred_time", { ascending: true }).limit(10),
-        supabase.from("sales").select("amount, payment_method, status").eq("status", "completed").gte("created_at", today.toISOString().split("T")[0]).lte("created_at", todayStr + "T23:59:59"),
-        supabase.from("sales").select("amount, payment_method, status, created_at").eq("status", "completed").gte("created_at", startOfThisMonth).lte("created_at", endOfThisMonth + "T23:59:59"),
-        supabase.from("sales").select("amount").eq("status", "completed").gte("created_at", previousMonthStart).lte("created_at", previousMonthEnd + "T23:59:59"),
-        supabase.from("bookings").select("*").order("created_at", { ascending: false }).limit(5),
-        supabase.from("bookings").select("status").gte("preferred_date", startOfThisMonth).lte("preferred_date", endOfThisMonth),
+        supabase
+          .from("bookings")
+          .select("service_id, services(name)")
+          .gte("preferred_date", startOfThisMonth)
+          .lte("preferred_date", endOfThisMonth),
+        // booking status distribution should reflect appointment dates in the month
+        supabase
+          .from("bookings")
+          .select("status")
+          .gte("preferred_date", startOfThisMonth)
+          .lte("preferred_date", endOfThisMonth),
+        supabase
+          .from("bookings")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("sales")
+          .select("*, bookings(services(name))")
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("sales")
+          .select("amount, payment_date")
+          .gte("created_at", format(subDays(today, 30), "yyyy-MM-dd"))
+          .eq("status", "completed"),
+        supabase
+          .from("bookings")
+          .select("*", { count: "exact" })
+          .eq("status", "pending"),
+        supabase
+          .from("bookings")
+          .select("*")
+          .eq("preferred_date", format(today, "yyyy-MM-dd"))
+          .in("status", ["pending", "confirmed"])
+          .order("preferred_date", { ascending: true })
+          .order("preferred_time", { ascending: true })
+          .limit(5),
+        supabase
+          .from("bookings")
+          .select(
+            "staff_id, staff(name, specialties), services(price)"
+          )
+          .gte("preferred_date", periodStart)
+          .lte("preferred_date", periodEnd)
+          .eq("status", "completed"),
+        // Fetch completed bookings with nested payments to compute pending revenue (completed but unpaid)
+        supabase
+          .from("bookings")
+          .select(
+            "id, staff_id, price, status, client_name, service_name"
+          )
+          .gte("preferred_date", periodStart)
+          .lte("preferred_date", periodEnd)
+          .eq("status", "completed"),
+        // fetch attendance for today by check_in timestamp range (not created_at equality)
+        supabase
+          .from("attendance")
+          .select("staff_id")
+          .gte("check_in", todayStart)
+          .lte("check_in", todayEnd),
       ]);
 
-      const todayRevenue = todaySalesRes.data?.reduce((s, p) => s + Number(p.amount), 0) || 0;
-      const monthlyRevenue = monthlySalesRes.data?.reduce((s, p) => s + Number(p.amount), 0) || 0;
-      const previousMonthRevenue = prevMonthSalesRes.data?.reduce((s, p) => s + Number(p.amount), 0) || 0;
-      const periodRevenue = todayRevenue; // use today revenue for period by default
+      // Calculate stats
+      const todayRevenue =
+        todayPaymentsRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) ||
+        0;
+      const periodRevenue =
+        periodPaymentsRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) ||
+        0;
+      const weeklyRevenue =
+        weeklyPaymentsRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) ||
+        0;
+      const monthlyRevenue =
+        monthlyPaymentsRes.data?.reduce(
+          (sum, p) => sum + Number(p.amount),
+          0
+        ) || 0;
+      const previousMonthRevenue =
+        previousMonthPaymentsRes.data?.reduce(
+          (sum, p) => sum + Number(p.amount),
+          0
+        ) || 0;
+
+      // Pending revenue: bookings that are marked completed but have no completed payment recorded
+      const completedBookings = completedBookingsPaymentsRes.data || [];
+      const pendingRevenue = completedBookings.reduce((sum: number, b: any) => {
+        const payments: any[] = b.payments || [];
+        const hasCompletedPayment = payments.some(
+          (p) => p && p.status === "completed"
+        );
+        if (!hasCompletedPayment) {
+          // treat full service price as pending (partial-pay scenarios can be refined later)
+          return sum + Number(b.services?.price || 0);
+        }
+        return sum;
+      }, 0);
+
+      // Client growth calculation
+      const totalClients = clientsRes.count || 0;
+      const previousMonthClients = previousMonthClientsRes.count || 0;
+      const clientChangePercentage =
+        previousMonthClients > 0
+          ? ((totalClients - previousMonthClients) / previousMonthClients) * 100
+          : 0;
+
+      // Revenue change percentage
+      const monthChangePercentage =
+        previousMonthRevenue > 0
+          ? ((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) *
+            100
+          : 0;
+
+      // Top service
+      const serviceCounts = thisMonthServicesRes.data?.reduce(
+        (acc: any, booking: any) => {
+          const serviceName = booking.service_name || "Unknown";
+          acc[serviceName] = (acc[serviceName] || 0) + 1;
+          return acc;
+        },
+        {}
+      );
+      const topServiceEntry = serviceCounts
+        ? Object.entries(serviceCounts).sort((a: any, b: any) => b[1] - a[1])[0]
+        : null;
 
       // Booking status distribution
-      const statusCounts: Record<string, number> = {};
-      (monthlyBookingStatusRes.data || []).forEach((b: any) => {
-        statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
+      const statusCounts = allBookingsRes.data?.reduce((acc: any, b: any) => {
+        acc[b.status] = (acc[b.status] || 0) + 1;
+        return acc;
+      }, {});
+
+      const statusColors: Record<string, string> = {
+        scheduled: "hsl(210, 80%, 52%)",
+        confirmed: "hsl(152, 60%, 42%)",
+        completed: "hsl(220, 10%, 50%)",
+        cancelled: "hsl(0, 72%, 55%)",
+        no_show: "hsl(38, 92%, 50%)",
+      };
+
+      const bookingStatusData = statusCounts
+        ? Object.entries(statusCounts).map(([name, value]) => ({
+            name:
+              name.charAt(0).toUpperCase() + name.slice(1).replace("_", " "),
+            value: value as number,
+            color: statusColors[name] || "hsl(220, 10%, 50%)",
+          }))
+        : [];
+
+      // Last 30 days revenue chart
+      const last30Days = eachDayOfInterval({
+        start: subDays(today, 30),
+        end: today,
       });
-      const bookingStatusDist = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-      setBookingStatusData(bookingStatusDist);
 
-      // Revenue chart (daily for this month)
-      const revenueByDay: Record<string, number> = {};
-      (monthlySalesRes.data || []).forEach((s: any) => {
-        const day = s.created_at?.substring(0, 10) || "";
-        revenueByDay[day] = (revenueByDay[day] || 0) + Number(s.amount);
+      const revenueByDay = last30DaysPaymentsRes.data?.reduce(
+        (acc: any, p: any) => {
+          const day = format(new Date(p.payment_date), "yyyy-MM-dd");
+          acc[day] = (acc[day] || 0) + Number(p.amount);
+          return acc;
+        },
+        {}
+      );
+
+      const revenueChartData = last30Days.map((day) => ({
+        name: format(day, "MMM d"),
+        revenue: revenueByDay?.[format(day, "yyyy-MM-dd")] || 0,
+        bookings: 0,
+      }));
+
+      // Payment method breakdown
+      const paymentMethods = periodPaymentsRes.data?.reduce(
+        (acc: any, p: any) => {
+          const method = p.payment_method || "cash";
+          if (!acc[method]) {
+            acc[method] = { amount: 0, count: 0 };
+          }
+          acc[method].amount += Number(p.amount);
+          acc[method].count += 1;
+          return acc;
+        },
+        {}
+      );
+
+      const totalPaymentAmount =
+        dateFilter === "today" ? todayRevenue : periodRevenue || 1;
+
+      const enabledMethodIds =
+        settings?.payment_methods
+          ?.filter((m: any) => m.enabled)
+          .map((m: any) => m.id) || [];
+
+      const paymentMethodBreakdown = paymentMethods
+        ? Object.entries(paymentMethods)
+            .map(([method, data]: [string, any]) => ({
+              method,
+              amount: data.amount,
+              count: data.count,
+              percentage: (data.amount / totalPaymentAmount) * 100,
+            }))
+            // Always include gift_card if present in data, even if not listed in settings
+            .filter(
+              (p: any) =>
+                p.method === "gift_card" || enabledMethodIds.includes(p.method)
+            )
+        : [];
+
+      console.log("Payment method breakdown", paymentMethodBreakdown);
+
+      // Top performing staff — attribute revenue only from completed payments tied to bookings
+      const staffPerformance = staffBookingsRes.data?.reduce(
+        (acc: any, booking: any) => {
+          if (!booking.staff_id || !booking.staff) return acc;
+          const staffId = booking.staff_id;
+          if (!acc[staffId]) {
+            acc[staffId] = {
+              id: staffId,
+              name: booking.staff.name,
+              specialization: booking.staff.specialization,
+              bookings: 0,
+              revenue: 0,
+            };
+          }
+          acc[staffId].bookings += 1;
+          // Sum only completed payments with a payment_method to ensure accurate sales attribution
+          const payments: any[] = booking.payments || [];
+          const paidAmount = payments.reduce((s, p) => {
+            if (p && p.status === "completed" && p.payment_method) {
+              return s + Number(p.amount || 0);
+            }
+            return s;
+          }, 0);
+          acc[staffId].revenue += paidAmount;
+          return acc;
+        },
+        {}
+      );
+
+      const topStaffList = staffPerformance
+        ? Object.values(staffPerformance)
+            .sort((a: any, b: any) => b.bookings - a.bookings)
+            .slice(0, 5)
+        : [];
+
+      // Upcoming appointments
+      const upcomingList =
+        upcomingBookingsRes.data?.map((b: any) => ({
+          id: b.id,
+          clientName: b.client_name || "Unknown",
+          serviceName: b.services?.name || "Service",
+          date: b.preferred_date,
+          time: b.preferred_time,
+          status: b.status,
+        })) || [];
+
+      // Check for absent staff
+      const checkedInStaffIds =
+        todayAttendanceRes.data?.map((a: any) => a.staff_id) || [];
+      const allActiveStaff = staffRes.data || [];
+      const absentStaffNames = allActiveStaff
+        .filter((s: any) => !checkedInStaffIds.includes(s.id))
+        .map((s: any) => s.name);
+
+      // Pending bookings count
+      const pendingBookings =
+        todayBookingsRes.data?.filter(
+          (b) => b.status === "pending" || b.status === "confirmed"
+        ).length || 0;
+
+      // Generate alerts
+      const generatedAlerts = generateAlerts({
+        todayBookings: todayBookingsRes.data?.length || 0,
+        pendingRequests: pendingRequestsRes.count || 0,
+        absentStaff: absentStaffNames,
+        lowBookingThreshold: 3,
       });
-      const revenueChartData = Object.entries(revenueByDay).map(([name, revenue]) => ({ name, revenue, bookings: 0 }));
-      setRevenueData(revenueChartData);
 
-      // Payment method chart
-      const pmCounts: Record<string, number> = {};
-      (monthlySalesRes.data || []).forEach((s: any) => {
-        pmCounts[s.payment_method] = (pmCounts[s.payment_method] || 0) + Number(s.amount);
-      });
-      setPaymentMethodData(Object.entries(pmCounts).map(([name, value]) => ({ name, value })));
-
-      setUpcomingAppointments(upcomingBookingsRes.data || []);
-      setRecentBookings(recentBookingsRes.data || []);
-
-      const monthChangePct = previousMonthRevenue > 0
-        ? Math.round(((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100)
-        : 0;
-
-      const pendingCount = (todayBookingsRes.data || []).filter(
-        (b: any) => b.status === "pending" || b.status === "confirmed"
-      ).length;
-
-      setStats(prev => ({
-        ...prev,
+      setStats({
         todayBookings: todayBookingsRes.data?.length || 0,
         periodBookings: periodBookingsRes.data?.length || 0,
         todayRevenue,
         periodRevenue,
-        weeklyRevenue: monthlyRevenue,
+        weeklyRevenue,
         monthlyRevenue,
-        totalClients: allClientsRes.count || 0,
-        activeStaff: activeStaffRes.data?.length || 0,
-        monthChangePercentage: monthChangePct,
+        totalClients,
+        activeStaff: allActiveStaff.length,
+        topService: (topServiceEntry?.[0] as string) || "N/A",
+        topServiceCount: (topServiceEntry?.[1] as number) || 0,
+        monthChangePercentage: Number(monthChangePercentage.toFixed(1)),
+        clientChangePercentage: Number(clientChangePercentage.toFixed(1)),
         bookingChangePercentage: 0,
-        clientChangePercentage: 0,
-        pendingBookings: pendingCount,
-        pendingRequests: pendingCount,
-        pendingRevenue: 0,
-      }));
+        pendingBookings,
+        pendingRequests: pendingRequestsRes.count || 0,
+        pendingRevenue,
+      });
 
+      setRevenueData(revenueChartData);
+      setBookingStatusData(bookingStatusData);
+      setPaymentMethodData(paymentMethodBreakdown);
+      setTopStaff(topStaffList as any[]);
+      setUpcomingAppointments(upcomingList);
+      setAlerts(generatedAlerts);
+      setAbsentStaff(absentStaffNames);
+
+      // Format recent bookings
+      setRecentBookings(
+        recentBookingsRes.data?.map((b) => ({
+          id: b.id,
+          title: b.services?.name || "Service",
+          subtitle: b.client_name || "Client",
+          date: b.created_at,
+          status: b.status,
+        })) || []
+      );
+
+      // Format recent payments
+      setRecentPayments(
+        recentPaymentsRes.data?.map((p) => ({
+          id: p.id,
+          title: (p.bookings as any)?.services?.name || "Payment",
+          date: p.payment_date,
+          amount: Number(p.amount),
+        })) || []
+      );
+
+      setLastSync(new Date());
     } catch (error) {
       console.error("Error fetching stats:", error);
     } finally {
