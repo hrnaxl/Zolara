@@ -194,7 +194,7 @@ const AdminDashboard = () => {
     }
   };
 
-    const getFilterLabel = () => {
+  const getFilterLabel = () => {
     switch (dateFilter) {
       case "today":
         return "Today";
