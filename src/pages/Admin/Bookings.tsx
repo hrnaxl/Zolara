@@ -296,12 +296,11 @@ const Bookings = () => {
   };
 
   const fetchData = async () => {
+    // Safety timeout — always clear loading after 8s even if queries hang
+    const timeout = setTimeout(() => setLoading(false), 8000);
     try {
       const [clientsRes, staffRes, servicesRes] = await Promise.all([
-        supabase
-          .from("clients")
-          .select("*")
-          .order("name"),
+        supabase.from("clients").select("id, name, email, phone").order("name"),
         supabase.from("staff").select("*"),
         supabase.from("services").select("*").order("created_at"),
       ]);
@@ -311,8 +310,8 @@ const Bookings = () => {
       if (servicesRes.data) setServices(servicesRes.data);
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Failed to load data");
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -807,8 +806,8 @@ const Bookings = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center p-8">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div style={{ display:"flex", justifyContent:"center", alignItems:"center", padding:"60px", minHeight:"200px" }}>
+        <div style={{ width:"36px", height:"36px", border:"4px solid #e8d27a", borderTopColor:"#C9A84C", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}></div>
       </div>
     );
   }

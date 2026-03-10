@@ -81,7 +81,7 @@ export const TodaysBookings = ({ bookings, onBookingClick }: TodaysBookingsProps
                   {booking.staff_name && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      {booking.staff.name}
+                      {booking.staff_name}
                     </span>
                   )}
                   <Badge className={cn(getStatusColor(booking.status), "text-xs")}>
