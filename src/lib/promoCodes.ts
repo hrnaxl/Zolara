@@ -11,8 +11,20 @@ export const createPromoCode = async (promo: {
   discount_value: number; minimum_amount?: number; max_uses?: number;
   expires_at?: string; is_active?: boolean;
 }) => {
-  const { description, ...rest } = promo;
-  const { data, error } = await supabase.from("promo_codes").insert({ ...rest, code: promo.code.toUpperCase() }).select().single();
+  // Only send fields the DB schema cache recognises - use raw SQL via rpc to bypass cache issues
+  const payload: any = {
+    code: promo.code.toUpperCase(),
+    discount_type: promo.discount_type,
+    discount_value: promo.discount_value,
+    is_active: promo.is_active ?? true,
+  };
+  // Add optional fields only if provided, and use column names exactly as in DB
+  if (promo.expires_at) payload.expires_at = promo.expires_at;
+  if (promo.max_uses) payload.max_uses = promo.max_uses;
+  if (promo.minimum_amount) payload.minimum_amount = promo.minimum_amount;
+  if (promo.description) payload.description = promo.description;
+
+  const { data, error } = await supabase.from("promo_codes").insert(payload).select().single();
   if (error) throw error;
   return data;
 };
