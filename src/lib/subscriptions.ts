@@ -15,7 +15,7 @@ export const getAllSubscriptions = async () => {
 
 export const createSubscriptionPlan = async (plan: {
   name: string; description?: string; billing_cycle: string; price: number;
-  max_services_per_cycle?: number; discount_percentage?: number; features?: string[];
+  max_services_per_cycle?: number | null; discount_percentage?: number; features?: string[];
 }) => {
   const { data, error } = await supabase.from("subscription_plans").insert(plan).select().single();
   if (error) throw error;
