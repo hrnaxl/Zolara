@@ -31,6 +31,9 @@ import StaffBookings from "./pages/Staff/StaffBookings";
 import MyAttendance from "./pages/Staff/MyAttendance";
 
 import ClientBookings from "./pages/Client/ClientBookings";
+import ClientAuth from "./pages/Client/ClientAuth";
+import ClientPortal from "./pages/Client/ClientPortal";
+import ClientDashboard from "./pages/Client/ClientDashboard";
 import ViewServices from "./pages/Client/ViewServices";
 import SettingsPage from "./pages/Admin/Settings";
 import Loyalty from "./pages/Admin/Loyalty";
@@ -65,6 +68,13 @@ const App = () => (
           
           {/* Staff Login Page */}
           <Route path="/app/auth" element={<Auth />} />
+
+          {/* Client self-service portal */}
+          <Route path="/app/client/auth" element={<ClientAuth />} />
+          <Route path="/app/client" element={<ClientPortal />}>
+            <Route path="home" element={<ClientDashboard />} />
+            <Route path="loyalty" element={<ClientDashboard />} />
+          </Route>
 
           {/* =================== MANAGEMENT SYSTEM ROUTES =================== */}
           

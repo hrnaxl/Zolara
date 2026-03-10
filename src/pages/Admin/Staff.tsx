@@ -75,6 +75,10 @@ const Staff = () => {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteStaffId, setDeleteStaffId] = useState<string | null>(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginStaff, setLoginStaff] = useState<any>(null);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
@@ -336,6 +340,31 @@ const Staff = () => {
     }
   };
 
+  const handleCreateLogin = async () => {
+    if (!loginStaff?.email) { toast.error("Staff member needs an email address first."); return; }
+    if (!loginPassword || loginPassword.length < 6) { toast.error("Password must be at least 6 characters."); return; }
+    setLoginLoading(true);
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: loginStaff.email,
+        password: loginPassword,
+        options: { data: { role: loginStaff.role || "staff", name: loginStaff.name } }
+      });
+      if (authError) throw authError;
+      const userId = authData.user?.id;
+      if (!userId) throw new Error("No user ID returned");
+      await supabase.from("user_roles").upsert({ user_id: userId, role: loginStaff.role || "staff" });
+      await supabase.from("staff").update({ user_id: userId }).eq("id", loginStaff.id);
+      toast.success(`Login created for ${loginStaff.name}. They'll receive a confirmation email.`);
+      setLoginModalOpen(false);
+      setLoginPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create login");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-8">
@@ -585,6 +614,21 @@ const Staff = () => {
                   }}
                 >
                   <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl"
+                  style={{ borderColor: "#C9A84C", color: "#C9A84C" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLoginStaff(member);
+                    setLoginPassword("");
+                    setLoginModalOpen(true);
+                  }}
+                  title="Create system login for this staff member"
+                >
+                  🔑 Login
                 </Button>
                   <Button
                     size="sm"
@@ -1023,6 +1067,32 @@ const Staff = () => {
           </div>
         </DialogContent>
       </Dialog>
+    {/* Create Login Modal */}
+    {loginModalOpen && loginStaff && (
+      <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+        <div style={{ background:"#fff", borderRadius:16, padding:32, width:"100%", maxWidth:420, boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
+          <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:700, marginBottom:4 }}>Create System Login</h2>
+          <p style={{ fontSize:12, color:"#78716C", marginBottom:24 }}>This will create a login account for <strong>{loginStaff.name}</strong> ({loginStaff.role || "staff"}).</p>
+          <div style={{ marginBottom:16 }}>
+            <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:"#A8A29E", display:"block", marginBottom:6 }}>EMAIL</label>
+            <input value={loginStaff.email || ""} disabled style={{ width:"100%", padding:"11px 14px", borderRadius:8, border:"1.5px solid #EDE8E0", background:"#F5F5F4", fontSize:13, color:"#78716C" }} />
+            {!loginStaff.email && <p style={{ fontSize:11, color:"#EF4444", marginTop:4 }}>⚠ Add an email to this staff member first.</p>}
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:"#A8A29E", display:"block", marginBottom:6 }}>TEMPORARY PASSWORD</label>
+            <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
+              placeholder="Min 6 characters" style={{ width:"100%", padding:"11px 14px", borderRadius:8, border:"1.5px solid #EDE8E0", fontSize:13, outline:"none" }} />
+          </div>
+          <div style={{ display:"flex", gap:10 }}>
+            <button onClick={() => setLoginModalOpen(false)} style={{ flex:1, padding:"11px", borderRadius:8, border:"1.5px solid #EDE8E0", background:"#fff", cursor:"pointer", fontSize:13, fontWeight:600, color:"#78716C" }}>Cancel</button>
+            <button onClick={handleCreateLogin} disabled={loginLoading || !loginStaff.email}
+              style={{ flex:1, padding:"11px", borderRadius:8, border:"none", background: loginLoading || !loginStaff.email ? "#ccc" : "linear-gradient(135deg,#C9A84C,#A8892E)", color:"#fff", cursor: loginLoading || !loginStaff.email ? "not-allowed" : "pointer", fontSize:13, fontWeight:700 }}>
+              {loginLoading ? "Creating..." : "Create Login"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 };
