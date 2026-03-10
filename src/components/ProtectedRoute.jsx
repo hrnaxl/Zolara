@@ -8,32 +8,54 @@ const ProtectedRoute = ({ allowedRoles }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
+    let mounted = true;
 
-        if (!user) {
-          setLoading(false);
-          return;
-        }
+    const init = async () => {
+      // First try to get session (faster than getUser)
+      const { data: { session } } = await supabase.auth.getSession();
 
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
+      if (!session?.user) {
+        if (mounted) setLoading(false);
+        return;
+      }
 
-        // Safe fallback - never crash on missing metadata
-        const metaRole = user.user_metadata?.role || null;
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      const metaRole = session.user.user_metadata?.role || null;
+      if (mounted) {
         setUserRole(roleData?.role || metaRole || null);
-      } catch (err) {
-        console.error("ProtectedRoute error:", err);
-      } finally {
         setLoading(false);
       }
     };
 
-    fetchUserRole();
+    // Also listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      if (event === "SIGNED_IN" && session?.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        const metaRole = session.user.user_metadata?.role || null;
+        setUserRole(roleData?.role || metaRole || null);
+        setLoading(false);
+      } else if (event === "SIGNED_OUT") {
+        setUserRole(null);
+        setLoading(false);
+      }
+    });
+
+    init();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (loading) {

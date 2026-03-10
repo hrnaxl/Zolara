@@ -19,22 +19,33 @@ const Auth = () => {
     setLoading(true);
     setError("");
 
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) { setError("Invalid email or password."); setLoading(false); return; }
+    try {
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) { setError("Invalid email or password."); setLoading(false); return; }
+      if (!data.session) { setError("Login failed. Please try again."); setLoading(false); return; }
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id)
-      .single();
+      // Wait for session to persist
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    const role = roleData?.role || "client";
-    if (role === "owner" || role === "admin") navigate("/app/admin/dashboard");
-    else if (role === "receptionist") navigate("/app/receptionist/dashboard");
-    else if (role === "staff") navigate("/app/staff/dashboard");
-    else navigate("/app/client/dashboard");
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
 
-    setLoading(false);
+      const role = roleData?.role || data.user.user_metadata?.role || null;
+
+      if (!role) { setError("No role assigned. Contact admin."); setLoading(false); return; }
+
+      if (role === "owner" || role === "admin") navigate("/app/admin/dashboard", { replace: true });
+      else if (role === "receptionist") navigate("/app/receptionist/dashboard", { replace: true });
+      else if (role === "staff") navigate("/app/staff/dashboard", { replace: true });
+      else navigate("/app/client/dashboard", { replace: true });
+
+    } catch (e) {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
