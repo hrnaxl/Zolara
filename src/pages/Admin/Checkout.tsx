@@ -102,9 +102,9 @@ const Checkout = () => {
   const [completed, setCompleted] = useState(false);
   const [pending, setPending] = useState(false);
   const [depositPaid, setDepositPaid] = useState(false);
-  const depositAmount = Math.round((originalPrice || 0) * 0.5);
   const [amount, setAmount] = useState<string>("");
   const [originalPrice, setOriginalPrice] = useState<number>(0);
+  const depositAmount = Math.round((originalPrice || 0) * 0.5);
   const [giftCode, setGiftCode] = useState<string>("");
   const [redeeming, setRedeeming] = useState<boolean>(false);
   const [redeemedCard, setRedeemedCard] = useState<{
