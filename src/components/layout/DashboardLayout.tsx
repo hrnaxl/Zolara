@@ -189,27 +189,31 @@ const DashboardLayout = () => {
     client: "Client",
   };
 
-  // ── palette ──────────────────────────────────────────
-  const GOLD       = "#B8975A";
-  const GOLD_LIGHT = "#F5ECD6";
-  const CREAM      = "#FAFAF8";
-  const WHITE      = "#FFFFFF";
-  const BORDER     = "#EDE8E0";
-  const TXT        = "#1C1917";
-  const TXT_MID    = "#78716C";
-  const TXT_SOFT   = "#A8A29E";
+  // Deep navy palette
+  const NAVY      = "#0F1E35";
+  const NAVY_MID  = "#162844";
+  const NAVY_HOVER= "#1E3558";
+  const GOLD      = "#C9A84C";
+  const GOLD_LIGHT= "rgba(201,168,76,0.15)";
+  const WHITE     = "#FFFFFF";
+  const WHITE_DIM = "rgba(255,255,255,0.55)";
+  const WHITE_MID = "rgba(255,255,255,0.80)";
+  const CREAM     = "#FAFAF8";
+  const BORDER    = "#EDE8E0";
 
   return (
     <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
-        .nav-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; text-decoration:none; transition:all 0.18s; font-family:'Montserrat',sans-serif; font-size:12px; font-weight:500; color:${TXT_MID}; }
-        .nav-link:hover { background:${GOLD_LIGHT}; color:${GOLD}; }
-        .nav-link.active { background:${GOLD_LIGHT}; color:${GOLD}; font-weight:600; }
+        .nav-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; text-decoration:none; transition:all 0.18s; font-family:'Montserrat',sans-serif; font-size:12px; font-weight:500; color:${WHITE_MID}; }
+        .nav-link:hover { background:${NAVY_HOVER}; color:${WHITE}; }
+        .nav-link.active { background:${GOLD_LIGHT}; color:${GOLD}; font-weight:600; border:1px solid rgba(201,168,76,0.25); }
         .nav-link.active svg { color:${GOLD} !important; }
-        .nav-link:hover svg { color:${GOLD} !important; }
-        .sidebar-overlay { position:fixed; inset:0; background:rgba(28,25,23,0.4); z-index:40; backdrop-filter:blur(2px); }
-        @keyframes slideIn { from{transform:translateX(-100%)} to{transform:translateX(0)} }
+        .nav-link:hover svg { color:${WHITE} !important; }
+        .sidebar-scroll { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.15) transparent; }
+        .sidebar-scroll::-webkit-scrollbar { width:4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:4px; }
+        .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:40; backdrop-filter:blur(2px); }
       `}</style>
 
       {/* Mobile overlay */}
@@ -220,17 +224,14 @@ const DashboardLayout = () => {
       {/* ── SIDEBAR ─────────────────────────────────── */}
       <aside style={{
         position: "fixed", top: 0, left: 0, height: "100%", width: "240px",
-        background: WHITE,
-        borderRight: `1px solid ${BORDER}`,
-        boxShadow: "2px 0 20px rgba(0,0,0,0.05)",
+        background: NAVY,
         zIndex: 50, display: "flex", flexDirection: "column",
-        transform: sidebarOpen ? "translateX(0)" : undefined,
       }} className={`transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
 
         {/* Logo / Brand */}
-        <div style={{ padding: "20px 20px 16px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "12px", overflow: "hidden", border: `2px solid ${GOLD_LIGHT}`, flexShrink: 0 }}>
+        <div style={{ padding: "22px 20px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
+            <div style={{ width: "46px", height: "46px", borderRadius: "50%", overflow: "hidden", border: `2px solid ${GOLD}`, flexShrink: 0, boxShadow: "0 0 0 3px rgba(201,168,76,0.15)" }}>
               <img
                 src={settings.logo_url !== null ? settings.logo_url : "/logo.png"}
                 style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }}
@@ -239,9 +240,9 @@ const DashboardLayout = () => {
               />
             </div>
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", fontWeight: 700, color: TXT, lineHeight: 1 }}>Zolara</div>
-              <div style={{ fontSize: "9px", fontWeight: 500, letterSpacing: "0.14em", color: TXT_SOFT, marginTop: "1px" }}>BEAUTY STUDIO</div>
-              <div style={{ marginTop: "5px", display: "inline-flex", alignItems: "center", background: GOLD_LIGHT, borderRadius: "20px", padding: "2px 8px" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", fontWeight: 700, color: WHITE, lineHeight: 1 }}>Zolara</div>
+              <div style={{ fontSize: "8px", fontWeight: 600, letterSpacing: "0.22em", color: WHITE_DIM, marginTop: "3px" }}>BEAUTY STUDIO</div>
+              <div style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", background: GOLD_LIGHT, borderRadius: "20px", padding: "2px 8px", border: "1px solid rgba(201,168,76,0.2)" }}>
                 <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", color: GOLD }}>
                   {roleLabels[storedUser.role] || "Access"}
                 </span>
@@ -251,14 +252,14 @@ const DashboardLayout = () => {
           <button
             className="lg:hidden"
             onClick={() => setSidebarOpen(false)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: TXT_SOFT, padding: "4px" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: WHITE_DIM, padding: "4px" }}
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, overflowY: "auto", padding: "12px 12px", scrollbarWidth: "none" }}>
+        {/* Nav — scrollable */}
+        <nav className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 10px" }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -269,7 +270,7 @@ const DashboardLayout = () => {
                 onClick={() => setSidebarOpen(false)}
                 className={`nav-link${isActive ? " active" : ""}`}
               >
-                <Icon size={16} style={{ flexShrink: 0, color: isActive ? GOLD : TXT_SOFT }} />
+                <Icon size={15} style={{ flexShrink: 0, color: isActive ? GOLD : WHITE_DIM }} />
                 <span>{item.label}</span>
                 {isActive && (
                   <div style={{ marginLeft: "auto", width: "5px", height: "5px", borderRadius: "50%", background: GOLD }} />
@@ -280,20 +281,20 @@ const DashboardLayout = () => {
         </nav>
 
         {/* User Footer */}
-        <div style={{ padding: "12px 16px", borderTop: `1px solid ${BORDER}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "10px", background: CREAM, marginBottom: "6px" }}>
+        <div style={{ padding: "12px 14px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "10px", background: NAVY_MID, marginBottom: "8px" }}>
             <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: GOLD_LIGHT, border: `1.5px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ fontSize: "12px", fontWeight: 700, color: GOLD }}>{user?.email?.[0]?.toUpperCase()}</span>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: GOLD }}>{user?.email?.[0]?.toUpperCase()}</span>
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "11px", fontWeight: 600, color: TXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
+              <div style={{ fontSize: "11px", fontWeight: 500, color: WHITE_MID, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
             </div>
           </div>
           <button
             onClick={() => setOpen(true)}
-            style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", padding: "9px 12px", borderRadius: "8px", background: "none", border: "none", cursor: "pointer", fontSize: "12px", fontWeight: 500, color: TXT_SOFT, fontFamily: "'Montserrat', sans-serif", transition: "all 0.18s" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FEF2F2"; (e.currentTarget as HTMLElement).style.color = "#DC2626"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "none"; (e.currentTarget as HTMLElement).style.color = TXT_SOFT; }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", padding: "10px 12px", borderRadius: "8px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", fontSize: "12px", fontWeight: 600, color: "#FCA5A5", fontFamily: "'Montserrat', sans-serif", transition: "all 0.18s" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.2)"; (e.currentTarget as HTMLElement).style.color = "#FEE2E2"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.1)"; (e.currentTarget as HTMLElement).style.color = "#FCA5A5"; }}
           >
             <LogOut size={14} />
             Sign Out
@@ -321,17 +322,6 @@ const DashboardLayout = () => {
 
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="lg:ml-[240px]" style={{ minHeight: "100vh" }}>
-        {/* Mobile top bar */}
-        <header className="lg:hidden" style={{ position: "sticky", top: 0, zIndex: 30, background: WHITE, borderBottom: `1px solid ${BORDER}`, padding: "14px 16px", display: "flex", alignItems: "center", gap: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "8px", padding: "7px", cursor: "pointer", display: "flex", alignItems: "center", color: TXT_MID }}
-          >
-            <Menu size={16} />
-          </button>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", fontWeight: 600, color: TXT }}>Zolara</span>
-        </header>
-
         <main style={{ background: CREAM, minHeight: "100vh" }}>
           <Outlet />
         </main>
