@@ -76,44 +76,45 @@ export default function PublicBooking() {
         return;
       }
 
-      // Find or create client by phone
+      // Find or create client by phone (clients table uses full_name not name)
+      const cleanPhone = phone.replace(/\s/g, "");
       const { data: existing } = await supabase
-        .from("clients" as any)
-        .select("id, name, phone")
-        .eq("phone", phone.replace(/\s/g, ""))
+        .from("clients")
+        .select("id, full_name, phone")
+        .eq("phone", cleanPhone)
         .maybeSingle();
 
       let clientId: string;
 
       if (existing) {
         clientId = (existing as any).id;
+        // Update name if it changed
+        await supabase.from("clients").update({ full_name: name.trim() }).eq("id", clientId);
       } else {
         const { data: newClient, error: clientErr } = await supabase
-          .from("clients" as any)
-          .insert({ name: name.trim(), phone: phone.replace(/\s/g,""), email: email || null })
+          .from("clients")
+          .insert({ full_name: name.trim(), phone: cleanPhone, email: email || null })
           .select("id")
           .single();
         if (clientErr) throw clientErr;
         clientId = (newClient as any).id;
       }
 
-      // Create booking request
+      // Create booking in bookings table with correct column names
       const ref = "ZBS-" + Date.now().toString(36).toUpperCase();
       const { error: bookingErr } = await supabase
-        .from("bookings" as any)
+        .from("bookings")
         .insert({
           client_id: clientId,
           service_id: serviceId,
-          preferred_date: date,
-          preferred_time: normalizedTime,
-          notes: notes || null,
-          status: "pending",
+          appointment_date: date,
+          appointment_time: normalizedTime,
+          notes: notes ? `${notes} | Ref: ${ref}` : `Ref: ${ref}`,
+          status: "scheduled",
           deposit_amount: 50,
           deposit_paid: false,
           booking_ref: ref,
-          client_name: name.trim(),
-          client_phone: phone,
-        });
+        } as any);
 
       if (bookingErr) throw bookingErr;
 
@@ -121,7 +122,8 @@ export default function PublicBooking() {
 
       // Send SMS confirmation
       const formattedDate = format(new Date(`${date}T00:00:00`), "EEEE, MMMM d yyyy");
-      await sendSMS(phone, SMS.bookingConfirmation(name.trim(), selectedService?.name || "Beauty Service", formattedDate, normalizedTime));
+      const smsSent = await sendSMS(phone, SMS.bookingConfirmation(name.trim(), selectedService?.name || "Beauty Service", formattedDate, normalizedTime));
+      if (!smsSent) console.warn("SMS failed to send but booking was created");
 
       setSubmitted(true);
     } catch (err: any) {

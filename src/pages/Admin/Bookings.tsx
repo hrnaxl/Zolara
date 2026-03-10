@@ -589,7 +589,7 @@ const Bookings = () => {
 
       if (status === "approved") {
         // Prevent creating bookings on Sundays when approving requests
-        const dateToCheck = request.preferred_date;
+        const dateToCheck = request.appointment_date;
         if (dateToCheck) {
           const dd = new Date(dateToCheck);
           if (dd.getUTCDay && dd.getUTCDay() === 0) {
@@ -604,8 +604,8 @@ const Bookings = () => {
             client_id: request.client_id,
             staff_id: request.staff_id || null,
             service_id: request.service_id,
-            appointment_date: request.preferred_date,
-            appointment_time: request.preferred_time,
+            appointment_date: request.appointment_date,
+            appointment_time: request.appointment_time,
             status: "scheduled",
             notes: request.notes,
           },
@@ -1121,8 +1121,8 @@ const Bookings = () => {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="declined">Declined</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -1137,7 +1137,7 @@ const Bookings = () => {
               }}
             >
               <option value="all">All</option>
-              <option value="pending">Pending</option>
+              <option value="scheduled">Scheduled</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select> */}
@@ -1158,8 +1158,8 @@ const Bookings = () => {
                     {r.clients?.full_name || "Unknown"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(r.preferred_date), "MMM dd, yyyy")} at{" "}
-                    {r.preferred_time}
+                    {r.appointment_date ? format(new Date(r.appointment_date), "MMM dd, yyyy") : "Date TBD"} at{" "}
+                    {r.appointment_time || ""}
                   </p>
                 </div>
                 <Badge
