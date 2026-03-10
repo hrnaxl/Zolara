@@ -49,9 +49,8 @@ export const CatalogProvider = ({ children }: Props) => {
 
       const { data: staffData, error: staffErr } = await supabase
         .from("staff")
-        // select only commonly-available columns to avoid typed client/schema mismatches
-        .select("id, full_name, specialization")
-        .order("full_name");
+        .select("id, name, specialties")
+        .order("name");
       if (staffErr) throw staffErr;
 
       setCategories(cats);
