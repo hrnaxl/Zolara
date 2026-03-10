@@ -29,10 +29,10 @@ const Auth = () => {
       .single();
 
     const role = roleData?.role || "client";
-    if (role === "owner" || role === "admin") navigate("/app/admin");
-    else if (role === "receptionist") navigate("/app/receptionist");
-    else if (role === "staff") navigate("/app/staff");
-    else navigate("/app/client");
+    if (role === "owner" || role === "admin") navigate("/app/admin/dashboard");
+    else if (role === "receptionist") navigate("/app/receptionist/dashboard");
+    else if (role === "staff") navigate("/app/staff/dashboard");
+    else navigate("/app/client/dashboard");
 
     setLoading(false);
   };
