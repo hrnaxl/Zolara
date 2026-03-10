@@ -165,21 +165,17 @@ const Clients = () => {
       const from = (pageNumber - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Fetch clients with their bookings (and nested service meta) so we can filter locally
-      // @ts-ignore
       const { data, count, error } = await supabase
         .from("clients")
-        .select(`*, bookings(*, services(*))`, { count: "exact" })
-        .or("archived.is.null,archived.eq.false")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
         .range(from, to);
 
       if (error) throw error;
 
-      // filter out archived clients by default (safe if archived not present)
-      const activeClients = (data || []).filter((c: any) => !c?.archived);
-      setClients(activeClients);
-      setFilteredClients(activeClients);
-      setTotalClients(count || 0); // total clients in DB
+      setClients(data || []);
+      setFilteredClients(data || []);
+      setTotalClients(count || 0);
     } catch (error) {
       console.error("Error fetching clients:", error);
       toast.error("Failed to load clients");
