@@ -44,7 +44,7 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { CollapsibleSearchBar } from "@/components/SearchBar";
 
 const clientSchema = z.object({
-  full_name: z
+  name: z
     .string()
     .trim()
     .min(1, "Name is required")
@@ -475,17 +475,9 @@ const Clients = () => {
         if (error) throw error;
         toast.success("Client updated successfully");
       } else {
-        // Invoke the generic invite Edge Function
-        const { data, error } = await supabase.functions.invoke("invite-user", {
-          method: "POST",
-          body: JSON.stringify(clientData),
-        });
-
-        if (error) {
-          console.error("Edge function error:", error);
-        } else {
-          toast.success("Client added successfully");
-        }
+        const { error } = await supabase.from("clients").insert([clientData]);
+        if (error) throw error;
+        toast.success("Client added successfully");
       }
 
       // Reset form
