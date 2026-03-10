@@ -168,24 +168,31 @@ const AdminDashboard = () => {
       setUpcomingAppointments(upcomingBookingsRes.data || []);
       setRecentBookings(recentBookingsRes.data || []);
 
-      const revenueChangePercentage = previousMonthRevenue > 0
-        ? ((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
+      const monthChangePct = previousMonthRevenue > 0
+        ? Math.round(((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100)
         : 0;
 
-      setStats({
+      const pendingCount = (todayBookingsRes.data || []).filter(
+        (b: any) => b.status === "pending" || b.status === "confirmed"
+      ).length;
+
+      setStats(prev => ({
+        ...prev,
         todayBookings: todayBookingsRes.data?.length || 0,
         periodBookings: periodBookingsRes.data?.length || 0,
         todayRevenue,
         periodRevenue,
         weeklyRevenue: monthlyRevenue,
         monthlyRevenue,
-        previousMonthRevenue,
         totalClients: allClientsRes.count || 0,
-        previousMonthClients: 0,
         activeStaff: activeStaffRes.data?.length || 0,
-        revenueChangePercentage,
+        monthChangePercentage: monthChangePct,
         bookingChangePercentage: 0,
-      });
+        clientChangePercentage: 0,
+        pendingBookings: pendingCount,
+        pendingRequests: pendingCount,
+        pendingRevenue: 0,
+      }));
 
     } catch (error) {
       console.error("Error fetching stats:", error);
