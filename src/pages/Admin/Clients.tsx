@@ -430,11 +430,9 @@ const Clients = () => {
       const validated = clientSchema.parse(formData);
 
       const clientData: any = {
-        role: "client",
         name: validated.name,
         phone: validated.phone,
-        email: validated.email,
-        ...(validated.address && { address: validated.address }),
+        ...(validated.email && { email: validated.email }),
         ...(validated.notes && { notes: validated.notes }),
       };
 
@@ -446,7 +444,6 @@ const Clients = () => {
         const uniqueId = editingClientId || Date.now();
         const fileName = `client-${uniqueId}.${fileExtension}`;
 
-        // Upload to Supabase Storage bucket "avatars"
         const { error: uploadError } = await supabase.storage
           .from("avatars")
           .upload(fileName, validated.image, {
@@ -454,14 +451,13 @@ const Clients = () => {
             upsert: true,
           });
 
-        if (uploadError) throw uploadError; // <- safe now
+        if (uploadError) throw uploadError;
 
-        // Get public URL
         const { data: urlData } = supabase.storage
           .from("avatars")
           .getPublicUrl(fileName);
 
-        clientData.image = urlData.publicUrl;
+        clientData.avatar_url = urlData.publicUrl;
         setUploading(false);
       }
 
