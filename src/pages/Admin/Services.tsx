@@ -56,12 +56,19 @@ const Services = () => {
 
   const [reorderServices, setReorderServices] = useState<any[]>([]);
 
+  // Category manager state
+  const [catManagerOpen, setCatManagerOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [editingCat, setEditingCat] = useState<string | null>(null);
+  const [editingCatValue, setEditingCatValue] = useState("");
+  const [savingCats, setSavingCats] = useState(false);
+
   useEffect(() => {
     fetchServices();
   }, []);
 
   const catalog = useCatalog();
-  const { settings } = useSettings();
+  const { settings, setSettings } = useSettings();
 
   const fetchServices = async () => {
     try {
@@ -78,6 +85,52 @@ const Services = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getCategories = (): string[] => {
+    return (settings as any)?.service_categories || [];
+  };
+
+  const saveCategories = async (cats: string[]) => {
+    setSavingCats(true);
+    try {
+      const { error } = await supabase
+        .from("settings")
+        .update({ service_categories: cats })
+        .eq("id", (settings as any).id);
+      if (error) throw error;
+      setSettings({ ...settings, service_categories: cats } as any);
+      toast.success("Categories updated");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save categories");
+    } finally {
+      setSavingCats(false);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    const cats = getCategories();
+    if (cats.includes(name)) { toast.error("Category already exists"); return; }
+    await saveCategories([...cats, name]);
+    setNewCatName("");
+  };
+
+  const handleRenameCategory = async (oldName: string, newName: string) => {
+    const name = newName.trim();
+    if (!name || name === oldName) { setEditingCat(null); return; }
+    const cats = getCategories().map(c => c === oldName ? name : c);
+    // Also update all services with old category name
+    await supabase.from("services").update({ category: name }).eq("category", oldName);
+    await saveCategories(cats);
+    setEditingCat(null);
+    fetchServices();
+  };
+
+  const handleDeleteCategory = async (name: string) => {
+    const cats = getCategories().filter(c => c !== name);
+    await saveCategories(cats);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -234,6 +287,57 @@ const Services = () => {
             <Move className="w-4 h-4 mr-2" />
             Reorder Services
           </Button>
+
+          {/* Manage Categories Button */}
+          <Dialog open={catManagerOpen} onOpenChange={setCatManagerOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                Manage Categories
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Manage Categories</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                {/* Existing categories */}
+                {getCategories().map((cat) => (
+                  <div key={cat} className="flex items-center gap-2">
+                    {editingCat === cat ? (
+                      <>
+                        <input
+                          className="border rounded px-3 py-1.5 text-sm flex-1 outline-none focus:ring-1 focus:ring-amber-400"
+                          value={editingCatValue}
+                          onChange={e => setEditingCatValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") handleRenameCategory(cat, editingCatValue); if (e.key === "Escape") setEditingCat(null); }}
+                          autoFocus
+                        />
+                        <Button size="sm" disabled={savingCats} onClick={() => handleRenameCategory(cat, editingCatValue)}>Save</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingCat(null)}>Cancel</Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 text-sm font-medium">{cat}</span>
+                        <Button size="sm" variant="outline" onClick={() => { setEditingCat(cat); setEditingCatValue(cat); }}>Rename</Button>
+                        <Button size="sm" variant="destructive" disabled={savingCats} onClick={() => handleDeleteCategory(cat)}>Delete</Button>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {/* Add new category */}
+                <div className="border-t pt-3 flex items-center gap-2">
+                  <input
+                    className="border rounded px-3 py-1.5 text-sm flex-1 outline-none focus:ring-1 focus:ring-amber-400"
+                    placeholder="New category name..."
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleAddCategory(); }}
+                  />
+                  <Button size="sm" disabled={savingCats || !newCatName.trim()} onClick={handleAddCategory}>Add</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Add Service Button */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
