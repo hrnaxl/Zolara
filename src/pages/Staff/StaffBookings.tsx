@@ -47,7 +47,7 @@ const StaffBookings = () => {
           .select("*, clients(*), staff(*), services(*)")
           .order("appointment_date", { ascending: false }),
         supabase //@ts-ignore
-          .from("booking_requests")
+          .from("bookings")
           .select("*, clients(*), services(*)")
           .order("created_at", { ascending: false }),
         supabase.from("services").select("*").order("name"),
@@ -107,7 +107,7 @@ const StaffBookings = () => {
       setRescheduleDialog(false);
 
       fetchUserBookings({
-        table: "booking_requests",
+        table: "bookings",
         setState: setRequestBookings,
         setLoading,
         role: "client",
@@ -163,7 +163,7 @@ const StaffBookings = () => {
     }
 
     // @ts-ignore
-    const { error } = await supabase.from("booking_requests").insert([
+    const { error } = await supabase.from("bookings").insert([
       {
         client_id: user.id,
         service_id: selectedService,
@@ -181,7 +181,7 @@ const StaffBookings = () => {
       toast.success("Booking request submitted successfully!");
 
       fetchUserBookings({
-        table: "booking_requests",
+        table: "bookings",
         setState: setRequestBookings,
         setLoading,
         role: "client",

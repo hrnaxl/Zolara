@@ -251,7 +251,7 @@ const AdminDashboard = () => {
           .gte("payment_date", format(subDays(today, 30), "yyyy-MM-dd"))
           .eq("payment_status", "completed"),
         supabase
-          .from("booking_requests")
+          .from("bookings")
           .select("*", { count: "exact" })
           .eq("status", "pending"),
         supabase

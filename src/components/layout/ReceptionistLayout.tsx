@@ -85,7 +85,7 @@ const ReceptionistDashboard = () => {
 
       // Fetch pending booking requests
       const { data: requests = [] } = await supabase
-        .from("booking_requests")
+        .from("bookings")
         .select("*, clients(full_name), services(name)")
         .eq("status", "pending")
         .order("created_at", { ascending: false })

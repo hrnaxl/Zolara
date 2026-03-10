@@ -245,7 +245,7 @@ const Bookings = () => {
   //     const end = start + itemsPerPage;
 
   //     let query = supabase
-  //       .from("booking_requests")
+  //       .from("bookings")
   //       .select("*, clients(*), services(*)", { count: "exact" })
   //       .order("created_at", { ascending: false });
 
@@ -275,7 +275,7 @@ const Bookings = () => {
       const end = start + itemsPerPage - 1;
 
       let query = supabase
-        .from("booking_requests")
+        .from("bookings")
         .select("*, clients(*), services(*)", { count: "exact" })
         .order("created_at", { ascending: false });
 
@@ -581,7 +581,7 @@ const Bookings = () => {
 
     try {
       const { error: updateError } = await supabase
-        .from("booking_requests")
+        .from("bookings")
         .update({ status })
         .eq("id", requestId);
 

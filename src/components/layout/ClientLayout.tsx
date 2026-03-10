@@ -68,7 +68,7 @@ const ClientDashboard = () => {
 
       // Fetch pending booking requests for this client
       const { data: pendingRequests = [], error: pendingError } = await supabase
-        .from("booking_requests")
+        .from("bookings")
         .select("*, services(*)")
         .eq("client_id", user.id)
         .eq("status", "pending")
