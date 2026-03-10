@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
 
 interface DashboardHeaderProps {
   title: string;
@@ -7,43 +7,52 @@ interface DashboardHeaderProps {
   userName?: string;
 }
 
-export const DashboardHeader = ({
-  title,
-  subtitle,
-  userName,
-}: DashboardHeaderProps) => {
+export const DashboardHeader = ({ title, subtitle, userName }: DashboardHeaderProps) => {
+  const [time, setTime] = useState(format(new Date(), "h:mm a"));
+
+  useEffect(() => {
+    const iv = setInterval(() => setTime(format(new Date(), "h:mm a")), 30000);
+    return () => clearInterval(iv);
+  }, []);
+
   const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
     return "Good evening";
   };
 
+  const gold = "#C8A97E";
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="mb-8"
-    >
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div style={{ marginBottom: "32px" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold font-display tracking-tight">
+          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.2em", color: gold, marginBottom: "8px", textTransform: "uppercase" }}>
+            {format(new Date(), "EEEE, MMMM d, yyyy")}
+          </div>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 600, color: "#F5EFE6", lineHeight: 1.1, margin: 0 }}>
             {userName ? `${greeting()}, ${userName}` : title}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {subtitle || `Here's what's happening today, ${format(new Date(), "EEEE, MMMM d, yyyy")}`}
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "13px", color: "rgba(245,239,230,0.45)", marginTop: "6px", fontWeight: 300 }}>
+            {subtitle || "Here's what's happening at Zolara today"}
           </p>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden md:block">
-            <p className="text-sm text-muted-foreground">Current time</p>
-            <p className="text-lg font-semibold">{format(new Date(), "h:mm a")}</p>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 500, color: gold, lineHeight: 1 }}>{time}</div>
+            <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", letterSpacing: "0.15em", color: "rgba(245,239,230,0.3)", marginTop: "2px" }}>CURRENT TIME</div>
+          </div>
+          <div style={{ width: "1px", height: "40px", background: "rgba(200,169,126,0.2)" }} />
+          <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", color: "#fff", fontWeight: 600 }}>Z</span>
           </div>
         </div>
       </div>
-    </motion.div>
+
+      <div style={{ marginTop: "24px", height: "1px", background: "linear-gradient(90deg, rgba(200,169,126,0.4), rgba(200,169,126,0.1), transparent)" }} />
+    </div>
   );
 };
 

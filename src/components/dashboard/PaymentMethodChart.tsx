@@ -1,104 +1,57 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { motion } from "framer-motion";
-import { Banknote, CreditCard, Smartphone, Building2, Gift } from "lucide-react";
-
-interface PaymentMethodData {
-  method: string;
-  amount: number;
-  count: number;
-  percentage: number;
-}
-
 interface PaymentMethodChartProps {
-  data: PaymentMethodData[];
-  title?: string;
+  data: { method: string; amount: number; count: number; percentage: number }[];
+  title: string;
 }
 
-const methodIcons: Record<string, React.ReactNode> = {
-  cash: <Banknote className="w-5 h-5" />,
-  momo: <Smartphone className="w-5 h-5" />,
-  card: <CreditCard className="w-5 h-5" />,
-  bank_transfer: <Building2 className="w-5 h-5" />,
-  gift_card: <Gift className="w-5 h-5" />,
+const METHOD_LABELS: Record<string, string> = {
+  cash: "Cash", momo: "Mobile Money", card: "Card / Hubtel",
+  bank_transfer: "Bank Transfer", gift_card: "Gift Card",
+  mtn: "MTN MoMo", vodafone: "Vodafone Cash", airteltigo: "AirtelTigo",
 };
 
-const methodColors: Record<string, string> = {
-  cash: "bg-success/20 text-success border-success/30",
-  momo: "bg-warning/20 text-warning border-warning/30",
-  card: "bg-primary/20 text-primary border-primary/30",
-  bank_transfer: "bg-info/20 text-info border-info/30",
-  gift_card: "bg-amber-100 text-amber-700 border-amber-200",
+const METHOD_COLORS: Record<string, string> = {
+  cash: "#C8A97E", momo: "#7EB8E8", card: "#7EE8A2",
+  bank_transfer: "#C87EE8", gift_card: "#E8C87A",
+  mtn: "#E8A87E", vodafone: "#7EE8D4", airteltigo: "#E87EB8",
 };
 
-const methodLabels: Record<string, string> = {
-  cash: "Cash",
-  momo: "Mobile Money",
-  card: "Card",
-  bank_transfer: "Bank Transfer",
-  gift_card: "Gift Card",
-};
-
-export const PaymentMethodChart = ({ data, title = "Payment Methods" }: PaymentMethodChartProps) => {
-  const totalAmount = data.reduce((sum, d) => sum + d.amount, 0);
+export const PaymentMethodChart = ({ data, title }: PaymentMethodChartProps) => {
+  const total = data.reduce((s, d) => s + d.amount, 0);
 
   return (
-    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {data.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
-        ) : (
-          data.map((item, index) => (
-                  <motion.div
-              key={item.method}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`p-2 rounded-lg border ${methodColors[item.method] || "bg-muted text-muted-foreground"}`}>
-                    {methodIcons[item.method] || <Banknote className="w-5 h-5" />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{methodLabels[item.method] || item.method}</p>
-                    <p className="text-xs text-muted-foreground">{item.count} transactions</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold">GH₵{item.amount.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</p>
-                </div>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${item.percentage}%` }}
-                  transition={{ duration: 0.8, delay: index * 0.1 }}
-                  className={`h-full rounded-full ${
-                    item.method === "cash" ? "bg-success" :
-                    item.method === "mobile_money" ? "bg-warning" :
-                    item.method === "card" ? "bg-primary" :
-                    item.method === "gift_card" ? "bg-amber-400" :
-                    "bg-info"
-                  }`}
-                />
-              </div>
-            </motion.div>
-          ))
-        )}
-        {data.length > 0 && (
-          <div className="pt-3 border-t border-border/50">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Revenue</span>
-              <span className="text-lg font-bold text-primary">GH₵{totalAmount.toLocaleString()}</span>
-            </div>
+    <div style={{ background: "linear-gradient(135deg, #1C160E, #2C2416)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "12px", padding: "24px" }}>
+      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", fontWeight: 600, color: "#F5EFE6", margin: "0 0 20px" }}>{title}</h3>
+
+      {data.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "32px 0", fontFamily: "'Montserrat', sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.25)" }}>No payment data</div>
+      ) : (
+        <>
+          {/* Stacked bar */}
+          <div style={{ height: "8px", borderRadius: "4px", overflow: "hidden", display: "flex", marginBottom: "20px", gap: "2px" }}>
+            {data.map((d, i) => (
+              <div key={i} style={{ height: "100%", width: `${(d.amount / (total || 1)) * 100}%`, background: METHOD_COLORS[d.method] || "#C8A97E", borderRadius: "2px", minWidth: d.amount > 0 ? "4px" : "0" }} />
+            ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {data.map((d, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: METHOD_COLORS[d.method] || "#C8A97E", flexShrink: 0 }} />
+                  <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.7)" }}>{METHOD_LABELS[d.method] || d.method}</span>
+                  <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(245,239,230,0.3)" }}>{d.count}x</span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", fontWeight: 600, color: "#F5EFE6" }}>GH₵{d.amount.toLocaleString()}</span>
+                  <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(245,239,230,0.3)", marginLeft: "8px" }}>{d.percentage.toFixed(0)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 };
+
+export default PaymentMethodChart;

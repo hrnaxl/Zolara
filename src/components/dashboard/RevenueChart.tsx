@@ -1,106 +1,43 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { motion } from "framer-motion";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface RevenueChartProps {
   data: { name: string; revenue: number; bookings?: number }[];
-  title?: string;
+  title: string;
   subtitle?: string;
 }
 
-export const RevenueChart = ({
-  data,
-  title = "Revenue Overview",
-  subtitle = "Monthly revenue trends",
-}: RevenueChartProps) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-    >
-      <Card className="glass-card">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-display">{title}</CardTitle>
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={data}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(38, 70%, 50%)" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="hsl(38, 70%, 50%)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="bookingsGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(210, 80%, 52%)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="hsl(210, 80%, 52%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  className="text-xs fill-muted-foreground"
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  className="text-xs fill-muted-foreground"
-                  tickFormatter={(value) => `₵${value.toLocaleString()}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    borderColor: "hsl(var(--border))",
-                    borderRadius: "0.75rem",
-                    boxShadow: "0 10px 40px -10px rgba(0,0,0,0.2)",
-                  }}
-                  formatter={(value: number, name: string) => [
-                    name === "revenue" ? `GH₵${value.toLocaleString()}` : value,
-                    name === "revenue" ? "Revenue" : "Bookings",
-                  ]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="hsl(38, 70%, 50%)"
-                  strokeWidth={3}
-                  fill="url(#revenueGradient)"
-                />
-                {data[0]?.bookings !== undefined && (
-                  <Area
-                    type="monotone"
-                    dataKey="bookings"
-                    stroke="hsl(210, 80%, 52%)"
-                    strokeWidth={2}
-                    fill="url(#bookingsGradient)"
-                  />
-                )}
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <div style={{ background: "#1C160E", border: "1px solid rgba(200,169,126,0.3)", borderRadius: "8px", padding: "12px 16px", fontFamily: "'Montserrat', sans-serif" }}>
+      <p style={{ fontSize: "11px", color: "rgba(245,239,230,0.5)", marginBottom: "6px", letterSpacing: "0.1em" }}>{label}</p>
+      <p style={{ fontSize: "16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: "#C8A97E" }}>GH₵{payload[0].value.toLocaleString()}</p>
+    </div>
   );
 };
+
+export const RevenueChart = ({ data, title, subtitle }: RevenueChartProps) => (
+  <div style={{ background: "linear-gradient(135deg, #1C160E, #2C2416)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "12px", padding: "24px" }}>
+    <div style={{ marginBottom: "24px" }}>
+      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", fontWeight: 600, color: "#F5EFE6", margin: 0 }}>{title}</h3>
+      {subtitle && <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.4)", marginTop: "4px" }}>{subtitle}</p>}
+    </div>
+    <ResponsiveContainer width="100%" height={220}>
+      <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#C8A97E" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#C8A97E" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,169,126,0.08)" />
+        <XAxis dataKey="name" tick={{ fill: "rgba(245,239,230,0.3)", fontSize: 10, fontFamily: "Montserrat" }} axisLine={false} tickLine={false} interval={4} />
+        <YAxis tick={{ fill: "rgba(245,239,230,0.3)", fontSize: 10, fontFamily: "Montserrat" }} axisLine={false} tickLine={false} />
+        <Tooltip content={<CustomTooltip />} />
+        <Area type="monotone" dataKey="revenue" stroke="#C8A97E" strokeWidth={2} fill="url(#goldGrad)" dot={false} activeDot={{ r: 5, fill: "#C8A97E", strokeWidth: 0 }} />
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>
+);
 
 export default RevenueChart;

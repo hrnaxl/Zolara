@@ -1,118 +1,80 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface ActivityItem {
   id: string;
   title: string;
   subtitle?: string;
-  date: Date | string;
+  date: string;
   status?: string;
   amount?: number;
-  icon?: React.ReactNode;
 }
 
 interface ActivityListProps {
   title: string;
   subtitle?: string;
   items: ActivityItem[];
-  emptyMessage?: string;
   showAmount?: boolean;
   icon?: React.ReactNode;
+  emptyMessage?: string;
 }
 
 const statusColors: Record<string, string> = {
-  scheduled: "bg-info-light text-info",
-  confirmed: "bg-success-light text-success",
-  completed: "bg-muted text-foreground",
-  cancelled: "bg-destructive-light text-destructive",
-  no_show: "bg-warning-light text-warning",
-  pending: "bg-warning-light text-warning",
+  scheduled: "#7EB8E8",
+  confirmed: "#7EE8A2",
+  completed: "#C8A97E",
+  cancelled: "#E87E7E",
+  pending: "#E8C87A",
+  no_show: "#E8A87E",
 };
 
-export const ActivityList = ({
-  title,
-  subtitle,
-  items,
-  emptyMessage = "No activity yet",
-  showAmount = false,
-  icon,
-}: ActivityListProps) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.4 }}
-    >
-      <Card className="glass-card h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            {icon}
-            <div>
-              <CardTitle className="text-xl font-display">{title}</CardTitle>
-              {subtitle && (
-                <p className="text-sm text-muted-foreground">{subtitle}</p>
+export const ActivityList = ({ title, subtitle, items, showAmount, icon, emptyMessage }: ActivityListProps) => (
+  <div style={{ background: "linear-gradient(135deg, #1C160E, #2C2416)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "12px", padding: "24px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+      {icon && <div style={{ color: "#C8A97E" }}>{icon}</div>}
+      <div>
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", fontWeight: 600, color: "#F5EFE6", margin: 0 }}>{title}</h3>
+        {subtitle && <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.4)", marginTop: "2px" }}>{subtitle}</p>}
+      </div>
+    </div>
+
+    {items.length === 0 ? (
+      <div style={{ textAlign: "center", padding: "32px 0", fontFamily: "'Montserrat', sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.25)" }}>{emptyMessage || "Nothing yet"}</div>
+    ) : (
+      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+        {items.slice(0, 6).map((item, i) => (
+          <div key={item.id} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 14px", borderRadius: "8px",
+            background: i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(200,169,126,0.06)"}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent"}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, #3D2F14, #2C2416)", border: "1px solid rgba(200,169,126,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "14px", color: "#C8A97E", fontWeight: 600 }}>{item.title?.[0] || "?"}</span>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "12px", fontWeight: 600, color: "#F5EFE6", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
+                {item.subtitle && <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(245,239,230,0.4)", marginTop: "1px" }}>{item.subtitle}</div>}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+              {item.status && (
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColors[item.status] || "#C8A97E" }} />
+              )}
+              {showAmount && item.amount !== undefined ? (
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", fontWeight: 600, color: "#7EE8A2" }}>GH₵{item.amount.toLocaleString()}</span>
+              ) : (
+                <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "10px", color: "rgba(245,239,230,0.3)" }}>{item.date ? format(new Date(item.date), "MMM d") : ""}</span>
               )}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          {items.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {emptyMessage}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {items.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 * index }}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {item.icon && (
-                      <div className="flex-shrink-0 p-2 rounded-lg bg-background">
-                        {item.icon}
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{item.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.subtitle ||
-                          format(new Date(item.date), "MMM d, yyyy • h:mm a")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {item.status && (
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "capitalize font-medium",
-                          statusColors[item.status] || "bg-muted text-foreground"
-                        )}
-                      >
-                        {item.status.replace("_", " ")}
-                      </Badge>
-                    )}
-                    {showAmount && item.amount !== undefined && (
-                      <Badge className="bg-success-light text-success font-semibold">
-                        GH₵{item.amount.toLocaleString()}
-                      </Badge>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
+        ))}
+      </div>
+    )}
+  </div>
+);
 
 export default ActivityList;

@@ -1,7 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 interface StatCardProps {
   title: string;
@@ -11,95 +8,69 @@ interface StatCardProps {
   trendLabel?: string;
   variant?: "default" | "gold" | "blue" | "green" | "purple";
   delay?: number;
+  subtitle?: string;
 }
 
-const variantStyles = {
-  default: "from-card to-card border-border/50",
-  gold: "from-primary/10 to-primary/5 border-primary/20",
-  blue: "from-info/10 to-info/5 border-info/20",
-  green: "from-success/10 to-success/5 border-success/20",
-  purple: "from-chart-4/10 to-chart-4/5 border-chart-4/20",
+const variants = {
+  default: { bg: "linear-gradient(135deg, #1C160E, #2C2416)", accent: "#C8A97E", border: "rgba(200,169,126,0.2)" },
+  gold:    { bg: "linear-gradient(135deg, #2C2010, #3D2F14)", accent: "#E8C87A", border: "rgba(232,200,122,0.3)" },
+  blue:    { bg: "linear-gradient(135deg, #0D1A2E, #152540)", accent: "#7EB8E8", border: "rgba(126,184,232,0.25)" },
+  green:   { bg: "linear-gradient(135deg, #0D2318, #152E20)", accent: "#7EE8A2", border: "rgba(126,232,162,0.25)" },
+  purple:  { bg: "linear-gradient(135deg, #1A0D2E, #251540)", accent: "#C87EE8", border: "rgba(200,126,232,0.25)" },
 };
 
-const iconVariantStyles = {
-  default: "bg-muted text-foreground",
-  gold: "bg-primary/20 text-primary",
-  blue: "bg-info/20 text-info",
-  green: "bg-success/20 text-success",
-  purple: "bg-chart-4/20 text-chart-4",
-};
-
-export const StatCard = ({
-  title,
-  value,
-  icon,
-  trend,
-  trendLabel = "vs last month",
-  variant = "default",
-  delay = 0,
-}: StatCardProps) => {
+export const StatCard = ({ title, value, icon, trend, trendLabel = "vs last month", variant = "default", subtitle }: StatCardProps) => {
+  const v = variants[variant];
   const hasTrend = trend !== null && trend !== undefined;
-  const isPositive = hasTrend && trend > 0;
-  const isNegative = hasTrend && trend < 0;
-  const isNeutral = hasTrend && trend === 0;
+  const isPos = hasTrend && trend! > 0;
+  const isNeg = hasTrend && trend! < 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
+    <div style={{
+      background: v.bg,
+      border: `1px solid ${v.border}`,
+      borderRadius: "12px",
+      padding: "24px",
+      position: "relative",
+      overflow: "hidden",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      cursor: "default",
+    }}
+    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px ${v.border}`; }}
+    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = ""; }}
     >
-      <Card
-        className={cn(
-          "relative overflow-hidden bg-gradient-to-br border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] group",
-          variantStyles[variant]
-        )}
-      >
-        {/* Subtle shimmer effect on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-shimmer-gradient bg-[length:200%_100%] animate-shimmer transition-opacity" />
-        
-        <CardContent className="p-6 relative z-10">
-          <div className="flex items-start justify-between">
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                {title}
-              </p>
-              <p className="text-3xl font-bold tracking-tight font-display">
-                {value}
-              </p>
-              
-              {hasTrend && (
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "flex items-center gap-1 text-sm font-semibold px-2 py-0.5 rounded-full",
-                      isPositive && "bg-success-light text-success",
-                      isNegative && "bg-destructive-light text-destructive",
-                      isNeutral && "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {isPositive && <TrendingUp className="w-3.5 h-3.5" />}
-                    {isNegative && <TrendingDown className="w-3.5 h-3.5" />}
-                    {isNeutral && <Minus className="w-3.5 h-3.5" />}
-                    <span>{isPositive && "+"}{trend}%</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{trendLabel}</span>
-                </div>
-              )}
-            </div>
-            
-            <div
-              className={cn(
-                "p-3 rounded-xl transition-transform duration-300 group-hover:scale-110",
-                iconVariantStyles[variant]
-              )}
-            >
-              {icon}
-            </div>
+      {/* Glow */}
+      <div style={{ position: "absolute", top: "-30px", right: "-30px", width: "100px", height: "100px", borderRadius: "50%", background: `radial-gradient(circle, ${v.accent}22 0%, transparent 70%)`, pointerEvents: "none" }} />
+
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px" }}>
+        <div style={{ fontSize: "11px", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.12em", color: "rgba(245,239,230,0.5)", textTransform: "uppercase" }}>{title}</div>
+        <div style={{ color: v.accent, opacity: 0.8 }}>{icon}</div>
+      </div>
+
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "36px", fontWeight: 600, color: "#F5EFE6", letterSpacing: "-0.01em", lineHeight: 1, marginBottom: "12px" }}>
+        {value}
+      </div>
+
+      {subtitle && <div style={{ fontSize: "11px", color: "rgba(245,239,230,0.4)", fontFamily: "'Montserrat', sans-serif" }}>{subtitle}</div>}
+
+      {hasTrend && (
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: "4px",
+            fontSize: "11px", fontFamily: "'Montserrat', sans-serif", fontWeight: 700,
+            padding: "3px 8px", borderRadius: "20px",
+            background: isPos ? "rgba(126,232,162,0.15)" : isNeg ? "rgba(232,126,126,0.15)" : "rgba(200,169,126,0.15)",
+            color: isPos ? "#7EE8A2" : isNeg ? "#E87E7E" : v.accent,
+          }}>
+            {isPos && <TrendingUp size={11} />}
+            {isNeg && <TrendingDown size={11} />}
+            {!isPos && !isNeg && <Minus size={11} />}
+            {isPos && "+"}{trend}%
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+          <span style={{ fontSize: "10px", color: "rgba(245,239,230,0.35)", fontFamily: "'Montserrat', sans-serif" }}>{trendLabel}</span>
+        </div>
+      )}
+    </div>
   );
 };
 

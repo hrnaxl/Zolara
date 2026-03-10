@@ -1,65 +1,25 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Scissors, Crown, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import { Star } from "lucide-react";
 
 interface TopServiceCardProps {
   serviceName: string;
-  bookingCount?: number;
-  revenue?: number;
+  bookingCount: number;
 }
 
-export const TopServiceCard = ({
-  serviceName,
-  bookingCount,
-  revenue,
-}: TopServiceCardProps) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.5 }}
-    >
-      <Card
-        className="text-primary-foreground overflow-hidden relative"
-        style={{
-          background: "linear-gradient(135deg,#D4AF37 0%,#B8956A 100%)",
-          color: "#ffffff",
-        }}
-      >
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-        
-        <CardHeader className="relative z-10 pb-2">
-          <div className="flex items-center gap-2">
-            <Crown className="w-5 h-5" />
-            <CardTitle className="text-lg font-display">Top Service This Month</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/20 rounded-xl">
-              <Scissors className="w-8 h-8" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold font-display">{serviceName}</p>
-              <div className="flex items-center gap-4 mt-1 text-sm opacity-90">
-                {bookingCount !== undefined && (
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4" />
-                    {bookingCount} bookings
-                  </span>
-                )}
-                {revenue !== undefined && (
-                  <span>GH₵{revenue.toLocaleString()} revenue</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
+export const TopServiceCard = ({ serviceName, bookingCount }: TopServiceCardProps) => (
+  <div style={{
+    background: "linear-gradient(135deg, #2C2010, #3D2F14)",
+    border: "1px solid rgba(232,200,122,0.3)",
+    borderRadius: "12px",
+    padding: "24px",
+    position: "relative",
+    overflow: "hidden",
+  }}>
+    <div style={{ position: "absolute", top: "-20px", right: "-20px", width: "80px", height: "80px", borderRadius: "50%", background: "radial-gradient(circle, rgba(232,200,122,0.15) 0%, transparent 70%)" }} />
+    <div style={{ fontSize: "11px", fontFamily: "'Montserrat', sans-serif", fontWeight: 600, letterSpacing: "0.12em", color: "rgba(245,239,230,0.5)", textTransform: "uppercase", marginBottom: "16px" }}>Top Service</div>
+    <Star size={20} style={{ color: "#E8C87A", marginBottom: "10px" }} />
+    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", fontWeight: 600, color: "#F5EFE6", lineHeight: 1.2, marginBottom: "8px" }}>{serviceName}</div>
+    <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "12px", color: "#E8C87A" }}>{bookingCount} bookings this period</div>
+  </div>
+);
 
 export default TopServiceCard;

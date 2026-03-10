@@ -1,97 +1,47 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { motion } from "framer-motion";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 interface DonutChartProps {
   data: { name: string; value: number; color: string }[];
   title: string;
   subtitle?: string;
-  centerValue?: string | number;
+  centerValue?: number;
   centerLabel?: string;
 }
 
-export const DonutChart = ({
-  data,
-  title,
-  subtitle,
-  centerValue,
-  centerLabel,
-}: DonutChartProps) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
-    >
-      <Card className="glass-card h-full">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl font-display">{title}</CardTitle>
-          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
-        </CardHeader>
-        <CardContent>
-          <div className="h-[250px] w-full relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={4}
-                  dataKey="value"
-                  strokeWidth={0}
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    borderColor: "hsl(var(--border))",
-                    borderRadius: "0.75rem",
-                    boxShadow: "0 10px 40px -10px rgba(0,0,0,0.2)",
-                  }}
-                  formatter={(value: number, name: string) => [
-                    `${value} (${((value / total) * 100).toFixed(1)}%)`,
-                    name,
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            
-            {/* Center text */}
-            {centerValue && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-3xl font-bold font-display">{centerValue}</span>
-                {centerLabel && (
-                  <span className="text-sm text-muted-foreground">{centerLabel}</span>
-                )}
-              </div>
-            )}
+export const DonutChart = ({ data, title, subtitle, centerValue, centerLabel }: DonutChartProps) => (
+  <div style={{ background: "linear-gradient(135deg, #1C160E, #2C2416)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "12px", padding: "24px", height: "100%" }}>
+    <div style={{ marginBottom: "20px" }}>
+      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "20px", fontWeight: 600, color: "#F5EFE6", margin: 0 }}>{title}</h3>
+      {subtitle && <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.4)", marginTop: "4px" }}>{subtitle}</p>}
+    </div>
+    <div style={{ position: "relative" }}>
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
+            {data.map((entry, i) => <Cell key={i} fill={entry.color} strokeWidth={0} />)}
+          </Pie>
+          <Tooltip formatter={(val: number) => [val, ""]} contentStyle={{ background: "#1C160E", border: "1px solid rgba(200,169,126,0.3)", borderRadius: "8px", fontFamily: "Montserrat", fontSize: "12px", color: "#F5EFE6" }} />
+        </PieChart>
+      </ResponsiveContainer>
+      {centerValue !== undefined && (
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", pointerEvents: "none" }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "26px", fontWeight: 600, color: "#C8A97E", lineHeight: 1 }}>{centerValue}</div>
+          <div style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "9px", color: "rgba(245,239,230,0.4)", letterSpacing: "0.1em", marginTop: "2px" }}>{centerLabel?.toUpperCase()}</div>
+        </div>
+      )}
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "16px" }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+            <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.6)" }}>{d.name}</span>
           </div>
-          
-          {/* Legend */}
-          <div className="flex flex-wrap justify-center gap-4 mt-4">
-            {data.map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="text-sm text-muted-foreground">
-                  {item.name} ({item.value})
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
+          <span style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 600, color: "#F5EFE6" }}>{d.value}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export default DonutChart;

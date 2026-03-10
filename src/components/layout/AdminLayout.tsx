@@ -577,165 +577,67 @@ const AdminDashboard = () => {
 
   if (loading && !lastSync) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
-            <Loader2 className="w-16 h-16 absolute inset-0 animate-spin text-primary" />
-          </div>
-          <p className="text-muted-foreground font-medium">
-            Loading dashboard...
-          </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", background: "#0F0C08" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "32px", color: "#C8A97E", marginBottom: "12px" }}>✦</div>
+          <p style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.4)", letterSpacing: "0.1em" }}>LOADING DASHBOARD...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div style={{ padding: "28px", minHeight: "100vh", background: "#0F0C08", display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* Header with Filters */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <DashboardHeader
           title="Dashboard"
           subtitle="Welcome back! Here's your salon overview"
         />
-        <div className="flex flex-col gap-2 md:items-end">
-          <DateFilter
-            currentFilter={dateFilter}
-            onFilterChange={handleFilterChange}
-          />
-          <SyncStatus
-            lastSync={lastSync}
-            isLoading={loading}
-            onRefresh={fetchStats}
-          />
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+          <DateFilter currentFilter={dateFilter} onFilterChange={handleFilterChange} />
+          <SyncStatus lastSync={lastSync} isLoading={loading} onRefresh={fetchStats} />
         </div>
       </div>
 
       {/* Period Stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title={`${getFilterLabel()}'s Bookings`}
-          value={stats.periodBookings}
-          icon={<Calendar className="w-6 h-6" />}
-          variant="gold"
-          delay={0}
-        />
-        <StatCard
-          title={`${getFilterLabel()}'s Revenue`}
-          value={`GH₵${
-            dateFilter === "today"
-              ? stats.todayRevenue.toLocaleString()
-              : stats.periodRevenue.toLocaleString()
-          }`}
-          icon={<DollarSign className="w-6 h-6" />}
-          variant="green"
-          delay={0.1}
-        />
-
-        <StatCard
-          title="Weekly Revenue"
-          value={`GH₵${stats.weeklyRevenue.toLocaleString()}`}
-          icon={<TrendingUp className="w-6 h-6" />}
-          variant="blue"
-          delay={0.2}
-        />
-        <StatCard
-          title="Monthly Revenue"
-          value={`GH₵${stats.monthlyRevenue.toLocaleString()}`}
-          icon={<TrendingUp className="w-6 h-6" />}
-          trend={stats.monthChangePercentage}
-          variant="purple"
-          delay={0.3}
-        />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+        <StatCard title={`${getFilterLabel()}'s Bookings`} value={stats.periodBookings} icon={<Calendar size={20} />} variant="gold" />
+        <StatCard title={`${getFilterLabel()}'s Revenue`} value={`GH₵${(dateFilter === "today" ? stats.todayRevenue : stats.periodRevenue).toLocaleString()}`} icon={<DollarSign size={20} />} variant="green" />
+        <StatCard title="Weekly Revenue" value={`GH₵${stats.weeklyRevenue.toLocaleString()}`} icon={<TrendingUp size={20} />} variant="blue" />
+        <StatCard title="Monthly Revenue" value={`GH₵${stats.monthlyRevenue.toLocaleString()}`} icon={<TrendingUp size={20} />} trend={stats.monthChangePercentage} variant="purple" />
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Clients"
-          value={stats.totalClients.toLocaleString()}
-          icon={<Users className="w-6 h-6" />}
-          trend={stats.clientChangePercentage}
-          variant="default"
-          delay={0.4}
-        />
-        <StatCard
-          title="Active Staff"
-          value={stats.activeStaff}
-          icon={<Briefcase className="w-6 h-6" />}
-          variant="default"
-          delay={0.5}
-        />
-        <StatCard
-          title="Pending Today"
-          value={stats.pendingBookings}
-          icon={<Clock className="w-6 h-6" />}
-          variant="default"
-          delay={0.6}
-        />
-        <TopServiceCard
-          serviceName={stats.topService}
-          bookingCount={stats.topServiceCount}
-        />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+        <StatCard title="Total Clients" value={stats.totalClients.toLocaleString()} icon={<Users size={20} />} trend={stats.clientChangePercentage} variant="default" />
+        <StatCard title="Active Staff" value={stats.activeStaff} icon={<Briefcase size={20} />} variant="default" />
+        <StatCard title="Pending Today" value={stats.pendingBookings} icon={<Clock size={20} />} variant="default" />
+        <TopServiceCard serviceName={stats.topService} bookingCount={stats.topServiceCount} />
       </div>
 
       {/* Alerts & Upcoming */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }}>
         <AlertsPanel alerts={alerts} />
         <UpcomingAppointments appointments={upcomingAppointments} />
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <RevenueChart
-            data={revenueData}
-            title="Revenue Trend"
-            subtitle="Last 30 days performance"
-          />
-        </div>
-        <div className="lg:col-span-2">
-          <DonutChart
-            data={bookingStatusData}
-            title="Booking Status"
-            subtitle="This month's distribution"
-            centerValue={stats.todayBookings}
-            centerLabel="Today"
-          />
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: "20px" }}>
+        <RevenueChart data={revenueData} title="Revenue Trend" subtitle="Last 30 days performance" />
+        <DonutChart data={bookingStatusData} title="Booking Status" subtitle="This month's distribution" centerValue={stats.todayBookings} centerLabel="Today" />
       </div>
 
-      {/* Payment & Staff Performance */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PaymentMethodChart
-          data={paymentMethodData}
-          title={`Payment Methods (${getFilterLabel()}) — includes redeemed gift cards`}
-        />
-        <TopStaffCard
-          data={topStaff}
-          title="Top Performing Staff"
-          subtitle={getFilterLabel()}
-        />
+      {/* Payment & Staff */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }}>
+        <PaymentMethodChart data={paymentMethodData} title={`Payment Methods · ${getFilterLabel()}`} />
+        <TopStaffCard data={topStaff} title="Top Performing Staff" subtitle={getFilterLabel()} />
       </div>
 
-      {/* Activity Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ActivityList
-          title="Recent Bookings"
-          subtitle="Latest appointments"
-          items={recentBookings}
-          icon={<Calendar className="w-5 h-5 text-primary" />}
-          emptyMessage="No recent bookings"
-        />
-        <ActivityList
-          title="Recent Payments"
-          subtitle="Latest transactions"
-          items={recentPayments}
-          showAmount
-          icon={<History className="w-5 h-5 text-success" />}
-          emptyMessage="No recent payments"
-        />
+      {/* Activity */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "20px" }}>
+        <ActivityList title="Recent Bookings" subtitle="Latest appointments" items={recentBookings} icon={<Calendar size={16} />} emptyMessage="No recent bookings" />
+        <ActivityList title="Recent Payments" subtitle="Latest transactions" items={recentPayments} showAmount icon={<History size={16} />} emptyMessage="No recent payments" />
       </div>
     </div>
   );
