@@ -29,6 +29,14 @@ import {
   CheckIcon,
   Gift,
   Star,
+  ListOrdered,
+  Sparkles,
+  Tag,
+  MessageSquare,
+  BarChart2,
+  ShoppingBag,
+  RefreshCw,
+  StickyNote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -112,19 +120,27 @@ const DashboardLayout = () => {
   // BASE NAV ITEMS (DO NOT CHANGE)
   // ==========================================================
   const baseNavItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "dashboard" },
-    { icon: Calendar, label: "Bookings", path: "bookings" },
-    { icon: Users, label: "Clients", path: "clients" },
-    { icon: UserCog, label: "Staff", path: "staff" },
-    { icon: Scissors, label: "Services", path: "services" },
-    { icon: CreditCard, label: "Sales", path: "sales" },
-    { icon: Gift, label: "Gift Cards", path: "gift-cards" },
-    { icon: CheckIcon, label: "Checkout", path: "checkout" },
-    { icon: Star, label: "Loyalty", path: "loyalty" },
-    { icon: FileText, label: "Reports", path: "reports" },
-    { icon: Clock, label: "Attendance", path: "attendance" },
-    { icon: FileText, label: "Attendance Reports", path: "attendance-reports" },
-    { icon: Settings, label: "Settings", path: "settings" },
+    { icon: LayoutDashboard, label: "Dashboard",           path: "dashboard" },
+    { icon: Calendar,        label: "Bookings",            path: "bookings" },
+    { icon: Users,           label: "Clients",             path: "clients" },
+    { icon: UserCog,         label: "Staff",               path: "staff" },
+    { icon: Scissors,        label: "Services",            path: "services" },
+    { icon: CreditCard,      label: "Sales",               path: "sales" },
+    { icon: Gift,            label: "Gift Cards",          path: "gift-cards" },
+    { icon: CheckIcon,       label: "Checkout",            path: "checkout" },
+    { icon: Star,            label: "Loyalty",             path: "loyalty" },
+    { icon: ListOrdered,     label: "Waitlist",            path: "waitlist" },
+    { icon: Sparkles,        label: "Add-ons",             path: "addons" },
+    { icon: Tag,             label: "Promo Codes",         path: "promo-codes" },
+    { icon: MessageSquare,   label: "SMS Campaigns",       path: "sms" },
+    { icon: ShoppingBag,     label: "Products",            path: "products" },
+    { icon: RefreshCw,       label: "Subscriptions",       path: "subscriptions" },
+    { icon: StickyNote,      label: "Client Notes",        path: "client-notes" },
+    { icon: BarChart2,       label: "Analytics",           path: "analytics" },
+    { icon: FileText,        label: "Reports",             path: "reports" },
+    { icon: Clock,           label: "Attendance",          path: "attendance" },
+    { icon: FileText,        label: "Attendance Reports",  path: "attendance-reports" },
+    { icon: Settings,        label: "Settings",            path: "settings" },
   ];
 
   // ==========================================================
@@ -162,6 +178,11 @@ const DashboardLayout = () => {
                 "Attendance Reports",
                 "Staff",
                 "Settings",
+                "Analytics",
+                "Add-ons",
+                "Subscriptions",
+                "Products",
+                "SMS Campaigns",
               ].includes(item.label)
           )
           .map((item) => ({

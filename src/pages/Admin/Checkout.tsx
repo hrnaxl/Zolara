@@ -539,7 +539,7 @@ const Checkout = () => {
             await sendSMS(clientPhone, SMS.checkoutThankYou(
               booking.client_name || "Valued Client",
               booking.service_name || "service",
-              newPoints
+              newStamps
             ));
           }
         } catch(smsErr) { console.error("SMS error:", smsErr); }
