@@ -11,7 +11,8 @@ export const createPromoCode = async (promo: {
   discount_value: number; minimum_amount?: number; max_uses?: number;
   expires_at?: string; is_active?: boolean;
 }) => {
-  const { data, error } = await supabase.from("promo_codes").insert({ ...promo, code: promo.code.toUpperCase() }).select().single();
+  const { description, ...rest } = promo;
+  const { data, error } = await supabase.from("promo_codes").insert({ ...rest, code: promo.code.toUpperCase() }).select().single();
   if (error) throw error;
   return data;
 };
