@@ -79,7 +79,7 @@ export default function EnhancedBookingForm({ onSubmitted }: Props) {
   useEffect(() => {
     const checkSlots = async () => {
       if (!serviceId || !preferredDate || !preferredTime) { setSlotsAvailable(true); return; }
-      const { data } = await supabase.from("booking_requests")
+      const { data } = await supabase.from("bookings")
         .select("id").eq("service_id", serviceId)
         .eq("preferred_date", preferredDate).eq("preferred_time", preferredTime)
         .in("status", ["pending", "confirmed"]);
@@ -182,16 +182,13 @@ export default function EnhancedBookingForm({ onSubmitted }: Props) {
 
       // Create booking request
       const ref = `ZB${Date.now().toString(36).toUpperCase()}`;
-      const { data: req, error: reqError } = await supabase.from("booking_requests").insert({
+      const { data: req, error: reqError } = await supabase.from("bookings").insert({
         client_name: name, client_email: email || null, client_phone: cleanPhone,
-        service_id: serviceId, preferred_date: preferredDate, preferred_time: normalizedTime,
-        notes: notes || null, status: "pending", client_id: clientId || null,
-        promo_code: promoApplied?.code || null,
-        discount_amount: discount > 0 ? discount : null,
-        total_amount: total,
-        payment_preference: paymentPreference,
-        addon_ids: addonIds.length > 0 ? addonIds : null,
-        booking_reference: ref,
+        service_id: serviceId, service_name: selectedService?.name || null,
+        preferred_date: preferredDate, preferred_time: normalizedTime,
+        price: total,
+        notes: notes ? `${notes}\n\nPayment preference: ${paymentPreference}${promoApplied ? `\nPromo: ${promoApplied.code}` : ""}` : `Payment preference: ${paymentPreference}`,
+        status: "pending", client_id: clientId || null,
       } as any).select("id").single();
 
       if (reqError) throw reqError;
@@ -303,30 +300,35 @@ export default function EnhancedBookingForm({ onSubmitted }: Props) {
           <p className="text-xs tracking-widest mb-5" style={{ color: gold }}>SELECT A SERVICE</p>
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" style={{ color: gold }} /></div>
+          ) : services.length === 0 ? (
+            <p style={{ color: "#6B5E54", fontSize: 13, textAlign: "center", padding: "16px 0" }}>No services available at the moment.</p>
           ) : (
             <>
-              <select value={serviceId} onChange={e => setServiceId(e.target.value)} style={{ ...inputStyle, appearance: "none" }}>
-                <option value="" style={{ background: "#1A1612" }}>Choose a service</option>
-                {Object.entries(groupedServices).map(([cat, svcs]) => (
-                  <optgroup key={cat} label={cat} style={{ background: "#1A1612", color: gold }}>
-                    {svcs.map(s => (
-                      <option key={s.id} value={s.id} style={{ background: "#1A1612", color: "#FAF7F2" }}>
-                        {s.name} – GHS {s.price}
-                      </option>
+              {Object.entries(groupedServices).map(([cat, svcs]) => (
+                <div key={cat} style={{ marginBottom: 20 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "#6B5E54", marginBottom: 10, textTransform: "uppercase" as const }}>{cat}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {(svcs as any[]).map((s: any) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setServiceId(s.id)}
+                        style={{
+                          textAlign: "left" as const, padding: "14px 16px", borderRadius: 12,
+                          background: serviceId === s.id ? "#B8935A14" : "#141210",
+                          border: `2px solid ${serviceId === s.id ? gold : "#2D2420"}`,
+                          cursor: "pointer", transition: "all 0.15s",
+                        }}
+                      >
+                        <div style={{ fontSize: 12, fontWeight: 600, color: serviceId === s.id ? gold : "#FAF7F2", marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
+                        <div style={{ fontSize: 10, color: "#6B5E54" }}>{s.duration_minutes} min</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: gold, marginTop: 6 }}>GHS {Number(s.price).toLocaleString()}</div>
+                      </button>
                     ))}
-                  </optgroup>
-                ))}
-              </select>
-              {errors.service && <p className="text-xs mt-1" style={{ color: "#E57373" }}>{errors.service}</p>}
-              {selectedService && (
-                <div className="mt-3 p-3 rounded-xl flex justify-between items-center" style={{ background: "#B8935A10", border: "1px solid #B8935A22" }}>
-                  <div>
-                    <p className="font-semibold text-white text-sm">{selectedService.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#9A8878" }}>Est. {selectedService.duration_minutes} minutes</p>
                   </div>
-                  <p className="font-bold" style={{ color: gold }}>GHS {selectedService.price}</p>
                 </div>
-              )}
+              ))}
+              {errors.service && <p className="text-xs mt-1" style={{ color: "#E57373" }}>{errors.service}</p>}
             </>
           )}
         </div>
