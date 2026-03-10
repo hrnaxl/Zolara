@@ -148,7 +148,7 @@ export default function Attendance() {
 
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
-      if (staffFilter !== "all" && r.staff.id !== staffFilter) return false;
+      if (staffFilter !== "all" && r.staff?.id !== staffFilter) return false;
       if (statusFilter !== "all") {
         switch (statusFilter) {
           case "checked_in":
@@ -402,8 +402,8 @@ export default function Attendance() {
                   </TableRow>
                 ) : (
                   filteredRows.map((r) => (
-                    <TableRow key={r.staff.id}>
-                      <TableCell className="font-medium">{r.staff.name}</TableCell>
+                    <TableRow key={r.staff?.id}>
+                      <TableCell className="font-medium">{r.staff?.name}</TableCell>
                       <TableCell>{r.record ? formatTimeShort(r.record.check_in) : "—"}</TableCell>
                       <TableCell>{r.record ? formatTimeShort(r.record.check_out || null) : "—"}</TableCell>
                       <TableCell>{r.total.toFixed(2)}h{r.overtime ? ` (+${r.overtime} OT)` : ""}</TableCell>
@@ -417,12 +417,12 @@ export default function Attendance() {
                       <TableCell className="text-right space-x-2">
                         {!r.record ? (
                           <>
-                            <Button size="sm" onClick={() => handleCheckIn(r.staff.id)}>Check In</Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleMarkAbsent(r.staff.id)}>Mark Absent</Button>
+                            <Button size="sm" onClick={() => handleCheckIn(r.staff?.id)}>Check In</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleMarkAbsent(r.staff?.id)}>Mark Absent</Button>
                           </>
                         ) : !r.record.check_out ? (
                           <>
-                            <Button size="sm" variant="secondary" onClick={() => handleCheckOut(r.staff.id)}>Check Out</Button>
+                            <Button size="sm" variant="secondary" onClick={() => handleCheckOut(r.staff?.id)}>Check Out</Button>
                             <Button size="sm" onClick={() => openEdit(r)}>Edit</Button>
                           </>
                         ) : (

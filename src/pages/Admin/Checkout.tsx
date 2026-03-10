@@ -221,10 +221,10 @@ const Checkout = () => {
       if (data) {
         setBooking(data as BookingData);
         if (data.staff?.id) {
-          setSelectedStaff(data.staff.id);
+          setSelectedStaff(data.staff?.id);
         }
         // initialize amount and original price to service price
-        const price = Number((data.services && data.services.price) ?? 0);
+        const price = Number((data.services && data.services?.price) ?? 0);
         setOriginalPrice(price);
         setAmount(String(price.toFixed(2)));
       }

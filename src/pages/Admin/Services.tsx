@@ -273,10 +273,10 @@ const Services = () => {
             Categories: <span className="font-semibold ml-1">{catalog.categories.length}</span>
           </div>
           <div className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            Staff: <span className="font-semibold ml-1">{catalog.staff.length}</span>
+            Staff: <span className="font-semibold ml-1">{catalog.staff?.length}</span>
           </div>
           <div className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            Roles: {Array.from(new Set(catalog.staff.map((s) => s.role || "staff"))).map((r) => (
+            Roles: {Array.from(new Set(catalog.staff?.map((s) => s.role || "staff"))).map((r) => (
               <span key={r} className="ml-2 font-medium">{r}</span>
             ))}
           </div>

@@ -478,8 +478,8 @@ const AdminDashboard = () => {
           if (!acc[staffId]) {
             acc[staffId] = {
               id: staffId,
-              name: booking.staff.name,
-              specialization: booking.staff.specialization,
+              name: booking.staff?.name,
+              specialization: booking.staff?.specialization,
               bookings: 0,
               revenue: 0,
             };

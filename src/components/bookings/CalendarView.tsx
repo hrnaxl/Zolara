@@ -210,7 +210,7 @@ export const CalendarView = ({ bookings, onBookingClick }: CalendarViewProps) =>
                         </p>
                         {booking.staff_name && (
                           <p className="text-xs opacity-60">
-                            Staff: {booking.staff.name}
+                            Staff: {booking.staff?.name}
                           </p>
                         )}
                       </div>
