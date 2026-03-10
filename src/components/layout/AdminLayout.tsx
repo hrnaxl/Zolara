@@ -704,14 +704,14 @@ const AdminDashboard = () => {
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
         .z-card{background:${CARD_BG};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW};transition:box-shadow 0.2s,transform 0.2s}
-        .z-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.06),0 12px 36px rgba(0,0,0,0.1);transform:translateY(-2px)}
+        .z-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.06),0 12px 36px rgba(0,0,0,0.1)}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         .fade-up{animation:fadeUp 0.4s ease both}
       `}</style>
 
       {/* ══ HEADER ══════════════════════════════════════════════ */}
-      <div className="fade-up" style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"36px" }}>
+      <div className="fade-up" style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"36px", position:"relative", zIndex:1000 }}>
         <div>
           <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(38px,5vw,56px)", fontWeight:600, color: TXT, margin:0, lineHeight:1, letterSpacing:"-0.02em" }}>
             Dashboard
