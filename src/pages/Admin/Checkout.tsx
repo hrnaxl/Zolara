@@ -885,9 +885,9 @@ const Checkout = () => {
                   </p>
                   <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                     <Badge variant="secondary">
-                      {booking.services.category}
+                      {booking.services?.category || ""}
                     </Badge>
-                    <span>{booking.services.duration_minutes} mins</span>
+                    <span>{booking.services?.duration_minutes || ""} mins</span>
                   </div>
                 </div>
               </div>
@@ -904,7 +904,7 @@ const Checkout = () => {
                   <div>
                     <p className="font-semibold">{booking.client_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {booking.clients.phone}
+                      {booking.clients?.phone || booking.client_phone || ""}
                     </p>
                   </div>
                 </div>
