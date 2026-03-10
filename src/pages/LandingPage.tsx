@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import AmandaWidget from "@/components/AmandaWidget";
 
 const LOGO = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 
@@ -444,6 +445,7 @@ export default function LandingPage() {
           <Link to="/app/auth" className="sans" style={{ fontSize: "11px", color: "rgba(200,169,126,0.5)", textDecoration: "none" }}>Staff Login</Link>
         </div>
       </footer>
+      <AmandaWidget />
     </div>
   );
 }
