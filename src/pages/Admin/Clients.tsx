@@ -168,6 +168,7 @@ const Clients = () => {
       const { data, count, error } = await supabase
         .from("clients")
         .select("*", { count: "exact" })
+        .or("archived.is.null,archived.eq.false")
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -236,7 +237,8 @@ const Clients = () => {
       if (error) throw error;
 
       toast.success("Client archived");
-      fetchClients();
+      setClients(prev => prev.filter(c => c.id !== deleteClientId));
+      setFilteredClients(prev => prev.filter(c => c.id !== deleteClientId));
     } catch (err: any) {
       toast.error(err.message || "Failed to archive client");
     } finally {

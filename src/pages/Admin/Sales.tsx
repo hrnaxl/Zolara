@@ -102,7 +102,7 @@ const SalesRevenue = () => {
       // Build same rows as printReport
       const rows = filteredPayments.map((p) => ({
         client: p.client_name || "N/A",
-        service: p.bookings?.services?.name || "N/A",
+        service: p.service_name || "N/A",
         method: p.payment_method || "",
         amount:
           typeof p.amount !== "undefined"
@@ -253,7 +253,7 @@ const SalesRevenue = () => {
       setLoading(true);
       let query = supabase
         .from("sales")
-        .select("*, bookings(*, clients(*), services(*))")
+        .select("*")
         .order("created_at", { ascending: false });
 
       // apply date filters
@@ -344,7 +344,7 @@ const SalesRevenue = () => {
   // Attribute staff revenue only from completed payments tied to completed bookings and having a payment_method
   const staffContributions = Object.values(
     completedPayments.reduce((acc: any, p: any) => {
-      const staffName = p.bookings?.staff?.name || "Unassigned";
+      const staffName = p.staff_name || "Unassigned";
       if (!acc[staffName]) acc[staffName] = { name: staffName, revenue: 0 };
       acc[staffName].revenue += Number(p.amount || 0);
       return acc;
@@ -355,7 +355,7 @@ const SalesRevenue = () => {
   // Revenue by service should also only include completed payments tied to completed bookings
   const serviceRevenue = Object.values(
     completedPayments.reduce((acc: any, p: any) => {
-      const svc = p.bookings?.services?.name || "Unassigned";
+      const svc = p.service_name || "Unassigned";
       if (!acc[svc]) acc[svc] = { name: svc, revenue: 0 };
       acc[svc].revenue += Number(p.amount || 0);
       return acc;
@@ -410,7 +410,7 @@ const SalesRevenue = () => {
     try {
       const rows = filteredPayments.map((p) => ({
         client: p.client_name || "N/A",
-        service: p.bookings?.services?.name || "N/A",
+        service: p.service_name || "N/A",
         method: p.payment_method || "",
         amount:
           typeof p.amount !== "undefined"
@@ -550,7 +550,7 @@ const SalesRevenue = () => {
     doc.setFontSize(9);
     for (const p of rows) {
       const client = p.client_name || "N/A";
-      const service = p.bookings?.services?.name || "N/A";
+      const service = p.service_name || "N/A";
       const method = p.payment_method || "";
       const amount =
         typeof p.amount !== "undefined"
@@ -674,7 +674,7 @@ const SalesRevenue = () => {
               .filter((p) => exportPaymentType === "all" || p.payment_method === exportPaymentType)
               .map((p) => ({
                 client: p.client_name,
-                service: p.bookings?.services?.name,
+                service: p.service_name,
                 method: p.payment_method,
                 status: p.status,
                 amount: p.amount,
@@ -852,7 +852,7 @@ const SalesRevenue = () => {
                   <Calendar className="w-4 h-4" />
                   <span>
                     {format(
-                      new Date(payment.payment_date),
+                      new Date(payment.created_at),
                       "MMM dd, yyyy 'at' h:mm a"
                     )}
                   </span>
@@ -887,19 +887,18 @@ const SalesRevenue = () => {
             <div className="space-y-4">
               <div>
                 <h3 className="font-semibold">Client</h3>
-                <p>{selectedPayment.bookings?.clients?.name}</p>
+                <p>{selectedPayment.client_name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedPayment.bookings?.clients?.phone}
+                  {"N/A"}
                 </p>
               </div>
 
               <div>
                 <h3 className="font-semibold">Service</h3>
-                <p>{selectedPayment.bookings?.services?.name}</p>
+                <p>{selectedPayment.service_name}</p>
                 <p className="text-sm text-muted-foreground">
                   Duration:{" "}
-                  {selectedPayment.bookings?.services?.duration_minutes ||
-                    "N/A"}{" "}
+                  {"N/A"}{" "}
                   min
                 </p>
               </div>
@@ -907,7 +906,7 @@ const SalesRevenue = () => {
               <div>
                 <h3 className="font-semibold">Staff</h3>
                 <p>
-                  {selectedPayment.bookings?.staff?.name || "Unassigned"}
+                  {selectedPayment.staff_name || "Unassigned"}
                 </p>
               </div>
 

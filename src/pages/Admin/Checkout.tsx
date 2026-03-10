@@ -5,6 +5,7 @@ import {
   validateGiftCard,
   redeemGiftCard as rpcRedeem,
 } from "@/lib/useGiftCards";
+import { validatePromoCode } from "@/lib/promoCodes";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -110,6 +111,10 @@ const Checkout = () => {
     id: string;
     value: number;
   } | null>(null);
+  const [promoCode, setPromoCode] = useState<string>("");
+  const [validatingPromo, setValidatingPromo] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
+  const [promoDiscount, setPromoDiscount] = useState<number>(0);
   const [usePaystackForTransfer, setUsePaystackForTransfer] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState({
     id: null,
@@ -374,6 +379,36 @@ const Checkout = () => {
     }
   }, []);
 
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setValidatingPromo(true);
+    try {
+      const result = await validatePromoCode(promoCode.trim());
+      if (!result.valid) { toast.error(result.message); return; }
+      const promo = result.promo;
+      const base = originalPrice || parseFloat(amount) || 0;
+      if (promo.minimum_amount && base < promo.minimum_amount) {
+        toast.error(`Minimum purchase of GH₵${promo.minimum_amount} required`);
+        return;
+      }
+      let discount = 0;
+      if (promo.discount_type === "percentage") {
+        discount = (base * promo.discount_value) / 100;
+      } else {
+        discount = Math.min(promo.discount_value, base);
+      }
+      setAppliedPromo(promo);
+      setPromoDiscount(discount);
+      const newAmount = Math.max(0, base - discount - (appliedPromo ? promoDiscount : 0) - (redeemedCard?.value ?? 0));
+      setAmount(newAmount.toFixed(2));
+      toast.success(`Promo applied: GH₵${discount.toFixed(2)} off`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to validate promo code");
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
+
   const handleCheckout = async () => {
     if (!booking) return;
 
@@ -391,8 +426,9 @@ const Checkout = () => {
     // - If a gift card was redeemed, prefer originalPrice - giftValue (clamped at 0)
     // - Otherwise use the amount entered (clamped at 0)
     const giftValue = redeemedCard?.value ?? 0;
-    const computedRemaining = Math.max(0, Number(originalPrice) - giftValue);
-    const paymentAmount = redeemedCard
+    const base = Number(originalPrice) || parseFloat(amount) || 0;
+    const computedRemaining = Math.max(0, base - promoDiscount - giftValue);
+    const paymentAmount = (redeemedCard || appliedPromo)
       ? computedRemaining
       : Math.max(0, parseFloat(amount));
     // Keep amount state in sync with computed remaining when gift applied
@@ -436,7 +472,7 @@ const Checkout = () => {
                   client_name: booking.client_name || null,
                   service_name: booking.service_name || null,
                   client_id: booking.clients?.id || null,
-                  notes: notes || `Redeemed gift card: ${redeemedCard.id}`,
+                  notes: [notes, appliedPromo ? `Promo: ${appliedPromo.code}` : null, redeemedCard ? `Gift card: ${redeemedCard.id}` : null].filter(Boolean).join(" | ") || null,
                 },
               ]);
 
@@ -1026,10 +1062,11 @@ const Checkout = () => {
                       originalPrice || booking.services.price || 0
                     ).toFixed(2)}
                   </p>
+                  {appliedPromo ? (
+                    <p className="text-green-600 text-sm">Promo ({appliedPromo.code}): -GH₵{promoDiscount.toFixed(2)}</p>
+                  ) : null}
                   {redeemedCard ? (
-                    <p className="text-green-600">
-                      Gift applied: GH₵ {redeemedCard.value.toFixed(2)}
-                    </p>
+                    <p className="text-green-600 text-sm">Gift card: -GH₵{redeemedCard.value.toFixed(2)}</p>
                   ) : null}
                   <p className="font-medium">
                     Remaining: GH₵{" "}
@@ -1064,6 +1101,37 @@ const Checkout = () => {
                   <p className="text-sm text-green-600">
                     Applied GH₵ {redeemedCard.value.toFixed(2)} (Card:{" "}
                     <span className="font-mono">{redeemedCard.id}</span>)
+                  </p>
+                )}
+              </div>
+
+              {/* Promo Code */}
+              <div className="space-y-2">
+                <Label>Promo Code</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter promo code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    disabled={!!appliedPromo}
+                  />
+                  {appliedPromo ? (
+                    <Button variant="outline" onClick={() => {
+                      setAppliedPromo(null);
+                      setPromoDiscount(0);
+                      setPromoCode("");
+                      setAmount(String(Math.max(0, originalPrice - (redeemedCard?.value ?? 0)).toFixed(2)));
+                    }}>Remove</Button>
+                  ) : (
+                    <Button onClick={handleApplyPromo} disabled={validatingPromo || !promoCode}>
+                      {validatingPromo ? "Checking..." : "Apply"}
+                    </Button>
+                  )}
+                </div>
+                {appliedPromo && (
+                  <p className="text-sm text-green-600">
+                    ✓ {appliedPromo.code}: GH₵{promoDiscount.toFixed(2)} off
+                    {appliedPromo.discount_type === "percentage" ? ` (${appliedPromo.discount_value}%)` : ""}
                   </p>
                 )}
               </div>

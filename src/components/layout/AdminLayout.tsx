@@ -527,7 +527,7 @@ const AdminDashboard = () => {
       setRecentBookings(
         recentBookingsRes.data?.map((b) => ({
           id: b.id,
-          title: b.services?.name || "Service",
+          title: b.service_name || "Service",
           subtitle: b.client_name || "Client",
           date: b.created_at,
           status: b.status,
