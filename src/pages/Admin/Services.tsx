@@ -102,7 +102,10 @@ const Services = () => {
         toast.success("Service updated successfully");
       } else {
         const { error } = await supabase.from("services").insert([serviceData]);
-        if (error) throw error;
+        if (error) {
+          console.error("Insert error:", JSON.stringify(error));
+          throw new Error(error.message || error.details || JSON.stringify(error));
+        }
         toast.success("Service added successfully");
       }
 
