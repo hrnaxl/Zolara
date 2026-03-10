@@ -119,9 +119,9 @@ export const fetchStaffPayments = async (staffId: string) => {
 
     // 2. Fetch payments linked to staff bookings
     const { data: paymentsList = [], error: paymentsError } = await supabase
-      .from("payments")
+      .from("sales")
       .select(
-        "id, amount, payment_method, payment_status, payment_date, booking_id"
+        "id, amount, payment_method, status, booking_id, client_name, service_name"
       )
       .in("booking_id", bookingIds)
       .order("payment_date", { ascending: false });
@@ -232,9 +232,9 @@ export const fetchClientPayments = async (clientId: string) => {
 
     // 2. Fetch payments linked to these bookings
     const { data: paymentsList = [], error: paymentsError } = await supabase
-      .from("payments")
+      .from("sales")
       .select(
-        "id, amount, payment_method, payment_status, payment_date, booking_id"
+        "id, amount, payment_method, status, booking_id, client_name, service_name"
       )
       .in("booking_id", bookingIds)
       .order("payment_date", { ascending: false });

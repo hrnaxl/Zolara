@@ -179,38 +179,38 @@ const AdminDashboard = () => {
         // Only consider completed payments when calculating revenue numbers
         // Only consider payments that are completed and are for bookings marked completed
         supabase
-          .from("payments")
-          .select("amount, payment_method, bookings(status, preferred_date)")
-          .eq("payment_status", "completed")
+          .from("sales")
+          .select("amount, payment_method, status, booking_id, client_name")
+          .eq("status", "completed")
           .gte("payment_date", todayStart)
           .lte("payment_date", todayEnd)
           .eq("bookings.status", "completed"),
 
         supabase
-          .from("payments")
-          .select("amount, payment_method, bookings(status, preferred_date)")
-          .eq("payment_status", "completed")
+          .from("sales")
+          .select("amount, payment_method, status, booking_id, client_name")
+          .eq("status", "completed")
           .gte("payment_date", periodStart)
           .lte("payment_date", periodEnd)
           .eq("bookings.status", "completed"),
         supabase
-          .from("payments")
+          .from("sales")
           .select("amount, bookings(status, preferred_date)")
-          .eq("payment_status", "completed")
+          .eq("status", "completed")
           .gte("payment_date", startOfThisWeek)
           .lte("payment_date", endOfThisWeek)
           .eq("bookings.status", "completed"),
         supabase
-          .from("payments")
+          .from("sales")
           .select("amount, bookings(status, preferred_date)")
-          .eq("payment_status", "completed")
+          .eq("status", "completed")
           .gte("payment_date", startOfThisMonth)
           .lte("payment_date", endOfThisMonth)
           .eq("bookings.status", "completed"),
         supabase
-          .from("payments")
+          .from("sales")
           .select("amount, bookings(status, preferred_date)")
-          .eq("payment_status", "completed")
+          .eq("status", "completed")
           .gte("payment_date", previousMonthStart)
           .lte("payment_date", previousMonthEnd)
           .eq("bookings.status", "completed"),
@@ -241,15 +241,15 @@ const AdminDashboard = () => {
           .order("created_at", { ascending: false })
           .limit(5),
         supabase
-          .from("payments")
+          .from("sales")
           .select("*, bookings(services(name))")
           .order("payment_date", { ascending: false })
           .limit(5),
         supabase
-          .from("payments")
+          .from("sales")
           .select("amount, payment_date")
           .gte("payment_date", format(subDays(today, 30), "yyyy-MM-dd"))
-          .eq("payment_status", "completed"),
+          .eq("status", "completed"),
         supabase
           .from("bookings")
           .select("*", { count: "exact" })
@@ -274,7 +274,7 @@ const AdminDashboard = () => {
         supabase
           .from("bookings")
           .select(
-            "id, staff_id, services(price), payments(amount, payment_status, payment_method)"
+            "id, staff_id, price, status, client_name, service_name"
           )
           .gte("preferred_date", periodStart)
           .lte("preferred_date", periodEnd)
@@ -313,7 +313,7 @@ const AdminDashboard = () => {
       const pendingRevenue = completedBookings.reduce((sum: number, b: any) => {
         const payments: any[] = b.payments || [];
         const hasCompletedPayment = payments.some(
-          (p) => p && p.payment_status === "completed" && p.payment_method
+          (p) => p && p.status === "completed"
         );
         if (!hasCompletedPayment) {
           // treat full service price as pending (partial-pay scenarios can be refined later)
@@ -451,7 +451,7 @@ const AdminDashboard = () => {
           // Sum only completed payments with a payment_method to ensure accurate sales attribution
           const payments: any[] = booking.payments || [];
           const paidAmount = payments.reduce((s, p) => {
-            if (p && p.payment_status === "completed" && p.payment_method) {
+            if (p && p.status === "completed" && p.payment_method) {
               return s + Number(p.amount || 0);
             }
             return s;

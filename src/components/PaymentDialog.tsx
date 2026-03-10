@@ -142,13 +142,13 @@ export default function PaymentDialog({
         // CASH PAYMENT (admin only)
         if (admin) {
           const { error: paymentError } = await supabase
-            .from("payments")
+            .from("sales")
             .insert([
               {
                 booking_id: booking.id,
                 amount: paymentAmount,
                 payment_method: paymentMethod,
-                payment_status: "completed",
+                status: "completed",
                 notes: notes || `Payment via ${paymentMethod}`,
               },
             ]);
@@ -156,7 +156,7 @@ export default function PaymentDialog({
           if (paymentError) throw paymentError;
 
           // Update booking.payment_method for accurate reporting
-          const { error: bmErr } = await supabase.from("bookings").update({ payment_method: paymentMethod } as any).eq("id", booking.id);
+          // payment_method is stored in sales table, not bookings
           if (bmErr) console.warn("Failed to update booking.payment_method:", bmErr);
 
           toast.success("Payment recorded!");

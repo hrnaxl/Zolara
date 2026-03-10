@@ -9,6 +9,7 @@ import { Sparkles, Calendar, Clock, Loader2, Check, Phone, Mail, User, ChevronLe
 import { useSettings } from "@/context/SettingsContext";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { format } from "date-fns";
+import { sendSMS, SMS } from "@/lib/sms";
 
 const PublicBooking = () => {
   const { settings } = useSettings();
@@ -120,6 +121,21 @@ const PublicBooking = () => {
       if (bookingErr) throw bookingErr;
 
       setBookingRef(ref);
+
+      // Send SMS confirmation
+      try {
+        const formattedDate = format(new Date(`${preferredDate}T00:00:00`), "EEEE, MMMM d yyyy");
+        await sendSMS(phone, SMS.bookingConfirmation(
+          name.trim(),
+          selectedService?.name || "Beauty Service",
+          formattedDate,
+          normalizedTime
+        ));
+      } catch (smsErr) {
+        console.error("SMS error:", smsErr);
+        // Don't fail the booking if SMS fails
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       console.error("Booking error:", err);

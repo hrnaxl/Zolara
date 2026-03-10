@@ -63,7 +63,8 @@ interface BookingData {
     id: string;
     name: string;
     email: string | null;
-    phone: string;
+    phone: string | null;
+    loyalty_points: number;
   };
   services: {
     id: string;
@@ -166,10 +167,10 @@ const Checkout = () => {
     const iv = setInterval(async () => {
       try {
         const { data: payments } = await supabase
-          .from("payments")
+          .from("sales")
           .select("*")
           .eq("booking_id", booking.id)
-          .eq("payment_status", "completed")
+          .eq("status", "completed")
           .limit(1);
 
         if (payments && payments.length > 0 && !cancelled) {
@@ -440,12 +441,15 @@ const Checkout = () => {
 
           if (appliedGiftAmount > 0) {
             const { data: giftPaymentData, error: giftPaymentError } =
-              await supabase.from("payments").insert([
+              await supabase.from("sales").insert([
                 {
                   booking_id: booking.id,
                   amount: appliedGiftAmount,
                   payment_method: "gift_card",
-                  payment_status: "completed",
+                  status: "completed",
+                  client_name: booking.client_name || null,
+                  service_name: booking.service_name || null,
+                  client_id: booking.clients?.id || null,
                   notes: notes || `Redeemed gift card: ${redeemedCard.id}`,
                 },
               ]);
@@ -498,20 +502,22 @@ const Checkout = () => {
             status: "completed",
             staff_id: selectedStaff,
             notes: notes || booking.notes,
-            payment_method: paymentMethod, // use the selected method
           })
           .eq("id", booking.id);
 
         if (bookingError) throw bookingError;
 
         // @ts-ignore
-        const { error: paymentError } = await supabase.from("payments").insert({
+        const { error: paymentError } = await supabase.from("sales").insert({
           booking_id: booking.id,
           amount: paymentAmount,
           payment_method: paymentMethod,
-          payment_status: "completed",
-          notes:
-            notes || `${capitalizedPaymentMethod} payment recorded at checkout`,
+          status: "completed",
+          client_name: booking.client_name || null,
+          service_name: booking.service_name || null,
+          client_id: booking.clients?.id || null,
+          staff_id: selectedStaff || null,
+          notes: notes || `${capitalizedPaymentMethod} payment recorded at checkout`,
         });
 
         if (paymentError) throw paymentError;
@@ -522,18 +528,18 @@ const Checkout = () => {
         toast.success("Checkout completed successfully!");
         // Send thank you SMS
         try {
-          const clientPhone = booking.client_phone || (booking as any).client_phone;
+          const clientPhone = (booking as any).client_phone || booking.clients?.phone;
           if (clientPhone) {
-            const currentStamps = (booking as any).clients?.loyalty_stamps || 0;
+            const currentStamps = (booking as any).clients?.loyalty_points || 0;
             const newStamps = currentStamps + Math.floor(paymentAmount / 100);
             // Update loyalty stamps
             await supabase.from("clients" as any).update({
-              loyalty_stamps: newStamps
+              loyalty_points: newStamps
             }).eq("id", booking.clients?.id || (booking as any).client_id);
             await sendSMS(clientPhone, SMS.checkoutThankYou(
               booking.client_name || "Valued Client",
               booking.service_name || "service",
-              newStamps
+              newPoints
             ));
           }
         } catch(smsErr) { console.error("SMS error:", smsErr); }
@@ -545,11 +551,14 @@ const Checkout = () => {
         if (!enabled.includes("bank_transfer")) {
           throw new Error("Bank transfer is not enabled");
         }
-        const { error: paymentError } = await supabase.from("payments").insert({
+        const { error: paymentError } = await supabase.from("sales").insert({
           booking_id: booking.id,
           amount: paymentAmount,
           payment_method: "bank_transfer",
-          payment_status: "pending",
+          status: "pending",
+          client_name: booking.client_name || null,
+          service_name: booking.service_name || null,
+          client_id: booking.clients?.id || null,
           notes: notes || "Manual bank transfer (pending)",
         });
 
@@ -557,14 +566,8 @@ const Checkout = () => {
         // Update booking to record chosen payment method
         const { error: bmErr3 } = await supabase
           .from("bookings")
-          .update({ payment_method: "bank_transfer" } as any)
+          .update({ status: "confirmed" } as any)
           .eq("id", booking.id);
-        if (bmErr3) {
-          console.warn(
-            "Failed to update booking.payment_method to bank_transfer:",
-            bmErr3
-          );
-        }
 
         // ensure local state reflects chosen method for UI
         setPaymentMethod("bank_transfer");

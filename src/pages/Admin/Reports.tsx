@@ -92,13 +92,13 @@ const Reports = () => {
     try {
       // include transaction_reference and service price/duration when available
       let query = supabase
-        .from("payments")
+        .from("sales")
         .select(
           `
         id,
         amount,
         payment_method,
-        payment_status,
+        status,
         payment_date,
         transaction_reference,
         bookings:booking_id (
@@ -125,8 +125,8 @@ const Reports = () => {
           selectedPaymentMethod as "cash" | "mobile_money" | "card" | "bank_transfer" | "gift_card"
         );
       }
-      if (filterType === "payment_status" && selectedPaymentStatus && selectedPaymentStatus !== "all") {
-        query = query.eq("payment_status", selectedPaymentStatus as "pending" | "completed" | "refunded");
+      if (filterType === "status" && selectedPaymentStatus && selectedPaymentStatus !== "all") {
+        query = query.eq("status", selectedPaymentStatus as "pending" | "completed" | "refunded");
       }
 
       const { data, error } = await query;
@@ -305,7 +305,7 @@ const Reports = () => {
 
       // fetch previous period revenue
       const { data: prevData } = await supabase
-        .from("payments")
+        .from("sales")
         .select("amount")
         .gte("payment_date", format(prevStart, "yyyy-MM-dd"))
         .lte("payment_date", format(prevEnd, "yyyy-MM-dd"));
@@ -476,7 +476,7 @@ const Reports = () => {
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="payment_method">By Payment Method</SelectItem>
-                  <SelectItem value="payment_status">By Payment Status</SelectItem>
+                  <SelectItem value="status">By Payment Status</SelectItem>
                   <SelectItem value="client">By Client</SelectItem>
                   <SelectItem value="service">By Service</SelectItem>
                   <SelectItem value="staff">By Staff</SelectItem>
@@ -507,7 +507,7 @@ const Reports = () => {
                 </div>
               )}
 
-              {filterType === "payment_status" && (
+              {filterType === "status" && (
                 <div className="space-y-2">
                   <Label>Payment Status</Label>
                   <Select

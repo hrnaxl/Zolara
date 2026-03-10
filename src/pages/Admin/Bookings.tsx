@@ -397,22 +397,7 @@ const Bookings = () => {
       const validated = bookingSchema.parse(normalized);
 
       setCreating(true);
-      // Server-side validation: call RPC to validate booking rules (defensive)
-      try {
-        const resp: any = await (supabase as any).rpc("rpc_validate_booking", {
-          p_staff_id: validated.staff_id || null,
-          p_preferred_date: validated.preferred_date,
-          p_preferred_time: validated.preferred_time,
-        });
-        const rpcData: any = resp?.data ?? resp; // supabase typings vary
-        if (rpcData) {
-          if (typeof rpcData === "string" && rpcData.length > 0)
-            throw new Error(rpcData);
-        }
-      } catch (err: any) {
-        // If RPC fails (not deployed) or returns error string, bubble up for user to see
-        throw err;
-      }
+      // Operating hours and staff validation handled below
 
       // Enforce operating hours from SettingsContext (if present)
       const openTime = (settings as any)?.open_time || "08:30";
@@ -485,14 +470,26 @@ const Bookings = () => {
         }
       }
 
+      // Denormalize client and service info for easy display
+      const selectedClient = clients.find((c: any) => c.id === validated.client_id);
+      const selectedService = services.find((s: any) => s.id === validated.service_id);
+      const selectedStaffMember = staff.find((s: any) => s.id === validated.staff_id);
+
       const bookingData = {
         client_id: validated.client_id,
         service_id: validated.service_id,
         staff_id: validated.staff_id || null,
+        client_name: selectedClient?.name || null,
+        client_phone: selectedClient?.phone || null,
+        client_email: selectedClient?.email || null,
+        service_name: selectedService?.name || null,
+        staff_name: selectedStaffMember?.name || null,
+        price: selectedService?.price || null,
+        duration_minutes: selectedService?.duration_minutes || null,
         preferred_date: validated.preferred_date,
         preferred_time: validated.preferred_time,
         status: validated.status || "pending",
-        notes: validated.notes || "",
+        notes: validated.notes || null,
       };
 
       if (editingBookingId) {
@@ -1061,7 +1058,7 @@ const Bookings = () => {
                 }}
                 onStatusUpdate={handleStatusUpdate}
                 onQuickAssign={handleQuickAssign}
-                paymentStatus={b.payment_status || "pending"}
+                paymentStatus={b.status || "pending"}
               />
             ))}
           </div>

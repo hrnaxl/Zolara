@@ -23,7 +23,7 @@ interface Client {
   id: string;
   name: string;
   phone: string;
-  loyalty_stamps: number;
+  loyalty_points: number;
   loyalty_rewards_redeemed: number;
   birthday?: string;
   email?: string;
@@ -49,8 +49,8 @@ export default function Loyalty() {
     setLoading(true);
     const { data } = await supabase
       .from("clients" as any)
-      .select("id, name, phone, loyalty_stamps, loyalty_rewards_redeemed, birthday, email")
-      .order("loyalty_stamps", { ascending: false });
+      .select("id, name, phone, loyalty_points, loyalty_rewards_redeemed, birthday, email")
+      .order("loyalty_points", { ascending: false });
     setClients((data as Client[]) || []);
     setLoading(false);
   };
@@ -75,29 +75,29 @@ export default function Loyalty() {
 
     const { error } = await supabase
       .from("clients" as any)
-      .update({ loyalty_stamps: (client.loyalty_stamps || 0) + total })
+      .update({ loyalty_points: (client.loyalty_points || 0) + total })
       .eq("id", client.id);
 
     if (error) { toast.error("Failed to add stamps"); }
     else {
       toast.success(`+${total} stamp${total > 1 ? "s" : ""} added${bonus > 0 ? ` (incl. ${bonus} birthday bonus!)` : ""}`);
       fetchClients();
-      setSelected(prev => prev ? { ...prev, loyalty_stamps: prev.loyalty_stamps + total } : null);
+      setSelected(prev => prev ? { ...prev, loyalty_points: prev.loyalty_points + total } : null);
     }
     setIssuing(false);
     setStampAmount("");
   };
 
   const redeemReward = async (client: Client) => {
-    if ((client.loyalty_stamps || 0) < STAMPS_PER_REWARD) {
-      toast.error(`Need ${STAMPS_PER_REWARD} stamps to redeem. Client has ${client.loyalty_stamps || 0}.`);
+    if ((client.loyalty_points || 0) < STAMPS_PER_REWARD) {
+      toast.error(`Need ${STAMPS_PER_REWARD} stamps to redeem. Client has ${client.loyalty_points || 0}.`);
       return;
     }
     setIssuing(true);
     const { error } = await supabase
       .from("clients" as any)
       .update({
-        loyalty_stamps: (client.loyalty_stamps || 0) - STAMPS_PER_REWARD,
+        loyalty_points: (client.loyalty_points || 0) - STAMPS_PER_REWARD,
         loyalty_rewards_redeemed: (client.loyalty_rewards_redeemed || 0) + 1,
       })
       .eq("id", client.id);
@@ -141,7 +141,7 @@ export default function Loyalty() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
         {[
           { label: "Total Members", value: clients.length, icon: Award, color: G.gold },
-          { label: "Active Stamps (Total)", value: clients.reduce((s, c) => s + (c.loyalty_stamps || 0), 0), icon: Star, color: "#10B981" },
+          { label: "Active Stamps (Total)", value: clients.reduce((s, c) => s + (c.loyalty_points || 0), 0), icon: Star, color: "#10B981" },
           { label: "Rewards Redeemed", value: clients.reduce((s, c) => s + (c.loyalty_rewards_redeemed || 0), 0), icon: Gift, color: "#8B5CF6" },
           { label: "Birthday This Month", value: clients.filter(c => isBirthdayMonth(c.birthday)).length, icon: Crown, color: "#F59E0B" },
         ].map(({ label, value, icon: Icon, color }) => (
@@ -180,8 +180,8 @@ export default function Loyalty() {
           ) : (
             <div style={{ overflowY: "auto", maxHeight: 600 }}>
               {filtered.map(client => {
-                const t = tier(client.loyalty_stamps || 0);
-                const prog = progress(client.loyalty_stamps || 0);
+                const t = tier(client.loyalty_points || 0);
+                const prog = progress(client.loyalty_points || 0);
                 const isSelected = selected?.id === client.id;
                 const bday = isBirthdayMonth(client.birthday);
                 return (
@@ -198,7 +198,7 @@ export default function Loyalty() {
                           <div style={{ flex: 1, height: 4, background: G.border, borderRadius: 2, overflow: "hidden" }}>
                             <div style={{ width: `${prog}%`, height: "100%", background: `linear-gradient(to right, ${G.gold}, ${G.goldLight})`, borderRadius: 2, transition: "width 0.3s" }} />
                           </div>
-                          <span style={{ fontSize: 11, color: G.warmGrey, flexShrink: 0, fontFamily: "Jost, sans-serif" }}>{client.loyalty_stamps || 0} stamps</span>
+                          <span style={{ fontSize: 11, color: G.warmGrey, flexShrink: 0, fontFamily: "Jost, sans-serif" }}>{client.loyalty_points || 0} stamps</span>
                         </div>
                       </div>
                     </div>
@@ -214,18 +214,18 @@ export default function Loyalty() {
           <div style={{ background: G.white, border: `1px solid ${G.border}`, borderRadius: 12, overflow: "hidden", height: "fit-content" }}>
             <div style={{ background: `linear-gradient(135deg, ${G.charcoal}, #2D2D2D)`, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-                <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${G.gold}, ${G.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{tier(selected.loyalty_stamps || 0).icon}</div>
+                <div style={{ width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${G.gold}, ${G.goldLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{tier(selected.loyalty_points || 0).icon}</div>
                 <div>
                   <p style={{ fontSize: 16, fontWeight: 600, color: G.white, fontFamily: "Playfair Display, serif" }}>{selected.name}</p>
                   <p style={{ fontSize: 12, color: "#9CA3AF", fontFamily: "Jost, sans-serif" }}>{selected.phone}</p>
-                  <p style={{ fontSize: 11, color: tier(selected.loyalty_stamps || 0).color, fontFamily: "Jost, sans-serif", marginTop: 2 }}>{tier(selected.loyalty_stamps || 0).name} Member</p>
+                  <p style={{ fontSize: 11, color: tier(selected.loyalty_points || 0).color, fontFamily: "Jost, sans-serif", marginTop: 2 }}>{tier(selected.loyalty_points || 0).name} Member</p>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                 {[
-                  { label: "Stamps", value: selected.loyalty_stamps || 0 },
-                  { label: "To Next Reward", value: stampsToNext(selected.loyalty_stamps || 0) },
+                  { label: "Stamps", value: selected.loyalty_points || 0 },
+                  { label: "To Next Reward", value: stampsToNext(selected.loyalty_points || 0) },
                   { label: "Rewards Redeemed", value: selected.loyalty_rewards_redeemed || 0 },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: "12px 10px", textAlign: "center" }}>
@@ -238,10 +238,10 @@ export default function Loyalty() {
               <div style={{ marginTop: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Jost, sans-serif" }}>Progress to next reward</span>
-                  <span style={{ fontSize: 11, color: G.goldLight, fontFamily: "Jost, sans-serif" }}>{(selected.loyalty_stamps || 0) % STAMPS_PER_REWARD}/{STAMPS_PER_REWARD}</span>
+                  <span style={{ fontSize: 11, color: G.goldLight, fontFamily: "Jost, sans-serif" }}>{(selected.loyalty_points || 0) % STAMPS_PER_REWARD}/{STAMPS_PER_REWARD}</span>
                 </div>
                 <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ width: `${progress(selected.loyalty_stamps || 0)}%`, height: "100%", background: `linear-gradient(to right, ${G.gold}, ${G.goldLight})`, borderRadius: 3 }} />
+                  <div style={{ width: `${progress(selected.loyalty_points || 0)}%`, height: "100%", background: `linear-gradient(to right, ${G.gold}, ${G.goldLight})`, borderRadius: 3 }} />
                 </div>
               </div>
             </div>
@@ -274,19 +274,19 @@ export default function Loyalty() {
                 <button onClick={() => addStamp(selected, 1)} disabled={issuing} style={{ flex: 1, padding: "10px", border: `1px solid ${G.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: G.charcoal, background: G.cream, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "Jost, sans-serif" }}>
                   <Plus size={14} /> +1 Stamp
                 </button>
-                <button onClick={() => addStamp(selected, -1)} disabled={issuing || (selected.loyalty_stamps || 0) <= 0} style={{ flex: 1, padding: "10px", border: `1px solid ${G.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: G.warmGrey, background: G.cream, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "Jost, sans-serif", opacity: (selected.loyalty_stamps || 0) <= 0 ? 0.4 : 1 }}>
+                <button onClick={() => addStamp(selected, -1)} disabled={issuing || (selected.loyalty_points || 0) <= 0} style={{ flex: 1, padding: "10px", border: `1px solid ${G.border}`, borderRadius: 8, cursor: "pointer", fontSize: 12, color: G.warmGrey, background: G.cream, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "Jost, sans-serif", opacity: (selected.loyalty_points || 0) <= 0 ? 0.4 : 1 }}>
                   <Minus size={14} /> Remove 1
                 </button>
               </div>
 
               <button
                 onClick={() => redeemReward(selected)}
-                disabled={issuing || (selected.loyalty_stamps || 0) < STAMPS_PER_REWARD}
-                style={{ width: "100%", padding: "14px", background: (selected.loyalty_stamps || 0) >= STAMPS_PER_REWARD ? `linear-gradient(135deg, ${G.charcoal}, #2D2D2D)` : G.border, border: "none", borderRadius: 8, cursor: (selected.loyalty_stamps || 0) >= STAMPS_PER_REWARD ? "pointer" : "not-allowed", color: (selected.loyalty_stamps || 0) >= STAMPS_PER_REWARD ? G.white : G.warmGrey, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "Jost, sans-serif" }}>
+                disabled={issuing || (selected.loyalty_points || 0) < STAMPS_PER_REWARD}
+                style={{ width: "100%", padding: "14px", background: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? `linear-gradient(135deg, ${G.charcoal}, #2D2D2D)` : G.border, border: "none", borderRadius: 8, cursor: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? "pointer" : "not-allowed", color: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? G.white : G.warmGrey, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "Jost, sans-serif" }}>
                 <Gift size={16} />
-                {(selected.loyalty_stamps || 0) >= STAMPS_PER_REWARD
+                {(selected.loyalty_points || 0) >= STAMPS_PER_REWARD
                   ? `Redeem Reward (Free service up to GHS ${MAX_REWARD_VALUE})`
-                  : `Need ${stampsToNext(selected.loyalty_stamps || 0)} more stamp${stampsToNext(selected.loyalty_stamps || 0) !== 1 ? "s" : ""} to redeem`}
+                  : `Need ${stampsToNext(selected.loyalty_points || 0)} more stamp${stampsToNext(selected.loyalty_points || 0) !== 1 ? "s" : ""} to redeem`}
               </button>
 
               <div style={{ marginTop: 16, padding: "12px 14px", background: `${G.gold}10`, border: `1px solid ${G.border}`, borderRadius: 8 }}>

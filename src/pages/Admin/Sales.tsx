@@ -79,7 +79,7 @@ const SalesRevenue = () => {
       const start = format(startOfMonth(today), "yyyy-MM-dd");
       const end = format(endOfMonth(today), "yyyy-MM-dd");
       const { data, error } = await supabase
-        .from("payments")
+        .from("sales")
         .select("amount")
         .gte("payment_date", start)
         .lte("payment_date", end);
@@ -101,7 +101,7 @@ const SalesRevenue = () => {
     try {
       // Build same rows as printReport
       const rows = filteredPayments.map((p) => ({
-        client: p.bookings?.client_name || "N/A",
+        client: p.client_name || "N/A",
         service: p.bookings?.services?.name || "N/A",
         method: p.payment_method || "",
         amount:
@@ -111,7 +111,7 @@ const SalesRevenue = () => {
         date: p.payment_date
           ? format(new Date(p.payment_date), "MMM dd, yyyy")
           : "",
-        status: p.payment_status || "",
+        status: p.status || "",
         notes: p.notes || "",
       }));
 
@@ -252,7 +252,7 @@ const SalesRevenue = () => {
     try {
       setLoading(true);
       let query = supabase
-        .from("payments")
+        .from("sales")
         .select("*, bookings(*, clients(*), services(*))")
         .order("payment_date", { ascending: false });
 
@@ -284,7 +284,7 @@ const SalesRevenue = () => {
       try {
         let bookingsQuery = supabase
           .from("bookings")
-          .select("id, services(price), payments(amount, payment_status, payment_method), preferred_date")
+          .select("id, price, preferred_date, status, client_name, service_name")
           .eq("status", "completed");
 
         if (dateRange === "today") {
@@ -309,7 +309,7 @@ const SalesRevenue = () => {
         if (!bError) {
           const pending = (bookingsData || []).reduce((sum: number, b: any) => {
             const paymentsForBooking: any[] = b.payments || [];
-            const hasCompletedPayment = paymentsForBooking.some((p) => p && p.payment_status === "completed" && p.payment_method);
+            const hasCompletedPayment = paymentsForBooking.some((p) => p && p.status === "completed");
             if (!hasCompletedPayment) {
               return sum + Number(b.services?.price || 0);
             }
@@ -334,10 +334,10 @@ const SalesRevenue = () => {
 
   // Only treat payments as completed revenue when they are completed AND tied to a completed booking and have a payment_method
   const completedPayments = filteredPayments.filter(
-    (p) => p.payment_status === "completed" && p.payment_method && p.bookings?.status === "completed"
+    (p) => p.status === "completed" && p.payment_method && p.status === "completed"
   );
   const pendingPayments = filteredPayments.filter(
-    (p) => p.payment_status === "pending"
+    (p) => p.status === "pending"
   );
 
   // Staff contribution to revenue (top earning staff this period)
@@ -370,8 +370,8 @@ const SalesRevenue = () => {
   const updatePaymentStatus = async (id: string, status: string) => {
     try {
       const { error } = await supabase
-        .from("payments") //@ts-ignore
-        .update({ payment_status: status })
+        .from("sales") //@ts-ignore
+        .update({ status: status })
         .eq("id", id);
       if (error) throw error;
       toast.success("Payment status updated");
@@ -409,7 +409,7 @@ const SalesRevenue = () => {
   const printReport = () => {
     try {
       const rows = filteredPayments.map((p) => ({
-        client: p.bookings?.client_name || "N/A",
+        client: p.client_name || "N/A",
         service: p.bookings?.services?.name || "N/A",
         method: p.payment_method || "",
         amount:
@@ -419,7 +419,7 @@ const SalesRevenue = () => {
         date: p.payment_date
           ? format(new Date(p.payment_date), "MMM dd, yyyy")
           : "",
-        status: p.payment_status || "",
+        status: p.status || "",
         notes: p.notes || "",
       }));
 
@@ -549,7 +549,7 @@ const SalesRevenue = () => {
 
     doc.setFontSize(9);
     for (const p of rows) {
-      const client = p.bookings?.client_name || "N/A";
+      const client = p.client_name || "N/A";
       const service = p.bookings?.services?.name || "N/A";
       const method = p.payment_method || "";
       const amount =
@@ -561,7 +561,7 @@ const SalesRevenue = () => {
         const d = new Date(p.payment_date);
         if (!isNaN(d.getTime())) dateStr = format(d, "MMM dd, yyyy");
       }
-      const status = p.payment_status || "";
+      const status = p.status || "";
       const notes = p.notes || "";
 
       const rowText = [
@@ -670,13 +670,13 @@ const SalesRevenue = () => {
         <CSVLink
           data={
             filteredPayments
-              .filter((p) => exportScope === "all" || p.payment_status === exportScope)
+              .filter((p) => exportScope === "all" || p.status === exportScope)
               .filter((p) => exportPaymentType === "all" || p.payment_method === exportPaymentType)
               .map((p) => ({
-                client: p.bookings?.client_name,
+                client: p.client_name,
                 service: p.bookings?.services?.name,
                 method: p.payment_method,
-                status: p.payment_status,
+                status: p.status,
                 amount: p.amount,
                 reference: p.transaction_reference || p.reference || p.paystack_ref || p.momo_ref || p.txn_ref || "",
                 date: p.payment_date
@@ -784,8 +784,8 @@ const SalesRevenue = () => {
             <ul className="text-sm list-disc ml-5 text-muted-foreground">
               {pendingPayments.slice(0, 5).map((p) => (
                 <li key={p.id}>
-                  {p.bookings?.client_name} — {p.payment_method} — {
-                    p.payment_status === "pending" ? "Awaiting payment" : p.payment_status === "failed" ? "Payment failed" : "Manual follow up required"
+                  {p.client_name} — {p.payment_method} — {
+                    p.status === "pending" ? "Awaiting payment" : p.status === "failed" ? "Payment failed" : "Manual follow up required"
                   }
                 </li>
               ))}
@@ -838,10 +838,10 @@ const SalesRevenue = () => {
                       </Badge>
                       <Badge
                         className={getPaymentStatusColor(
-                          payment.payment_status
+                          payment.status
                         )}
                       >
-                        {payment.payment_status}
+                        {payment.status}
                       </Badge>
                     </div>
                   </div>
@@ -915,7 +915,7 @@ const SalesRevenue = () => {
                 <h3 className="font-semibold">Payment</h3>
                 <p>Method: {selectedPayment.payment_method}</p>
                 <p>Amount: GH₵{Number(selectedPayment.amount).toFixed(2)}</p>
-                <p>Status: {selectedPayment.payment_status}</p>
+                <p>Status: {selectedPayment.status}</p>
               </div>
 
               {selectedPayment.notes && (
@@ -928,7 +928,7 @@ const SalesRevenue = () => {
               )}
 
               <div className="flex justify-end gap-2">
-                {selectedPayment.payment_status !== "completed" && (
+                {selectedPayment.status !== "completed" && (
                   <Button
                     onClick={() =>
                       updatePaymentStatus(selectedPayment.id, "completed")
