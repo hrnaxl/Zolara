@@ -267,12 +267,12 @@ const AdminDashboard = () => {
           .eq("status", "pending"),
         supabase
           .from("bookings")
-          .select("id, client_name, service_name, preferred_date, preferred_time, status, staff_name")
-          .gte("preferred_date", format(today, "yyyy-MM-dd"))
-          .lt("preferred_date", format(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1), "yyyy-MM-dd"))
-          .in("status", ["pending", "confirmed", "completed", "in_progress"])
+          .select("*")
+          .eq("preferred_date", format(today, "yyyy-MM-dd"))
+          .in("status", ["pending", "confirmed"])
+          .order("preferred_date", { ascending: true })
           .order("preferred_time", { ascending: true })
-          .limit(8),
+          .limit(5),
         supabase
           .from("bookings")
           .select(
@@ -468,6 +468,7 @@ const AdminDashboard = () => {
             .sort((a: any, b: any) => b.amount - a.amount)
         : [];
 
+      console.log("Payment method breakdown", paymentMethodBreakdown);
 
       // Top performing staff — attribute revenue only from completed payments tied to bookings
       const staffPerformance = staffBookingsRes.data?.reduce(
@@ -998,13 +999,13 @@ const AdminDashboard = () => {
                   <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
                     <div style={{ width:"34px", height:"34px", borderRadius:"50%", background: G_LIGHT, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", flexShrink:0 }}>💆</div>
                     <div>
-                      <div style={{ fontSize:"12px", fontWeight:600, color: TXT }}>{a.clientName || a.client_name}</div>
-                      <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>{a.serviceName || a.service_name}</div>
+                      <div style={{ fontSize:"12px", fontWeight:600, color: TXT }}>{a.clientName}</div>
+                      <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>{a.serviceName}</div>
                     </div>
                   </div>
                   <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:"13px", fontWeight:700, color: G }}>{a.time || a.preferred_time || "—"}</div>
-                    <div style={{ fontSize:"10px", color: TXT_SOFT }}>{(a.date || a.preferred_date) ? format(new Date(a.date || a.preferred_date), "MMM d") : ""}</div>
+                    <div style={{ fontSize:"13px", fontWeight:700, color: G }}>{a.time}</div>
+                    <div style={{ fontSize:"10px", color: TXT_SOFT }}>{a.date ? format(new Date(a.date), "MMM d") : ""}</div>
                   </div>
                 </div>
               ))}
