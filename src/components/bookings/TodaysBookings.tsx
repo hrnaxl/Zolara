@@ -26,8 +26,8 @@ const getStatusColor = (status: string) => {
 
 export const TodaysBookings = ({ bookings, onBookingClick }: TodaysBookingsProps) => {
   const todaysBookings = bookings
-    .filter((b) => isToday(parseISO(b.appointment_date)))
-    .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time));
+    .filter((b) => isToday(parseISO(b.preferred_date)))
+    .sort((a, b) => a.preferred_time.localeCompare(b.preferred_time));
 
   const pendingCount = todaysBookings.filter(
     (b) => b.status === "scheduled" || b.status === "confirmed"
@@ -68,17 +68,17 @@ export const TodaysBookings = ({ bookings, onBookingClick }: TodaysBookingsProps
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
                     <Clock className="w-3.5 h-3.5" />
-                    {booking.appointment_time}
+                    {booking.preferred_time}
                   </div>
                   <div>
-                    <p className="font-medium">{booking.clients?.name}</p>
+                    <p className="font-medium">{booking.client_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {booking.services?.name}
+                      {booking.service_name}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {booking.staff?.name && (
+                  {booking.staff_name && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <User className="w-3 h-3" />
                       {booking.staff.name}

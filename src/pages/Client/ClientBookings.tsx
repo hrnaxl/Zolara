@@ -67,7 +67,7 @@ const ClientBookings = () => {
           .from("bookings")
           .select("*, clients(*), staff(*), services(*)")
           .eq("client_id", user.id)
-          .order("appointment_date", { ascending: false }),
+          .order("preferred_date", { ascending: false }),
 
         // Fetch booking requests for this user only
         supabase
@@ -122,8 +122,8 @@ const ClientBookings = () => {
     const { error } = await supabase
       .from("bookings")
       .update({
-        appointment_date: newDate,
-        appointment_time: newTime,
+        preferred_date: newDate,
+        preferred_time: newTime,
         status: "scheduled",
       })
       .eq("id", selectedBooking.id);
@@ -388,11 +388,11 @@ const ClientBookings = () => {
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4" />
-                      {format(new Date(booking.appointment_date), "PPP")}
+                      {format(new Date(booking.preferred_date), "PPP")}
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Clock className="w-4 h-4" />
-                      {booking.appointment_time}
+                      {booking.preferred_time}
                     </div>
 
                     <div className="flex gap-2 mt-4 flex-wrap">
@@ -480,10 +480,10 @@ const ClientBookings = () => {
                         <div className="flex items-center gap-1">
                           <Calendar className="w-5 h-5 text-blue-500" />
                           <span className="text-sm font-medium">
-                            {booking.appointment_date
-                              ? isValid(parseISO(booking.appointment_date))
+                            {booking.preferred_date
+                              ? isValid(parseISO(booking.preferred_date))
                                 ? format(
-                                    parseISO(booking.appointment_date),
+                                    parseISO(booking.preferred_date),
                                     "PPP"
                                   )
                                 : "Invalid Date"
@@ -493,7 +493,7 @@ const ClientBookings = () => {
                         <div className="flex items-center gap-1">
                           <Clock className="w-5 h-5 text-green-500" />
                           <span className="text-sm font-medium">
-                            {booking.appointment_time || "N/A"}
+                            {booking.preferred_time || "N/A"}
                           </span>
                         </div>
                       </div>

@@ -47,7 +47,7 @@ export const fetchUserBookings = async ({
         ? "*, staff(full_name), services(name)"
         : "*, services(name)";
 
-    let orderField = table === "bookings" ? "appointment_date" : "created_at";
+    let orderField = table === "bookings" ? "preferred_date" : "created_at";
 
     // Build query
     let query = supabase
@@ -76,7 +76,7 @@ export const fetchStaffBookings = async (staffId: string) => {
       .from("bookings")
       .select("*, clients(*), services(name, price)")
       .eq("staff_id", staffId)
-      .order("appointment_date", { ascending: false });
+      .order("preferred_date", { ascending: false });
 
     if (error) throw error;
 
@@ -94,7 +94,7 @@ export const fetchStaffPayments = async (staffId: string) => {
       await supabase
         .from("bookings")
         .select(
-          "id, status, appointment_date, appointment_time, services(name)"
+          "id, status, preferred_date, preferred_time, service_name"
         )
         .eq("staff_id", staffId);
 
@@ -191,7 +191,7 @@ export const fetchClientBookings = async (clientId: string) => {
       .from("bookings")
       .select("*, staff(*), services(name, price)")
       .eq("client_id", clientId)
-      .order("appointment_date", { ascending: false });
+      .order("preferred_date", { ascending: false });
 
     if (error) throw error;
 
@@ -209,7 +209,7 @@ export const fetchClientPayments = async (clientId: string) => {
       await supabase
         .from("bookings")
         .select(
-          "id, status, appointment_date, appointment_time, services(name)"
+          "id, status, preferred_date, preferred_time, service_name"
         )
         .eq("client_id", clientId);
 

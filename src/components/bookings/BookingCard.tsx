@@ -121,10 +121,10 @@ export const BookingCard = ({
             <div className="flex justify-between items-start gap-2">
               <div>
                 <CardTitle className="text-lg font-semibold">
-                  {booking.clients?.name || "Unknown Client"}
+                  {booking.client_name || "Unknown Client"}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {booking.services?.name || "No service"}
+                  {booking.service_name || "No service"}
                 </p>
               </div>
 
@@ -177,7 +177,7 @@ export const BookingCard = ({
             ) : (
               <div className="flex items-center gap-1">
                 <User className="w-3 h-3 text-muted-foreground" />
-                <span className="font-medium">{booking.staff?.name}</span>
+                <span className="font-medium">{booking.staff_name}</span>
               </div>
             )}
           </div>
@@ -185,8 +185,8 @@ export const BookingCard = ({
           <div>
             <p className="text-muted-foreground text-xs">Date & Time</p>
             <p className="font-medium">
-              {format(new Date(booking.appointment_date), "MMM dd, yyyy")} at{" "}
-              {booking.appointment_time}
+              {format(new Date(booking.preferred_date), "MMM dd, yyyy")} at{" "}
+              {booking.preferred_time}
             </p>
           </div>
         </div>

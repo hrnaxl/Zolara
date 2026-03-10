@@ -37,15 +37,15 @@ export const CalendarView = ({ bookings, onBookingClick }: CalendarViewProps) =>
 
   const getBookingsForDayAndHour = (day: Date, hour: number) => {
     return bookings.filter((booking) => {
-      const bookingDate = parseISO(booking.appointment_date);
-      const bookingHour = parseInt(booking.appointment_time.split(":")[0], 10);
+      const bookingDate = parseISO(booking.preferred_date);
+      const bookingHour = parseInt(booking.preferred_time.split(":")[0], 10);
       return isSameDay(bookingDate, day) && bookingHour === hour;
     });
   };
 
   const getBookingsForDay = (day: Date) => {
     return bookings.filter((booking) => {
-      const bookingDate = parseISO(booking.appointment_date);
+      const bookingDate = parseISO(booking.preferred_date);
       return isSameDay(bookingDate, day);
     });
   };
@@ -163,10 +163,10 @@ export const CalendarView = ({ bookings, onBookingClick }: CalendarViewProps) =>
                             )}
                           >
                             <p className="font-medium truncate">
-                              {booking.clients?.name}
+                              {booking.client_name}
                             </p>
                             <p className="truncate opacity-80">
-                              {booking.services?.name}
+                              {booking.service_name}
                             </p>
                           </div>
                         ))}
@@ -199,16 +199,16 @@ export const CalendarView = ({ bookings, onBookingClick }: CalendarViewProps) =>
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-medium">
-                            {booking.clients?.name}
+                            {booking.client_name}
                           </span>
                           <Badge variant="outline" className="text-xs">
-                            {booking.appointment_time}
+                            {booking.preferred_time}
                           </Badge>
                         </div>
                         <p className="text-sm opacity-80">
-                          {booking.services?.name}
+                          {booking.service_name}
                         </p>
-                        {booking.staff?.name && (
+                        {booking.staff_name && (
                           <p className="text-xs opacity-60">
                             Staff: {booking.staff.name}
                           </p>

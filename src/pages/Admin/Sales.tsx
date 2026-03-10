@@ -101,7 +101,7 @@ const SalesRevenue = () => {
     try {
       // Build same rows as printReport
       const rows = filteredPayments.map((p) => ({
-        client: p.bookings?.clients?.name || "N/A",
+        client: p.bookings?.client_name || "N/A",
         service: p.bookings?.services?.name || "N/A",
         method: p.payment_method || "",
         amount:
@@ -284,25 +284,25 @@ const SalesRevenue = () => {
       try {
         let bookingsQuery = supabase
           .from("bookings")
-          .select("id, services(price), payments(amount, payment_status, payment_method), appointment_date")
+          .select("id, services(price), payments(amount, payment_status, payment_method), preferred_date")
           .eq("status", "completed");
 
         if (dateRange === "today") {
           const today = format(new Date(), "yyyy-MM-dd");
-          bookingsQuery = bookingsQuery.eq("appointment_date", today);
+          bookingsQuery = bookingsQuery.eq("preferred_date", today);
         } else if (dateRange === "week") {
           const today = new Date();
           const start = format(startOfWeek(today), "yyyy-MM-dd");
           const end = format(endOfWeek(today), "yyyy-MM-dd");
-          bookingsQuery = bookingsQuery.gte("appointment_date", start).lte("appointment_date", end);
+          bookingsQuery = bookingsQuery.gte("preferred_date", start).lte("preferred_date", end);
         } else if (dateRange === "month") {
           const today = new Date();
           const start = format(startOfMonth(today), "yyyy-MM-dd");
           const end = format(endOfMonth(today), "yyyy-MM-dd");
-          bookingsQuery = bookingsQuery.gte("appointment_date", start).lte("appointment_date", end);
+          bookingsQuery = bookingsQuery.gte("preferred_date", start).lte("preferred_date", end);
         } else if (dateRange === "custom") {
-          if (customStart) bookingsQuery = bookingsQuery.gte("appointment_date", customStart);
-          if (customEnd) bookingsQuery = bookingsQuery.lte("appointment_date", customEnd);
+          if (customStart) bookingsQuery = bookingsQuery.gte("preferred_date", customStart);
+          if (customEnd) bookingsQuery = bookingsQuery.lte("preferred_date", customEnd);
         }
 
         const { data: bookingsData, error: bError } = await bookingsQuery;
@@ -409,7 +409,7 @@ const SalesRevenue = () => {
   const printReport = () => {
     try {
       const rows = filteredPayments.map((p) => ({
-        client: p.bookings?.clients?.name || "N/A",
+        client: p.bookings?.client_name || "N/A",
         service: p.bookings?.services?.name || "N/A",
         method: p.payment_method || "",
         amount:
@@ -549,7 +549,7 @@ const SalesRevenue = () => {
 
     doc.setFontSize(9);
     for (const p of rows) {
-      const client = p.bookings?.clients?.name || "N/A";
+      const client = p.bookings?.client_name || "N/A";
       const service = p.bookings?.services?.name || "N/A";
       const method = p.payment_method || "";
       const amount =
@@ -673,7 +673,7 @@ const SalesRevenue = () => {
               .filter((p) => exportScope === "all" || p.payment_status === exportScope)
               .filter((p) => exportPaymentType === "all" || p.payment_method === exportPaymentType)
               .map((p) => ({
-                client: p.bookings?.clients?.name,
+                client: p.bookings?.client_name,
                 service: p.bookings?.services?.name,
                 method: p.payment_method,
                 status: p.payment_status,
@@ -784,7 +784,7 @@ const SalesRevenue = () => {
             <ul className="text-sm list-disc ml-5 text-muted-foreground">
               {pendingPayments.slice(0, 5).map((p) => (
                 <li key={p.id}>
-                  {p.bookings?.clients?.name} — {p.payment_method} — {
+                  {p.bookings?.client_name} — {p.payment_method} — {
                     p.payment_status === "pending" ? "Awaiting payment" : p.payment_status === "failed" ? "Payment failed" : "Manual follow up required"
                   }
                 </li>

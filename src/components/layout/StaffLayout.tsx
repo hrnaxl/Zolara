@@ -145,8 +145,8 @@ const StaffDashboard = () => {
   const recentBookingItems = bookings.slice(0, 5).map((b) => ({
     id: b.id,
     title: b.services?.name || "Service",
-    subtitle: format(new Date(b.appointment_date), "MMM d") + " at " + b.appointment_time,
-    date: b.appointment_date,
+    subtitle: format(new Date(b.preferred_date), "MMM d") + " at " + b.preferred_time,
+    date: b.preferred_date,
     status: b.status,
   }));
 

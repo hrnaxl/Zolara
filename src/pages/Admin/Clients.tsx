@@ -297,7 +297,7 @@ const Clients = () => {
       }, 0);
       const lastBooking =
         bookings
-          .map((b: any) => b.appointment_date)
+          .map((b: any) => b.preferred_date)
           .filter(Boolean)
           .sort()
           .reverse()[0] || null;
@@ -902,16 +902,16 @@ const Clients = () => {
             const s = new Date(`${startDate}T00:00:00`);
             const e = new Date(`${endDate}T23:59:59`);
             const bookingsInRange = (client.bookings || []).filter((b: any) => {
-              return bookingInRange(b?.appointment_date, s, e);
+              return bookingInRange(b?.preferred_date, s, e);
             });
             const bookingsCount =
               bookingsInRange.length || (client.bookings || []).length;
             const lastBooking = (client.bookings || []).reduce(
               (latest: any, b: any) => {
-                if (!b?.appointment_date) return latest;
-                if (!latest) return b.appointment_date;
-                return new Date(b.appointment_date) > new Date(latest)
-                  ? b.appointment_date
+                if (!b?.preferred_date) return latest;
+                if (!latest) return b.preferred_date;
+                return new Date(b.preferred_date) > new Date(latest)
+                  ? b.preferred_date
                   : latest;
               },
               null as any
@@ -1179,8 +1179,8 @@ const Clients = () => {
                         .slice()
                         .sort(
                           (a: any, b: any) =>
-                            new Date(b.appointment_date).getTime() -
-                            new Date(a.appointment_date).getTime()
+                            new Date(b.preferred_date).getTime() -
+                            new Date(a.preferred_date).getTime()
                         )
                         .map((b: any) => (
                           <div
@@ -1196,8 +1196,8 @@ const Clients = () => {
                                   b.staff?.name ||
                                   "Unassigned"}{" "}
                                 •{" "}
-                                {b.appointment_date
-                                  ? format(new Date(b.appointment_date), "PPP")
+                                {b.preferred_date
+                                  ? format(new Date(b.preferred_date), "PPP")
                                   : "Date N/A"}
                               </div>
                             </div>
@@ -1265,7 +1265,7 @@ const Clients = () => {
                         label="Avg Frequency"
                         value={() => {
                           const dates = (selectedClient.bookings || [])
-                            .map((bk: any) => bk.appointment_date)
+                            .map((bk: any) => bk.preferred_date)
                             .filter(Boolean)
                             .map((d: string) => new Date(d))
                             .sort(

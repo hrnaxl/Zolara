@@ -11,7 +11,7 @@
 //       const { data: todayBookings } = await supabase
 //         .from("bookings")
 //         .select("*", { count: "exact" })
-//         .eq("appointment_date", startOfToday);
+//         .eq("preferred_date", startOfToday);
 
 //       // Today's revenue
 //       const { data: todayPayments } = await supabase
@@ -48,8 +48,8 @@
 //       const { data: services } = await supabase
 //         .from("bookings")
 //         .select("service_id, services(name)")
-//         .gte("appointment_date", startOfThisMonth)
-//         .lte("appointment_date", endOfThisMonth);
+//         .gte("preferred_date", startOfThisMonth)
+//         .lte("preferred_date", endOfThisMonth);
 
 //       const serviceCounts = services?.reduce((acc: any, booking: any) => {
 //         const serviceName = booking.services?.name || "Unknown";

@@ -103,8 +103,8 @@ const Reports = () => {
         transaction_reference,
         bookings:booking_id (
           id,
-          appointment_date,
-          appointment_time,
+          preferred_date,
+          preferred_time,
           status,
           rating,
           services:service_id (id, name, category, price, duration_minutes),
@@ -272,10 +272,10 @@ const Reports = () => {
       const hourTimeline: any = {};
       rows.forEach((r: any) => {
         const booking = getBooking(r);
-        const dateKey = (r.payment_date || booking?.appointment_date || "").toString().slice(0, 10);
+        const dateKey = (r.payment_date || booking?.preferred_date || "").toString().slice(0, 10);
         dailyTimeline[dateKey] = (dailyTimeline[dateKey] || 0) + Number(r.amount || 0);
 
-        const time = booking?.appointment_time || r.payment_date?.toString()?.split("T")?.[1] || "";
+        const time = booking?.preferred_time || r.payment_date?.toString()?.split("T")?.[1] || "";
         const hour = time ? String(time).split(":")[0] : "unknown";
         hourTimeline[hour] = (hourTimeline[hour] || 0) + Number(r.amount || 0);
       });
@@ -321,8 +321,8 @@ const Reports = () => {
         const staffRel = normalizeRel(booking?.staff);
         const serviceRel = normalizeRel(booking?.services);
 
-        const appointmentDate = booking?.appointment_date ?? "";
-        const appointmentTime = booking?.appointment_time ?? "";
+        const appointmentDate = booking?.preferred_date ?? "";
+        const appointmentTime = booking?.preferred_time ?? "";
 
         return {
           AppointmentDateTime: formatDateTime(appointmentDate, appointmentTime),

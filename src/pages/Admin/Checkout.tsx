@@ -55,8 +55,8 @@ type PaymentMethod = "cash" | "momo" | "card" | "bank_transfer" | "gift_card";
 
 interface BookingData {
   id: string;
-  appointment_date: string;
-  appointment_time: string;
+  preferred_date: string;
+  preferred_time: string;
   status: string;
   notes: string | null;
   clients: {
@@ -522,7 +522,7 @@ const Checkout = () => {
         toast.success("Checkout completed successfully!");
         // Send thank you SMS
         try {
-          const clientPhone = booking.clients?.phone || (booking as any).client_phone;
+          const clientPhone = booking.client_phone || (booking as any).client_phone;
           if (clientPhone) {
             const currentStamps = (booking as any).clients?.loyalty_stamps || 0;
             const newStamps = currentStamps + Math.floor(paymentAmount / 100);
@@ -531,8 +531,8 @@ const Checkout = () => {
               loyalty_stamps: newStamps
             }).eq("id", booking.clients?.id || (booking as any).client_id);
             await sendSMS(clientPhone, SMS.checkoutThankYou(
-              booking.clients?.name || "Valued Client",
-              booking.services?.name || "service",
+              booking.client_name || "Valued Client",
+              booking.service_name || "service",
               newStamps
             ));
           }
@@ -592,8 +592,8 @@ const Checkout = () => {
             payment_method: paymentMethod,
             metadata: {
               booking_id: booking.id,
-              client_name: booking.clients?.name,
-              service_name: booking.services?.name,
+              client_name: booking.client_name,
+              service_name: booking.service_name,
             },
           },
         }
@@ -686,11 +686,11 @@ const Checkout = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Service</span>
-                <span className="font-medium">{booking.services.name}</span>
+                <span className="font-medium">{booking.service_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Client</span>
-                <span className="font-medium">{booking.clients.name}</span>
+                <span className="font-medium">{booking.client_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Staff</span>
@@ -768,11 +768,11 @@ const Checkout = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Service</span>
-                <span className="font-medium">{booking.services.name}</span>
+                <span className="font-medium">{booking.service_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Client</span>
-                <span className="font-medium">{booking.clients.name}</span>
+                <span className="font-medium">{booking.client_name}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-muted-foreground">Staff</span>
@@ -865,7 +865,7 @@ const Checkout = () => {
                 </Label>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <p className="font-semibold text-lg">
-                    {booking.services.name}
+                    {booking.service_name}
                   </p>
                   <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                     <Badge variant="secondary">
@@ -886,7 +886,7 @@ const Checkout = () => {
                     <User className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-semibold">{booking.clients.name}</p>
+                    <p className="font-semibold">{booking.client_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {booking.clients.phone}
                     </p>
@@ -903,7 +903,7 @@ const Checkout = () => {
                   <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium">
-                      {format(new Date(booking.appointment_date), "PPP")}
+                      {format(new Date(booking.preferred_date), "PPP")}
                     </span>
                   </div>
                 </div>
@@ -914,7 +914,7 @@ const Checkout = () => {
                   <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-2">
                     <Clock className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium">
-                      {booking.appointment_time}
+                      {booking.preferred_time}
                     </span>
                   </div>
                 </div>

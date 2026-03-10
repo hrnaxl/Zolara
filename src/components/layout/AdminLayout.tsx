@@ -170,17 +170,17 @@ const AdminDashboard = () => {
         supabase
           .from("bookings")
           .select("*")
-          .eq("appointment_date", todayStart),
+          .eq("preferred_date", todayStart),
         supabase
           .from("bookings")
           .select("*")
-          .gte("appointment_date", periodStart)
-          .lte("appointment_date", periodEnd),
+          .gte("preferred_date", periodStart)
+          .lte("preferred_date", periodEnd),
         // Only consider completed payments when calculating revenue numbers
         // Only consider payments that are completed and are for bookings marked completed
         supabase
           .from("payments")
-          .select("amount, payment_method, bookings(status, appointment_date)")
+          .select("amount, payment_method, bookings(status, preferred_date)")
           .eq("payment_status", "completed")
           .gte("payment_date", todayStart)
           .lte("payment_date", todayEnd)
@@ -188,28 +188,28 @@ const AdminDashboard = () => {
 
         supabase
           .from("payments")
-          .select("amount, payment_method, bookings(status, appointment_date)")
+          .select("amount, payment_method, bookings(status, preferred_date)")
           .eq("payment_status", "completed")
           .gte("payment_date", periodStart)
           .lte("payment_date", periodEnd)
           .eq("bookings.status", "completed"),
         supabase
           .from("payments")
-          .select("amount, bookings(status, appointment_date)")
+          .select("amount, bookings(status, preferred_date)")
           .eq("payment_status", "completed")
           .gte("payment_date", startOfThisWeek)
           .lte("payment_date", endOfThisWeek)
           .eq("bookings.status", "completed"),
         supabase
           .from("payments")
-          .select("amount, bookings(status, appointment_date)")
+          .select("amount, bookings(status, preferred_date)")
           .eq("payment_status", "completed")
           .gte("payment_date", startOfThisMonth)
           .lte("payment_date", endOfThisMonth)
           .eq("bookings.status", "completed"),
         supabase
           .from("payments")
-          .select("amount, bookings(status, appointment_date)")
+          .select("amount, bookings(status, preferred_date)")
           .eq("payment_status", "completed")
           .gte("payment_date", previousMonthStart)
           .lte("payment_date", previousMonthEnd)
@@ -227,17 +227,17 @@ const AdminDashboard = () => {
         supabase
           .from("bookings")
           .select("service_id, services(name)")
-          .gte("appointment_date", startOfThisMonth)
-          .lte("appointment_date", endOfThisMonth),
+          .gte("preferred_date", startOfThisMonth)
+          .lte("preferred_date", endOfThisMonth),
         // booking status distribution should reflect appointment dates in the month
         supabase
           .from("bookings")
           .select("status")
-          .gte("appointment_date", startOfThisMonth)
-          .lte("appointment_date", endOfThisMonth),
+          .gte("preferred_date", startOfThisMonth)
+          .lte("preferred_date", endOfThisMonth),
         supabase
           .from("bookings")
-          .select("*, services(name), clients(name)")
+          .select("*")
           .order("created_at", { ascending: false })
           .limit(5),
         supabase
@@ -256,19 +256,19 @@ const AdminDashboard = () => {
           .eq("status", "pending"),
         supabase
           .from("bookings")
-          .select("*, services(name), clients(name)")
-          .eq("appointment_date", todayStart)
+          .select("*")
+          .eq("preferred_date", todayStart)
           .in("status", ["scheduled", "confirmed"])
-          .order("appointment_date", { ascending: true })
-          .order("appointment_time", { ascending: true })
+          .order("preferred_date", { ascending: true })
+          .order("preferred_time", { ascending: true })
           .limit(5),
         supabase
           .from("bookings")
           .select(
             "staff_id, staff(full_name, specialization), services(price), payments(amount, payment_status, payment_method)"
           )
-          .gte("appointment_date", periodStart)
-          .lte("appointment_date", periodEnd)
+          .gte("preferred_date", periodStart)
+          .lte("preferred_date", periodEnd)
           .eq("status", "completed"),
         // Fetch completed bookings with nested payments to compute pending revenue (completed but unpaid)
         supabase
@@ -276,8 +276,8 @@ const AdminDashboard = () => {
           .select(
             "id, staff_id, services(price), payments(amount, payment_status, payment_method)"
           )
-          .gte("appointment_date", periodStart)
-          .lte("appointment_date", periodEnd)
+          .gte("preferred_date", periodStart)
+          .lte("preferred_date", periodEnd)
           .eq("status", "completed"),
         // fetch attendance for today by check_in timestamp range (not created_at equality)
         supabase
@@ -340,7 +340,7 @@ const AdminDashboard = () => {
       // Top service
       const serviceCounts = thisMonthServicesRes.data?.reduce(
         (acc: any, booking: any) => {
-          const serviceName = booking.services?.name || "Unknown";
+          const serviceName = booking.service_name || "Unknown";
           acc[serviceName] = (acc[serviceName] || 0) + 1;
           return acc;
         },
@@ -472,10 +472,10 @@ const AdminDashboard = () => {
       const upcomingList =
         upcomingBookingsRes.data?.map((b: any) => ({
           id: b.id,
-          clientName: b.clients?.name || "Unknown",
+          clientName: b.client_name || "Unknown",
           serviceName: b.services?.name || "Service",
-          date: b.appointment_date,
-          time: b.appointment_time,
+          date: b.preferred_date,
+          time: b.preferred_time,
           status: b.status,
         })) || [];
 
@@ -533,7 +533,7 @@ const AdminDashboard = () => {
         recentBookingsRes.data?.map((b) => ({
           id: b.id,
           title: b.services?.name || "Service",
-          subtitle: b.clients?.name || "Client",
+          subtitle: b.client_name || "Client",
           date: b.created_at,
           status: b.status,
         })) || []

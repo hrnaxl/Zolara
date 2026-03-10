@@ -45,7 +45,7 @@ const StaffBookings = () => {
         supabase
           .from("bookings")
           .select("*, clients(*), staff(*), services(*)")
-          .order("appointment_date", { ascending: false }),
+          .order("preferred_date", { ascending: false }),
         supabase //@ts-ignore
           .from("bookings")
           .select("*, clients(*), services(*)")
@@ -95,8 +95,8 @@ const StaffBookings = () => {
     const { error } = await supabase
       .from("bookings")
       .update({
-        appointment_date: newDate,
-        appointment_time: newTime,
+        preferred_date: newDate,
+        preferred_time: newTime,
         status: "scheduled",
       })
       .eq("id", selectedBooking.id);
@@ -167,8 +167,8 @@ const StaffBookings = () => {
       {
         client_id: user.id,
         service_id: selectedService,
-        appointment_date: preferredDate,
-        appointment_time: preferredTime,
+        preferred_date: preferredDate,
+        preferred_time: preferredTime,
         notes,
         status: "pending",
       },
@@ -310,11 +310,11 @@ const StaffBookings = () => {
                 <CardContent className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4" />
-                    {format(new Date(booking.appointment_date), "PPP")}
+                    {format(new Date(booking.preferred_date), "PPP")}
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4" />
-                    {booking.appointment_time}
+                    {booking.preferred_time}
                   </div>
 
                   <div className="flex gap-2 mt-4">
@@ -365,11 +365,11 @@ const StaffBookings = () => {
                 <CardContent className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4" />
-                    {format(new Date(booking.appointment_date), "PPP")}
+                    {format(new Date(booking.preferred_date), "PPP")}
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4" />
-                    {booking.appointment_time}
+                    {booking.preferred_time}
                   </div>
 
                   <div className="flex gap-2 mt-4">

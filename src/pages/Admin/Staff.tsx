@@ -218,9 +218,9 @@ const Staff = () => {
       const [bookingsRes, attendanceRes] = await Promise.all([
         supabase
           .from("bookings")
-          .select("*, clients(*), services(*)")
+          .select("*")
           .eq("staff_id", staffId)
-          .order("appointment_date", { ascending: false }),
+          .order("preferred_date", { ascending: false }),
         supabase
           .from("attendance")
           .select("*")
@@ -779,9 +779,9 @@ const Staff = () => {
                             {b.services?.name || "Service"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {b.clients?.name || "Client"} •{" "}
-                            {b.appointment_date
-                              ? format(new Date(b.appointment_date), "PPP")
+                            {b.client_name || "Client"} •{" "}
+                            {b.preferred_date
+                              ? format(new Date(b.preferred_date), "PPP")
                               : "Date N/A"}
                           </div>
                         </div>

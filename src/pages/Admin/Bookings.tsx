@@ -54,8 +54,8 @@ const bookingSchema = z.object({
     .uuid("Invalid staff selection")
     .optional()
     .or(z.literal("")),
-  appointment_date: z.string().min(1, "Date is required"),
-  appointment_time: z
+  preferred_date: z.string().min(1, "Date is required"),
+  preferred_time: z
     .string()
     .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format"),
   status: z
@@ -107,8 +107,8 @@ const Bookings = () => {
     client_id: "",
     staff_id: "",
     service_id: "",
-    appointment_date: "",
-    appointment_time: "",
+    preferred_date: "",
+    preferred_time: "",
     status: "scheduled",
     notes: "",
   });
@@ -162,8 +162,8 @@ const Bookings = () => {
           return;
         }
 
-        const apptDay = formData.appointment_date
-          ? new Date(formData.appointment_date).getDay()
+        const apptDay = formData.preferred_date
+          ? new Date(formData.preferred_date).getDay()
           : null;
         if (apptDay === null) {
           setAvailableTimes(baseOptions);
@@ -189,7 +189,7 @@ const Bookings = () => {
         setAvailableTimes(baseOptions);
       }
     })();
-  }, [settings, formData.staff_id, formData.appointment_date]);
+  }, [settings, formData.staff_id, formData.preferred_date]);
 
   useEffect(() => {
     fetchBookings(page);
@@ -204,8 +204,8 @@ const Bookings = () => {
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, clients(*), staff(*), services(*)")
-        .order("appointment_date", { ascending: false });
+        .select("*")
+        .order("preferred_date", { ascending: false });
 
       if (error) throw error;
       setAllBookings(data || []);
@@ -221,7 +221,7 @@ const Bookings = () => {
 
       const { data, count, error } = await supabase
         .from("bookings")
-        .select("*, clients(*), staff(*), services(*)", { count: "exact" })
+        .select("*", { count: "exact" })
         .order("created_at", { ascending: false })
         .range(start, end);
 
@@ -276,7 +276,7 @@ const Bookings = () => {
 
       let query = supabase
         .from("bookings")
-        .select("*, clients(*), services(*)", { count: "exact" })
+        .select("*", { count: "exact" })
         .order("created_at", { ascending: false });
 
       if (requestFilter !== "all") {
@@ -352,8 +352,8 @@ const Bookings = () => {
 
       switch (activeFilter) {
         case "today":
-          return b.appointment_date
-            ? isToday(parseISO(b.appointment_date))
+          return b.preferred_date
+            ? b.preferred_date ? isToday(parseISO(b.preferred_date)) : false
             : false;
 
         case "completed":
@@ -379,18 +379,18 @@ const Bookings = () => {
   }, [activeFilter, searchResults]);
 
   const todayBookingsCount = useMemo(() => {
-    return allBookings.filter((b) => isToday(parseISO(b.appointment_date)))
+    return allBookings.filter((b) => b.preferred_date ? isToday(parseISO(b.preferred_date)) : false)
       .length;
   }, [allBookings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Normalize appointment_time to 24h before validation
+      // Normalize preferred_time to 24h before validation
       const normalized = { ...formData };
-      if (normalized.appointment_time) {
-        normalized.appointment_time = normalizeTimeTo24(
-          normalized.appointment_time,
+      if (normalized.preferred_time) {
+        normalized.preferred_time = normalizeTimeTo24(
+          normalized.preferred_time,
         );
       }
 
@@ -401,8 +401,8 @@ const Bookings = () => {
       try {
         const resp: any = await (supabase as any).rpc("rpc_validate_booking", {
           p_staff_id: validated.staff_id || null,
-          p_appointment_date: validated.appointment_date,
-          p_appointment_time: validated.appointment_time,
+          p_preferred_date: validated.preferred_date,
+          p_preferred_time: validated.preferred_time,
         });
         const rpcData: any = resp?.data ?? resp; // supabase typings vary
         if (rpcData) {
@@ -417,7 +417,7 @@ const Bookings = () => {
       // Enforce operating hours from SettingsContext (if present)
       const openTime = (settings as any)?.open_time || "08:30";
       const closeTime = (settings as any)?.close_time || "21:00";
-      if (!isTimeWithinRange(validated.appointment_time, openTime, closeTime)) {
+      if (!isTimeWithinRange(validated.preferred_time, openTime, closeTime)) {
         throw new Error(
           `Appointment time must be within operating hours (${openTime} — ${closeTime})`,
         );
@@ -428,7 +428,7 @@ const Bookings = () => {
         try {
           const whRes = await getWorkingHours(validated.staff_id);
           const wh = whRes.data || [];
-          const apptDay = new Date(validated.appointment_date).getDay(); // 0-6
+          const apptDay = new Date(validated.preferred_date).getDay(); // 0-6
           // If staff has no configured working hours, allow bookings during shop operating hours (openTime/closeTime already set above)
           if (wh.length === 0) {
             // already enforced shop hours above, so nothing more to do
@@ -444,7 +444,7 @@ const Bookings = () => {
                 const start = s.start_time;
                 const end = s.end_time;
                 return isTimeWithinRange(
-                  validated.appointment_time,
+                  validated.preferred_time,
                   start,
                   end,
                 );
@@ -462,7 +462,7 @@ const Bookings = () => {
             const odRes = await getOffDays(validated.staff_id);
             const ods = odRes.data || [];
             const hasOff = ods.some(
-              (d: any) => d.off_date === validated.appointment_date,
+              (d: any) => d.off_date === validated.preferred_date,
             );
             if (hasOff)
               throw new Error("Selected staff is off on the chosen date");
@@ -489,8 +489,8 @@ const Bookings = () => {
         client_id: validated.client_id,
         service_id: validated.service_id,
         staff_id: validated.staff_id || null,
-        appointment_date: validated.appointment_date,
-        appointment_time: validated.appointment_time,
+        preferred_date: validated.preferred_date,
+        preferred_time: validated.preferred_time,
         status: validated.status || "scheduled",
         notes: validated.notes || "",
       };
@@ -508,7 +508,7 @@ const Bookings = () => {
       } else {
         // Prevent scheduling on Sundays
         try {
-          const d = new Date(bookingData.appointment_date);
+          const d = new Date(bookingData.preferred_date);
           if (d.getUTCDay && d.getUTCDay() === 0) {
             throw new Error("Bookings cannot be scheduled on Sundays.");
           }
@@ -542,8 +542,8 @@ const Bookings = () => {
       client_id: "",
       staff_id: "",
       service_id: "",
-      appointment_date: "",
-      appointment_time: "",
+      preferred_date: "",
+      preferred_time: "",
       status: "scheduled",
       notes: "",
     });
@@ -589,7 +589,7 @@ const Bookings = () => {
 
       if (status === "approved") {
         // Prevent creating bookings on Sundays when approving requests
-        const dateToCheck = request.appointment_date;
+        const dateToCheck = request.preferred_date;
         if (dateToCheck) {
           const dd = new Date(dateToCheck);
           if (dd.getUTCDay && dd.getUTCDay() === 0) {
@@ -604,8 +604,8 @@ const Bookings = () => {
             client_id: request.client_id,
             staff_id: request.staff_id || null,
             service_id: request.service_id,
-            appointment_date: request.appointment_date,
-            appointment_time: request.appointment_time,
+            preferred_date: request.preferred_date,
+            preferred_time: request.preferred_time,
             status: "scheduled",
             notes: request.notes,
           },
@@ -780,13 +780,13 @@ const Bookings = () => {
 
   const handleEditBooking = (booking: any) => {
     setEditingBookingId(booking.id);
-    const timeFormatted = booking.appointment_time?.substring(0, 5) || "00:00";
+    const timeFormatted = booking.preferred_time?.substring(0, 5) || "00:00";
     setFormData({
       ...booking,
       client_id: booking.client_id,
       staff_id: booking.staff_id || "",
       service_id: booking.service_id,
-      appointment_time: timeFormatted,
+      preferred_time: timeFormatted,
     });
     setDialogOpen(true);
   };
@@ -928,11 +928,11 @@ const Bookings = () => {
                   <Label>Date</Label>
                   <Input
                     type="date"
-                    value={formData.appointment_date || ""}
+                    value={formData.preferred_date || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        appointment_date: e.target.value,
+                        preferred_date: e.target.value,
                       })
                     }
                   />
@@ -940,9 +940,9 @@ const Bookings = () => {
                 <div>
                   <Label>Time</Label>
                   <Select
-                    value={formData.appointment_time || ""}
+                    value={formData.preferred_time || ""}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, appointment_time: value })
+                      setFormData({ ...formData, preferred_time: value })
                     }
                   >
                     <SelectTrigger className="w-full">
@@ -1151,15 +1151,15 @@ const Bookings = () => {
               <CardHeader className="flex justify-between items-start pb-2">
                 <div>
                   <CardTitle className="text-xl font-semibold">
-                    {r.services?.name}
+                    {r.service_name}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     <span className="font-medium">Client:</span>{" "}
-                    {r.clients?.name || "Unknown"}
+                    {r.client_name || "Unknown"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {r.appointment_date ? format(new Date(r.appointment_date), "MMM dd, yyyy") : "Date TBD"} at{" "}
-                    {r.appointment_time || ""}
+                    {r.preferred_date ? format(new Date(r.preferred_date), "MMM dd, yyyy") : "Date TBD"} at{" "}
+                    {r.preferred_time || ""}
                   </p>
                 </div>
                 <Badge

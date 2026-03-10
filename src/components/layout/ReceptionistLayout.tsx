@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 interface TodayBooking {
   id: string;
-  appointment_time: string;
+  preferred_time: string;
   status: string;
   clients: { name: string; phone: string } | null;
   services: { name: string; duration_minutes: number } | null;
@@ -76,17 +76,17 @@ const ReceptionistDashboard = () => {
       const { data: bookings = [] } = await supabase
         .from("bookings")
         .select(
-          "*, clients(name, phone), services(name, duration_minutes), staff(full_name)"
+          "*, client_name, client_phone, services(name, duration_minutes), staff(full_name)"
         )
-        .eq("appointment_date", todayStart)
-        .order("appointment_time", { ascending: true });
+        .eq("preferred_date", todayStart)
+        .order("preferred_time", { ascending: true });
 
       setTodayBookings(bookings);
 
       // Fetch pending booking requests
       const { data: requests = [] } = await supabase
         .from("bookings")
-        .select("*, clients(name), services(name)")
+        .select("*, client_name, services(name)")
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(10);
@@ -181,8 +181,8 @@ const ReceptionistDashboard = () => {
   // Format pending requests for activity list
   const pendingRequestItems = pendingRequests.map((r) => ({
     id: r.id,
-    title: r.services?.name || "Service Request",
-    subtitle: r.clients?.name || "Client",
+    title: r.service_name || "Service Request",
+    subtitle: r.client_name || "Client",
     date: r.created_at,
     status: "pending",
   }));
@@ -301,7 +301,7 @@ const ReceptionistDashboard = () => {
                     <div className="flex items-center gap-4">
                       <div className="text-center min-w-[60px]">
                         <p className="text-lg font-bold">
-                          {booking.appointment_time}
+                          {booking.preferred_time}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {booking.services?.duration_minutes || 30} min
@@ -310,11 +310,11 @@ const ReceptionistDashboard = () => {
                       <div className="h-12 w-px bg-border" />
                       <div>
                         <p className="font-medium">
-                          {booking.clients?.name || "Unknown Client"}
+                          {booking.client_name || "Unknown Client"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {booking.services?.name || "Service"} •{" "}
-                          {booking.staff?.name || "Unassigned"}
+                          {booking.service_name || "Service"} •{" "}
+                          {booking.staff_name || "Unassigned"}
                         </p>
                       </div>
                     </div>
