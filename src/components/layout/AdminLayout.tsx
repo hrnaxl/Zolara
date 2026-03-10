@@ -221,7 +221,7 @@ const AdminDashboard = () => {
         supabase.from("staff").select("*").eq("is_active", true),
         supabase
           .from("bookings")
-          .select("service_id, services(name)")
+          .select("service_name")
           .gte("preferred_date", startOfThisMonth)
           .lte("preferred_date", endOfThisMonth),
         // booking status distribution should reflect appointment dates in the month
@@ -237,12 +237,12 @@ const AdminDashboard = () => {
           .limit(5),
         supabase
           .from("sales")
-          .select("*, bookings(services(name))")
+          .select("id, amount, created_at, payment_method, client_name")
           .order("created_at", { ascending: false })
           .limit(5),
         supabase
           .from("sales")
-          .select("amount, payment_date")
+          .select("amount, created_at")
           .gte("created_at", format(subDays(today, 30), "yyyy-MM-dd"))
           .eq("status", "completed"),
         supabase
@@ -335,7 +335,7 @@ const AdminDashboard = () => {
       // Top service
       const serviceCounts = thisMonthServicesRes.data?.reduce(
         (acc: any, booking: any) => {
-          const serviceName = booking.service_name || "Unknown";
+          const serviceName = (booking as any).service_name || "Unknown";
           acc[serviceName] = (acc[serviceName] || 0) + 1;
           return acc;
         },
@@ -376,7 +376,7 @@ const AdminDashboard = () => {
 
       const revenueByDay = last30DaysPaymentsRes.data?.reduce(
         (acc: any, p: any) => {
-          const day = format(new Date(p.payment_date), "yyyy-MM-dd");
+          const day = format(new Date(p.created_at), "yyyy-MM-dd");
           acc[day] = (acc[day] || 0) + Number(p.amount);
           return acc;
         },
@@ -468,7 +468,7 @@ const AdminDashboard = () => {
         upcomingBookingsRes.data?.map((b: any) => ({
           id: b.id,
           clientName: b.client_name || "Unknown",
-          serviceName: b.services?.name || "Service",
+          serviceName: b.service_name || "Service",
           date: b.preferred_date,
           time: b.preferred_time,
           status: b.status,
@@ -539,7 +539,7 @@ const AdminDashboard = () => {
         recentPaymentsRes.data?.map((p) => ({
           id: p.id,
           title: (p.bookings as any)?.services?.name || "Payment",
-          date: p.payment_date,
+          date: p.created_at,
           amount: Number(p.amount),
         })) || []
       );

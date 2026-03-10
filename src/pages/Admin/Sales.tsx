@@ -81,8 +81,8 @@ const SalesRevenue = () => {
       const { data, error } = await supabase
         .from("sales")
         .select("amount")
-        .gte("payment_date", start)
-        .lte("payment_date", end);
+        .gte("created_at", start)
+        .lte("created_at", end);
       if (error) throw error;
       const total = (data || []).reduce(
         (s: number, p: any) => s + Number(p.amount),
@@ -108,8 +108,8 @@ const SalesRevenue = () => {
           typeof p.amount !== "undefined"
             ? `GH₵${Number(p.amount).toFixed(2)}`
             : "GH₵0.00",
-        date: p.payment_date
-          ? format(new Date(p.payment_date), "MMM dd, yyyy")
+        date: p.created_at
+          ? format(new Date(p.created_at), "MMM dd, yyyy")
           : "",
         status: p.status || "",
         notes: p.notes || "",
@@ -254,25 +254,25 @@ const SalesRevenue = () => {
       let query = supabase
         .from("sales")
         .select("*, bookings(*, clients(*), services(*))")
-        .order("payment_date", { ascending: false });
+        .order("created_at", { ascending: false });
 
       // apply date filters
       if (dateRange === "today") {
         const today = format(new Date(), "yyyy-MM-dd");
-        query = query.gte("payment_date", today);
+        query = query.gte("created_at", today);
       } else if (dateRange === "week") {
         const today = new Date();
         const start = format(startOfWeek(today), "yyyy-MM-dd");
         const end = format(endOfWeek(today), "yyyy-MM-dd");
-        query = query.gte("payment_date", start).lte("payment_date", end);
+        query = query.gte("created_at", start).lte("created_at", end);
       } else if (dateRange === "month") {
         const today = new Date();
         const start = format(startOfMonth(today), "yyyy-MM-dd");
         const end = format(endOfMonth(today), "yyyy-MM-dd");
-        query = query.gte("payment_date", start).lte("payment_date", end);
+        query = query.gte("created_at", start).lte("created_at", end);
       } else if (dateRange === "custom") {
-        if (customStart) query = query.gte("payment_date", customStart);
-        if (customEnd) query = query.lte("payment_date", customEnd);
+        if (customStart) query = query.gte("created_at", customStart);
+        if (customEnd) query = query.lte("created_at", customEnd);
       }
 
       const { data, error } = await query;
@@ -416,8 +416,8 @@ const SalesRevenue = () => {
           typeof p.amount !== "undefined"
             ? `GH₵${Number(p.amount).toFixed(2)}`
             : "GH₵0.00",
-        date: p.payment_date
-          ? format(new Date(p.payment_date), "MMM dd, yyyy")
+        date: p.created_at
+          ? format(new Date(p.created_at), "MMM dd, yyyy")
           : "",
         status: p.status || "",
         notes: p.notes || "",
@@ -557,8 +557,8 @@ const SalesRevenue = () => {
           ? `GHS ${Number(p.amount).toLocaleString()}`
           : "GHS 0";
       let dateStr = "N/A";
-      if (p.payment_date) {
-        const d = new Date(p.payment_date);
+      if (p.created_at) {
+        const d = new Date(p.created_at);
         if (!isNaN(d.getTime())) dateStr = format(d, "MMM dd, yyyy");
       }
       const status = p.status || "";
@@ -679,8 +679,8 @@ const SalesRevenue = () => {
                 status: p.status,
                 amount: p.amount,
                 reference: p.transaction_reference || p.reference || p.paystack_ref || p.momo_ref || p.txn_ref || "",
-                date: p.payment_date
-                  ? format(new Date(p.payment_date), "MMM dd, yyyy")
+                date: p.created_at
+                  ? format(new Date(p.created_at), "MMM dd, yyyy")
                   : "",
               }))
           }

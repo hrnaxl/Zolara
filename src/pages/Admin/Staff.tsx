@@ -55,7 +55,6 @@ const staffSchema = z.object({
     .max(255, "Email too long")
     .optional()
     .or(z.literal("")),
-  specialization: z.string().max(100, "Specialization too long").optional(),
   emergency_contact: z
     .string()
     .regex(/^\+?[0-9]{7,15}$/, "Invalid emergency contact format")
@@ -181,7 +180,6 @@ const Staff = () => {
       name: member.name,
       phone: member.phone,
       email: member.email || "",
-      specialization: member.specialization || member.specialization_id || "",
       role: member.role || "staff",
       is_active: member.status ? member.status === "active" : member.is_active ?? true,
       image: member.image || null,
@@ -267,7 +265,6 @@ const Staff = () => {
         name: validated.name,
         phone: validated.phone,
         ...(validated.email && { email: validated.email }),
-        ...(validated.specialization && { specialties: [validated.specialization] }),
         role: validated.role,
         is_active: formData.is_active,
       };
@@ -416,39 +413,7 @@ const Staff = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Specialization</Label>
-                {SPECIALIZATIONS.length > 0 ? (
-                  <Select
-                    value={formData.specialization}
-                    onValueChange={(v) =>
-                      setFormData({ ...formData, specialization: v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select specialization" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SPECIALIZATIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    placeholder="e.g. Hair Stylist"
-                    value={formData.specialization}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        specialization: e.target.value,
-                      })
-                    }
-                  />
-                )}
-              </div>
+
 
               <div className="space-y-2">
                 <Label>Emergency Contact</Label>
@@ -579,13 +544,7 @@ const Staff = () => {
                         </span>
                       )}
                     </div>
-                    {(
-                      member.specialization || member.specialization_id
-                    ) && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        {member.specialization || specializations.find((s:any)=>s.id===member.specialization_id)?.name}
-                      </p>
-                    )}
+
                     {staffRatings[member.id] !== undefined && (
                       <p className="text-sm text-gray-500 mt-1">
                         Avg rating:{" "}
@@ -729,14 +688,7 @@ const Staff = () => {
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="font-medium text-sm text-gray-600">
-                    Specialization
-                  </h4>
-                    <p className="mt-1 text-sm">
-                      {selectedStaff.specialization || specializations.find((s:any)=>s.id===selectedStaff.specialization_id)?.name || "N/A"}
-                    </p>
-                </div>
+
 
                 <div>
                   <h4 className="font-medium text-sm text-gray-600">Notes</h4>
