@@ -127,8 +127,7 @@ const AdminDashboard = () => {
         999
       ).toISOString();
 
-      console.log("Start of day", todayStart);
-      console.log("End of day", todayEnd);
+      console.log("Today date string:", format(today, "yyyy-MM-dd"));
       const periodStart = format(dateRange.start, "yyyy-MM-dd");
       const periodEnd = format(dateRange.end, "yyyy-MM-dd");
       const startOfThisWeek = format(
@@ -186,7 +185,7 @@ const AdminDashboard = () => {
       ] = await Promise.all([
         supabase
           .from("bookings")
-          .select("*")
+          .select("id, status, preferred_date")
           .eq("preferred_date", format(today, "yyyy-MM-dd")),
         supabase
           .from("bookings")
@@ -359,6 +358,7 @@ const AdminDashboard = () => {
             100
           : 0;
 
+      console.log("Today bookings result:", todayBookingsRes.data?.length, todayBookingsRes.error);
       // Yesterday comparisons
       const yesterdayBookingsCount = yesterdayBookingsRes.count || 0;
       const yesterdayRevenue = yesterdayRevenueRes.data?.reduce((s, p) => s + Number(p.amount), 0) || 0;
@@ -768,34 +768,14 @@ const AdminDashboard = () => {
                   <span onClick={() => setBellOpen(false)} style={{ cursor:"pointer", fontSize:"18px", color:TXT_SOFT }}>✕</span>
                 </div>
                 <div style={{ maxHeight:"360px", overflowY:"auto" }}>
-                  {stats.pendingRequests > 0 && (
-                    <div style={{ padding:"14px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:"12px", alignItems:"flex-start" }}>
-                      <span style={{ fontSize:"20px" }}>📋</span>
-                      <div>
-                        <div style={{ fontWeight:600, fontSize:"13px" }}>{stats.pendingRequests} Pending Booking{stats.pendingRequests > 1 ? "s" : ""}</div>
-                        <div style={{ fontSize:"11px", color:TXT_SOFT, marginTop:"2px" }}>Requires confirmation</div>
-                      </div>
-                    </div>
-                  )}
-                  {absentStaff.length > 0 && (
-                    <div style={{ padding:"14px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:"12px", alignItems:"flex-start" }}>
-                      <span style={{ fontSize:"20px" }}>⚠️</span>
-                      <div>
-                        <div style={{ fontWeight:600, fontSize:"13px" }}>Staff Not Checked In</div>
-                        <div style={{ fontSize:"11px", color:TXT_SOFT, marginTop:"2px" }}>{absentStaff.slice(0,3).join(", ")}{absentStaff.length > 3 ? ` +${absentStaff.length - 3} more` : ""}</div>
-                      </div>
-                    </div>
-                  )}
-                  {alerts.map((a, i) => (
+
+                  {alerts.filter(a => a.type !== "success").map((a, i) => (
                     <div key={i} style={{ padding:"14px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:"12px", alignItems:"flex-start" }}>
-                      <span style={{ fontSize:"20px" }}>{a.type === "warning" ? "🔶" : a.type === "error" ? "🔴" : "ℹ️"}</span>
-                      <div>
-                        <div style={{ fontWeight:600, fontSize:"13px" }}>{a.title}</div>
-                        <div style={{ fontSize:"11px", color:TXT_SOFT, marginTop:"2px" }}>{a.message}</div>
-                      </div>
+                      <span style={{ fontSize:"20px" }}>{a.type === "warning" ? "🔶" : "ℹ️"}</span>
+                      <div style={{ fontSize:"13px", color:"#111", lineHeight:1.4 }}>{a.message}</div>
                     </div>
                   ))}
-                  {stats.pendingRequests === 0 && absentStaff.length === 0 && alerts.length === 0 && (
+                  {alerts.every(a => a.type === "success") && stats.pendingRequests === 0 && absentStaff.length === 0 && (
                     <div style={{ padding:"32px 20px", textAlign:"center", color:TXT_SOFT, fontSize:"13px" }}>No notifications right now ✓</div>
                   )}
                 </div>
@@ -869,7 +849,8 @@ const AdminDashboard = () => {
       </div>
 
       {/* ══ GOLD HIGHLIGHT PANEL ════════════════════════════════ */}
-      <div className="fade-up" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"20px", overflow:"hidden", marginBottom:"20px", padding:"36px 40px", background:`linear-gradient(115deg, #C9A84C 0%, #E8D27A 45%, #BF9640 100%)`, boxShadow:`0 8px 40px ${G}44`, maxWidth:"560px" }}>
+      <div className="fade-up" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"20px", overflow:"hidden", marginBottom:"20px", padding:"36px 40px", background:`linear-gradient(115deg, #C9A84C 0%, #E8D27A 45%, #BF9640 100%)`, boxShadow:`0 8px 40px ${G}44` }}>
+        <div style={{ maxWidth:"520px" }}>
         {/* Decorative circles */}
         <div style={{ position:"absolute", top:"-50px", right:"80px", width:"200px", height:"200px", borderRadius:"50%", background:"rgba(255,255,255,0.10)", pointerEvents:"none" }} />
         <div style={{ position:"absolute", bottom:"-60px", right:"-30px", width:"180px", height:"180px", borderRadius:"50%", background:"rgba(255,255,255,0.07)", pointerEvents:"none" }} />
@@ -896,6 +877,7 @@ const AdminDashboard = () => {
               <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2.8vw,30px)", fontWeight:700, color:"#fff" }}>{s.val}</div>
             </div>
           ))}
+        </div>
         </div>
       </div>
 
