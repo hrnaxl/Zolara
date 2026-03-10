@@ -270,7 +270,7 @@ const AdminDashboard = () => {
           .select("id, client_name, service_name, preferred_date, preferred_time, status, staff_name")
           .gte("preferred_date", format(today, "yyyy-MM-dd"))
           .lt("preferred_date", format(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1), "yyyy-MM-dd"))
-          .not("status", "in", '(cancelled,no_show)')
+          .in("status", ["pending", "confirmed", "completed", "in_progress"])
           .order("preferred_time", { ascending: true })
           .limit(8),
         supabase
