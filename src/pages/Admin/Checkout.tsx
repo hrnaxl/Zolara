@@ -470,14 +470,6 @@ const Checkout = () => {
         paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
       // CASH → mark completed immediately (admin page)
       if (paymentMethod !== "bank_transfer") {
-        if (!Array.isArray(enabled) || !enabled.includes(paymentMethod)) {
-          throw new Error(
-            `${
-              paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)
-            } payments are not enabled`
-          );
-        }
-
         const capitalizedPaymentMethod =
           paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
 

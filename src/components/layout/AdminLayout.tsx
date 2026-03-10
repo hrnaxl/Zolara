@@ -170,7 +170,7 @@ const AdminDashboard = () => {
         supabase
           .from("bookings")
           .select("*")
-          .eq("preferred_date", todayStart),
+          .eq("preferred_date", format(today, "yyyy-MM-dd")),
         supabase
           .from("bookings")
           .select("*")
@@ -182,37 +182,37 @@ const AdminDashboard = () => {
           .from("sales")
           .select("amount, payment_method, status, booking_id, client_name")
           .eq("status", "completed")
-          .gte("payment_date", todayStart)
-          .lte("payment_date", todayEnd)
+          .gte("created_at", todayStart)
+          .lte("created_at", todayEnd)
           .eq("bookings.status", "completed"),
 
         supabase
           .from("sales")
           .select("amount, payment_method, status, booking_id, client_name")
           .eq("status", "completed")
-          .gte("payment_date", periodStart)
-          .lte("payment_date", periodEnd)
+          .gte("created_at", periodStart)
+          .lte("created_at", periodEnd)
           .eq("bookings.status", "completed"),
         supabase
           .from("sales")
           .select("amount, bookings(status, preferred_date)")
           .eq("status", "completed")
-          .gte("payment_date", startOfThisWeek)
-          .lte("payment_date", endOfThisWeek)
+          .gte("created_at", startOfThisWeek)
+          .lte("created_at", endOfThisWeek)
           .eq("bookings.status", "completed"),
         supabase
           .from("sales")
           .select("amount, bookings(status, preferred_date)")
           .eq("status", "completed")
-          .gte("payment_date", startOfThisMonth)
-          .lte("payment_date", endOfThisMonth)
+          .gte("created_at", startOfThisMonth)
+          .lte("created_at", endOfThisMonth)
           .eq("bookings.status", "completed"),
         supabase
           .from("sales")
           .select("amount, bookings(status, preferred_date)")
           .eq("status", "completed")
-          .gte("payment_date", previousMonthStart)
-          .lte("payment_date", previousMonthEnd)
+          .gte("created_at", previousMonthStart)
+          .lte("created_at", previousMonthEnd)
           .eq("bookings.status", "completed"),
         // @ts-ignore
         supabase
@@ -223,7 +223,7 @@ const AdminDashboard = () => {
           .from("clients")
           .select("*", { count: "exact" })
           .lte("created_at", previousMonthEnd), // @ts-ignore
-        supabase.from("staff").select("*").eq("status", "active"),
+        supabase.from("staff").select("*").eq("is_active", true),
         supabase
           .from("bookings")
           .select("service_id, services(name)")
@@ -243,12 +243,12 @@ const AdminDashboard = () => {
         supabase
           .from("sales")
           .select("*, bookings(services(name))")
-          .order("payment_date", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(5),
         supabase
           .from("sales")
           .select("amount, payment_date")
-          .gte("payment_date", format(subDays(today, 30), "yyyy-MM-dd"))
+          .gte("created_at", format(subDays(today, 30), "yyyy-MM-dd"))
           .eq("status", "completed"),
         supabase
           .from("bookings")
@@ -257,7 +257,7 @@ const AdminDashboard = () => {
         supabase
           .from("bookings")
           .select("*")
-          .eq("preferred_date", todayStart)
+          .eq("preferred_date", format(today, "yyyy-MM-dd"))
           .in("status", ["pending", "confirmed"])
           .order("preferred_date", { ascending: true })
           .order("preferred_time", { ascending: true })
