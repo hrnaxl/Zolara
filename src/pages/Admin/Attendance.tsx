@@ -321,7 +321,7 @@ export default function Attendance() {
   return (
     <div className="z-page">
       <div className="">
-        <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:"28px" mb-4">Attendance Management</h1>
+        <h1 className="z-title mb-4" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:"28px" }}>Attendance Management</h1>
 
         <Card className="p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:space-x-4 gap-3">

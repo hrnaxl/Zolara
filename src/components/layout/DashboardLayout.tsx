@@ -170,12 +170,13 @@ const DashboardLayout = () => {
       // ------------------------------------------------------
       case "receptionist":
         return baseNavItems
-          .filter(
-            (item) =>
-              ![
-                "Sales",
-                "Reports",
-                "Attendance Reports",
+          .filter((item) => !["Sales", "Reports", "Attendance Reports"].includes(item.label))
+          .map((item) => ({ ...item, path: `/app/admin/${item.path}` }));
+
+      default:
+        return baseNavItems.map((item) => ({ ...item, path: `/app/admin/${item.path}` }));
+    }
+  };
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const navItems = getNavItemsForRole(currentRole || storedUser.role || "");
