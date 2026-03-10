@@ -100,12 +100,10 @@ export default function Attendance() {
   const fetchAttendance = async () => {
     setLoading(true);
     try {
-      const { start, end } = isoForDateRange(selectedDate);
       const { data, error } = await supabase
         .from("attendance")
         .select("*, staff:staff!staff_id(name, email)")
-        .gte("check_in", start)
-        .lte("check_in", end);
+        .eq("date", selectedDate);
       if (error) throw error;
       setAttendanceRecords((data as AR[]) || []);
     } catch (err) {
@@ -184,13 +182,11 @@ export default function Attendance() {
 
   const handleCheckIn = async (staffId: string) => {
     try {
-      const { start, end } = isoForDateRange(selectedDate);
       const { data: existing } = await supabase
         .from("attendance")
         .select("*")
         .eq("staff_id", staffId)
-        .gte("check_in", start)
-        .lte("check_in", end);
+        .eq("date", selectedDate);
 
       const ongoing = existing?.find((r) => !r.check_out);
       if (ongoing) {
@@ -200,6 +196,7 @@ export default function Attendance() {
 
       const payload: any = {
         staff_id: staffId,
+        date: selectedDate,
         check_in: new Date().toISOString(),
         status: "present",
       };
@@ -237,13 +234,11 @@ export default function Attendance() {
   const handleMarkAbsent = async (staffId: string) => {
     try {
       // Insert an absent record for the day if none exists
-      const { start, end } = isoForDateRange(selectedDate);
       const { data: existing } = await supabase
         .from("attendance")
         .select("*")
         .eq("staff_id", staffId)
-        .gte("check_in", start)
-        .lte("check_in", end);
+        .eq("date", selectedDate);
 
       if (existing && existing.length > 0) {
         toast.info("Attendance already recorded for this staff this day");
@@ -252,6 +247,7 @@ export default function Attendance() {
 
       const payload = {
         staff_id: staffId,
+        date: selectedDate,
         check_in: new Date(selectedDate + "T00:00:00").toISOString(),
         check_out: new Date(selectedDate + "T00:00:00").toISOString(),
         status: "absent",
