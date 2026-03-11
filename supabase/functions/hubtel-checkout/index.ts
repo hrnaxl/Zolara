@@ -1,37 +1,25 @@
-// ================================================================
-// HUBTEL CHECKOUT — proxies checkout request to Hubtel API
-// Runs server-side to avoid CORS issues from the browser
-// ================================================================
-
 const CLIENT_ID = Deno.env.get("HUBTEL_CLIENT_ID") || "noDLLP";
 const CLIENT_SECRET = Deno.env.get("HUBTEL_CLIENT_SECRET") || "51c9ad0e01864fd8b214a39a7ca92c44";
 const MERCHANT_ACCOUNT = Deno.env.get("HUBTEL_MERCHANT_ACCOUNT") || "233594922679";
 const BASE_URL = "https://api-txnghana.hubtel.com";
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "*",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, apikey, Authorization",
-      },
-    });
+    return new Response(null, { status: 204, headers: CORS });
   }
 
   try {
     const body = await req.json();
-
     const {
-      amount,
-      description,
-      callbackUrl,
-      returnUrl,
-      cancellationUrl,
-      clientReference,
-      customerName,
-      customerEmail,
-      customerPhone,
+      amount, description, callbackUrl, returnUrl,
+      cancellationUrl, clientReference, customerName,
+      customerEmail, customerPhone,
     } = body;
 
     const auth = btoa(`${CLIENT_ID}:${CLIENT_SECRET}`);
@@ -51,10 +39,6 @@ Deno.serve(async (req) => {
           ReturnUrl: returnUrl,
           CancellationUrl: cancellationUrl,
           ClientReference: clientReference,
-          Branding: {
-            colouredLogo: "https://zolarasalon.com/logo.png",
-            merchantName: "Zolara Beauty Studio",
-          },
           Store: {
             Id: "zolara",
             Name: "Zolara Beauty Studio",
@@ -70,29 +54,25 @@ Deno.serve(async (req) => {
       }
     );
 
-    const data = await hubtelRes.json();
+    const text = await hubtelRes.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
     if (!hubtelRes.ok) {
       return new Response(
-        JSON.stringify({ error: data?.message || "Hubtel checkout failed", raw: data }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-        }
+        JSON.stringify({ error: data?.message || data?.Message || text }),
+        { status: 400, headers: { ...CORS, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(JSON.stringify(data), {
       status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { ...CORS, "Content-Type": "application/json" },
     });
   } catch (err: any) {
     return new Response(
       JSON.stringify({ error: err.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      }
+      { status: 500, headers: { ...CORS, "Content-Type": "application/json" } }
     );
   }
 });

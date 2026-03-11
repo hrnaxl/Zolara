@@ -78,17 +78,35 @@ export default function BuyGiftCard() {
         // Hubtel not configured yet — show pending message
         setStep("done");
       } else {
-        // Physical card — just record the order, staff will handle at pickup
+        // Physical card — record the order then go through Hubtel for payment
         const { id, error } = await createDigitalPurchase({
           tier: selectedTier,
           buyerName: form.buyerName,
           buyerEmail: form.buyerEmail || "noemail@zolara.com",
           buyerPhone: form.buyerPhone,
           recipientName: form.buyerName,
-          recipientEmail: "pickup",
+          recipientEmail: form.buyerEmail || "noemail@zolara.com",
           message: "Physical card pickup",
         });
         if (error) throw new Error(error);
+
+        if (isHubtelConfigured()) {
+          const { checkoutUrl, error: hubtelErr } = await initiateCheckout({
+            amount: GIFT_CARD_TIERS[selectedTier].value,
+            description: `Zolara ${selectedTier} Gift Card (Physical Pickup)`,
+            clientReference: id!,
+            callbackUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hubtel-webhook`,
+            returnUrl: `${window.location.origin}/gift-card/success`,
+            cancellationUrl: `${window.location.origin}/buy-gift-card`,
+            customerName: form.buyerName,
+            customerEmail: form.buyerEmail,
+            customerPhone: form.buyerPhone,
+          });
+          if (hubtelErr) throw new Error(`Hubtel error: ${hubtelErr}`);
+          if (checkoutUrl) { window.location.href = checkoutUrl; return; }
+          throw new Error("Hubtel returned no checkout URL. Check edge function logs.");
+        }
+
         setStep("done");
       }
     } catch (err: any) {
