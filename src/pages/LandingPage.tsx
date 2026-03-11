@@ -100,7 +100,7 @@ export default function LandingPage() {
         </a>
 
         {/* Desktop Nav */}
-        <div style={{ display: "flex", gap: "36px", alignItems: "center" }} className="desktop-nav">
+        <div style={{ display: "flex", gap: "36px", alignItems: "center" }} className="desktop-nav hidden md:flex">
           {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
             <a key={label} href={href} className="nav-link sans" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", color: dark, textDecoration: "none" }}>{label}</a>
           ))}

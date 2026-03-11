@@ -612,7 +612,7 @@ const Reports = () => {
                     .join("");
 
                   // Ensure body has padding so header isn't hidden in PDF renders
-                  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body style="padding:20mm"><h2 style="margin-top:0;margin-bottom:12px">${title}</h2><table style="margin-top:8px"><thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${tableRowsHtml}</tbody></table></body></html>`;
+                  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body style="padding:20mm"><h2 style="margin-top:0;margin-bottom:12px">${title}</h2><div className="mobile-table-wrap" style={{overflowX:"auto"}}><table style="margin-top:8px"><thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div></body></html>`;
 
                   // create offscreen wrapper and load html2canvas dynamically
                   const wrapper = document.createElement("div");

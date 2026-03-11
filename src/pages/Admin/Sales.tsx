@@ -154,7 +154,7 @@ const SalesRevenue = () => {
         )
         .join("\n");
 
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${header}<table><thead><tr><th>Client</th><th>Service</th><th>Method</th><th>Amount</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`;
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${header}<div className="mobile-table-wrap" style={{overflowX:"auto"}}><table><thead><tr><th>Client</th><th>Service</th><th>Method</th><th>Amount</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>${tableRows}</tbody></table></div></body></html>`;
 
       // Create off-screen container
       const wrapper = document.createElement("div");
@@ -491,7 +491,7 @@ const SalesRevenue = () => {
         </tfoot>
       `;
 
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${header}<table><thead><tr><th>Client</th><th>Service</th><th>Method</th><th>Amount</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>${tableRows}</tbody>${footer}</table><div style="margin-top:16px;font-size:12px;color:#444">Total Completed: GH₵${completedTotal.toFixed(
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${header}<div className="mobile-table-wrap" style={{overflowX:"auto"}}><table><thead><tr><th>Client</th><th>Service</th><th>Method</th><th>Amount</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>${tableRows}</tbody>${footer}</table></div><div style="margin-top:16px;font-size:12px;color:#444">Total Completed: GH₵${completedTotal.toFixed(
         2
       )} &nbsp;&nbsp;|&nbsp;&nbsp; Total Pending: GH₵${pendingTotal.toFixed(
         2

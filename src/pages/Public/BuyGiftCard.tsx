@@ -117,7 +117,7 @@ export default function BuyGiftCard() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 20px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "clamp(16px,4vw,40px) clamp(12px,4vw,20px)" }}>
         {/* Step: SELECT TIER */}
         {step === "select" && (
           <div>
@@ -128,7 +128,7 @@ export default function BuyGiftCard() {
               Valid for 12 months. Redeemable for any service at Zolara Beauty Studio.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
                 const t = GIFT_CARD_TIERS[tier];
                 const s = TIER_STYLES[tier];
@@ -181,7 +181,7 @@ export default function BuyGiftCard() {
                 {/* Delivery type */}
                 <div style={{ background: "white", borderRadius: 12, padding: 20, border: `1px solid ${BORDER}`, marginBottom: 20 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Delivery Method</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} className="admin-grid-2">
                     {(["email", "physical"] as const).map(type => (
                       <div
                         key={type}

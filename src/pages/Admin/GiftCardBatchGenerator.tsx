@@ -131,7 +131,7 @@ export default function GiftCardBatchGenerator() {
   };
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 24px", fontFamily: "'Montserrat', sans-serif" }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,3vw,32px) clamp(12px,3vw,24px)", fontFamily: "'Montserrat', sans-serif" }}>
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: NAVY, marginBottom: 4 }}>
           Physical Gift Card Generator
@@ -232,7 +232,7 @@ export default function GiftCardBatchGenerator() {
             </div>
 
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <div className="mobile-table-wrap" style={{overflowX:"auto"}}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: `2px solid ${BORDER}` }}>
                     {["Serial Number", "Tier", "Value", "Redeemable Code", "Expires"].map(h => (
@@ -251,7 +251,7 @@ export default function GiftCardBatchGenerator() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
 
             <div style={{ marginTop: 16, padding: "12px 16px", background: "#FEF2F2", borderRadius: 8, fontSize: 12, color: "#991B1B" }}>

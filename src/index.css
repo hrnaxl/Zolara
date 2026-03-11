@@ -530,3 +530,30 @@ tbody td {
 .font-body    { font-family: 'Montserrat', sans-serif !important; }
 .text-gold    { color: #B8975A !important; }
 .bg-cream     { background: #FAFAF8 !important; }
+
+/* ── MOBILE RESPONSIVE GLOBALS ──────────────────────── */
+@media (max-width: 1024px) {
+  /* Dashboard cards grid — stack on mobile */
+  .admin-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .admin-grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .admin-grid-2 { grid-template-columns: 1fr !important; }
+  .admin-grid-3fr-2fr { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 640px) {
+  .admin-grid-4 { grid-template-columns: 1fr 1fr !important; }
+  .admin-grid-3 { grid-template-columns: 1fr 1fr !important; }
+  .admin-grid-2 { grid-template-columns: 1fr !important; }
+
+  /* Table wrapper — horizontal scroll on mobile */
+  .mobile-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Padding reduction on mobile */
+  .mobile-pad { padding: 16px !important; }
+
+  /* Hide non-essential table columns on mobile */
+  .mobile-hide { display: none !important; }
+
+  /* Full width buttons on mobile */
+  .mobile-full { width: 100% !important; }
+}

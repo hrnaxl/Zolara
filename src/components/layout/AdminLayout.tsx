@@ -770,7 +770,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── KPI ROW ──────────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"14px", marginBottom:"14px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"14px", marginBottom:"14px" }} className="admin-grid-4">
         {[
           { label:"TODAY'S BOOKINGS", val: String(stats.todayBookings),
             pct: stats.bookingChangePercentage, note:"vs yesterday", color:"#4A90D9", bg:"#EFF6FF" },
@@ -798,7 +798,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── SECONDARY KPI ─────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"14px", marginBottom:"14px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"14px", marginBottom:"14px" }} className="admin-grid-3">
         {[
           { label:"TOTAL CLIENTS",   val: stats.totalClients.toLocaleString(), sub:`${stats.clientChangePercentage >= 0 ? "+" : ""}${stats.clientChangePercentage}% this month` },
           { label:"ACTIVE STAFF",    val: stats.activeStaff, sub:"On roster" },
@@ -844,7 +844,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── CHARTS ROW ───────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"14px", marginBottom:"14px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-3fr-2fr">
 
         {/* Revenue trend */}
         <div className="zc au" style={{ animationDelay:"0.48s", padding:"28px" }}>

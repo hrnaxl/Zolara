@@ -173,7 +173,7 @@ const ReceptionistDashboard = () => {
       </div>
 
       {/* ── KPI ROW ──────────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "14px" }}>
+      <div className="admin-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "14px" }}>
         {[
           { label: "TODAY'S BOOKINGS", val: String(stats.todayTotal),   color: "#4A90D9", bg: "#EFF6FF" },
           { label: "CHECKED IN",       val: String(stats.checkedIn),    color: "#16A34A", bg: "#F0FDF4" },
@@ -214,7 +214,7 @@ const ReceptionistDashboard = () => {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "14px", marginBottom: "14px" }}>
 
         {/* Booking status donut */}
-        <div className="rc-flat au" style={{ animationDelay: "0.36s", padding: "28px" }}>
+        <div className="rc-flat au" style={{ animationDelay: "0.36s", padding: "clamp(14px,3vw,28px)" }}>
           <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT, marginBottom: "5px" }}>TODAY'S STATUS</div>
           <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "20px" }}>Distribution</div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
@@ -245,7 +245,7 @@ const ReceptionistDashboard = () => {
         </div>
 
         {/* Upcoming appointments */}
-        <div className="rc-flat au" style={{ animationDelay: "0.42s", padding: "28px" }}>
+        <div className="rc-flat au" style={{ animationDelay: "0.42s", padding: "clamp(14px,3vw,28px)" }}>
           <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT, marginBottom: "5px" }}>UPCOMING</div>
           <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "18px" }}>Today's Schedule</div>
           {upcomingAppointments.length === 0
@@ -273,7 +273,7 @@ const ReceptionistDashboard = () => {
 
       {/* ── PENDING DEPOSITS ────────────────────────────── */}
       {pendingDeposits.length > 0 && (
-        <div className="rc-flat au" style={{ animationDelay: "0.42s", padding: "28px", border: "1.5px solid #FCA5A5", background: "#FFF5F5" }}>
+        <div className="rc-flat au" style={{ animationDelay: "0.42s", padding: "clamp(14px,3vw,28px)", border: "1.5px solid #FCA5A5", background: "#FFF5F5" }}>
           <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: "#DC2626", marginBottom: "5px" }}>ACTION REQUIRED</div>
           <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "18px" }}>
             Pending Deposits ({pendingDeposits.length})
@@ -297,7 +297,7 @@ const ReceptionistDashboard = () => {
       )}
 
       {/* ── PENDING REQUESTS ─────────────────────────────── */}
-      <div className="rc-flat au" style={{ animationDelay: "0.48s", padding: "28px" }}>
+      <div className="rc-flat au" style={{ animationDelay: "0.48s", padding: "clamp(14px,3vw,28px)" }}>
         <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT, marginBottom: "5px" }}>PENDING</div>
         <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "18px" }}>Requests Awaiting Confirmation</div>
         {pendingItems.length === 0
