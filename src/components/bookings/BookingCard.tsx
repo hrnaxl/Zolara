@@ -121,6 +121,22 @@ export const BookingCard = ({
                 <p className="text-sm text-muted-foreground">
                   {booking.service_name || "No service"}
                 </p>
+                {/* Variant + Add-ons detail */}
+                {(booking as any).variant_name && (
+                  <p className="text-xs mt-0.5 text-amber-700 dark:text-amber-400 font-medium">
+                    ↳ {(booking as any).variant_name}
+                  </p>
+                )}
+                {Array.isArray((booking as any).addon_names) && (booking as any).addon_names.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(booking as any).addon_names.map((a: any, i: number) => (
+                      <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5">
+                        + {typeof a === "string" ? a : a.name}
+                        {typeof a === "object" && a.price ? ` (GHS ${a.price})` : ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1 items-end">
@@ -177,12 +193,21 @@ export const BookingCard = ({
             )}
           </div>
 
-          <div>
-            <p className="text-muted-foreground text-xs">Date & Time</p>
+          <div>\n            <p className="text-muted-foreground text-xs">Date & Time</p>
             <p className="font-medium">
               {format(new Date(booking.preferred_date), "MMM dd, yyyy")} at{" "}
               {booking.preferred_time}
             </p>
+            {booking.price != null && (
+              <p className="text-sm font-semibold mt-1">
+                GHS {Number(booking.price).toLocaleString()}
+                {(booking as any).addon_total > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    (incl. GHS {(booking as any).addon_total} enhancements)
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
