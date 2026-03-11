@@ -359,22 +359,6 @@ const DashboardLayout = () => {
 
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="lg:ml-[240px]" style={{ minHeight: "100vh" }}>
-        {/* Mobile topbar — only visible on small screens */}
-        <div className="lg:hidden" style={{
-          position: "sticky", top: 0, zIndex: 30,
-          background: NAVY, padding: "12px 16px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-        }}>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: WHITE, padding: 4, display: "flex", alignItems: "center" }}
-          >
-            <Menu size={22} />
-          </button>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: WHITE }}>Zolara</div>
-          <div style={{ width: 30 }} />
-        </div>
         <main style={{ background: CREAM, minHeight: "100vh" }}>
           <Outlet />
         </main>
