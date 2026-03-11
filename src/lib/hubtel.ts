@@ -4,7 +4,7 @@
 // Hardcoded — Vercel env vars have stale/malformed values
 const HUBTEL_CLIENT_ID = "D0jDmnq";
 const HUBTEL_CLIENT_SECRET = "b55d6377fd6b459fbb07fb1492d36ccf";
-const HUBTEL_MERCHANT_ACCOUNT = "233594922679";
+const HUBTEL_MERCHANT_ACCOUNT = "3746502";
 
 export type HubtelCheckoutPayload = {
   amount: number;
