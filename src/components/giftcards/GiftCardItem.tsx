@@ -102,7 +102,7 @@ export function GiftCardItem({ userRole, card, onEdit, onAction, readOnly = fals
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => typeof setExpanded === "function" ? setExpanded(!expanded) : setExpanded(!expanded)}
+              onClick={() => { if (onToggle) { onToggle(); } else { setLocalExpanded(v => !v); } }}
               title={expanded ? "Collapse" : "Expand"}
             >
               {expanded ? (

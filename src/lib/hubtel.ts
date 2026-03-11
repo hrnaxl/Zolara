@@ -45,7 +45,7 @@ export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<
 
   try {
     // Route through Supabase edge function to avoid CORS
-    const SUPABASE_URL = "https://wbcuyabgzfqjarrpuocr.supabase.co";
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vwvrhbyfytmqsywfdhvd.supabase.co";
     const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTA1MTQsImV4cCI6MjA4ODcyNjUxNH0.UFzTXEiS-dPXDoeSJSVfQGkRUuFA1aNQxHWu6jk62L4";
     const response = await fetch(`${SUPABASE_URL}/functions/v1/hubtel-checkout`, {
       method: "POST",
