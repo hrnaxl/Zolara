@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -26,6 +26,36 @@ export default function GiftCardBatchGenerator() {
   const [generating, setGenerating] = useState(false);
   const [generatedCards, setGeneratedCards] = useState<any[]>([]);
   const [batchId, setBatchId] = useState("");
+  const [pastBatches, setPastBatches] = useState<{batchId: string; cards: any[]}[]>([]);
+  const [loadingPast, setLoadingPast] = useState(true);
+
+  useEffect(() => {
+    const loadPastBatches = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("gift_cards" as any)
+          .select("*")
+          .eq("card_type", "physical")
+          .eq("is_admin_generated", true)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (error) throw error;
+        // Group by batch_id
+        const grouped: Record<string, any[]> = {};
+        (data || []).forEach((c: any) => {
+          const bid = c.batch_id || "unknown";
+          if (!grouped[bid]) grouped[bid] = [];
+          grouped[bid].push(c);
+        });
+        setPastBatches(Object.entries(grouped).map(([bId, cards]) => ({ batchId: bId, cards })));
+      } catch (err) {
+        console.error("Failed to load past batches", err);
+      } finally {
+        setLoadingPast(false);
+      }
+    };
+    loadPastBatches();
+  }, []);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -54,6 +84,7 @@ export default function GiftCardBatchGenerator() {
         return;
       }
       setGeneratedCards(cards);
+      setPastBatches(prev => [{ batchId: newBatchId, cards }, ...prev]);
       toast.success(`${cards.length} ${tier} gift cards generated and ready to send to print`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate cards");
@@ -260,6 +291,34 @@ export default function GiftCardBatchGenerator() {
           </div>
         )}
       </div>
+
+      {/* Past Batches */}
+      {!loadingPast && pastBatches.length > 0 && (
+        <div style={{ maxWidth: 800, margin: "28px auto 0" }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: NAVY, marginBottom: 16 }}>
+            Previous Batches
+          </h2>
+          {pastBatches.map(({ batchId: bid, cards }) => (
+            <div key={bid} style={{ background: "white", borderRadius: 16, padding: 20, boxShadow: SHADOW, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: NAVY, fontSize: 13 }}>{bid}</div>
+                  <div style={{ color: TXT_MID, fontSize: 12 }}>{cards.length} cards · {cards[0]?.tier} · GH₵ {cards[0]?.amount?.toLocaleString()} each</div>
+                </div>
+                <button
+                  onClick={() => { setGeneratedCards(cards); setBatchId(bid); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  style={{ background: G_LIGHT, color: G, border: `1px solid ${G}44`, borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                >
+                  View Cards
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: TXT_MID }}>
+                Serials: {cards[0]?.serial_number} — {cards[cards.length - 1]?.serial_number}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

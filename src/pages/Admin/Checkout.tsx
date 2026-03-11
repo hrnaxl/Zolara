@@ -264,80 +264,58 @@ const Checkout = () => {
 
     setRedeeming(true);
     try {
-      // Validate server-side first (pass service id so server can enforce allowed services/categories)
-      const { data: valData, error: valError } = await validateGiftCard(
-        giftCode.trim(),
-        (booking.services?.id || booking.service_id || "")
-      );
-      if (valError) {
-        console.error("validateGiftCard error", valError);
-        toast.error(valError.message || "Failed to validate gift card");
+      // Look up the card directly
+      const code = giftCode.trim().toUpperCase();
+      const { data: cards, error: fetchErr } = await (supabase as any)
+        .from("gift_cards")
+        .select("*")
+        .eq("code", code)
+        .limit(1);
+
+      if (fetchErr) throw fetchErr;
+      const card = cards?.[0];
+
+      if (!card) {
+        toast.error("Gift card not found. Check the code and try again.");
+        setRedeeming(false);
+        return;
+      }
+      if (card.status === "redeemed") {
+        toast.error("This gift card has already been used.");
+        setRedeeming(false);
+        return;
+      }
+      if (card.status === "expired" || (card.expires_at && new Date(card.expires_at) < new Date())) {
+        toast.error("This gift card has expired.");
+        setRedeeming(false);
+        return;
+      }
+      if (card.status !== "active" && card.status !== "available") {
+        toast.error(`Gift card is not available (status: ${card.status}).`);
         setRedeeming(false);
         return;
       }
 
-      const validation = Array.isArray(valData) ? valData[0] : valData;
-      if (!validation?.valid) {
-        toast.error(validation?.message || "Gift card is not valid");
-        setRedeeming(false);
-        return;
-      }
+      const value = Number(card.balance || card.amount || 0);
+      const orig = Number(originalPrice || booking.price || booking.services?.price || 0);
+      const remaining = Math.max(0, orig - value);
 
-      // Enforce allowed services/categories on the client as a defensive check
-      // validation.gift_card is expected to be a JSON object with allowed_service_ids and allowed_service_categories arrays
-      const giftCardMeta: any = validation?.gift_card || null;
-      if (giftCardMeta) {
-        const allowedIds = Array.isArray(giftCardMeta.allowed_service_ids)
-          ? giftCardMeta.allowed_service_ids.map(String)
-          : [];
-        const allowedCats = Array.isArray(
-          giftCardMeta.allowed_service_categories
-        )
-          ? giftCardMeta.allowed_service_categories.map(String)
-          : [];
-        const svcId = String(booking.services?.id || booking.service_id || "");
-        const svcCat = String(booking.services?.category || "");
+      // Mark card as redeemed
+      const { error: updateErr } = await (supabase as any)
+        .from("gift_cards")
+        .update({ status: "redeemed", redeemed_by_client: booking.client_name || null })
+        .eq("id", card.id);
 
-        // If allowed service ids are specified, the service must be included
-        if (allowedIds.length > 0 && !allowedIds.includes(svcId)) {
-          toast.error("This gift card can only be used for specific services.");
-          setRedeeming(false);
-          return;
-        }
+      if (updateErr) throw updateErr;
 
-        // If allowed categories are specified, the service's category must be included
-        if (allowedCats.length > 0 && !allowedCats.includes(svcCat)) {
-          toast.error(
-            "This gift card can only be used for certain service categories."
-          );
-          setRedeeming(false);
-          return;
-        }
-      }
+      setRedeemedCard({ id: card.id, value });
+      setAmount(String(remaining.toFixed(2)));
+      toast.success(`Gift card applied: GH₵ ${value.toFixed(2)} off`);
 
-      const { data, error } = await rpcRedeem({
-        code: giftCode.trim(),
-        booking_id: booking.id,
-        client_id: booking.clients?.id ?? null,
-        staff_id: selectedStaff,
-        service_ids: [booking.services?.id || booking.service_id].filter(Boolean),
-      } as any);
-
-      if (error) throw error;
-
-      const res = Array.isArray(data) ? data[0] : data;
       if (res?.success) {
-        const value = Number(res.card_value || 0);
-        setRedeemedCard({ id: res.gift_card_id, value });
-        // Compute remaining = originalPrice - giftValue (clamped at 0)
-        const orig = Number(originalPrice || (booking.services?.price ?? 0));
-        const remaining = Math.max(0, orig - value);
-        setAmount(String(remaining.toFixed(2)));
-        toast.success(
-          res.message || `Gift card applied: GH₵ ${value.toFixed(2)}`
-        );
+        // legacy path — not reached
       } else {
-        toast.error(res?.message || "Failed to redeem gift card");
+        // handled above
       }
     } catch (err: any) {
       console.error("Redeem error:", err);
