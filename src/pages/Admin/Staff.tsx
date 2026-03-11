@@ -630,29 +630,22 @@ const Staff = () => {
                 >
                   <Pencil style={{ width: "12px", height: "12px" }} /> Edit
                 </button>
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // open profile then assign dialog
-                      setSelectedStaff(member);
-                      setProfileOpen(true);
-                      fetchStaffProfile(member.id).then(() => setAssignDialogOpen(true));
-                    }}
-                  >
-                    Services
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-xl"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedStaff(member);
-                      setProfileOpen(true);
-                      fetchStaffProfile(member.id).then(() => setScheduleDialogOpen(true));
-                    }}
-                  >
-                    Schedule
-                  </Button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelectedStaff(member); setProfileOpen(true); fetchStaffProfile(member.id).then(() => setAssignDialogOpen(true)); }}
+                  style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #EDE8E0", background: "#fff", color: "#57534E", cursor: "pointer", transition: "all 0.15s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#C8A97E"; (e.currentTarget as HTMLElement).style.color = "#8B6914"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#EDE8E0"; (e.currentTarget as HTMLElement).style.color = "#57534E"; }}
+                >
+                  Services
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelectedStaff(member); setProfileOpen(true); fetchStaffProfile(member.id).then(() => setScheduleDialogOpen(true)); }}
+                  style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #EDE8E0", background: "#fff", color: "#57534E", cursor: "pointer", transition: "all 0.15s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#C8A97E"; (e.currentTarget as HTMLElement).style.color = "#8B6914"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#EDE8E0"; (e.currentTarget as HTMLElement).style.color = "#57534E"; }}
+                >
+                  Schedule
+                </button>
                 {userRole === "owner" && (
                   <button
                     onClick={(e) => {
