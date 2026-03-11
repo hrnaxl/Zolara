@@ -1,24 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay } from "date-fns";
-import {
-  Calendar, Clock, Users, CheckCircle2, Bell, UserCheck, CreditCard,
-} from "lucide-react";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { StatCard } from "@/components/dashboard/StatCard";
-import { DonutChart } from "@/components/dashboard/DonutChart";
-import { ActivityList } from "@/components/dashboard/ActivityList";
-import { UpcomingAppointments } from "@/components/dashboard/UpcomingAppointments";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 const ReceptionistDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [stats, setStats] = useState({
     todayTotal: 0, checkedIn: 0, pending: 0,
-    completed: 0, totalClients: 0, pendingRequests: 0,
-    todayRevenue: 0,
+    completed: 0, totalClients: 0, todayRevenue: 0,
   });
   const [bookingStatusData, setBookingStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
@@ -61,96 +50,240 @@ const ReceptionistDashboard = () => {
       const { count: clientCount } = await supabase
         .from("clients").select("*", { count: "exact", head: true });
 
-      // Today revenue from sales
       const { data: todaySales = [] } = await supabase
         .from("sales").select("amount")
         .gte("created_at", startOfDay(new Date()).toISOString())
         .lte("created_at", endOfDay(new Date()).toISOString());
 
-      const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+      const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0);
       const checkedIn = bookings.filter((b: any) => b.status === "confirmed").length;
       const completed = bookings.filter((b: any) => b.status === "completed").length;
-      const pending = bookings.filter((b: any) => b.status === "pending").length;
+      const pending   = bookings.filter((b: any) => b.status === "pending").length;
 
-      setStats({
-        todayTotal: bookings.length, checkedIn, pending, completed,
-        totalClients: clientCount || 0, pendingRequests: pendingBookings.length, todayRevenue,
-      });
+      setStats({ todayTotal: bookings.length, checkedIn, pending, completed, totalClients: clientCount || 0, todayRevenue });
 
       setBookingStatusData([
-        { name: "Pending",   value: pending,   color: "hsl(38,92%,50%)" },
-        { name: "Confirmed", value: checkedIn, color: "hsl(210,80%,52%)" },
-        { name: "Completed", value: completed, color: "hsl(152,60%,42%)" },
+        { name: "Pending",   value: pending,   color: "#C9A84C" },
+        { name: "Confirmed", value: checkedIn, color: "#4A90D9" },
+        { name: "Completed", value: completed, color: "#4CAF7D" },
       ].filter(d => d.value > 0));
 
       setUpcomingAppointments(upcoming.map((b: any) => ({
         id: b.id, clientName: b.client_name || "Client",
-        service: b.service_name || "Service", staffName: b.staff_name || "—",
+        serviceName: b.service_name || "Service", staffName: b.staff_name || "—",
         date: b.preferred_date, time: b.preferred_time, status: b.status,
       })));
 
       setPendingItems(pendingBookings.map((b: any) => ({
         id: b.id, title: b.service_name || "Service Request",
-        subtitle: b.client_name || "Client", date: b.created_at, status: "pending",
+        subtitle: b.client_name || "Client", date: b.created_at,
       })));
 
-    } catch (err: any) {
-      toast.error("Failed to load dashboard");
+    } catch {
+      // fail silently
     } finally {
       setLoading(false);
     }
   };
 
+  // ── DESIGN TOKENS (same as admin) ──────────────────────────
+  const G        = "#B8975A";
+  const G_LIGHT  = "#F5ECD6";
+  const CREAM    = "#FAFAF8";
+  const WHITE    = "#FFFFFF";
+  const BORDER   = "#EDEBE5";
+  const NAVY     = "#0F1E35";
+  const TXT      = "#1C1917";
+  const TXT_MID  = "#78716C";
+  const TXT_SOFT = "#A8A29E";
+  const SHADOW   = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
+  const SLOT_COLORS = ["#C9A84C", "#4A90D9", "#4CAF7D", "#E05A5A", "#9B7FCB"];
+
+  // Donut geometry
+  const statusTotal = bookingStatusData.reduce((s, d) => s + d.value, 0);
+  const DONUT_R = 60, DONUT_CX = 74, DONUT_CY = 74;
+  let cumDeg = -90;
+  const donutPaths = bookingStatusData.map((d) => {
+    const sweep = statusTotal > 0 ? (d.value / statusTotal) * 360 : 0;
+    const s = (cumDeg * Math.PI) / 180;
+    const e = ((cumDeg + sweep) * Math.PI) / 180;
+    cumDeg += sweep;
+    const x1 = DONUT_CX + DONUT_R * Math.cos(s);
+    const y1 = DONUT_CY + DONUT_R * Math.sin(s);
+    const x2 = DONUT_CX + DONUT_R * Math.cos(e);
+    const y2 = DONUT_CY + DONUT_R * Math.sin(e);
+    return { ...d, path: `M${DONUT_CX},${DONUT_CY} L${x1.toFixed(2)},${y1.toFixed(2)} A${DONUT_R},${DONUT_R} 0 ${sweep > 180 ? 1 : 0},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z` };
+  });
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
-            <Loader2 className="w-16 h-16 absolute inset-0 animate-spin text-primary" />
-          </div>
-          <p className="text-muted-foreground font-medium">Loading dashboard...</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", background: CREAM }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: `2.5px solid ${G_LIGHT}`, borderTopColor: G, margin: "0 auto 14px", animation: "spin 0.9s linear infinite" }} />
+          <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: "10px", letterSpacing: "0.18em", color: TXT_SOFT, textTransform: "uppercase" }}>Loading</p>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 p-6">
-      <DashboardHeader
-        title="Reception Dashboard"
-        userName={userName}
-        subtitle="Manage today's appointments and front desk operations"
-      />
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 36px", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        *{box-sizing:border-box}
+        .rc{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW};transition:box-shadow 0.2s,transform 0.2s}
+        .rc:hover{box-shadow:0 2px 8px rgba(0,0,0,0.06),0 12px 36px rgba(0,0,0,0.1);transform:translateY(-1px)}
+        .rc-flat{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .au{animation:up 0.35s ease both}
+      `}</style>
 
-      {/* Primary stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Today's Appointments" value={stats.todayTotal}
-          icon={<Calendar className="w-6 h-6" />} variant="gold" delay={0} />
-        <StatCard title="Checked In" value={stats.checkedIn}
-          icon={<UserCheck className="w-6 h-6" />} variant="blue" delay={0.1} />
-        <StatCard title="Pending" value={stats.pending}
-          icon={<Clock className="w-6 h-6" />} variant="purple" delay={0.2} />
-        <StatCard title="Completed" value={stats.completed}
-          icon={<CheckCircle2 className="w-6 h-6" />} variant="green" delay={0.3} />
+      {/* ── HEADER ─────────────────────────────────────── */}
+      <div className="au" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
+        <div>
+          <p style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", color: G, marginBottom: "6px", textTransform: "uppercase" }}>
+            {format(new Date(), "EEEE, MMMM d, yyyy")}
+          </p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(32px,4vw,48px)", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1, letterSpacing: "-0.02em" }}>
+            {userName ? `${greeting()}, ${userName.split(" ")[0]}` : "Reception"}
+          </h1>
+          <p style={{ fontSize: "12px", color: TXT_SOFT, marginTop: "6px", fontWeight: 400 }}>
+            Manage today's appointments and front desk operations.
+          </p>
+        </div>
+
+        <button onClick={fetchData}
+          style={{ width: "38px", height: "38px", borderRadius: "50%", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, fontSize: "16px" }}>
+          ↻
+        </button>
       </div>
 
-      {/* Secondary stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard title="Total Clients" value={stats.totalClients.toLocaleString()}
-          icon={<Users className="w-6 h-6" />} variant="default" delay={0.4} />
-        <StatCard title="Today's Revenue" value={`GHS ${stats.todayRevenue.toFixed(2)}`}
-          icon={<CreditCard className="w-6 h-6" />} variant="gold" delay={0.5} />
-        <DonutChart data={bookingStatusData} title="Today's Status"
-          subtitle="Appointment distribution" centerValue={stats.todayTotal} centerLabel="Total" />
+      {/* ── KPI ROW ──────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "14px" }}>
+        {[
+          { label: "TODAY'S BOOKINGS", val: String(stats.todayTotal),   color: "#4A90D9", bg: "#EFF6FF" },
+          { label: "CHECKED IN",       val: String(stats.checkedIn),    color: "#16A34A", bg: "#F0FDF4" },
+          { label: "PENDING",          val: String(stats.pending),      color: G,         bg: G_LIGHT   },
+          { label: "COMPLETED",        val: String(stats.completed),    color: "#7C3AED", bg: "#F5F3FF" },
+        ].map((c, i) => (
+          <div key={i} className="rc au" style={{ animationDelay: `${i * 0.06}s` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT }}>{c.label}</span>
+              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: c.color }} />
+            </div>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,3vw,40px)", fontWeight: 700, color: TXT, lineHeight: 1, marginBottom: "14px" }}>{c.val}</div>
+            <div style={{ height: "2px", borderRadius: "1px", background: `linear-gradient(90deg,${c.color}66,transparent)` }} />
+          </div>
+        ))}
       </div>
 
-      {/* Upcoming + Pending */}
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <UpcomingAppointments appointments={upcomingAppointments} />
-        <ActivityList title="Pending Requests" subtitle="Awaiting confirmation"
-          items={pendingItems} icon={<Bell className="w-5 h-5 text-warning" />}
-          emptyMessage="No pending requests" />
+      {/* ── SECONDARY KPI ─────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+        {[
+          { label: "TOTAL CLIENTS",  val: stats.totalClients.toLocaleString(), sub: "In the system" },
+          { label: "TODAY'S REVENUE", val: `GHS ${stats.todayRevenue.toLocaleString("en", { minimumFractionDigits: 2 })}`, sub: "From completed sales" },
+        ].map((c, i) => (
+          <div key={i} className="rc-flat au" style={{ animationDelay: `${0.24 + i * 0.06}s`, display: "flex", alignItems: "center", gap: "18px" }}>
+            <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: G_LIGHT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "13px", fontWeight: 700, color: G, letterSpacing: "-0.01em", textAlign: "center", lineHeight: 1.1, maxWidth: "48px", padding: "0 4px" }}>{c.val}</span>
+            </div>
+            <div>
+              <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: "4px" }}>{c.label}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "26px", fontWeight: 700, color: TXT, lineHeight: 1 }}>{c.val}</div>
+              <div style={{ fontSize: "10px", color: TXT_SOFT, marginTop: "3px" }}>{c.sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── CHARTS + APPOINTMENTS ROW ─────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "14px", marginBottom: "14px" }}>
+
+        {/* Booking status donut */}
+        <div className="rc-flat au" style={{ animationDelay: "0.36s", padding: "28px" }}>
+          <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT, marginBottom: "5px" }}>TODAY'S STATUS</div>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "20px" }}>Distribution</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+            <svg width="148" height="148" viewBox="0 0 148 148">
+              {donutPaths.length > 0
+                ? donutPaths.map((s, i) => <path key={i} d={s.path} fill={s.color} opacity="0.9" />)
+                : <circle cx="74" cy="74" r="60" fill={G_LIGHT} />
+              }
+              <circle cx="74" cy="74" r="38" fill={WHITE} />
+              <text x="74" y="69" textAnchor="middle" fill={TXT_SOFT} fontSize="8" fontFamily="Montserrat" fontWeight="700" letterSpacing="1.5">TOTAL</text>
+              <text x="74" y="86" textAnchor="middle" fill={TXT} fontSize="22" fontFamily="Cormorant Garamond" fontWeight="700">{statusTotal}</text>
+            </svg>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}>
+              {bookingStatusData.length === 0
+                ? <span style={{ fontSize: "11px", color: TXT_SOFT, textAlign: "center" }}>No bookings today</span>
+                : bookingStatusData.map((d, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                      <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: SLOT_COLORS[i % SLOT_COLORS.length] }} />
+                      <span style={{ fontSize: "11px", color: TXT_MID }}>{d.name}</span>
+                    </div>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: TXT }}>{d.value}</span>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+
+        {/* Upcoming appointments */}
+        <div className="rc-flat au" style={{ animationDelay: "0.42s", padding: "28px" }}>
+          <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT, marginBottom: "5px" }}>UPCOMING</div>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "18px" }}>Today's Schedule</div>
+          {upcomingAppointments.length === 0
+            ? <div style={{ padding: "24px 0", textAlign: "center", fontSize: "12px", color: TXT_SOFT }}>No upcoming appointments</div>
+            : <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {upcomingAppointments.map(a => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: "10px", background: CREAM, border: `1px solid ${BORDER}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: G_LIGHT, border: `1.5px solid ${G}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", flexShrink: 0 }}>💆</div>
+                    <div>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{a.clientName}</div>
+                      <div style={{ fontSize: "10px", color: TXT_SOFT, marginTop: "1px" }}>{a.serviceName}</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 700, color: G }}>{a.time}</div>
+                    <div style={{ fontSize: "10px", color: TXT_SOFT }}>{a.date ? format(new Date(a.date), "MMM d") : ""}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          }
+        </div>
+      </div>
+
+      {/* ── PENDING REQUESTS ─────────────────────────────── */}
+      <div className="rc-flat au" style={{ animationDelay: "0.48s", padding: "28px" }}>
+        <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: TXT_SOFT, marginBottom: "5px" }}>PENDING</div>
+        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "18px" }}>Requests Awaiting Confirmation</div>
+        {pendingItems.length === 0
+          ? <div style={{ padding: "20px 0", textAlign: "center", fontSize: "12px", color: TXT_SOFT }}>No pending requests. All clear.</div>
+          : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: "10px" }}>
+            {pendingItems.map(p => (
+              <div key={p.id} style={{ padding: "12px 14px", borderRadius: "10px", background: "#FFFBEB", border: "1px solid #FDE68A", display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                <span style={{ fontSize: "14px", flexShrink: 0, lineHeight: 1.5 }}>⏳</span>
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{p.title}</div>
+                  <div style={{ fontSize: "10px", color: TXT_SOFT, marginTop: "2px" }}>{p.subtitle}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        }
       </div>
     </div>
   );

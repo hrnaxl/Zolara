@@ -633,21 +633,7 @@ const Staff = () => {
                 >
                   <Pencil className="w-4 h-4" />
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-xl"
-                  style={{ borderColor: "#C9A84C", color: "#C9A84C" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLoginStaff(member);
-                    setLoginPassword("");
-                    setLoginModalOpen(true);
-                  }}
-                  title="Create system login for this staff member"
-                >
-                  🔑 Login
-                </Button>
+
                   <Button
                     size="sm"
                     variant="ghost"
