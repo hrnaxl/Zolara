@@ -1,7 +1,8 @@
 const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "noDLLP";
 const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "51c9ad0e01864fd8b214a39a7ca92c44";
 const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
-const BASE_URL = "https://api-txnghana.hubtel.com";
+const SUPABASE_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTA1MTQsImV4cCI6MjA4ODcyNjUxNH0.UFzTXEiS-dPXDoeSJSVfQGkRUuFA1aNQxHWu6jk62L4";
 
 export type HubtelCheckoutPayload = {
   amount: number;
@@ -23,40 +24,30 @@ export type HubtelCheckoutResult = {
 
 export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<HubtelCheckoutResult> {
   try {
-    const auth = btoa(`${HUBTEL_CLIENT_ID}:${HUBTEL_CLIENT_SECRET}`);
-    const url = `${BASE_URL}/v1/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/online`;
-
-    const response = await fetch(url, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/hubtel-checkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${auth}`,
+        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "apikey": SUPABASE_ANON,
       },
       body: JSON.stringify({
-        TotalAmount: payload.amount,
-        Description: payload.description,
-        CallbackUrl: payload.callbackUrl,
-        ReturnUrl: payload.returnUrl,
-        CancellationUrl: payload.cancellationUrl,
-        ClientReference: payload.clientReference,
-        Store: {
-          Id: "zolara",
-          Name: "Zolara Beauty Studio",
-          TagLine: "Luxury salon experience in Tamale",
-          LogoUrl: "https://zolarasalon.com/logo.png",
-        },
-        Customer: {
-          Name: payload.customerName || "",
-          Email: payload.customerEmail || "",
-          PhoneNumber: payload.customerPhone || "",
-        },
+        amount: payload.amount,
+        description: payload.description,
+        callbackUrl: payload.callbackUrl,
+        returnUrl: payload.returnUrl,
+        cancellationUrl: payload.cancellationUrl,
+        clientReference: payload.clientReference,
+        customerName: payload.customerName,
+        customerEmail: payload.customerEmail || "",
+        customerPhone: payload.customerPhone || "",
       }),
     });
 
     let data: any;
-    try { data = await response.json(); } catch { throw new Error(`Hubtel status ${response.status} — no JSON response`); }
+    try { data = await response.json(); } catch { throw new Error(`Edge function status ${response.status} — no JSON`); }
 
-    if (!response.ok) throw new Error(data?.message || data?.Message || data?.error || `Hubtel error ${response.status}`);
+    if (!response.ok) throw new Error(data?.error || data?.message || data?.Message || `Error ${response.status}`);
 
     const checkoutUrl =
       data?.data?.checkoutDirectUrl ||
@@ -77,23 +68,23 @@ export async function initiateMoMoCollect(payload: {
   clientReference: string;
 }): Promise<{ success: boolean; error: string | null }> {
   try {
-    const response = await fetch(`${BASE_URL}/v1/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/mobilemoney`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/hubtel-checkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Basic " + btoa(`${HUBTEL_CLIENT_ID}:${HUBTEL_CLIENT_SECRET}`),
+        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "apikey": SUPABASE_ANON,
       },
       body: JSON.stringify({
-        Amount: payload.amount,
-        CustomerMsisdn: payload.customerPhone,
-        Channel: "mtn-gh",
-        PrimaryCallbackUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hubtel-webhook`,
-        ClientReference: payload.clientReference,
-        Description: payload.description,
+        amount: payload.amount,
+        description: payload.description,
+        clientReference: payload.clientReference,
+        customerPhone: payload.customerPhone,
+        momo: true,
       }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "MoMo collect failed");
+    if (!response.ok) throw new Error(data?.error || data?.message || "MoMo collect failed");
     return { success: true, error: null };
   } catch (err: any) {
     return { success: false, error: err.message };
