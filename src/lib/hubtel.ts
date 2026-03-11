@@ -6,7 +6,7 @@
 
 const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "D0jDmnq";
 const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "b55d6377fd6b459fbb07fb1492d36ccf";
-const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "3746502";
+const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
 const HUBTEL_BASE_URL = "https://unified-pay.hubtel.com";
 
 export type HubtelCheckoutPayload = {
