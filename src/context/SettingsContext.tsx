@@ -140,11 +140,21 @@ export const SettingsProvider = ({ children }: Props) => {
 
     init();
 
-    // Re-fetch role whenever auth state changes (sign in / sign out / token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Re-fetch role whenever auth state changes — use session directly, never call getUser() here
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (!session?.user) return;
         setRoleReady(false);
-        await fetchUserRole();
+        // Fetch role using the user id from the session directly
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            setUserRole(data?.role || null);
+            setRoleReady(true);
+          });
       } else if (event === "SIGNED_OUT") {
         setUserRole(null);
         setRoleReady(false);
