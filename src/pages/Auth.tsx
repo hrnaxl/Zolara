@@ -53,11 +53,17 @@ export default function Auth() {
 
       const userId = data.user.id;
 
-      // Fetch role from DB — source of truth
+      // Fetch role from DB — ONLY source of truth. Never trust user_metadata.
       const { data: roleData } = await supabase
         .from("user_roles").select("role").eq("user_id", userId).maybeSingle();
 
-      let role = roleData?.role || data.user.user_metadata?.role || "client";
+      if (!roleData?.role) {
+        setError("Account has no role assigned. Contact the salon owner.");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      let role = roleData.role;
 
       // If this user has a staff/receptionist role, verify they are still active
       // Owner can revoke access by setting is_active = false — this enforces it on every login

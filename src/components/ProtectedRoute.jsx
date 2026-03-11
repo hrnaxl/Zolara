@@ -21,33 +21,53 @@ const ProtectedRoute = ({ allowedRoles }) => {
       }
 
       try {
+        // user_roles is the ONLY source of truth. Never fall back to user_metadata.
+        // user_metadata can be stale or spoofed. The DB row is what the Owner controls.
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
           .maybeSingle();
-        const metaRole = session.user.user_metadata?.role || null;
-        if (mounted) {
-          setUserRole(roleData?.role || metaRole || null);
-          setLoading(false);
+
+        if (!roleData?.role) {
+          // No role row = no access. Treat as unauthenticated.
+          if (mounted) { setUserRole(null); setLoading(false); }
+          return;
         }
+
+        let role = roleData.role;
+
+        // For staff/receptionist: validate they are still active in the staff registry
+        // This enforces revocation on every route access, not just login
+        if (role === "staff" || role === "receptionist") {
+          const { data: staffRecord } = await supabase
+            .from("staff")
+            .select("is_active")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          if (staffRecord && !staffRecord.is_active) {
+            // Revoked — downgrade immediately
+            await supabase.from("user_roles").upsert({ user_id: session.user.id, role: "client" });
+            role = "client";
+          }
+        }
+
+        if (mounted) { setUserRole(role); setLoading(false); }
       } catch {
-        // If role fetch fails, fall back to metadata role
-        const metaRole = session.user.user_metadata?.role || null;
-        if (mounted) { setUserRole(metaRole); setLoading(false); }
+        // On error, deny access — never grant by default
+        if (mounted) { setUserRole(null); setLoading(false); }
       }
     };
 
-    // Primary: getSession is synchronous from storage on refresh
     supabase.auth.getSession().then(({ data: { session } }) => {
       resolveRole(session);
     });
 
-    // Secondary: catch any auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        resolved = false; // allow re-resolve on new login
+        resolved = false;
         resolveRole(session);
       } else if (event === "SIGNED_OUT") {
         resolved = false;
@@ -56,12 +76,8 @@ const ProtectedRoute = ({ allowedRoles }) => {
       }
     });
 
-    // Hard timeout — never hang forever
     const timeout = setTimeout(() => {
-      if (mounted && loading) {
-        resolved = true;
-        setLoading(false);
-      }
+      if (mounted && loading) { resolved = true; setLoading(false); }
     }, 5000);
 
     return () => {
