@@ -619,23 +619,23 @@ const AdminDashboard = () => {
 
 
   // ── RENDER ──────────────────────────────────────────────────────
-  const gold = "#C9A84C";
-  const goldLight = "#F5E6C0";
-  const cream = "#FDFAF5";
-  const beige = "#F7F3EC";
-  const beigeDeep = "#EDE8DF";
-  const textDark = "#1A1612";
-  const textMid = "#6B6157";
-  const textSoft = "#9E9489";
+  const G       = "#B8975A";
+  const G_LIGHT = "#F5ECD6";
+  const CREAM   = "#FAFAF8";
+  const WHITE   = "#FFFFFF";
+  const BORDER  = "#EDEBE5";
+  const NAVY    = "#0F1E35";
+  const TXT     = "#1C1917";
+  const TXT_MID = "#78716C";
+  const TXT_SOFT= "#A8A29E";
+  const SHADOW  = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
+  const SHADOW_MD = "0 2px 8px rgba(0,0,0,0.06), 0 12px 36px rgba(0,0,0,0.1)";
 
-  // ─────────────────────────────────────────────────────
-  //  RENDER
-  // ─────────────────────────────────────────────────────
-
-  // Donut chart geometry
   const statusTotal = bookingStatusData.reduce((s, d) => s + d.value, 0);
-  const DONUT_R = 72, DONUT_CX = 90, DONUT_CY = 90;
-  const SLOT_COLORS = ["#4A90D9", "#4CAF7D", "#E05A5A", "#C9A84C", "#9B7FCB"];
+  const SLOT_COLORS = ["#4A90D9","#4CAF7D","#E05A5A","#C9A84C","#9B7FCB"];
+
+  // Donut
+  const DONUT_R = 70, DONUT_CX = 88, DONUT_CY = 88;
   let cumDeg = -90;
   const donutPaths = bookingStatusData.map((d, i) => {
     const sweep = statusTotal > 0 ? (d.value / statusTotal) * 360 : 0;
@@ -649,9 +649,9 @@ const AdminDashboard = () => {
     return { ...d, path: `M${DONUT_CX},${DONUT_CY} L${x1.toFixed(2)},${y1.toFixed(2)} A${DONUT_R},${DONUT_R} 0 ${sweep > 180 ? 1 : 0},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`, color: SLOT_COLORS[i % SLOT_COLORS.length] };
   });
 
-  // Revenue sparkline (last 7 days) — smooth cubic bezier
+  // Sparkline
   const spark7 = revenueData.slice(-7);
-  const SW = 360, SH = 90, PAD = 16;
+  const SW = 340, SH = 80, PAD = 12;
   const maxV = Math.max(...spark7.map(d => d.revenue), 1);
   const spPts = spark7.map((d, i) => ({
     x: PAD + (i / Math.max(spark7.length - 1, 1)) * (SW - PAD * 2),
@@ -663,26 +663,18 @@ const AdminDashboard = () => {
     const cx = (prev.x + p.x) / 2;
     return `C${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
   }).join(" ");
-  const areaPath = spPts.length > 1 ? `${bezier} L${spPts[spPts.length-1].x},${SH} L${spPts[0].x},${SH} Z` : "";
+  const areaPath = spPts.length > 1
+    ? `${bezier} L${spPts[spPts.length-1].x},${SH} L${spPts[0].x},${SH} Z`
+    : "";
 
   const filterLabel = getFilterLabel();
-
-  const G = "#B8975A";          // champagne gold
-  const G_LIGHT = "#F5ECD6";    // gold tint background
-  const CREAM = "#FAFAF8";      // page bg
-  const CARD_BG = "#FFFFFF";    // card bg
-  const BORDER = "#EDEBE5";     // subtle border
-  const TXT = "#1C1917";        // near black
-  const TXT_MID = "#78716C";    // warm gray
-  const TXT_SOFT = "#A8A29E";   // light warm gray
-  const SHADOW = "0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
 
   if (loading && !lastSync) {
     return (
       <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"60vh", background: CREAM }}>
         <div style={{ textAlign:"center" }}>
-          <div style={{ width:"40px", height:"40px", borderRadius:"50%", border:`3px solid ${G_LIGHT}`, borderTopColor: G, margin:"0 auto 16px", animation:"spin 0.9s linear infinite" }} />
-          <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:"11px", letterSpacing:"0.16em", color: TXT_SOFT }}>LOADING</p>
+          <div style={{ width:"36px", height:"36px", borderRadius:"50%", border:`2.5px solid ${G_LIGHT}`, borderTopColor: G, margin:"0 auto 14px", animation:"spin 0.9s linear infinite" }} />
+          <p style={{ fontFamily:"Montserrat,sans-serif", fontSize:"10px", letterSpacing:"0.18em", color: TXT_SOFT, textTransform:"uppercase" }}>Loading</p>
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       </div>
@@ -690,31 +682,35 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div style={{ background: CREAM, minHeight:"100vh", padding:"clamp(20px,4vw,40px) clamp(20px,5vw,52px)", fontFamily:"'Montserrat',sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight:"100vh", padding:"32px 36px", fontFamily:"Montserrat,sans-serif", color: TXT }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
-        .z-card{background:${CARD_BG};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW};transition:box-shadow 0.2s,transform 0.2s}
-        .z-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.06),0 12px 36px rgba(0,0,0,0.1)}
+        .zc{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW};transition:box-shadow 0.2s,transform 0.2s}
+        .zc:hover{box-shadow:${SHADOW_MD};transform:translateY(-1px)}
+        .zc-flat{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW}}
         @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        .fade-up{animation:fadeUp 0.4s ease both}
+        @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .au{animation:up 0.35s ease both}
       `}</style>
 
-      {/* ══ HEADER ══════════════════════════════════════════════ */}
-      <div className="fade-up" style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"36px", position:"relative", zIndex:1000 }}>
+      {/* ── HEADER ─────────────────────────────────────── */}
+      <div className="au" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"28px" }}>
         <div>
-          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(38px,5vw,56px)", fontWeight:600, color: TXT, margin:0, lineHeight:1, letterSpacing:"-0.02em" }}>
+          <p style={{ fontSize:"11px", fontWeight:600, letterSpacing:"0.16em", color: G, marginBottom:"6px", textTransform:"uppercase" }}>
+            {format(new Date(), "EEEE, MMMM d, yyyy")}
+          </p>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(32px,4vw,48px)", fontWeight:700, color: TXT, margin:0, lineHeight:1, letterSpacing:"-0.02em" }}>
             Dashboard
           </h1>
-          <p style={{ fontSize:"13px", fontWeight:300, color: TXT_MID, marginTop:"8px", letterSpacing:"0.01em" }}>
-            Welcome back! Here's your executive overview.
+          <p style={{ fontSize:"12px", color: TXT_SOFT, marginTop:"6px", fontWeight:400 }}>
+            Welcome back. Here's your overview for today.
           </p>
         </div>
 
-        <div style={{ display:"flex", alignItems:"center", gap:"10px", paddingTop:"6px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
           {/* Period pills */}
-          <div style={{ display:"flex", gap:"2px", background: BORDER, borderRadius:"24px", padding:"3px" }}>
+          <div style={{ display:"flex", background: WHITE, border:`1px solid ${BORDER}`, borderRadius:"24px", padding:"3px", boxShadow: SHADOW }}>
             {(["today","week","month"] as const).map(f => {
               const labels = { today:"Today", week:"Week", month:"Month" };
               return (
@@ -727,46 +723,44 @@ const AdminDashboard = () => {
                   };
                   handleFilterChange(f, map[f]);
                 }} style={{
-                  fontFamily:"'Montserrat',sans-serif", fontSize:"11px", fontWeight:600,
-                  letterSpacing:"0.06em", padding:"7px 18px", borderRadius:"20px",
-                  border:"none", cursor:"pointer", transition:"all 0.18s",
-                  background: dateFilter===f ? G : "transparent",
+                  fontFamily:"Montserrat,sans-serif", fontSize:"11px", fontWeight:600,
+                  letterSpacing:"0.05em", padding:"7px 16px", borderRadius:"20px",
+                  border:"none", cursor:"pointer", transition:"all 0.15s",
+                  background: dateFilter===f ? NAVY : "transparent",
                   color: dateFilter===f ? "#fff" : TXT_MID,
-                  boxShadow: dateFilter===f ? `0 2px 8px ${G}55` : "none",
                 }}>{labels[f]}</button>
               );
             })}
           </div>
 
-          {/* Refresh */}
-          <button onClick={fetchStats} title="Refresh" style={{ width:"38px", height:"38px", borderRadius:"50%", background: CARD_BG, border:`1px solid ${BORDER}`, boxShadow: SHADOW, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px", color: TXT_MID, transition:"all 0.2s" }}>
+          <button onClick={fetchStats} title="Refresh"
+            style={{ width:"38px", height:"38px", borderRadius:"50%", background: WHITE, border:`1px solid ${BORDER}`, boxShadow: SHADOW, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color: TXT_MID, fontSize:"16px", transition:"all 0.2s" }}>
             <span style={{ display:"inline-block", animation: loading ? "spin 0.9s linear infinite" : "none" }}>↻</span>
           </button>
 
-          {/* Bell */}
           <div style={{ position:"relative" }}>
-            <div onClick={() => setBellOpen(o => !o)} style={{ width:"42px", height:"42px", borderRadius:"50%", background: CARD_BG, border:`1px solid ${BORDER}`, boxShadow: SHADOW, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"17px", transition:"all 0.2s" }}>🔔</div>
+            <button onClick={() => setBellOpen(o => !o)}
+              style={{ width:"38px", height:"38px", borderRadius:"50%", background: WHITE, border:`1px solid ${BORDER}`, boxShadow: SHADOW, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px", transition:"all 0.2s" }}>🔔</button>
             {(stats.pendingRequests > 0 || alerts.length > 0) && (
-              <div style={{ position:"absolute", top:"-1px", right:"-1px", minWidth:"16px", height:"16px", borderRadius:"8px", background:"#EF4444", border:"2px solid #fff", display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
-                <span style={{ fontSize:"8px", fontWeight:700, color:"#fff", lineHeight:1 }}>{stats.pendingRequests + alerts.length}</span>
+              <div style={{ position:"absolute", top:"-2px", right:"-2px", minWidth:"16px", height:"16px", borderRadius:"8px", background:"#EF4444", border:"2px solid #fff", display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
+                <span style={{ fontSize:"8px", fontWeight:700, color:"#fff" }}>{stats.pendingRequests + alerts.length}</span>
               </div>
             )}
             {bellOpen && (
-              <div style={{ position:"fixed", top:"70px", right:"40px", width:"320px", background:"#fff", borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.18)", border:"1px solid #e8e0d4", zIndex:9999, overflow:"hidden" }}>
-                <div style={{ padding:"16px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontWeight:700, fontSize:"14px" }}>Notifications</span>
-                  <span onClick={() => setBellOpen(false)} style={{ cursor:"pointer", fontSize:"18px", color:TXT_SOFT }}>✕</span>
+              <div style={{ position:"fixed", top:"70px", right:"36px", width:"300px", background: WHITE, borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.14)", border:`1px solid ${BORDER}`, zIndex:9999, overflow:"hidden" }}>
+                <div style={{ padding:"14px 18px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontWeight:700, fontSize:"13px" }}>Notifications</span>
+                  <span onClick={() => setBellOpen(false)} style={{ cursor:"pointer", color: TXT_SOFT }}>✕</span>
                 </div>
-                <div style={{ maxHeight:"360px", overflowY:"auto" }}>
-
+                <div style={{ maxHeight:"340px", overflowY:"auto" }}>
                   {alerts.filter(a => a.type !== "success").map((a, i) => (
-                    <div key={i} style={{ padding:"14px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:"12px", alignItems:"flex-start" }}>
-                      <span style={{ fontSize:"20px" }}>{a.type === "warning" ? "🔶" : "ℹ️"}</span>
-                      <div style={{ fontSize:"13px", color:"#111", lineHeight:1.4 }}>{a.message}</div>
+                    <div key={i} style={{ padding:"13px 18px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:"10px" }}>
+                      <span style={{ fontSize:"16px" }}>{a.type === "warning" ? "⚠️" : "ℹ️"}</span>
+                      <span style={{ fontSize:"12px", color: TXT_MID, lineHeight:1.5 }}>{a.message}</span>
                     </div>
                   ))}
-                  {alerts.every(a => a.type === "success") && stats.pendingRequests === 0 && absentStaff.length === 0 && (
-                    <div style={{ padding:"32px 20px", textAlign:"center", color:TXT_SOFT, fontSize:"13px" }}>No notifications right now ✓</div>
+                  {alerts.every(a => a.type === "success") && stats.pendingRequests === 0 && (
+                    <div style={{ padding:"28px 18px", textAlign:"center", color: TXT_SOFT, fontSize:"12px" }}>All clear. No notifications.</div>
                   )}
                 </div>
               </div>
@@ -775,258 +769,221 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* ══ ROW 1 – KPI CARDS ═══════════════════════════════════ */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"16px" }}>
+      {/* ── KPI ROW ──────────────────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"14px", marginBottom:"14px" }}>
         {[
-          { label:"TODAY'S BOOKINGS",  value: String(stats.todayBookings),
-            formatted: String(stats.todayBookings),
-            pct: stats.bookingChangePercentage === 0 ? "—" : stats.bookingChangePercentage >= 0 ? `+${stats.bookingChangePercentage}%` : `${stats.bookingChangePercentage}%`,
-            up: stats.bookingChangePercentage >= 0,
-            note:"vs yesterday",   icon:"📅" },
-          { label:"TODAY'S REVENUE",   value: stats.todayRevenue,
-            formatted:`GHC ${stats.todayRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: stats.todayRevenueChange === 0 ? "—" : stats.todayRevenueChange >= 0 ? `+${stats.todayRevenueChange}%` : `${stats.todayRevenueChange}%`,
-            up: stats.todayRevenueChange >= 0,
-            note:"vs yesterday", icon:"💳" },
-          { label:"WEEKLY REVENUE",    value: stats.weeklyRevenue,
-            formatted:`GHC ${stats.weeklyRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: stats.weeklyRevenueChange === 0 ? "—" : stats.weeklyRevenueChange >= 0 ? `+${stats.weeklyRevenueChange}%` : `${stats.weeklyRevenueChange}%`,
-            up: stats.weeklyRevenueChange >= 0,
-            note:"vs last week",  icon:"📊" },
-          { label:"MONTHLY REVENUE",   value: stats.monthlyRevenue,
-            formatted:`GHC ${stats.monthlyRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: stats.monthChangePercentage === 0 ? "—" : stats.monthChangePercentage >= 0 ? `+${stats.monthChangePercentage}%` : `${stats.monthChangePercentage}%`,
-            up: stats.monthChangePercentage >= 0,
-            note:"vs last month", icon:"🏆" },
+          { label:"TODAY'S BOOKINGS", val: String(stats.todayBookings),
+            pct: stats.bookingChangePercentage, note:"vs yesterday", color:"#4A90D9", bg:"#EFF6FF" },
+          { label:"TODAY'S REVENUE",  val:`GHS ${stats.todayRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
+            pct: stats.todayRevenueChange, note:"vs yesterday", color:"#16A34A", bg:"#F0FDF4" },
+          { label:"WEEKLY REVENUE",   val:`GHS ${stats.weeklyRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
+            pct: stats.weeklyRevenueChange, note:"vs last week", color: G, bg: G_LIGHT },
+          { label:"MONTHLY REVENUE",  val:`GHS ${stats.monthlyRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
+            pct: stats.monthChangePercentage, note:"vs last month", color:"#7C3AED", bg:"#F5F3FF" },
         ].map((c, i) => (
-          <div key={i} className="z-card fade-up" style={{ animationDelay:`${i*0.07}s` }}>
-            {/* Gold icon badge */}
-            <div style={{ width:"38px", height:"38px", borderRadius:"11px", background: G_LIGHT, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"18px", marginBottom:"18px" }}>{c.icon}</div>
-            {/* Label */}
-            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"10px" }}>{c.label}</div>
-            {/* Value */}
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(24px,2.5vw,32px)", fontWeight:700, color: TXT, lineHeight:1, marginBottom:"12px", letterSpacing:"-0.01em" }}>{c.formatted}</div>
-            {/* Trend */}
+          <div key={i} className="zc au" style={{ animationDelay:`${i*0.06}s` }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
+              <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>{c.label}</span>
+              <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: c.color }} />
+            </div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(20px,2vw,28px)", fontWeight:700, color: TXT, lineHeight:1.1, marginBottom:"14px" }}>{c.val}</div>
             <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-              <span style={{ fontSize:"11px", fontWeight:700, color: c.pct === "—" ? TXT_SOFT : c.up ? "#16A34A" : "#DC2626" }}>{c.pct}</span>
-              <span style={{ fontSize:"10px", color: TXT_SOFT, fontWeight:400 }}>{c.note}</span>
+              <span style={{ display:"inline-flex", alignItems:"center", gap:"3px", fontSize:"11px", fontWeight:700, padding:"2px 8px", borderRadius:"12px", background: c.bg, color: c.color }}>
+                {c.pct === 0 ? "—" : c.pct > 0 ? `↑ +${c.pct}%` : `↓ ${c.pct}%`}
+              </span>
+              <span style={{ fontSize:"10px", color: TXT_SOFT }}>{c.note}</span>
             </div>
-            {/* Bottom accent line */}
-            <div style={{ marginTop:"18px", height:"2px", borderRadius:"1px", background:`linear-gradient(90deg,${G},transparent)` }} />
           </div>
         ))}
       </div>
 
-      {/* ══ ROW 2 – SUMMARY CARDS ═══════════════════════════════ */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px", marginBottom:"16px" }}>
+      {/* ── SECONDARY KPI ─────────────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"14px", marginBottom:"14px" }}>
         {[
-          { label:"TOTAL CLIENTS",  value: stats.totalClients, icon:"👥", sub: stats.clientChangePercentage ? `${stats.clientChangePercentage >= 0 ? "+" : ""}${stats.clientChangePercentage}% this month` : "" },
-          { label:"ACTIVE STAFF",  value: stats.activeStaff,  icon:"✂️", sub: "On roster today" },
-          { label:"PENDING ACTIONS", value: stats.pendingBookings + stats.pendingRequests, icon:"⏳", sub: "Require attention" },
+          { label:"TOTAL CLIENTS",   val: stats.totalClients.toLocaleString(), sub:`${stats.clientChangePercentage >= 0 ? "+" : ""}${stats.clientChangePercentage}% this month` },
+          { label:"ACTIVE STAFF",    val: stats.activeStaff, sub:"On roster" },
+          { label:"PENDING",         val: stats.pendingBookings + stats.pendingRequests, sub:"Need attention" },
         ].map((c, i) => (
-          <div key={i} className="z-card fade-up" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 24px", animationDelay:`${0.28 + i*0.07}s` }}>
-            <div style={{ display:"flex", alignItems:"center", gap:"16px" }}>
-              <div style={{ width:"46px", height:"46px", borderRadius:"14px", background: G_LIGHT, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"22px", flexShrink:0 }}>{c.icon}</div>
-              <div>
-                <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>{c.label}</div>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"32px", fontWeight:700, color: TXT, lineHeight:1 }}>{c.value}</div>
-                {c.sub && <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"4px" }}>{c.sub}</div>}
-              </div>
+          <div key={i} className="zc-flat au" style={{ animationDelay:`${0.24 + i*0.06}s`, display:"flex", alignItems:"center", gap:"18px" }}>
+            <div style={{ width:"48px", height:"48px", borderRadius:"14px", background: G_LIGHT, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:700, color: G }}>{c.val}</span>
             </div>
-            <div style={{ width:"36px", height:"36px", borderRadius:"50%", border:`1.5px solid ${BORDER}`, display:"flex", alignItems:"center", justifyContent:"center", color: TXT_SOFT, fontSize:"14px" }}>→</div>
+            <div>
+              <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"4px" }}>{c.label}</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"26px", fontWeight:700, color: TXT, lineHeight:1 }}>{c.val}</div>
+              {c.sub && <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"3px" }}>{c.sub}</div>}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* ══ GOLD HIGHLIGHT PANEL ════════════════════════════════ */}
-      <div className="fade-up" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"20px", overflow:"hidden", marginBottom:"20px", padding:"20px 40px", background:`linear-gradient(115deg, #C9A84C 0%, #E8D27A 45%, #BF9640 100%)`, boxShadow:`0 8px 40px ${G}44` }}>
-        <div style={{ maxWidth:"520px" }}>
-        {/* Decorative circles */}
-        <div style={{ position:"absolute", top:"-50px", right:"80px", width:"200px", height:"200px", borderRadius:"50%", background:"rgba(255,255,255,0.10)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", bottom:"-60px", right:"-30px", width:"180px", height:"180px", borderRadius:"50%", background:"rgba(255,255,255,0.07)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", top:"50%", left:"55%", transform:"translateY(-50%)", width:"1px", height:"60%", background:"rgba(255,255,255,0.2)", pointerEvents:"none" }} />
-
-        {/* Badge */}
-        <div style={{ position:"absolute", top:"24px", right:"28px", background:"rgba(255,255,255,0.22)", backdropFilter:"blur(12px)", borderRadius:"20px", padding:"6px 16px", fontSize:"10px", fontWeight:700, letterSpacing:"0.14em", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>
-          ✦ MOST POPULAR
-        </div>
-
-        <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(255,255,255,0.7)", marginBottom:"10px" }}>TOP SERVICE THIS MONTH</div>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,26px)", fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:"14px", textShadow:"0 2px 12px rgba(0,0,0,0.12)" }}>
-          {stats.topService === "N/A" ? "No data yet" : stats.topService}
-        </div>
-
-        <div style={{ display:"flex", gap:"clamp(24px,5vw,64px)" }}>
-          {[
-            { label:"TOTAL BOOKINGS",     val: stats.topServiceCount },
-            { label:"REVENUE GENERATED",  val: `GHC ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:2})}` },
-            { label:"GROWTH",             val: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
-          ].map((s, i) => (
-            <div key={i}>
-              <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.65)", marginBottom:"8px" }}>{s.label}</div>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color:"#fff" }}>{s.val}</div>
+      {/* ── TOP SERVICE BANNER ────────────────────────────── */}
+      <div className="au" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"16px", overflow:"hidden", marginBottom:"14px", padding:"24px 32px", background:`linear-gradient(120deg, ${NAVY} 0%, #1E3558 100%)` }}>
+        <div style={{ position:"absolute", top:"-40px", right:"120px", width:"160px", height:"160px", borderRadius:"50%", background:"rgba(201,168,76,0.08)", pointerEvents:"none" }} />
+        <div style={{ position:"absolute", bottom:"-50px", right:"-20px", width:"140px", height:"140px", borderRadius:"50%", background:"rgba(255,255,255,0.04)", pointerEvents:"none" }} />
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"16px" }}>
+          <div>
+            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(201,168,76,0.7)", marginBottom:"8px" }}>TOP SERVICE THIS PERIOD</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,24px)", fontWeight:700, color:"#fff", marginBottom:"4px" }}>
+              {stats.topService === "N/A" ? "No data yet" : stats.topService}
             </div>
-          ))}
-        </div>
+          </div>
+          <div style={{ display:"flex", gap:"40px" }}>
+            {[
+              { l:"BOOKINGS",  v: stats.topServiceCount },
+              { l:"REVENUE",   v:`GHS ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:0})}` },
+              { l:"GROWTH",    v: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
+            ].map((s, i) => (
+              <div key={i}>
+                <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.4)", marginBottom:"6px" }}>{s.l}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color: G }}>{s.v}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ══ CHARTS ROW ══════════════════════════════════════════ */}
-      <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"20px", marginBottom:"20px" }}>
+      {/* ── CHARTS ROW ───────────────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"14px", marginBottom:"14px" }}>
 
-        {/* ─ Revenue Trend ─ */}
-        <div className="z-card fade-up" style={{ animationDelay:"0.49s", padding:"28px 28px 20px" }}>
-          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"22px" }}>
+        {/* Revenue trend */}
+        <div className="zc au" style={{ animationDelay:"0.48s", padding:"28px" }}>
+          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"20px" }}>
             <div>
-              <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"6px" }}>REVENUE TREND</div>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color: TXT }}>Last 7 Days</div>
-            </div>
-            <div style={{ background:"#FEF2F2", border:"1px solid #FECACA", borderRadius:"20px", padding:"5px 13px", fontSize:"11px", fontWeight:700, color:"#DC2626", whiteSpace:"nowrap" }}>
-              −23% vs last week
+              <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>REVENUE TREND</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT }}>Last 7 Days</div>
             </div>
           </div>
-
           <svg width="100%" viewBox={`0 0 ${SW} ${SH}`} style={{ overflow:"visible", display:"block" }}>
             <defs>
-              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor={G} stopOpacity="0.18" />
+              <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={G} stopOpacity="0.15" />
                 <stop offset="100%" stopColor={G} stopOpacity="0.01" />
               </linearGradient>
             </defs>
             {spPts.length > 1 && (
               <>
-                <path d={areaPath} fill="url(#areaGrad)" />
-                <path d={bezier} fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={areaPath} fill="url(#ag)" />
+                <path d={bezier} fill="none" stroke={G} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {spPts.map((p, i) => (
                   <g key={i}>
-                    <circle cx={p.x} cy={p.y} r="5" fill="#fff" stroke={G} strokeWidth="2.5" />
-                    <circle cx={p.x} cy={p.y} r="2" fill={G} />
+                    <circle cx={p.x} cy={p.y} r="4.5" fill="#fff" stroke={G} strokeWidth="2" />
+                    <circle cx={p.x} cy={p.y} r="1.8" fill={G} />
                   </g>
                 ))}
               </>
             )}
-            {spPts.length === 0 && <text x={SW/2} y={SH/2} textAnchor="middle" fill={TXT_SOFT} fontSize="12" fontFamily="Montserrat">No data</text>}
+            {spPts.length === 0 && <text x={SW/2} y={SH/2} textAnchor="middle" fill={TXT_SOFT} fontSize="11" fontFamily="Montserrat">No revenue data</text>}
           </svg>
-
           {spark7.length > 0 && (
-            <div style={{ display:"flex", justifyContent:"space-between", marginTop:"10px", paddingLeft:`${PAD}px`, paddingRight:`${PAD}px` }}>
-              {spark7.map((d, i) => (
-                <span key={i} style={{ fontSize:"9px", color: TXT_SOFT, fontWeight:500 }}>{d.name}</span>
-              ))}
+            <div style={{ display:"flex", justifyContent:"space-between", marginTop:"8px", paddingLeft:`${PAD}px`, paddingRight:`${PAD}px` }}>
+              {spark7.map((d, i) => <span key={i} style={{ fontSize:"9px", color: TXT_SOFT }}>{d.name}</span>)}
             </div>
           )}
         </div>
 
-        {/* ─ Donut Chart ─ */}
-        <div className="z-card fade-up" style={{ animationDelay:"0.56s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"6px" }}>BOOKING STATUS</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color: TXT, marginBottom:"20px" }}>Distribution</div>
-
-          <div style={{ display:"flex", alignItems:"center", gap:"20px" }}>
-            <div style={{ flexShrink:0 }}>
-              <svg width="180" height="180" viewBox="0 0 180 180">
-                {donutPaths.length > 0 ? donutPaths.map((s, i) => (
-                  <path key={i} d={s.path} fill={s.color} opacity="0.88" />
-                )) : (
-                  <circle cx="90" cy="90" r="72" fill={G_LIGHT} />
-                )}
-                {/* Inner white disc */}
-                <circle cx="90" cy="90" r="44" fill={CARD_BG} />
-                {/* Center label */}
-                <text x="90" y="85" textAnchor="middle" fill={TXT_SOFT} fontSize="9" fontFamily="Montserrat" fontWeight="700" letterSpacing="2">TOTAL</text>
-                <text x="90" y="106" textAnchor="middle" fill={TXT} fontSize="26" fontFamily="Cormorant Garamond" fontWeight="700">
-                  {bookingStatusData.reduce((s, d) => s + d.value, 0)}
-                </text>
-              </svg>
-            </div>
-
+        {/* Booking status donut */}
+        <div className="zc au" style={{ animationDelay:"0.54s", padding:"28px" }}>
+          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>BOOKING STATUS</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"20px" }}>Distribution</div>
+          <div style={{ display:"flex", alignItems:"center", gap:"16px" }}>
+            <svg width="176" height="176" viewBox="0 0 176 176" style={{ flexShrink:0 }}>
+              {donutPaths.length > 0 ? donutPaths.map((s, i) => (
+                <path key={i} d={s.path} fill={s.color} opacity="0.9" />
+              )) : <circle cx="88" cy="88" r="70" fill={G_LIGHT} />}
+              <circle cx="88" cy="88" r="44" fill={WHITE} />
+              <text x="88" y="83" textAnchor="middle" fill={TXT_SOFT} fontSize="8" fontFamily="Montserrat" fontWeight="700" letterSpacing="2">TOTAL</text>
+              <text x="88" y="102" textAnchor="middle" fill={TXT} fontSize="24" fontFamily="Cormorant Garamond" fontWeight="700">
+                {statusTotal}
+              </text>
+            </svg>
             <div style={{ display:"flex", flexDirection:"column", gap:"10px", flex:1 }}>
-              {bookingStatusData.length === 0 ? (
-                <span style={{ fontSize:"12px", color: TXT_SOFT }}>No bookings yet</span>
-              ) : bookingStatusData.map((d, i) => (
-                <div key={i}>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"4px" }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: SLOT_COLORS[i % SLOT_COLORS.length], flexShrink:0 }} />
-                      <span style={{ fontSize:"11px", color: TXT_MID, fontWeight:500 }}>{d.name}</span>
+              {bookingStatusData.length === 0
+                ? <span style={{ fontSize:"11px", color: TXT_SOFT }}>No bookings yet</span>
+                : bookingStatusData.map((d, i) => (
+                  <div key={i}>
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"4px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"7px" }}>
+                        <div style={{ width:"7px", height:"7px", borderRadius:"50%", background: SLOT_COLORS[i % SLOT_COLORS.length] }} />
+                        <span style={{ fontSize:"11px", color: TXT_MID, fontWeight:500 }}>{d.name}</span>
+                      </div>
+                      <span style={{ fontSize:"12px", fontWeight:700, color: TXT }}>{d.value}</span>
                     </div>
-                    <span style={{ fontSize:"12px", fontWeight:700, color: TXT }}>{d.value}</span>
+                    <div style={{ height:"3px", borderRadius:"2px", background: BORDER }}>
+                      <div style={{ height:"100%", width:`${statusTotal > 0 ? (d.value/statusTotal)*100 : 0}%`, background: SLOT_COLORS[i % SLOT_COLORS.length], borderRadius:"2px" }} />
+                    </div>
                   </div>
-                  <div style={{ height:"3px", borderRadius:"2px", background: BORDER }}>
-                    <div style={{ height:"100%", width:`${statusTotal > 0 ? (d.value/statusTotal)*100 : 0}%`, background: SLOT_COLORS[i % SLOT_COLORS.length], borderRadius:"2px" }} />
-                  </div>
-                </div>
-              ))}
+                ))
+              }
             </div>
           </div>
         </div>
       </div>
 
-      {/* ══ BOTTOM ROW – Alerts + Upcoming ══════════════════════ */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px", marginBottom:"20px" }}>
-        
-        {/* Alerts */}
-        <div className="z-card fade-up" style={{ animationDelay:"0.63s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"6px" }}>ALERTS</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Action Items</div>
-          <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-            {alerts.map(a => {
-              const cfg = {
-                warning:{ bg:"#FFFBEB", border:"#FDE68A", icon:"⚠️" },
-                info:   { bg:"#EFF6FF", border:"#BFDBFE", icon:"ℹ️" },
-                success:{ bg:"#F0FDF4", border:"#BBF7D0", icon:"✅" },
-              }[a.type];
-              return (
-                <div key={a.id} style={{ display:"flex", alignItems:"flex-start", gap:"10px", padding:"12px 14px", borderRadius:"10px", background: cfg.bg, border:`1px solid ${cfg.border}` }}>
-                  <span style={{ fontSize:"14px", flexShrink:0, lineHeight:1.6 }}>{cfg.icon}</span>
-                  <span style={{ fontSize:"12px", color: TXT_MID, lineHeight:1.6 }}>{a.message}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* ── BOTTOM ROW ───────────────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }}>
 
         {/* Upcoming appointments */}
-        <div className="z-card fade-up" style={{ animationDelay:"0.70s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"6px" }}>UPCOMING</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Today's Appointments</div>
-          {upcomingAppointments.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"24px 0", fontSize:"12px", color: TXT_SOFT }}>No upcoming appointments</div>
-          ) : (
-            <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+        <div className="zc-flat au" style={{ animationDelay:"0.6s", padding:"28px" }}>
+          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>UPCOMING</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Today's Schedule</div>
+          {upcomingAppointments.length === 0
+            ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>No upcoming appointments</div>
+            : <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
               {upcomingAppointments.slice(0, 5).map(a => (
-                <div key={a.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"11px 14px", borderRadius:"10px", background: CREAM, border:`1px solid ${BORDER}` }}>
+                <div key={a.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", borderRadius:"10px", background: CREAM, border:`1px solid ${BORDER}` }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-                    <div style={{ width:"34px", height:"34px", borderRadius:"50%", background: G_LIGHT, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", flexShrink:0 }}>💆</div>
+                    <div style={{ width:"36px", height:"36px", borderRadius:"50%", background: G_LIGHT, border:`1.5px solid ${G}33`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px", flexShrink:0 }}>💆</div>
                     <div>
                       <div style={{ fontSize:"12px", fontWeight:600, color: TXT }}>{a.clientName}</div>
-                      <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>{a.serviceName}</div>
+                      <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>{a.serviceName || a.service}</div>
                     </div>
                   </div>
                   <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:"13px", fontWeight:700, color: G }}>{a.time}</div>
+                    <div style={{ fontSize:"12px", fontWeight:700, color: G }}>{a.time}</div>
                     <div style={{ fontSize:"10px", color: TXT_SOFT }}>{a.date ? format(new Date(a.date), "MMM d") : ""}</div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          }
+        </div>
+
+        {/* Alerts */}
+        <div className="zc-flat au" style={{ animationDelay:"0.66s", padding:"28px" }}>
+          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>ALERTS</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Action Items</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+            {alerts.length === 0
+              ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>All clear. No alerts.</div>
+              : alerts.map((a, i) => {
+                const cfg = {
+                  warning:{ bg:"#FFFBEB", border:"#FDE68A", icon:"⚠️" },
+                  info:   { bg:"#EFF6FF", border:"#BFDBFE", icon:"ℹ️" },
+                  success:{ bg:"#F0FDF4", border:"#BBF7D0", icon:"✓" },
+                }[a.type];
+                return (
+                  <div key={a.id} style={{ display:"flex", gap:"10px", padding:"12px 14px", borderRadius:"10px", background: cfg.bg, border:`1px solid ${cfg.border}` }}>
+                    <span style={{ fontSize:"14px", flexShrink:0, lineHeight:1.5 }}>{cfg.icon}</span>
+                    <span style={{ fontSize:"12px", color: TXT_MID, lineHeight:1.5 }}>{a.message}</span>
+                  </div>
+                );
+              })
+            }
+          </div>
         </div>
       </div>
 
-      {/* ══ BOTTOM ROW – Payments + Top Staff ═══════════════════ */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"20px" }}>
+      {/* ── PAYMENT METHODS + TOP STAFF ──────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
 
-        {/* Payment methods */}
-        <div className="z-card fade-up" style={{ animationDelay:"0.77s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"6px" }}>PAYMENTS</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color: TXT, marginBottom:"18px" }}>By Method · {filterLabel}</div>
-          {paymentMethodData.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"24px 0", fontSize:"12px", color: TXT_SOFT }}>No payment data yet</div>
-          ) : (
-            <>
-              {/* Stacked progress bar */}
-              <div style={{ height:"6px", borderRadius:"3px", display:"flex", gap:"2px", marginBottom:"20px", overflow:"hidden" }}>
+        <div className="zc-flat au" style={{ animationDelay:"0.72s", padding:"28px" }}>
+          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>PAYMENTS</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"18px" }}>By Method · {filterLabel}</div>
+          {paymentMethodData.length === 0
+            ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>No payment data</div>
+            : <>
+              <div style={{ height:"5px", borderRadius:"3px", display:"flex", gap:"2px", marginBottom:"18px", overflow:"hidden" }}>
                 {paymentMethodData.map((d, i) => (
                   <div key={i} style={{ flex: d.amount || 0, background: SLOT_COLORS[i % SLOT_COLORS.length], minWidth:"4px" }} />
                 ))}
@@ -1034,43 +991,42 @@ const AdminDashboard = () => {
               {paymentMethodData.map((d, i) => (
                 <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 0", borderBottom: i < paymentMethodData.length-1 ? `1px solid ${BORDER}` : "none" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                    <div style={{ width:"9px", height:"9px", borderRadius:"3px", background: SLOT_COLORS[i % SLOT_COLORS.length], flexShrink:0 }} />
+                    <div style={{ width:"8px", height:"8px", borderRadius:"2px", background: SLOT_COLORS[i % SLOT_COLORS.length] }} />
                     <span style={{ fontSize:"12px", color: TXT_MID, fontWeight:500, textTransform:"capitalize" }}>{d.method.replace(/_/g," ")}</span>
                     <span style={{ fontSize:"10px", color: TXT_SOFT }}>{d.count}×</span>
                   </div>
-                  <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"16px", fontWeight:600, color: TXT }}>GHC {d.amount.toLocaleString()}</span>
+                  <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"16px", fontWeight:600, color: TXT }}>GHS {d.amount.toLocaleString()}</span>
                 </div>
               ))}
             </>
-          )}
+          }
         </div>
 
-        {/* Top staff */}
-        <div className="z-card fade-up" style={{ animationDelay:"0.84s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"6px" }}>PERFORMANCE</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Top Staff · {filterLabel}</div>
-          {topStaff.length === 0 ? (
-            <div style={{ textAlign:"center", padding:"24px 0", fontSize:"12px", color: TXT_SOFT }}>No staff data yet</div>
-          ) : topStaff.slice(0, 5).map((s: any, i: number) => (
-            <div key={s.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom: i < topStaff.length-1 ? `1px solid ${BORDER}` : "none" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-                <div style={{ width:"34px", height:"34px", borderRadius:"50%", background: i === 0 ? G_LIGHT : CREAM, border:`1.5px solid ${i === 0 ? G : BORDER}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px", flexShrink:0, fontWeight:700, color: TXT_MID }}>
-                  {["🥇","🥈","🥉","4","5"][i]}
+        <div className="zc-flat au" style={{ animationDelay:"0.78s", padding:"28px" }}>
+          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>PERFORMANCE</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Top Staff · {filterLabel}</div>
+          {topStaff.length === 0
+            ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>No staff data yet</div>
+            : topStaff.slice(0, 5).map((s: any, i: number) => (
+              <div key={s.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom: i < topStaff.length-1 ? `1px solid ${BORDER}` : "none" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                  <div style={{ width:"32px", height:"32px", borderRadius:"50%", background: i === 0 ? G_LIGHT : "#F5F5F5", border:`1.5px solid ${i === 0 ? G : BORDER}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", fontWeight:700, color: TXT_MID, flexShrink:0 }}>
+                    {["1","2","3","4","5"][i]}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:"12px", fontWeight:600, color: TXT }}>{s.name}</div>
+                    {s.specialization && <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>{s.specialization}</div>}
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize:"12px", fontWeight:600, color: TXT }}>{s.name}</div>
-                  {s.specialization && <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>{s.specialization}</div>}
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:"12px", fontWeight:700, color: G }}>{s.bookings} bookings</div>
+                  {s.revenue > 0 && <div style={{ fontSize:"10px", color: TXT_SOFT }}>GHS {s.revenue.toLocaleString()}</div>}
                 </div>
               </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ fontSize:"13px", fontWeight:700, color: G }}>{s.bookings} bookings</div>
-                {s.revenue > 0 && <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>GHC {s.revenue.toLocaleString()}</div>}
-              </div>
-            </div>
-          ))}
+            ))
+          }
         </div>
       </div>
-
     </div>
   );
 };

@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import { getPromoCodes, createPromoCode, updatePromoCode, deletePromoCode } from "@/lib/promoCodes";
+import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 
 export default function PromoCodesManagement() {
+  const { userRole } = useSettings();
+  const canEdit = userRole !== "receptionist";
+
   const [codes, setCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ code: "", description: "", discount_type: "percentage" as "percentage"|"fixed_amount", discount_value: "", minimum_amount: "", max_uses: "", expires_at: "" });
+  const [form, setForm] = useState({
+    code: "", description: "", discount_type: "percentage" as "percentage"|"fixed_amount",
+    discount_value: "", minimum_amount: "", max_uses: "", expires_at: "",
+  });
 
   const load = async () => {
     try { setCodes(await getPromoCodes()); } catch { toast.error("Failed to load promo codes"); } finally { setLoading(false); }
@@ -15,6 +22,7 @@ export default function PromoCodesManagement() {
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async () => {
+    if (!canEdit) return;
     if (!form.code || !form.discount_value) { toast.error("Code and discount value required"); return; }
     try {
       await createPromoCode({
@@ -32,10 +40,12 @@ export default function PromoCodesManagement() {
   };
 
   const handleToggle = async (id: string, is_active: boolean) => {
+    if (!canEdit) return;
     try { await updatePromoCode(id, { is_active: !is_active }); load(); } catch { toast.error("Failed to update"); }
   };
 
   const handleDelete = async (id: string) => {
+    if (!canEdit) return;
     if (!confirm("Delete this promo code?")) return;
     try { await deletePromoCode(id); toast.success("Deleted"); load(); } catch { toast.error("Failed to delete"); }
   };
@@ -45,11 +55,20 @@ export default function PromoCodesManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Promo Codes</h2>
-        <button onClick={() => setShowForm(!showForm)} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">+ New Code</button>
+        <div>
+          <h2 className="text-2xl font-bold">Promo Codes</h2>
+          {!canEdit && (
+            <p className="text-sm text-muted-foreground mt-1">View only — contact the owner to make changes.</p>
+          )}
+        </div>
+        {canEdit && (
+          <button onClick={() => setShowForm(!showForm)} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
+            + New Code
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && canEdit && (
         <div className="border rounded-xl p-6 bg-muted/30 space-y-4">
           <h3 className="font-semibold">New Promo Code</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -76,7 +95,11 @@ export default function PromoCodesManagement() {
       <div className="rounded-xl border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
-            <tr>{["Code","Type","Value","Min. Purchase","Uses","Expires","Status","Actions"].map(h=><th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>)}</tr>
+            <tr>
+              {["Code","Type","Value","Min. Purchase","Uses","Expires","Status", ...(canEdit ? ["Actions"] : [])].map(h=>(
+                <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
+              ))}
+            </tr>
           </thead>
           <tbody className="divide-y">
             {codes.map(c=>(
@@ -87,13 +110,23 @@ export default function PromoCodesManagement() {
                 <td className="px-4 py-3">{c.minimum_amount > 0 ? `GHS ${c.minimum_amount}` : "—"}</td>
                 <td className="px-4 py-3">{c.used_count} {c.max_uses ? `/ ${c.max_uses}` : "/ ∞"}</td>
                 <td className="px-4 py-3">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}</td>
-                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.is_active ? "z-badge z-badge-green" : "bg-gray-100 text-gray-600"}`}>{c.is_active ? "Active" : "Inactive"}</span></td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button onClick={()=>handleToggle(c.id,c.is_active)} className="text-xs border px-2 py-1 rounded hover:bg-muted">{c.is_active ? "Disable" : "Enable"}</button>
-                    <button onClick={()=>handleDelete(c.id)} className="text-xs border border-red-200 text-red-600 px-2 py-1 rounded hover:bg-red-50">Delete</button>
-                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.is_active ? "z-badge z-badge-green" : "bg-gray-100 text-gray-600"}`}>
+                    {c.is_active ? "Active" : "Inactive"}
+                  </span>
                 </td>
+                {canEdit && (
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button onClick={()=>handleToggle(c.id,c.is_active)} className="text-xs border px-2 py-1 rounded hover:bg-muted">
+                        {c.is_active ? "Disable" : "Enable"}
+                      </button>
+                      <button onClick={()=>handleDelete(c.id)} className="text-xs border border-red-200 text-red-600 px-2 py-1 rounded hover:bg-red-50">
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

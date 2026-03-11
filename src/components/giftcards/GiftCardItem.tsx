@@ -16,15 +16,16 @@ import type { GiftCard } from "@/lib/useGiftCards";
 type Props = {
   userRole: string | null;
   card: GiftCard;
-  onEdit: (card: GiftCard) => void;
-  onAction: (
+  onEdit?: (card: GiftCard) => void;
+  onAction?: (
     action: "void" | "expire" | "delete",
     id: string,
     code: string
   ) => void;
+  readOnly?: boolean;
 };
 
-export function GiftCardItem({ userRole, card, onEdit, onAction }: Props) {
+export function GiftCardItem({ userRole, card, onEdit, onAction, readOnly = false }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const copyCode = () => {
@@ -83,7 +84,7 @@ export function GiftCardItem({ userRole, card, onEdit, onAction }: Props) {
           >
             <Copy className="h-4 w-4" />
           </Button>
-          {card.status !== "redeemed" && userRole === "owner" && (
+          {card.status !== "redeemed" && !readOnly && onEdit && (
             <Button
               size="icon"
               variant="ghost"
@@ -164,7 +165,7 @@ export function GiftCardItem({ userRole, card, onEdit, onAction }: Props) {
             </p>
           )}
 
-          {card.status !== "redeemed" && (
+          {card.status !== "redeemed" && !readOnly && onAction && (
             <div className="flex gap-2 pt-2">
               <Button
                 size="sm"
