@@ -220,7 +220,34 @@ const Clients = () => {
     return counts;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFilterByDate = () => {
+    const filtered = clients.filter(c => {
+      const d = c.created_at?.slice(0,10);
+      return d >= startDate && d <= endDate;
+    });
+    setFilteredClients(filtered);
+    setActiveFilter("date");
+  };
+
+  const handleMostActiveClient = () => {
+    const sorted = [...clients].sort((a,b) => (b.total_visits||0) - (a.total_visits||0));
+    setFilteredClients(sorted);
+    setActiveFilter("most_active");
+  };
+
+  const handleServiceHistory = (serviceName: string) => {
+    setActiveFilter("service_history");
+    setShowServiceList(false);
+  };
+
+  const clearFilters = () => {
+    setFilteredClients(clients);
+    setActiveFilter("none");
+    setSearchTerm("");
+    setSearchResults(null);
+  };
+
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const validated = clientSchema.parse(formData);
