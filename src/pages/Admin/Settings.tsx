@@ -147,9 +147,11 @@ export default function Settings() {
       if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
 
       if (existing?.id) {
-        const { error } = await (supabase as any)
-          .from("settings").update(settingsData).eq("id", existing.id);
+        const { data: updated, error } = await (supabase as any)
+          .from("settings").update(settingsData).eq("id", existing.id).select();
         if (error) throw error;
+        // If RLS blocked update silently (0 rows), updated will be empty
+        if (!updated || updated.length === 0) throw new Error("Update blocked — check database permissions");
       } else {
         const { error } = await (supabase as any)
           .from("settings").insert([settingsData]);
@@ -158,7 +160,8 @@ export default function Settings() {
       toast.success("Settings saved successfully!");
 
       setLogoFile(null);
-      fetchSettings();
+      // Update local state directly — don't re-fetch (would overwrite with cached DB data)
+      setSettings(prev => ({ ...prev, ...settingsData, logo_url: logoUrl || prev.logo_url }));
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Failed to save settings");
@@ -211,14 +214,14 @@ export default function Settings() {
           email={settings.business_email}
           address={settings.business_address}
           onBusinessNameChange={(v) =>
-            setSettings({ ...settings, business_name: v })
+            setSettings(prev => ({ ...prev, business_name: v  }))
           }
-          onLogoUrlChange={(v) => setSettings({ ...settings, logo_url: v })}
+          onLogoUrlChange={(v) => setSettings(prev => ({ ...prev, logo_url: v  }))}
           onLogoFileChange={setLogoFile}
-          onPhoneChange={(v) => setSettings({ ...settings, business_phone: v })}
-          onEmailChange={(v) => setSettings({ ...settings, business_email: v })}
+          onPhoneChange={(v) => setSettings(prev => ({ ...prev, business_phone: v  }))}
+          onEmailChange={(v) => setSettings(prev => ({ ...prev, business_email: v  }))}
           onAddressChange={(v) =>
-            setSettings({ ...settings, business_address: v })
+            setSettings(prev => ({ ...prev, business_address: v  }))
           }
         />
 
@@ -227,11 +230,11 @@ export default function Settings() {
           closeTime={settings.close_time}
           currency={settings.currency}
           use24HourFormat={settings.use_24_hour_format}
-          onOpenTimeChange={(v) => setSettings({ ...settings, open_time: v })}
-          onCloseTimeChange={(v) => setSettings({ ...settings, close_time: v })}
-          onCurrencyChange={(v) => setSettings({ ...settings, currency: v })}
+          onOpenTimeChange={(v) => setSettings(prev => ({ ...prev, open_time: v  }))}
+          onCloseTimeChange={(v) => setSettings(prev => ({ ...prev, close_time: v  }))}
+          onCurrencyChange={(v) => setSettings(prev => ({ ...prev, currency: v  }))}
           onFormatChange={(v) =>
-            setSettings({ ...settings, use_24_hour_format: v })
+            setSettings(prev => ({ ...prev, use_24_hour_format: v  }))
           }
         />
 
@@ -240,7 +243,7 @@ export default function Settings() {
             title="Staff Roles"
             items={settings.staff_roles}
             onItemsChange={(items) =>
-              setSettings({ ...settings, staff_roles: items })
+              setSettings(prev => ({ ...prev, staff_roles: items  }))
             }
             addButtonText="Add Role"
           />
@@ -249,7 +252,7 @@ export default function Settings() {
             title="Service Categories"
             items={settings.service_categories}
             onItemsChange={(items) =>
-              setSettings({ ...settings, service_categories: items })
+              setSettings(prev => ({ ...prev, service_categories: items  }))
             }
             addButtonText="Add Category"
           />
@@ -262,7 +265,7 @@ export default function Settings() {
           paystackEnabled={settings.paystack_enabled}
           onPaymentMethodToggle={handlePaymentMethodToggle}
           onPaystackToggle={(v) =>
-            setSettings({ ...settings, paystack_enabled: v })
+            setSettings(prev => ({ ...prev, paystack_enabled: v  }))
           }
         />
 
@@ -271,7 +274,7 @@ export default function Settings() {
           settingsId={settings.id!} //@ts-ignore
           images={settings.gallery_images || []} //@ts-ignore
           onSaved={(imgs) => { //@ts-ignore
-            setSettings({ ...settings, gallery_images: imgs });
+            setSettings(prev => ({ ...prev, gallery_images: imgs  }));
             fetchSettings();
           }}
         />
