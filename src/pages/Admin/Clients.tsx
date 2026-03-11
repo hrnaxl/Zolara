@@ -769,7 +769,9 @@ const Clients = () => {
                     </div>
                   )}
                 </div>
-            );\n          })}
+              </div>
+            );
+          })}
 
           {/* Profile Dialog */}
           <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
