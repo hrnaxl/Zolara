@@ -207,7 +207,7 @@ export default function Auth() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", fontFamily: "Montserrat,sans-serif" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexWrap: "wrap", fontFamily: "Montserrat,sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -217,9 +217,9 @@ export default function Auth() {
 
       {/* ── LEFT PANEL ─────────────────────────────────── */}
       <div style={{
-        width: "42%", minHeight: "100vh", background: NAVY,
+        width: "42%", minWidth: "min(42%, 100%)", minHeight: "auto", background: NAVY,
         display: "flex", flexDirection: "column", justifyContent: "space-between",
-        padding: "48px 52px", position: "relative", overflow: "hidden",
+        padding: "clamp(24px,5vw,48px) clamp(20px,5vw,52px)", position: "relative", overflow: "hidden",
         flexShrink: 0,
       }}>
         {/* Decorative circles */}
@@ -262,7 +262,7 @@ export default function Auth() {
       {/* ── RIGHT PANEL ────────────────────────────────── */}
       <div style={{
         flex: 1, background: CREAM, display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", padding: "48px 40px",
+        alignItems: "center", justifyContent: "center", padding: "clamp(24px,5vw,48px) clamp(16px,5vw,40px)",
         overflowY: "auto",
       }}>
         <div style={{ width: "100%", maxWidth: 420, animation: "fadeUp 0.4s ease both" }}>

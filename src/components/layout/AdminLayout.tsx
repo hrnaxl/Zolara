@@ -921,7 +921,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── BOTTOM ROW ───────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }}>
+      <div className="admin-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }}>
 
         {/* Upcoming appointments */}
         <div className="zc-flat au" style={{ animationDelay:"0.6s", padding:"28px" }}>
@@ -975,7 +975,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── PAYMENT METHODS + TOP STAFF ──────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
+      <div className="admin-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
 
         <div className="zc-flat au" style={{ animationDelay:"0.72s", padding:"28px" }}>
           <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>PAYMENTS</div>

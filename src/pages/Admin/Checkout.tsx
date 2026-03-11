@@ -849,7 +849,7 @@ const Checkout = () => {
   const checkoutDisabled = processing || !selectedStaff;
 
   return (
-    <div style={{ background:"#FAFAF8", minHeight:"100vh", padding:"32px 24px" }}>
+    <div style={{ background:"#FAFAF8", minHeight:"100vh", padding:"clamp(14px,3vw,32px) clamp(12px,3vw,24px)" }}>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">

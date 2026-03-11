@@ -142,7 +142,7 @@ export default function GiftCardBatchGenerator() {
 
         {/* Generator card */}
         <div style={{ background: "white", borderRadius: 16, padding: 28, boxShadow: SHADOW, marginBottom: 28 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+          <div className="admin-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: TXT_MID, display: "block", marginBottom: 8, letterSpacing: "0.06em" }}>TIER</label>
               <select

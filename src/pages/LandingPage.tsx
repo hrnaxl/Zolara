@@ -126,7 +126,7 @@ export default function LandingPage() {
 
         {/* Floating ornament */}
         <div className="float" style={{ position: "absolute", right: "clamp(24px,8vw,120px)", top: "20%", width: "280px", pointerEvents: "none" }}>
-          <div style={{ width: "280px", height: "380px", border: `1px solid rgba(200,169,126,0.25)`, borderRadius: "2px", background: "rgba(237,227,213,0.6)", backdropFilter: "blur(10px)", padding: "32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+          <div className="hero-floating-card" style={{ width: "280px", height: "380px", border: `1px solid rgba(200,169,126,0.25)`, borderRadius: "2px", background: "rgba(237,227,213,0.6)", backdropFilter: "blur(10px)", padding: "32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
             <div style={{ width: "64px", height: "64px", borderRadius: "50%", border: `2px solid ${gold}`, overflow: "hidden", background: "#fff" }}>
               <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
@@ -249,7 +249,7 @@ export default function LandingPage() {
       <section id="experience" style={{ padding: "clamp(60px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: "-80px", top: "50%", transform: "translateY(-50%)", fontSize: "320px", color: "rgba(200,169,126,0.05)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center", maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div className="landing-experience-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center", maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div>
             <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
             <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
@@ -341,7 +341,7 @@ export default function LandingPage() {
             Give someone you love a luxury beauty experience at Zolara. Valid for 12 months. Redeemable for any service. Delivered by email or picked up in store.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginBottom: "48px", maxWidth: "640px", margin: "0 auto 48px" }}>
+          <div className="gift-tier-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginBottom: "48px", maxWidth: "640px", margin: "0 auto 48px" }}>
             {[
               { amount: "GH₵ 220", tier: "Silver",          desc: "Perfect for a treat",            gradient: "linear-gradient(135deg, #c4c4c4, #f0f0f0, #a0a0a0)" },
               { amount: "GH₵ 450", tier: "Gold",            desc: "A full pampering session",       gradient: `linear-gradient(135deg, ${goldDark}, ${gold}, #8C6A30)` },
@@ -405,7 +405,7 @@ export default function LandingPage() {
 
       {/* ── FOOTER ─────────────────────────────── */}
       <footer style={{ background: `linear-gradient(160deg, #1C160E, #0F0C08)`, padding: "clamp(40px,6vw,80px) clamp(24px,6vw,100px)", borderTop: `1px solid rgba(200,169,126,0.12)` }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "clamp(32px,5vw,80px)", alignItems: "flex-start", marginBottom: "48px" }}>
+        <div className="landing-footer-grid" style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "clamp(32px,5vw,80px)", alignItems: "flex-start", marginBottom: "48px" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
               <div style={{ width: "38px", height: "38px", borderRadius: "50%", border: `1.5px solid ${gold}`, overflow: "hidden", background: "#fff" }}>

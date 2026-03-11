@@ -104,7 +104,7 @@ export default function MyAttendance() {
   const hasClockedInToday = records.some(r => r.check_in?.startsWith(todayStr));
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 36px", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(14px,4vw,32px) clamp(12px,4vw,36px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -181,7 +181,7 @@ export default function MyAttendance() {
           </div>
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 90px 90px", gap: "12px", padding: "0 12px 10px", borderBottom: `1px solid ${BORDER}`, marginBottom: "4px" }}>
+            <div className="staff-row-header" style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 90px 90px", gap: "12px", padding: "0 12px 10px", borderBottom: `1px solid ${BORDER}`, marginBottom: "4px" }}>
               {["Date", "Clock In", "Clock Out", "Duration", "Status"].map(h => (
                 <span key={h} style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</span>
               ))}
@@ -191,7 +191,7 @@ export default function MyAttendance() {
               const checkIn = isValid(parseISO(r.check_in)) ? parseISO(r.check_in) : null;
               const checkOut = r.check_out && isValid(parseISO(r.check_out)) ? parseISO(r.check_out) : null;
               return (
-                <div key={r.id} className="row-hover" style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 90px 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < records.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <div key={r.id} className="row-hover" className="staff-row-grid" style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 90px 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < records.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                   <span style={{ fontSize: "13px", fontWeight: 500, color: TXT }}>{checkIn ? format(checkIn, "EEE, MMM d yyyy") : "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{checkIn ? format(checkIn, "h:mm a") : "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{checkOut ? format(checkOut, "h:mm a") : "—"}</span>

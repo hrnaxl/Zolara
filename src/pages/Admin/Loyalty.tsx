@@ -138,7 +138,7 @@ export default function Loyalty() {
       </div>
 
       {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+      <div className="admin-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
         {[
           { label: "Total Members", value: clients.length, icon: Award, color: G.gold },
           { label: "Active Stamps (Total)", value: clients.reduce((s, c) => s + (c.loyalty_points || 0), 0), icon: Star, color: "#10B981" },
@@ -160,7 +160,7 @@ export default function Loyalty() {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 360px" : "1fr", gap: 20 }}>
+      <div className="admin-grid-2" style={{ display: "grid", gridTemplateColumns: selected ? "1fr 360px" : "1fr", gap: 20 }}>
         {/* Client List */}
         <div style={{ background: G.white, border: `1px solid ${G.border}`, borderRadius: 12, overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", borderBottom: `1px solid ${G.border}`, display: "flex", alignItems: "center", gap: 12 }}>
@@ -222,7 +222,7 @@ export default function Loyalty() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div className="admin-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
                 {[
                   { label: "Stamps", value: selected.loyalty_points || 0 },
                   { label: "To Next Reward", value: stampsToNext(selected.loyalty_points || 0) },

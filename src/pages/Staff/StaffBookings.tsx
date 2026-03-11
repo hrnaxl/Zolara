@@ -120,7 +120,7 @@ const StaffBookings = () => {
   const filtered = filterStatus === "all" ? bookings : bookings.filter(b => b.status === filterStatus);
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 36px", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(14px,4vw,32px) clamp(12px,4vw,36px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -184,7 +184,7 @@ const StaffBookings = () => {
           </div>
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 100px", gap: "12px", padding: "0 12px 10px", borderBottom: `1px solid ${BORDER}`, marginBottom: "4px" }}>
+            <div className="staff-row-header" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 100px", gap: "12px", padding: "0 12px 10px", borderBottom: `1px solid ${BORDER}`, marginBottom: "4px" }}>
               {["Service", "Client", "Date", "Time", "Status"].map(h => (
                 <span key={h} style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</span>
               ))}
@@ -193,7 +193,7 @@ const StaffBookings = () => {
               const s = statusStyle(b.status);
               const canAct = b.status === "pending" || b.status === "confirmed";
               return (
-                <div key={b.id} className="row-hover" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 100px", gap: "12px", padding: "13px 12px", borderRadius: "10px", alignItems: "center", borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <div key={b.id} className="row-hover" className="staff-row-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 100px", gap: "12px", padding: "13px 12px", borderRadius: "10px", alignItems: "center", borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                   <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{b.service_name || "Service"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{b.client_name || "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{b.preferred_date ? format(new Date(b.preferred_date + "T00:00:00"), "MMM d") : "—"}</span>

@@ -140,7 +140,7 @@ const ReceptionistDashboard = () => {
   }
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 36px", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(14px,4vw,32px) clamp(12px,4vw,36px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -192,7 +192,7 @@ const ReceptionistDashboard = () => {
       </div>
 
       {/* ── SECONDARY KPI ─────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+      <div className="admin-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
         {[
           { label: "TOTAL CLIENTS",  val: stats.totalClients.toLocaleString(), sub: "In the system" },
           { label: "TODAY'S REVENUE", val: `GHS ${stats.todayRevenue.toLocaleString("en", { minimumFractionDigits: 2 })}`, sub: "From completed sales" },
@@ -211,7 +211,7 @@ const ReceptionistDashboard = () => {
       </div>
 
       {/* ── CHARTS + APPOINTMENTS ROW ─────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "14px", marginBottom: "14px" }}>
+      <div className="admin-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "14px", marginBottom: "14px" }}>
 
         {/* Booking status donut */}
         <div className="rc-flat au" style={{ animationDelay: "0.36s", padding: "clamp(14px,3vw,28px)" }}>

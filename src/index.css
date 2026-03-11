@@ -557,3 +557,84 @@ tbody td {
   /* Full width buttons on mobile */
   .mobile-full { width: 100% !important; }
 }
+
+/* ── COMPREHENSIVE MOBILE OVERRIDES ─────────────────────── */
+
+/* Responsive grid classes */
+@media (max-width: 768px) {
+  .admin-grid-4 { grid-template-columns: 1fr 1fr !important; }
+  .admin-grid-3 { grid-template-columns: 1fr 1fr !important; }
+  .admin-grid-3fr-2fr { grid-template-columns: 1fr !important; }
+  .admin-grid-2 { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+  .admin-grid-4 { grid-template-columns: 1fr 1fr !important; }
+  .admin-grid-3 { grid-template-columns: 1fr !important; }
+}
+
+/* Staff row grids — become flex cards on mobile */
+@media (max-width: 768px) {
+  .staff-row-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding: 14px !important;
+    border-radius: 10px !important;
+    background: white;
+    margin-bottom: 8px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  .staff-row-grid > * { width: 100% !important; }
+  .staff-row-header { display: none !important; }
+}
+
+/* Landing page hero card */
+@media (max-width: 640px) {
+  .hero-floating-card {
+    display: none !important;
+  }
+  .landing-experience-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .landing-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .gift-tier-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* Admin layout grids */
+@media (max-width: 768px) {
+  .admin-1-1-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Checkout page */
+@media (max-width: 640px) {
+  .checkout-pad { padding: 14px !important; }
+}
+
+/* Dialog and modal full-screen on mobile */
+@media (max-width: 640px) {
+  [role="dialog"] > div {
+    max-width: 100vw !important;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+}
+
+/* Prevent horizontal scroll on body */
+html, body { max-width: 100vw; overflow-x: hidden; }
+
+/* Touch target sizes */
+@media (max-width: 768px) {
+  button, [role="button"], a {
+    min-height: 36px;
+  }
+}

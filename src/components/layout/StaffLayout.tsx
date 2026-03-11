@@ -150,7 +150,7 @@ const StaffDashboard = () => {
   }
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 36px", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(14px,4vw,32px) clamp(12px,4vw,36px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -183,7 +183,7 @@ const StaffDashboard = () => {
       </div>
 
       {/* ── KPI ROW (4 cards) ─────────────────────────── */}
-      <div className="au" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "20px" }}>
+      <div className="au admin-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "20px" }}>
         {[
           { label: "Today's Appointments", value: stats.todayTotal, icon: "📅", accent: NAVY },
           { label: "Upcoming",             value: stats.upcoming,   icon: "⏰", accent: "#C9A84C" },
@@ -201,7 +201,7 @@ const StaffDashboard = () => {
       </div>
 
       {/* ── MIDDLE ROW: Sparkline + Completion Rate + Donut ── */}
-      <div className="au" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px", animationDelay: "0.1s" }}>
+      <div className="au admin-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px", animationDelay: "0.1s" }}>
 
         {/* 7-day activity sparkline */}
         <div className="sc-flat" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
@@ -296,7 +296,7 @@ const StaffDashboard = () => {
         ) : (
           <div>
             {/* Column headers */}
-            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "0 12px 10px", borderBottom: `1px solid ${BORDER}`, marginBottom: "4px" }}>
+            <div className="staff-row-header" style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "0 12px 10px", borderBottom: `1px solid ${BORDER}`, marginBottom: "4px" }}>
               {["Time", "Client", "Service", "Status"].map(h => (
                 <span key={h} style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</span>
               ))}
@@ -304,7 +304,7 @@ const StaffDashboard = () => {
             {todaySchedule.map((appt, i) => {
               const s = statusStyle(appt.status);
               return (
-                <div key={appt.id} className="row-hover" style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < todaySchedule.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <div key={appt.id} className="row-hover" className="staff-row-grid" style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < todaySchedule.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "16px", fontWeight: 600, color: TXT }}>{appt.time?.slice(0, 5) || "—"}</span>
                   <span style={{ fontSize: "12px", fontWeight: 500, color: TXT }}>{appt.clientName}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{appt.serviceName}</span>
