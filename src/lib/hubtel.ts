@@ -53,6 +53,8 @@ export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<
       data?.data?.checkoutDirectUrl ||
       data?.Data?.CheckoutDirectUrl ||
       data?.checkoutDirectUrl ||
+      data?.data?.paylinkUrl ||
+      data?.paylinkUrl ||
       null;
 
     return { checkoutUrl, paymentRef: data?.data?.clientReference || payload.clientReference, error: null };

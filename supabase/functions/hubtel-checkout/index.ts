@@ -1,7 +1,6 @@
 const CLIENT_ID = Deno.env.get("HUBTEL_CLIENT_ID") || "noDLLP";
 const CLIENT_SECRET = Deno.env.get("HUBTEL_CLIENT_SECRET") || "51c9ad0e01864fd8b214a39a7ca92c44";
 const MERCHANT_ACCOUNT = Deno.env.get("HUBTEL_MERCHANT_ACCOUNT") || "233594922679";
-const BASE_URL = "https://api-txnghana.hubtel.com";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -25,35 +24,31 @@ Deno.serve(async (req) => {
 
     const auth = btoa(`${CLIENT_ID}:${CLIENT_SECRET}`);
 
-    const hubtelRes = await fetch(
-      `${BASE_URL}/v1/merchantaccount/merchants/${MERCHANT_ACCOUNT}/receive/online`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Basic ${auth}`,
+    const hubtelRes = await fetch("https://payproxyapi.hubtel.com/items/initiate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${auth}`,
+      },
+      body: JSON.stringify({
+        totalAmount: amount,
+        description: description,
+        callbackUrl: callbackUrl,
+        returnUrl: returnUrl,
+        merchantAccountNumber: MERCHANT_ACCOUNT,
+        cancellationUrl: cancellationUrl,
+        clientReference: clientReference,
+        store: {
+          id: "zolara",
+          name: "Zolara Beauty Studio",
+          tagLine: "Luxury salon experience in Tamale",
+          logoUrl: "https://zolarasalon.com/logo.png",
         },
-        body: JSON.stringify({
-          TotalAmount: amount,
-          Description: description,
-          CallbackUrl: callbackUrl,
-          ReturnUrl: returnUrl,
-          CancellationUrl: cancellationUrl,
-          ClientReference: clientReference,
-          Store: {
-            Id: "zolara",
-            Name: "Zolara Beauty Studio",
-            TagLine: "Luxury salon experience in Tamale",
-            LogoUrl: "https://zolarasalon.com/logo.png",
-          },
-          Customer: {
-            Name: customerName || "",
-            Email: customerEmail || "",
-            PhoneNumber: customerPhone || "",
-          },
-        }),
-      }
-    );
+        actions: {
+          skipOtpOnDebitCredit: false,
+        },
+      }),
+    });
 
     const text = await hubtelRes.text();
     let data: any;
