@@ -58,6 +58,7 @@ interface SettingsContextType {
   userRole: UserRole;
   setUserRole: React.Dispatch<React.SetStateAction<UserRole>>;
   loading: boolean;
+  roleReady: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -80,6 +81,7 @@ export const SettingsProvider = ({ children }: Props) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+  const [roleReady, setRoleReady] = useState(false);
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -117,15 +119,16 @@ export const SettingsProvider = ({ children }: Props) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const metaRole = user.user_metadata?.role;
-    setUserRole(roleData?.role || metaRole || null);
+    // user_roles DB is the ONLY source of truth — never fall back to metadata
+    setUserRole(roleData?.role || null);
+    setRoleReady(true);
   };
 
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       // Safety timeout - never block the app forever
-      const timeout = setTimeout(() => setLoading(false), 4000);
+      const timeout = setTimeout(() => { setLoading(false); setRoleReady(true); }, 4000);
       try {
         await Promise.all([fetchSettings(), fetchUserRole()]);
       } catch (err) {
@@ -141,7 +144,7 @@ export const SettingsProvider = ({ children }: Props) => {
 
   return (
     <SettingsContext.Provider
-      value={{ settings, setSettings, userRole, setUserRole, loading }}
+      value={{ settings, setSettings, userRole, setUserRole, loading, roleReady }}
     >
       {children}
     </SettingsContext.Provider>

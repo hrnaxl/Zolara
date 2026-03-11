@@ -65,7 +65,12 @@ const DashboardLayout = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user && event !== "INITIAL_SESSION") navigate("/app/auth");
+      // Clear stale role immediately on sign-out so it never bleeds into next login
+      if (!session?.user) {
+        setCurrentRole("");
+        setRoleLoading(true);
+        if (event !== "INITIAL_SESSION") navigate("/app/auth");
+      }
     });
 
     return () => subscription.unsubscribe();

@@ -4,9 +4,9 @@ import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 
 export default function PromoCodesManagement() {
-  const { userRole, loading: roleLoading } = useSettings();
-  // While role is loading, default to view-only (safest). Once loaded, use real role.
-  const canEdit = !roleLoading && userRole !== "receptionist";
+  const { userRole, roleReady } = useSettings();
+  // Block editing until role is confirmed from DB — prevents flash of edit buttons
+  const canEdit = roleReady && userRole !== "receptionist";
 
   const [codes, setCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

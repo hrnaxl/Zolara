@@ -143,27 +143,20 @@ export default function Settings() {
         gallery_images: settings.gallery_images,
       };
 
-      // Always upsert — handles both first-save and updates safely
-      // If we have an id, update by id; otherwise upsert (Supabase picks the first row)
-      if (settings.id) {
+      // Always fetch the real row id first, then update
+      const { data: existing, error: fetchErr } = await (supabase as any)
+        .from("settings").select("id").limit(1).maybeSingle();
+
+      if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
+
+      if (existing?.id) {
         const { error } = await (supabase as any)
-          .from("settings")
-          .update(settingsData)
-          .eq("id", settings.id);
+          .from("settings").update(settingsData).eq("id", existing.id);
         if (error) throw error;
       } else {
-        // Try update first (in case row exists without id in state), then insert
-        const { data: existing } = await (supabase as any)
-          .from("settings").select("id").limit(1).maybeSingle();
-        if (existing?.id) {
-          const { error } = await (supabase as any)
-            .from("settings").update(settingsData).eq("id", existing.id);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase as any)
-            .from("settings").insert([settingsData]);
-          if (error) throw error;
-        }
+        const { error } = await (supabase as any)
+          .from("settings").insert([settingsData]);
+        if (error) throw error;
       }
       toast.success("Settings saved successfully!");
 
