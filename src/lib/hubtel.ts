@@ -32,7 +32,7 @@ function loadHubtelSDK(): Promise<any> {
       return;
     }
     const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@hubteljs/checkout@1.1.4/dist/hubtel-checkout.umd.min.js";
+    script.src = "https://cdn.jsdelivr.net/npm/@hubteljs/checkout@1.1.4/dist/index.js";
     script.onload = () => {
       if ((window as any).HubtelCheckout) {
         resolve((window as any).HubtelCheckout);
