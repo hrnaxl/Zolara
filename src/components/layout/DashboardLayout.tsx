@@ -247,9 +247,10 @@ const DashboardLayout = () => {
 
       {/* ── SIDEBAR ─────────────────────────────────── */}
       <aside style={{
-        position: "fixed", top: 0, left: 0, height: "100%", width: "240px",
+        position: "fixed", top: 0, left: 0, height: "100dvh", width: "240px",
         background: NAVY,
         zIndex: 50, display: "flex", flexDirection: "column",
+        overflowY: "auto", WebkitOverflowScrolling: "touch",
       }} className={`transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
 
         {/* Logo / Brand */}
@@ -283,7 +284,7 @@ const DashboardLayout = () => {
         </div>
 
         {/* Nav — scrollable */}
-        <nav className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 10px 20px" }}>
+        <nav className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 10px 20px", WebkitOverflowScrolling: "touch", minHeight: 0 }}>
           {roleLoading ? (
             <div style={{ padding: "20px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
               {[...Array(6)].map((_, i) => (
