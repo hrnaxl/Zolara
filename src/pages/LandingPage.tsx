@@ -24,7 +24,9 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [activeReview, setActiveReview] = useState(0);
   const [reviewVisible, setReviewVisible] = useState(false);
+  const [expVisible, setExpVisible] = useState(false);
   const reviewRef = useRef<HTMLDivElement>(null);
+  const expRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,6 +43,12 @@ export default function LandingPage() {
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setReviewVisible(true); }, { threshold: 0.1 });
     if (reviewRef.current) obs.observe(reviewRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setExpVisible(true); }, { threshold: 0.15 });
+    if (expRef.current) obs.observe(expRef.current);
     return () => obs.disconnect();
   }, []);
 
@@ -88,6 +96,9 @@ export default function LandingPage() {
         .nav-link:hover::after { width: 100%; }
         .float { animation: float 7s ease-in-out infinite; }
         .marquee-track { animation: marquee 28s linear infinite; }
+        @keyframes expKpi { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: translateX(0); } }
+        .exp-kpi { opacity: 0; }
+        .exp-visible .exp-kpi { animation: expKpi 0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
         .review-card-anim { opacity: 0; }
         .review-visible .review-card-anim { animation: reviewPop 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
         .review-card { transition: all 0.5s ease; }
@@ -154,7 +165,7 @@ export default function LandingPage() {
         <div className="orb-bg" style={{ bottom: "8%", right: "8%", width: "320px", height: "320px", background: "radial-gradient(circle, rgba(200,169,126,0.08) 0%, transparent 70%)", animation: "orb 18s ease-in-out infinite reverse", animationDelay: "-6s" }} />
         <div style={{ position: "absolute", right: "-1%", top: "50%", transform: "translateY(-50%)", fontSize: "clamp(280px,35vw,500px)", fontWeight: 700, color: "rgba(200,169,126,0.055)", lineHeight: 1, pointerEvents: "none", userSelect: "none", letterSpacing: "-0.05em" }}>Z</div>
 
-        {/* Floating info card — aligned with the hero text, top ~18% */}
+        {/* Floating info card: aligned with the hero text, top ~18% */}
         <div className="hero-floating-card-wrapper float" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "18%", width: "300px", pointerEvents: "none" }}>
           <div className="hero-floating-card" style={{ width: "300px", border: "1px solid rgba(200,169,126,0.4)", borderRadius: "5px", background: "rgba(252,249,244,0.92)", backdropFilter: "blur(24px)", padding: "36px 30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
             <div style={{ width: "70px", height: "70px", borderRadius: "50%", border: "2.5px solid #C8A97E", overflow: "hidden", background: "#fff", boxShadow: "0 0 0 5px rgba(200,169,126,0.15)" }}>
@@ -289,7 +300,7 @@ export default function LandingPage() {
       <section id="experience" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: "-60px", top: "50%", transform: "translateY(-50%)", fontSize: "380px", color: "rgba(200,169,126,0.045)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
         <div className="landing-experience-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center", maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-          <div>
+          <div ref={expRef} className={expVisible ? "exp-visible" : ""}>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
             <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
             <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", lineHeight: 1.95, marginBottom: "36px", fontWeight: 400 }}>
@@ -302,10 +313,12 @@ export default function LandingPage() {
                 ["Certified stylists with specialised training","◇"],
                 ["Premium products only. No compromises.","❋"],
                 ["Private, comfortable styling stations","◉"],
-              ].map(([item, icon]) => (
-                <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                  <span style={{ color: gold, fontSize: "15px", flexShrink: 0, marginTop: "2px" }}>{icon}</span>
-                  <span className="sans" style={{ fontSize: "13.5px", color: "#3D2E1A", lineHeight: 1.65, fontWeight: 400 }}>{item}</span>
+              ].map(([item, icon], idx) => (
+                <div key={item} className="exp-kpi" style={{ animationDelay: `${idx * 0.12}s`, display: "flex", alignItems: "flex-start", gap: "14px", background: "#fff", border: "1px solid rgba(200,169,126,0.18)", borderRadius: "8px", padding: "16px 18px", boxShadow: "0 2px 12px rgba(28,22,14,0.05)" }}>
+                  <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span style={{ color: "#fff", fontSize: "13px" }}>{icon}</span>
+                  </div>
+                  <span className="sans" style={{ fontSize: "13.5px", color: "#3D2E1A", lineHeight: 1.65, fontWeight: 400, paddingTop: "6px" }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -315,8 +328,9 @@ export default function LandingPage() {
             <div style={{ background: "linear-gradient(150deg, #2C2416 0%, #1A1008 60%, #251D0E 100%)", borderRadius: "4px", padding: "60px 48px", textAlign: "center", position: "relative", overflow: "hidden", boxShadow: "0 32px 80px rgba(28,22,14,0.35)" }}>
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 0%, rgba(200,169,126,0.18) 0%, transparent 55%)", pointerEvents: "none" }} />
               <div style={{ position: "absolute", top: "0", left: "0", right: "0", height: "3px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
-              <div style={{ position: "absolute", top: "20px", right: "20px", width: "52px", height: "52px", border: "1px solid rgba(200,169,126,0.28)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: gold, fontSize: "18px", animation: "goldPulse 3s ease-in-out infinite" }}>✦</span>
+              {/* Logo in circle, top right */}
+              <div style={{ position: "absolute", top: "20px", right: "20px", width: "52px", height: "52px", border: "2px solid rgba(200,169,126,0.5)", borderRadius: "50%", overflow: "hidden", background: "#fff", boxShadow: "0 0 0 4px rgba(200,169,126,0.12)" }}>
+                <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <p style={{ fontStyle: "italic", fontSize: "clamp(18px,2.5vw,27px)", color: "#F5EFE6", lineHeight: 1.65, marginBottom: "32px", position: "relative", zIndex: 1, fontWeight: 400 }}>
                 "Not just a salon. A complete luxury experience."
@@ -343,7 +357,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* REVIEWS — ANIMATED */}
+      {/* REVIEWS: ANIMATED */}
       <section id="reviews" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: dark, textAlign: "center", overflow: "hidden", position: "relative" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(200,169,126,0.10) 0%, transparent 55%)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 60px, rgba(200,169,126,0.015) 60px, rgba(200,169,126,0.015) 61px)", pointerEvents: "none" }} />
@@ -400,7 +414,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* GIFT CARDS — 2 column with KPI marketing */}
+      {/* GIFT CARDS: 2 column with KPI marketing */}
       <section id="gift-cards" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 70% 30%, rgba(200,169,126,0.07) 0%, transparent 50%)", pointerEvents: "none" }} />
 
@@ -421,7 +435,7 @@ export default function LandingPage() {
             {[
               {
                 icon: "✦", title: "Works Like Cash",
-                body: "Redeemable for any service across our full menu. Braids, nails, lashes, makeup — your recipient chooses.",
+                body: "Redeemable for any service across our full menu. Braids, nails, lashes, makeup and more. Your recipient chooses.",
               },
               {
                 icon: "◈", title: "12-Month Validity",
