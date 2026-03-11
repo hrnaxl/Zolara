@@ -1,10 +1,10 @@
 // Hubtel checkout via direct URL redirect to unified-pay.hubtel.com
 // This is exactly what the @hubteljs/checkout SDK does internally
 
-const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "D0jDmnq";
-const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "b55d6377fd6b459fbb07fb1492d36ccf";
-// unified-pay uses the phone-based merchant number, not the account ID
-const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
+// Hardcoded — Vercel env vars have stale/malformed values
+const HUBTEL_CLIENT_ID = "D0jDmnq";
+const HUBTEL_CLIENT_SECRET = "b55d6377fd6b459fbb07fb1492d36ccf";
+const HUBTEL_MERCHANT_ACCOUNT = "233594922679";
 
 export type HubtelCheckoutPayload = {
   amount: number;
