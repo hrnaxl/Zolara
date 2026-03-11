@@ -25,24 +25,13 @@ export type HubtelCheckoutResult = {
   error: string | null;
 };
 
-function loadHubtelSDK(): Promise<any> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).HubtelCheckout) {
-      resolve((window as any).HubtelCheckout);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@hubteljs/checkout@1.1.4/dist/index.js";
-    script.onload = () => {
-      if ((window as any).HubtelCheckout) {
-        resolve((window as any).HubtelCheckout);
-      } else {
-        reject(new Error("Hubtel SDK loaded but HubtelCheckout not found on window"));
-      }
-    };
-    script.onerror = () => reject(new Error("Failed to load Hubtel SDK from CDN"));
-    document.head.appendChild(script);
-  });
+let _hubtelSDK: any = null;
+
+async function loadHubtelSDK(): Promise<any> {
+  if (_hubtelSDK) return _hubtelSDK;
+  const mod = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/@hubteljs/checkout@1.1.4/dist/index.js");
+  _hubtelSDK = mod.default || mod.CheckoutSdk || mod;
+  return _hubtelSDK;
 }
 
 export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<HubtelCheckoutResult> {
