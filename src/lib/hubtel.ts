@@ -3,11 +3,10 @@
 // Placeholder — swap in real credentials when account is approved
 // ================================================================
 
-// TODO: Replace with real Hubtel credentials when account is ready
-const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "PENDING";
-const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "PENDING";
-const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "PENDING";
-const BASE_URL = "https://api.hubtel.com/v1";
+const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "noDLLP";
+const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "51c9ad0e01864fd8b214a39a7ca92c44";
+const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
+const BASE_URL = "https://api-txnghana.hubtel.com";
 
 export type HubtelCheckoutPayload = {
   amount: number;
@@ -45,7 +44,7 @@ export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/online`, {
+    const response = await fetch(`${BASE_URL}/v1/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/online`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -68,11 +67,11 @@ export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Hubtel checkout failed");
+    if (!response.ok) throw new Error(data?.message || data?.ResponseMessage || JSON.stringify(data));
 
     return {
-      checkoutUrl: data.data?.checkoutDirectUrl || null,
-      paymentRef: data.data?.clientReference || null,
+      checkoutUrl: data.data?.checkoutDirectUrl || data.Data?.CheckoutDirectUrl || null,
+      paymentRef: data.data?.clientReference || payload.clientReference,
       error: null,
     };
   } catch (err: any) {
@@ -96,7 +95,7 @@ export async function initiateMoMoCollect(payload: {
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/mobilemoney`, {
+    const response = await fetch(`${BASE_URL}/v1/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/mobilemoney`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -121,5 +120,5 @@ export async function initiateMoMoCollect(payload: {
 }
 
 export function isHubtelConfigured(): boolean {
-  return HUBTEL_CLIENT_ID !== "PENDING";
+  return true;
 }
