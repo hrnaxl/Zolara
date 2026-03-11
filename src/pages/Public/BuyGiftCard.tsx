@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
 import { initiateCheckout, isHubtelConfigured } from "@/lib/hubtel";
 import { toast } from "sonner";
@@ -100,6 +101,9 @@ export default function BuyGiftCard() {
     <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
       {/* Header */}
       <div style={{ background: NAVY, padding: "20px 24px", display: "flex", alignItems: "center", gap: 12 }}>
+        <Link to="/" style={{ color: "#9CA3AF", fontSize: 12, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, marginRight: 16, whiteSpace: "nowrap" }}>
+          ← Home
+        </Link>
         <img src="/logo.png" alt="Zolara" style={{ height: 36 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
         <div>
           <div style={{ color: G, fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600 }}>Zolara Beauty Studio</div>
