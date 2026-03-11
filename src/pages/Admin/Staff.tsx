@@ -304,11 +304,29 @@ const Staff = () => {
           .eq("id", editingMemberId);
 
         if (error) throw error;
+
+        // Role-sync on status change — Owner controls access, not the user
+        const { data: staffRecord } = await supabase
+          .from("staff").select("user_id, role").eq("id", editingMemberId).maybeSingle();
+
+        if (staffRecord?.user_id) {
+          if (!formData.is_active) {
+            // Deactivated/removed: immediately revoke to client role
+            await supabase.from("user_roles").upsert({ user_id: staffRecord.user_id, role: "client" });
+          } else {
+            // Reactivated: restore their pre-authorized staff role
+            await supabase.from("user_roles").upsert({
+              user_id: staffRecord.user_id,
+              role: validated.role || staffRecord.role || "staff",
+            });
+          }
+        }
+
         toast.success("Staff updated successfully");
       } else {
         const { error } = await supabase.from("staff").insert([staffData]);
         if (error) throw error;
-        toast.success("Staff added successfully");
+        toast.success("Staff added. They can now sign up at zolarasalon.com/app/auth using this email.");
       }
 
       setDialogOpen(false);

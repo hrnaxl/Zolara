@@ -9,7 +9,19 @@ export default function AuthCallback() {
   const redirectByRole = async (userId: string, metadata: any) => {
     const { data: roleData } = await supabase
       .from("user_roles").select("role").eq("user_id", userId).maybeSingle();
-    const role = roleData?.role || metadata?.role || "client";
+    let role = roleData?.role || metadata?.role || "client";
+
+    // Validate active status for staff/receptionist — revoked staff land as client
+    if (role === "staff" || role === "receptionist") {
+      const { data: staffRecord } = await supabase
+        .from("staff").select("is_active").eq("user_id", userId).maybeSingle();
+
+      if (staffRecord && !staffRecord.is_active) {
+        await supabase.from("user_roles").upsert({ user_id: userId, role: "client" });
+        role = "client";
+      }
+    }
+
     if (role === "owner" || role === "admin")  navigate("/app/admin/dashboard", { replace: true });
     else if (role === "receptionist")          navigate("/app/receptionist/dashboard", { replace: true });
     else if (role === "staff")                 navigate("/app/staff/dashboard", { replace: true });

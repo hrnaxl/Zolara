@@ -51,10 +51,27 @@ export default function Auth() {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError("Invalid email or password."); return; }
 
-      const { data: roleData } = await supabase
-        .from("user_roles").select("role").eq("user_id", data.user.id).maybeSingle();
+      const userId = data.user.id;
 
-      const role = roleData?.role || data.user.user_metadata?.role || "client";
+      // Fetch role from DB — source of truth
+      const { data: roleData } = await supabase
+        .from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+
+      let role = roleData?.role || data.user.user_metadata?.role || "client";
+
+      // If this user has a staff/receptionist role, verify they are still active
+      // Owner can revoke access by setting is_active = false — this enforces it on every login
+      if (role === "staff" || role === "receptionist") {
+        const { data: staffRecord } = await supabase
+          .from("staff").select("is_active").eq("user_id", userId).maybeSingle();
+
+        if (staffRecord && !staffRecord.is_active) {
+          // Staff has been revoked — downgrade to client immediately
+          await supabase.from("user_roles").upsert({ user_id: userId, role: "client" });
+          role = "client";
+        }
+      }
+
       redirectByRole(role);
     } catch { setError("Something went wrong. Please try again."); }
     finally { setLoading(false); }
@@ -68,14 +85,22 @@ export default function Auth() {
     setLoading(true); setError("");
 
     try {
-      // Check if email belongs to a staff member
+      // Whitelist check: email must exist in staff table AND be active
+      // Owner controls this registry — users cannot choose their role
       const { data: staffMatch } = await supabase
         .from("staff")
-        .select("id, role, name")
+        .select("id, role, name, is_active")
         .eq("email", email.trim().toLowerCase())
         .maybeSingle();
 
-      const assignedRole = staffMatch?.role || "client";
+      // If email is in staff table but marked inactive, block signup entirely
+      if (staffMatch && !staffMatch.is_active) {
+        setError("This email is not authorized for access. Contact the salon owner.");
+        return;
+      }
+
+      // Active staff member → assign their pre-set role. Otherwise → client.
+      const assignedRole = staffMatch?.is_active ? (staffMatch.role || "staff") : "client";
 
       // Create auth account
       const { data: authData, error: authErr } = await supabase.auth.signUp({
