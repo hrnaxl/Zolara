@@ -73,7 +73,7 @@ const App = () => (
           <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Client self-service portal */}
-          <Route path="/app/client/auth" element={<ClientAuth />} />
+          <Route path="/app/client/auth" element={<Navigate to="/app/auth" />} />
           <Route path="/app/client" element={<ClientPortal />}>
             <Route path="home" element={<ClientDashboard />} />
             <Route path="loyalty" element={<ClientDashboard />} />
