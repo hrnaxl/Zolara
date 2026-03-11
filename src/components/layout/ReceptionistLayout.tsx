@@ -2,163 +2,102 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay } from "date-fns";
 import {
-  Calendar,
-  Clock,
-  Users,
-  CheckCircle2,
-  AlertCircle,
-  Bell,
-  CreditCard,
-  UserCheck,
+  Calendar, Clock, Users, CheckCircle2, Bell, UserCheck, CreditCard,
 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { DonutChart } from "@/components/dashboard/DonutChart";
 import { ActivityList } from "@/components/dashboard/ActivityList";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { UpcomingAppointments } from "@/components/dashboard/UpcomingAppointments";
 import { Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
-interface TodayBooking {
-  id: string;
-  preferred_time: string;
-  status: string;
-  clients: { name: string; phone: string } | null;
-  services: { name: string; duration_minutes: number } | null;
-  staff: { name: string } | null;
-}
 
 const ReceptionistDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
-  const [todayBookings, setTodayBookings] = useState<TodayBooking[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [stats, setStats] = useState({
-    todayTotal: 0,
-    checkedIn: 0,
-    pending: 0,
-    completed: 0,
-    totalClients: 0,
-    pendingPayments: 0,
+    todayTotal: 0, checkedIn: 0, pending: 0,
+    completed: 0, totalClients: 0, pendingRequests: 0,
+    todayRevenue: 0,
   });
-  const [bookingStatusData, setBookingStatusData] = useState<
-    { name: string; value: number; color: string }[]
-  >([]);
+  const [bookingStatusData, setBookingStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [pendingItems, setPendingItems] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     setLoading(true);
-
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get user profile name
       const { data: profile } = await supabase
-        .from("staff")
-        .select("name")
-        .eq("user_id", user.id)
-        .single();
-
+        .from("staff").select("name").eq("user_id", user.id).maybeSingle();
       if (profile) setUserName(profile.name);
 
-      const today = new Date();
-      const todayStart = format(startOfDay(today), "yyyy-MM-dd");
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const tomorrowStr = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
 
-      // Fetch today's bookings
       const { data: bookings = [] } = await supabase
-        .from("bookings")
-        .select(
-          "*, client_name, client_phone, services(name, duration_minutes), staff(name)"
-        )
-        .eq("preferred_date", todayStart)
+        .from("bookings").select("*")
+        .gte("preferred_date", todayStr).lt("preferred_date", tomorrowStr)
         .order("preferred_time", { ascending: true });
 
-      setTodayBookings(bookings);
+      const { data: upcoming = [] } = await supabase
+        .from("bookings").select("*")
+        .gte("preferred_date", todayStr)
+        .in("status", ["pending", "confirmed"])
+        .order("preferred_date", { ascending: true })
+        .order("preferred_time", { ascending: true })
+        .limit(5);
 
-      // Fetch pending booking requests
-      const { data: requests = [] } = await supabase
-        .from("bookings")
-        .select("*, client_name, services(name)")
+      const { data: pendingBookings = [] } = await supabase
+        .from("bookings").select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(8);
 
-      setPendingRequests(requests);
+      const { count: clientCount } = await supabase
+        .from("clients").select("*", { count: "exact", head: true });
 
-      // Fetch total clients
-      // @ts-ignore
-      const { count: clientCount, error } = await supabase
-        .from("clients")
-        .select("*", { count: "exact", head: true })
-        ;
+      // Today revenue from sales
+      const { data: todaySales = [] } = await supabase
+        .from("sales").select("amount")
+        .gte("created_at", startOfDay(new Date()).toISOString())
+        .lte("created_at", endOfDay(new Date()).toISOString());
 
-      // Calculate stats
-      const checkedIn = bookings.filter((b) => b.status === "confirmed").length;
-      const completed = bookings.filter((b) => b.status === "completed").length;
-      const pendingBookings = bookings.filter(
-        (b) => b.status === "pending"
-      ).length;
-
-      // Status distribution
-      const statusCounts: Record<string, number> = {
-        scheduled: pendingBookings,
-        confirmed: checkedIn,
-        completed: completed,
-      };
-
-      const statusColors: Record<string, string> = {
-        scheduled: "hsl(38, 92%, 50%)",
-        confirmed: "hsl(210, 80%, 52%)",
-        completed: "hsl(152, 60%, 42%)",
-      };
-
-      const statusData = Object.entries(statusCounts)
-        .filter(([_, value]) => value > 0)
-        .map(([name, value]) => ({
-          name: name.charAt(0).toUpperCase() + name.slice(1),
-          value,
-          color: statusColors[name] || "hsl(220, 10%, 50%)",
-        }));
-
-      setBookingStatusData(statusData);
+      const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+      const checkedIn = bookings.filter((b: any) => b.status === "confirmed").length;
+      const completed = bookings.filter((b: any) => b.status === "completed").length;
+      const pending = bookings.filter((b: any) => b.status === "pending").length;
 
       setStats({
-        todayTotal: bookings.length,
-        checkedIn,
-        pending: pendingBookings,
-        completed,
-        totalClients: clientCount || 0,
-        pendingPayments: requests.length,
+        todayTotal: bookings.length, checkedIn, pending, completed,
+        totalClients: clientCount || 0, pendingRequests: pendingBookings.length, todayRevenue,
       });
-    } catch (error: any) {
-      console.error("Error fetching dashboard data:", error);
-      toast.error(error.message || "Failed to load dashboard data");
+
+      setBookingStatusData([
+        { name: "Pending",   value: pending,   color: "hsl(38,92%,50%)" },
+        { name: "Confirmed", value: checkedIn, color: "hsl(210,80%,52%)" },
+        { name: "Completed", value: completed, color: "hsl(152,60%,42%)" },
+      ].filter(d => d.value > 0));
+
+      setUpcomingAppointments(upcoming.map((b: any) => ({
+        id: b.id, clientName: b.client_name || "Client",
+        service: b.service_name || "Service", staffName: b.staff_name || "—",
+        date: b.preferred_date, time: b.preferred_time, status: b.status,
+      })));
+
+      setPendingItems(pendingBookings.map((b: any) => ({
+        id: b.id, title: b.service_name || "Service Request",
+        subtitle: b.client_name || "Client", date: b.created_at, status: "pending",
+      })));
+
+    } catch (err: any) {
+      toast.error("Failed to load dashboard");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCheckIn = async (bookingId: string) => {
-    try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status: "confirmed" })
-        .eq("id", bookingId);
-
-      if (error) throw error;
-
-      toast.success("Client checked in successfully!");
-      fetchDashboardData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to check in client");
     }
   };
 
@@ -170,190 +109,49 @@ const ReceptionistDashboard = () => {
             <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
             <Loader2 className="w-16 h-16 absolute inset-0 animate-spin text-primary" />
           </div>
-          <p className="text-muted-foreground font-medium">
-            Loading dashboard...
-          </p>
+          <p className="text-muted-foreground font-medium">Loading dashboard...</p>
         </div>
       </div>
     );
   }
-
-  // Format pending requests for activity list
-  const pendingRequestItems = pendingRequests.map((r) => ({
-    id: r.id,
-    title: r.service_name || "Service Request",
-    subtitle: r.client_name || "Client",
-    date: r.created_at,
-    status: "pending",
-  }));
-
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      scheduled: "bg-warning-light text-warning",
-      confirmed: "bg-info-light text-info",
-      completed: "bg-success-light text-success",
-      cancelled: "bg-destructive-light text-destructive",
-    };
-    return styles[status] || "bg-muted text-muted-foreground";
-  };
 
   return (
     <div className="space-y-8 p-6">
       <DashboardHeader
         title="Reception Dashboard"
         userName={userName}
-        subtitle="Manage today's appointments and client check-ins"
+        subtitle="Manage today's appointments and front desk operations"
       />
 
-      {/* Stats Grid */}
+      {/* Primary stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Today's Appointments"
-          value={stats.todayTotal}
-          icon={<Calendar className="w-6 h-6" />}
-          variant="gold"
-          delay={0}
-        />
-        <StatCard
-          title="Checked In"
-          value={stats.checkedIn}
-          icon={<UserCheck className="w-6 h-6" />}
-          variant="blue"
-          delay={0.1}
-        />
-        <StatCard
-          title="Waiting"
-          value={stats.pending}
-          icon={<Clock className="w-6 h-6" />}
-          variant="purple"
-          delay={0.2}
-        />
-        <StatCard
-          title="Completed"
-          value={stats.completed}
-          icon={<CheckCircle2 className="w-6 h-6" />}
-          variant="green"
-          delay={0.3}
-        />
+        <StatCard title="Today's Appointments" value={stats.todayTotal}
+          icon={<Calendar className="w-6 h-6" />} variant="gold" delay={0} />
+        <StatCard title="Checked In" value={stats.checkedIn}
+          icon={<UserCheck className="w-6 h-6" />} variant="blue" delay={0.1} />
+        <StatCard title="Pending" value={stats.pending}
+          icon={<Clock className="w-6 h-6" />} variant="purple" delay={0.2} />
+        <StatCard title="Completed" value={stats.completed}
+          icon={<CheckCircle2 className="w-6 h-6" />} variant="green" delay={0.3} />
       </div>
 
-      {/* Secondary Stats */}
+      {/* Secondary stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Clients"
-          value={stats.totalClients.toLocaleString()}
-          icon={<Users className="w-6 h-6" />}
-          variant="default"
-          delay={0.4}
-        />
-        <StatCard
-          title="Pending Requests"
-          value={stats.pendingPayments}
-          icon={<Bell className="w-6 h-6" />}
-          variant="default"
-          delay={0.5}
-        />
-        <DonutChart
-          data={bookingStatusData}
-          title="Today's Status"
-          subtitle="Appointment distribution"
-          centerValue={stats.todayTotal}
-          centerLabel="Total"
-        />
+        <StatCard title="Total Clients" value={stats.totalClients.toLocaleString()}
+          icon={<Users className="w-6 h-6" />} variant="default" delay={0.4} />
+        <StatCard title="Today's Revenue" value={`GHS ${stats.todayRevenue.toFixed(2)}`}
+          icon={<CreditCard className="w-6 h-6" />} variant="gold" delay={0.5} />
+        <DonutChart data={bookingStatusData} title="Today's Status"
+          subtitle="Appointment distribution" centerValue={stats.todayTotal} centerLabel="Total" />
       </div>
 
-      {/* Today's Schedule */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-      >
-        <Card className="glass-card">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                <CardTitle className="text-xl font-display">
-                  Today's Schedule
-                </CardTitle>
-              </div>
-              <Badge variant="secondary" className="text-sm">
-                {format(new Date(), "EEEE, MMMM d")}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {todayBookings.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No appointments scheduled for today</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {todayBookings.map((booking, index) => (
-                  <motion.div
-                    key={booking.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 * index }}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[60px]">
-                        <p className="text-lg font-bold">
-                          {booking.preferred_time}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {booking.services?.duration_minutes || 30} min
-                        </p>
-                      </div>
-                      <div className="h-12 w-px bg-border" />
-                      <div>
-                        <p className="font-medium">
-                          {booking.client_name || "Unknown Client"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {booking.service_name || "Service"} •{" "}
-                          {booking.staff_name || "Unassigned"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        className={cn(
-                          "capitalize",
-                          getStatusBadge(booking.status)
-                        )}
-                      >
-                        {booking.status}
-                      </Badge>
-                      {booking.status === "pending" && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleCheckIn(booking.id)}
-                          className="bg-success hover:bg-success/90"
-                        >
-                          <UserCheck className="w-4 h-4 mr-1" />
-                          Check In
-                        </Button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Pending Requests */}
-      <ActivityList
-        title="Pending Booking Requests"
-        subtitle="Awaiting approval"
-        items={pendingRequestItems}
-        icon={<AlertCircle className="w-5 h-5 text-warning" />}
-        emptyMessage="No pending requests"
-      />
+      {/* Upcoming + Pending */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <UpcomingAppointments appointments={upcomingAppointments} />
+        <ActivityList title="Pending Requests" subtitle="Awaiting confirmation"
+          items={pendingItems} icon={<Bell className="w-5 h-5 text-warning" />}
+          emptyMessage="No pending requests" />
+      </div>
     </div>
   );
 };

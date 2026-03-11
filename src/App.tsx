@@ -115,6 +115,7 @@ const App = () => (
               <Route path="/app/receptionist/dashboard" element={<ReceptionistLayout />} />
               <Route path="/app/receptionist/bookings" element={<Bookings />} />
               <Route path="/app/receptionist/clients" element={<Clients />} />
+              <Route path="/app/receptionist/staff" element={<Staff />} />
               <Route path="/app/receptionist/gift-cards" element={<GiftCards />} />
               <Route path="/app/receptionist/checkout" element={<Checkout />} />
               <Route path="/app/receptionist/attendance" element={<Attendance />} />

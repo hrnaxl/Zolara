@@ -71,16 +71,18 @@ const DashboardLayout = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // fetch role for the current user to ensure nav reflects latest permissions
+    // Sync role from DB — user_roles is the ONLY source of truth.
+    // Never use user_metadata as fallback — it can be stale and cause wrong nav paths.
     const syncRole = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
-        const metaDataRole = (user as any).user_metadata?.role || "";
-        const role = roleData?.role || metaDataRole || "";
+        const { data: roleData } = await supabase
+          .from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
+        if (!roleData?.role) return;
+        const role = roleData.role;
         setCurrentRole(role);
-        // store in localStorage for legacy parts that read it
+        // Update localStorage so nav paths are always fresh
         localStorage.setItem("user", JSON.stringify({ id: user.id, email: user.email, role }));
       } catch (err) {
         console.error("Failed to sync user role", err);
@@ -88,7 +90,6 @@ const DashboardLayout = () => {
     };
 
     syncRole();
-    // re-sync role when window gains focus (helps reflect admin changes)
     window.addEventListener("focus", syncRole);
     return () => window.removeEventListener("focus", syncRole);
   }, []);
