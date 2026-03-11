@@ -6,7 +6,10 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState("Confirming your account...");
 
-  const redirectByRole = (role: string) => {
+  const redirectByRole = async (userId: string, metadata: any) => {
+    const { data: roleData } = await supabase
+      .from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+    const role = roleData?.role || metadata?.role || "client";
     if (role === "owner" || role === "admin")  navigate("/app/admin/dashboard", { replace: true });
     else if (role === "receptionist")          navigate("/app/receptionist/dashboard", { replace: true });
     else if (role === "staff")                 navigate("/app/staff/dashboard", { replace: true });
@@ -14,37 +17,48 @@ export default function AuthCallback() {
   };
 
   useEffect(() => {
-    // Listen for auth state — Supabase fires SIGNED_IN after processing the token in the URL hash
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        const { data: roleData } = await supabase
-          .from("user_roles").select("role").eq("user_id", session.user.id).maybeSingle();
-        const role = roleData?.role || session.user.user_metadata?.role || "client";
-        redirectByRole(role);
-      }
-    });
+    const run = async () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const token_hash = params.get("token_hash");
+        const type = params.get("type");
 
-    // Also try getSession in case the token has already been processed
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        supabase.from("user_roles").select("role").eq("user_id", session.user.id).maybeSingle()
-          .then(({ data: roleData }) => {
-            const role = roleData?.role || session.user.user_metadata?.role || "client";
-            redirectByRole(role);
+        if (token_hash && type) {
+          // Exchange the token hash for a session
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash,
+            type: type as any,
           });
+
+          if (error) {
+            setStatus("Confirmation failed: " + error.message);
+            setTimeout(() => navigate("/app/auth", { replace: true }), 3000);
+            return;
+          }
+
+          if (data.session) {
+            setStatus("Confirmed! Redirecting...");
+            await redirectByRole(data.session.user.id, data.session.user.user_metadata);
+            return;
+          }
+        }
+
+        // Fallback: check existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await redirectByRole(session.user.id, session.user.user_metadata);
+          return;
+        }
+
+        setStatus("No session found. Please sign in.");
+        setTimeout(() => navigate("/app/auth", { replace: true }), 2500);
+      } catch (e: any) {
+        setStatus("Something went wrong. Redirecting...");
+        setTimeout(() => navigate("/app/auth", { replace: true }), 2500);
       }
-    });
-
-    // Timeout fallback
-    const timeout = setTimeout(() => {
-      setStatus("Taking too long. Please sign in manually.");
-      setTimeout(() => navigate("/app/auth", { replace: true }), 2500);
-    }, 8000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
     };
+
+    run();
   }, []);
 
   return (
