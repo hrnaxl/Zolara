@@ -1,8 +1,11 @@
-const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "noDLLP";
-const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "51c9ad0e01864fd8b214a39a7ca92c44";
-const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
-const SUPABASE_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTA1MTQsImV4cCI6MjA4ODcyNjUxNH0.UFzTXEiS-dPXDoeSJSVfQGkRUuFA1aNQxHWu6jk62L4";
+// ================================================================
+// HUBTEL PAYMENT - JS SDK approach (modal-based, no server API call)
+// SDK docs: https://www.npmjs.com/package/@hubteljs/checkout
+// ================================================================
+
+const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "D0jDmnq";
+const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "b55d6377fd6b459fbb07fb1492d36ccf";
+const HUBTEL_MERCHANT_ACCOUNT = Number(import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "3746502");
 
 export type HubtelCheckoutPayload = {
   amount: number;
@@ -22,45 +25,76 @@ export type HubtelCheckoutResult = {
   error: string | null;
 };
 
+function loadHubtelSDK(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).HubtelCheckout) {
+      resolve((window as any).HubtelCheckout);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/@hubteljs/checkout@1.1.4/dist/hubtel-checkout.umd.min.js";
+    script.onload = () => {
+      if ((window as any).HubtelCheckout) {
+        resolve((window as any).HubtelCheckout);
+      } else {
+        reject(new Error("Hubtel SDK loaded but HubtelCheckout not found on window"));
+      }
+    };
+    script.onerror = () => reject(new Error("Failed to load Hubtel SDK from CDN"));
+    document.head.appendChild(script);
+  });
+}
+
 export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<HubtelCheckoutResult> {
-  try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/smart-processor`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_ANON}`,
-        "apikey": SUPABASE_ANON,
-      },
-      body: JSON.stringify({
-        amount: payload.amount,
-        description: payload.description,
-        callbackUrl: payload.callbackUrl,
-        returnUrl: payload.returnUrl,
-        cancellationUrl: payload.cancellationUrl,
-        clientReference: payload.clientReference,
-        customerName: payload.customerName,
-        customerEmail: payload.customerEmail || "",
-        customerPhone: payload.customerPhone || "",
-      }),
-    });
+  return new Promise(async (resolve) => {
+    try {
+      const HubtelCheckoutSDK = await loadHubtelSDK();
+      const checkout = new HubtelCheckoutSDK();
+      const basicAuth = btoa(`${HUBTEL_CLIENT_ID}:${HUBTEL_CLIENT_SECRET}`);
 
-    let data: any;
-    try { data = await response.json(); } catch { throw new Error(`Edge function status ${response.status} — no JSON`); }
+      checkout.openModal({
+        purchaseInfo: {
+          amount: payload.amount,
+          purchaseDescription: payload.description,
+          customerPhoneNumber: payload.customerPhone || "",
+          clientReference: payload.clientReference,
+        },
+        config: {
+          branding: "enabled",
+          callbackUrl: payload.callbackUrl,
+          merchantAccount: HUBTEL_MERCHANT_ACCOUNT,
+          basicAuth: basicAuth,
+          allowedChannels: ["mobileMoney", "bankCard"],
+        },
+        callBacks: {
+          onInit: () => console.log("[Hubtel] Modal initialized"),
+          onPaymentSuccess: (data: any) => {
+            console.log("[Hubtel] Payment success:", data);
+            checkout.closePopUp?.();
+            // Redirect to return URL on success
+            window.location.href = payload.returnUrl;
+            resolve({ checkoutUrl: null, paymentRef: payload.clientReference, error: null });
+          },
+          onPaymentFailure: (data: any) => {
+            console.log("[Hubtel] Payment failure:", data);
+            checkout.closePopUp?.();
+            resolve({ checkoutUrl: null, paymentRef: null, error: "Payment failed or cancelled" });
+          },
+          onLoad: () => console.log("[Hubtel] Modal loaded"),
+          onClose: () => {
+            console.log("[Hubtel] Modal closed");
+            resolve({ checkoutUrl: null, paymentRef: null, error: "Payment cancelled" });
+          },
+        },
+      });
 
-    if (!response.ok) throw new Error(data?.error || data?.message || data?.Message || `Error ${response.status}`);
-
-    const checkoutUrl =
-      data?.data?.checkoutDirectUrl ||
-      data?.Data?.CheckoutDirectUrl ||
-      data?.checkoutDirectUrl ||
-      data?.data?.paylinkUrl ||
-      data?.paylinkUrl ||
-      null;
-
-    return { checkoutUrl, paymentRef: data?.data?.clientReference || payload.clientReference, error: null };
-  } catch (err: any) {
-    return { checkoutUrl: null, paymentRef: null, error: err.message };
-  }
+      // Resolve with a special flag so the caller knows modal is open (not a redirect)
+      resolve({ checkoutUrl: "modal://open", paymentRef: payload.clientReference, error: null });
+    } catch (err: any) {
+      console.error("[Hubtel] SDK error:", err);
+      resolve({ checkoutUrl: null, paymentRef: null, error: err.message });
+    }
+  });
 }
 
 export async function initiateMoMoCollect(payload: {
@@ -69,28 +103,7 @@ export async function initiateMoMoCollect(payload: {
   description: string;
   clientReference: string;
 }): Promise<{ success: boolean; error: string | null }> {
-  try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/smart-processor`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_ANON}`,
-        "apikey": SUPABASE_ANON,
-      },
-      body: JSON.stringify({
-        amount: payload.amount,
-        description: payload.description,
-        clientReference: payload.clientReference,
-        customerPhone: payload.customerPhone,
-        momo: true,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data?.error || data?.message || "MoMo collect failed");
-    return { success: true, error: null };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
+  return { success: false, error: "MoMo direct collect not supported in SDK mode" };
 }
 
 export function isHubtelConfigured(): boolean {
