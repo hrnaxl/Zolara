@@ -654,9 +654,9 @@ const GiftCards = () => {
                 userRole={userRole}
                 key={card.id}
                 card={card}
-                onEdit={!roleReady || userRole === "receptionist" ? undefined : openEdit}
-                onAction={!roleReady || userRole === "receptionist" ? undefined : openConfirm}
-                readOnly={!roleReady || userRole === "receptionist"}
+                onEdit={!roleReady || userRole === null || userRole === "receptionist" ? undefined : openEdit}
+                onAction={!roleReady || userRole === null || userRole === "receptionist" ? undefined : openConfirm}
+                readOnly={!roleReady || userRole === null || userRole === "receptionist"}
               />
             ))}
           </div>

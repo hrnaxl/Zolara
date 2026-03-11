@@ -127,7 +127,6 @@ export const SettingsProvider = ({ children }: Props) => {
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      // Safety timeout - never block the app forever
       const timeout = setTimeout(() => { setLoading(false); setRoleReady(true); }, 4000);
       try {
         await Promise.all([fetchSettings(), fetchUserRole()]);
@@ -140,6 +139,19 @@ export const SettingsProvider = ({ children }: Props) => {
     };
 
     init();
+
+    // Re-fetch role whenever auth state changes (sign in / sign out / token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        setRoleReady(false);
+        await fetchUserRole();
+      } else if (event === "SIGNED_OUT") {
+        setUserRole(null);
+        setRoleReady(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return (

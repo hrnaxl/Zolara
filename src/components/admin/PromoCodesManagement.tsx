@@ -6,7 +6,8 @@ import { toast } from "sonner";
 export default function PromoCodesManagement() {
   const { userRole, roleReady } = useSettings();
   // Block editing until role is confirmed from DB — prevents flash of edit buttons
-  const canEdit = roleReady && userRole !== "receptionist";
+  // Only allow editing when role is confirmed AND is explicitly an edit-capable role
+  const canEdit = roleReady && userRole !== null && userRole !== "receptionist";
 
   const [codes, setCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
