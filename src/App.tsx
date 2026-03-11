@@ -41,6 +41,8 @@ import Loyalty from "./pages/Admin/Loyalty";
 import WaitlistPage from "./pages/Admin/Waitlist";
 import AddonsPage from "./pages/Admin/Addons";
 import PromoCodesPage from "./pages/Admin/PromoCodes";
+import BuyGiftCard from "./pages/Public/BuyGiftCard";
+import GiftCardBatchGenerator from "./pages/Admin/GiftCardBatchGenerator";
 import SMSPage from "./pages/Admin/SMS";
 import AnalyticsPage from "./pages/Admin/Analytics";
 import ProductsPage from "./pages/Admin/Products";
@@ -69,6 +71,7 @@ const App = () => (
           
           {/* Staff Login Page */}
           <Route path="/app/auth" element={<Auth />} />
+          <Route path="/buy-gift-card" element={<BuyGiftCard />} />
 
           <Route path="/auth/callback" element={<AuthCallback />} />
 
@@ -96,6 +99,7 @@ const App = () => (
               <Route path="/app/admin/attendance" element={<Attendance />} />
               <Route path="/app/admin/attendance-reports" element={<AttendanceReports />} />
               <Route path="/app/admin/gift-cards" element={<GiftCards />} />
+              <Route path="/app/admin/gift-card-batches" element={<GiftCardBatchGenerator />} />
               <Route path="/app/admin/loyalty" element={<Loyalty />} />
               <Route path="/app/admin/waitlist" element={<WaitlistPage />} />
               <Route path="/app/admin/addons" element={<AddonsPage />} />

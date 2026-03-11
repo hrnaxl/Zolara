@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay } from "date-fns";
+import { fetchPendingDepositBookings } from "@/lib/giftCardEcommerce";
 
 const ReceptionistDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -12,6 +13,7 @@ const ReceptionistDashboard = () => {
   const [bookingStatusData, setBookingStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [pendingItems, setPendingItems] = useState<any[]>([]);
+  const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -46,6 +48,9 @@ const ReceptionistDashboard = () => {
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(8);
+
+      const { data: depositBookings } = await fetchPendingDepositBookings().then(r => ({ data: r.data }));
+      setPendingDeposits(depositBookings || []);
 
       const { count: clientCount } = await supabase
         .from("clients").select("*", { count: "exact", head: true });
@@ -265,6 +270,31 @@ const ReceptionistDashboard = () => {
           }
         </div>
       </div>
+
+      {/* ── PENDING DEPOSITS ────────────────────────────── */}
+      {pendingDeposits.length > 0 && (
+        <div className="rc-flat au" style={{ animationDelay: "0.42s", padding: "28px", border: "1.5px solid #FCA5A5", background: "#FFF5F5" }}>
+          <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: "#DC2626", marginBottom: "5px" }}>ACTION REQUIRED</div>
+          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "18px" }}>
+            Pending Deposits ({pendingDeposits.length})
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "10px" }}>
+            {pendingDeposits.map((b: any) => (
+              <div key={b.id} style={{ padding: "14px 16px", borderRadius: "10px", background: "white", border: "1px solid #FCA5A5", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                <span style={{ fontSize: "18px", flexShrink: 0 }}>💳</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{b.client_name || "Client"}</div>
+                  <div style={{ fontSize: "11px", color: TXT_MID, marginTop: "2px" }}>{b.service_name || "Service"}</div>
+                  <div style={{ fontSize: "11px", color: TXT_SOFT, marginTop: "2px" }}>{b.preferred_date} · {b.preferred_time}</div>
+                  <div style={{ marginTop: "6px", display: "inline-block", background: "#FEE2E2", color: "#DC2626", fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px", letterSpacing: "0.05em" }}>
+                    GH₵50 DEPOSIT UNPAID
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── PENDING REQUESTS ─────────────────────────────── */}
       <div className="rc-flat au" style={{ animationDelay: "0.48s", padding: "28px" }}>

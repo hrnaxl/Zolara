@@ -1,91 +1,376 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
+import { initiateCheckout, isHubtelConfigured } from "@/lib/hubtel";
 import { toast } from "sonner";
 
+const G = "#B8975A";
+const CREAM = "#FAFAF8";
+const NAVY = "#0F1E35";
+const TXT = "#1C1917";
+const TXT_MID = "#78716C";
+const BORDER = "#EDEBE5";
+
+const TIER_STYLES: Record<GiftCardTier, { bg: string; accent: string; shine: string }> = {
+  Silver:   { bg: "linear-gradient(135deg, #d4d4d4, #f5f5f5, #a8a8a8)", accent: "#9CA3AF", shine: "#e5e5e5" },
+  Gold:     { bg: "linear-gradient(135deg, #B8975A, #F5D98A, #8C6A30)", accent: "#B8975A", shine: "#F5D98A" },
+  Platinum: { bg: "linear-gradient(135deg, #4B5563, #9CA3AF, #374151)", accent: "#6B7280", shine: "#D1D5DB" },
+  Diamond:  { bg: "linear-gradient(135deg, #312E81, #818CF8, #1E1B4B)", accent: "#6366F1", shine: "#C7D2FE" },
+};
+
+type Step = "select" | "details" | "confirm" | "done";
+
 export default function BuyGiftCard() {
-  const [amount, setAmount] = useState<number | "">(50);
-  const [purchaserEmail, setPurchaserEmail] = useState("");
-  const [recipientEmail, setRecipientEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [processing, setProcessing] = useState(false);
+  const [step, setStep] = useState<Step>("select");
+  const [selectedTier, setSelectedTier] = useState<GiftCardTier | null>(null);
+  const [deliveryType, setDeliveryType] = useState<"email" | "physical">("email");
+  const [form, setForm] = useState({
+    buyerName: "", buyerEmail: "", buyerPhone: "",
+    recipientName: "", recipientEmail: "", message: "",
+  });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!amount || Number(amount) <= 0) return toast.error("Enter a valid amount");
+  const tierConfig = selectedTier ? GIFT_CARD_TIERS[selectedTier] : null;
 
-    setProcessing(true);
+  const handleProceed = () => {
+    if (!form.buyerName || !form.buyerPhone) { toast.error("Enter your name and phone number"); return; }
+    if (deliveryType === "email" && (!form.recipientName || !form.recipientEmail)) {
+      toast.error("Enter the recipient's name and email"); return;
+    }
+    if (deliveryType === "email" && !form.buyerEmail) { toast.error("Enter your email address"); return; }
+    setStep("confirm");
+  };
+
+  const handlePay = async () => {
+    if (!selectedTier) return;
+    setLoading(true);
+
     try {
-      const { data, error } = await supabase.functions.invoke("purchase-gift-card", {
-        body: {
-          purchaser_email: purchaserEmail || undefined,
-          recipient_email: recipientEmail || undefined,
-          amount: Number(amount),
-          message: message || undefined,
-        },
-      });
+      if (deliveryType === "email") {
+        const { id, error } = await createDigitalPurchase({
+          tier: selectedTier,
+          buyerName: form.buyerName,
+          buyerEmail: form.buyerEmail,
+          buyerPhone: form.buyerPhone,
+          recipientName: form.recipientName,
+          recipientEmail: form.recipientEmail,
+          message: form.message,
+        });
+        if (error) throw new Error(error);
 
-      if (error) throw error;
-      if (!data?.authorization_url) {
-        toast.error("Payment initialization failed");
-        return;
+        if (isHubtelConfigured()) {
+          const { checkoutUrl, error: hubtelErr } = await initiateCheckout({
+            amount: GIFT_CARD_TIERS[selectedTier].value,
+            description: `Zolara ${selectedTier} Gift Card for ${form.recipientName}`,
+            clientReference: id!,
+            callbackUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hubtel-webhook`,
+            returnUrl: `${window.location.origin}/gift-card/success`,
+            cancellationUrl: `${window.location.origin}/buy-gift-card`,
+            customerName: form.buyerName,
+            customerEmail: form.buyerEmail,
+            customerPhone: form.buyerPhone,
+          });
+          if (hubtelErr) throw new Error(hubtelErr);
+          if (checkoutUrl) { window.location.href = checkoutUrl; return; }
+        }
+
+        // Hubtel not configured yet — show pending message
+        setStep("done");
+      } else {
+        // Physical card — just record the order, staff will handle at pickup
+        const { id, error } = await createDigitalPurchase({
+          tier: selectedTier,
+          buyerName: form.buyerName,
+          buyerEmail: form.buyerEmail || "noemail@zolara.com",
+          buyerPhone: form.buyerPhone,
+          recipientName: form.buyerName,
+          recipientEmail: "pickup",
+          message: "Physical card pickup",
+        });
+        if (error) throw new Error(error);
+        setStep("done");
       }
-
-      toast.success("Redirecting to payment...");
-      // Open paystack authorization URL
-      window.open(data.authorization_url, "_blank");
     } catch (err: any) {
-      console.error("BuyGiftCard error:", err);
-      toast.error(err.message || "Failed to start purchase");
+      toast.error(err.message || "Something went wrong");
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
-      <Card className="w-full max-w-md">
-        <CardContent className="p-6">
-          <CardTitle>Buy a Gift Card</CardTitle>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Amount (NGN)</label>
-              <Input
-                type="number"
-                value={amount as any}
-                onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
-                min={50}
-                step={50}
-                required
-              />
+    <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
+      {/* Header */}
+      <div style={{ background: NAVY, padding: "20px 24px", display: "flex", alignItems: "center", gap: 12 }}>
+        <img src="/logo.png" alt="Zolara" style={{ height: 36 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        <div>
+          <div style={{ color: G, fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600 }}>Zolara Beauty Studio</div>
+          <div style={{ color: "#9CA3AF", fontSize: 11, letterSpacing: "0.1em" }}>GIFT CARDS</div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 20px" }}>
+        {/* Step: SELECT TIER */}
+        {step === "select" && (
+          <div>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: NAVY, textAlign: "center", marginBottom: 8 }}>
+              Give the Gift of Beauty
+            </h1>
+            <p style={{ textAlign: "center", color: TXT_MID, fontSize: 14, marginBottom: 36 }}>
+              Valid for 12 months. Redeemable for any service at Zolara Beauty Studio.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }}>
+              {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
+                const t = GIFT_CARD_TIERS[tier];
+                const s = TIER_STYLES[tier];
+                const selected = selectedTier === tier;
+                return (
+                  <div
+                    key={tier}
+                    onClick={() => setSelectedTier(tier)}
+                    style={{
+                      cursor: "pointer",
+                      borderRadius: 16,
+                      overflow: "hidden",
+                      border: `2px solid ${selected ? s.accent : "transparent"}`,
+                      boxShadow: selected ? `0 0 0 3px ${s.accent}33` : "0 2px 12px rgba(0,0,0,0.08)",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {/* Card visual */}
+                    <div style={{
+                      background: s.bg,
+                      padding: "24px 20px",
+                      aspectRatio: "1.6/1",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      position: "relative",
+                      overflow: "hidden",
+                    }}>
+                      <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+                      <div style={{ position: "absolute", bottom: -30, left: -10, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", color: "white", fontSize: 13, letterSpacing: "0.15em", opacity: 0.9 }}>ZOLARA BEAUTY STUDIO</div>
+                      <div>
+                        <div style={{ color: s.shine, fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700 }}>
+                          GH₵ {t.value.toLocaleString()}
+                        </div>
+                        <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, letterSpacing: "0.2em", marginTop: 2 }}>{t.label.toUpperCase()}</div>
+                      </div>
+                    </div>
+                    <div style={{ background: "white", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: TXT, fontWeight: 600, fontSize: 13 }}>{t.label}</span>
+                      <span style={{ color: TXT_MID, fontSize: 12 }}>GH₵ {t.value.toLocaleString()}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Your email (optional)</label>
-              <Input value={purchaserEmail} onChange={(e) => setPurchaserEmail(e.target.value)} />
+            {selectedTier && (
+              <div>
+                {/* Delivery type */}
+                <div style={{ background: "white", borderRadius: 12, padding: 20, border: `1px solid ${BORDER}`, marginBottom: 20 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Delivery Method</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {(["email", "physical"] as const).map(type => (
+                      <div
+                        key={type}
+                        onClick={() => setDeliveryType(type)}
+                        style={{
+                          padding: "14px 16px",
+                          borderRadius: 10,
+                          border: `2px solid ${deliveryType === type ? G : BORDER}`,
+                          cursor: "pointer",
+                          background: deliveryType === type ? "#FDF8EE" : "white",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <div style={{ fontSize: 18, marginBottom: 4 }}>{type === "email" ? "✉️" : "🏪"}</div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: TXT }}>
+                          {type === "email" ? "Send by Email" : "Pick Up In Store"}
+                        </div>
+                        <div style={{ fontSize: 11, color: TXT_MID, marginTop: 2 }}>
+                          {type === "email" ? "Instant digital delivery" : "Physical card at Zolara"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setStep("details")}
+                  style={{ width: "100%", background: G, color: "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 15, fontWeight: 600, cursor: "pointer", letterSpacing: "0.05em" }}
+                >
+                  Continue →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step: DETAILS */}
+        {step === "details" && selectedTier && (
+          <div>
+            <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 13, marginBottom: 20 }}>
+              ← Back
+            </button>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: NAVY, marginBottom: 24 }}>Your Details</h2>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <Field label="Your Name" value={form.buyerName} onChange={v => setForm(p => ({ ...p, buyerName: v }))} placeholder="Full name" />
+              <Field label="Your Phone Number" value={form.buyerPhone} onChange={v => setForm(p => ({ ...p, buyerPhone: v }))} placeholder="0XX XXX XXXX" type="tel" />
+              {deliveryType === "email" && (
+                <Field label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com" type="email" />
+              )}
+
+              {deliveryType === "email" && (
+                <>
+                  <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Recipient Details</div>
+                  </div>
+                  <Field label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this for?" />
+                  <Field label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="recipient@email.com" type="email" />
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: TXT_MID, display: "block", marginBottom: 6, letterSpacing: "0.06em" }}>
+                      PERSONAL MESSAGE (OPTIONAL)
+                    </label>
+                    <textarea
+                      value={form.message}
+                      onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
+                      placeholder="Add a personal message..."
+                      rows={3}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${BORDER}`, fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Recipient email (optional)</label>
-              <Input value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} />
+            <button
+              onClick={handleProceed}
+              style={{ width: "100%", background: G, color: "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 15, fontWeight: 600, cursor: "pointer", marginTop: 24 }}
+            >
+              Review Order →
+            </button>
+          </div>
+        )}
+
+        {/* Step: CONFIRM */}
+        {step === "confirm" && selectedTier && tierConfig && (
+          <div>
+            <button onClick={() => setStep("details")} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 13, marginBottom: 20 }}>
+              ← Back
+            </button>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: NAVY, marginBottom: 24 }}>Review Your Order</h2>
+
+            <div style={{ background: "white", borderRadius: 16, border: `1px solid ${BORDER}`, overflow: "hidden", marginBottom: 20 }}>
+              {/* Card preview */}
+              <div style={{ background: TIER_STYLES[selectedTier].bg, padding: "28px 24px", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", color: "white", fontSize: 12, letterSpacing: "0.15em", marginBottom: 16, opacity: 0.9 }}>ZOLARA BEAUTY STUDIO</div>
+                <div style={{ color: TIER_STYLES[selectedTier].shine, fontFamily: "'Cormorant Garamond', serif", fontSize: 34, fontWeight: 700 }}>
+                  GH₵ {tierConfig.value.toLocaleString()}
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, letterSpacing: "0.2em", marginTop: 4 }}>{tierConfig.label.toUpperCase()} GIFT CARD</div>
+              </div>
+
+              <div style={{ padding: "20px 24px" }}>
+                <Row label="Card Value" value={`GH₵ ${tierConfig.value.toLocaleString()}`} />
+                <Row label="Delivery" value={deliveryType === "email" ? `Email to ${form.recipientEmail}` : "Pick up at Zolara, Sakasaka"} />
+                {deliveryType === "email" && <Row label="Recipient" value={form.recipientName} />}
+                <Row label="From" value={form.buyerName} />
+                <Row label="Phone" value={form.buyerPhone} />
+                <div style={{ borderTop: `1px solid ${BORDER}`, marginTop: 16, paddingTop: 16, display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontWeight: 700, fontSize: 16, color: TXT }}>Total</span>
+                  <span style={{ fontWeight: 700, fontSize: 18, color: G }}>GH₵ {tierConfig.value.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Message (optional)</label>
-              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} />
+            <div style={{ background: "#FDF8EE", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: TXT_MID, marginBottom: 20, border: `1px solid #F5ECD6` }}>
+              {deliveryType === "email"
+                ? `Your gift card will be sent to ${form.recipientEmail} within 10 minutes of payment confirmation.`
+                : "Please visit Zolara Beauty Studio in Sakasaka, Opposite CalBank, to pick up your physical gift card. Show your name and phone number."}
             </div>
 
-            <div className="pt-2">
-              <Button type="submit" disabled={processing} className="w-full">
-                {processing ? "Processing…" : "Buy Gift Card"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            <button
+              onClick={handlePay}
+              disabled={loading}
+              style={{
+                width: "100%", background: loading ? "#D1C4A8" : G, color: "white",
+                border: "none", borderRadius: 12, padding: "16px", fontSize: 15,
+                fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              {loading ? "Processing..." : `Pay GH₵ ${tierConfig.value.toLocaleString()} via Hubtel`}
+            </button>
+            <p style={{ textAlign: "center", fontSize: 11, color: TXT_MID, marginTop: 10 }}>
+              Secured by Hubtel. MoMo, Card, and Bank Transfer accepted.
+            </p>
+          </div>
+        )}
+
+        {/* Step: DONE */}
+        {step === "done" && selectedTier && tierConfig && (
+          <div style={{ textAlign: "center", padding: "40px 20px" }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>🎁</div>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, color: NAVY, marginBottom: 12 }}>Order Received</h2>
+            {deliveryType === "email" ? (
+              <>
+                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+                  Your <strong>{tierConfig.label} Gift Card</strong> order has been placed.
+                </p>
+                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
+                  Once payment is confirmed, the gift card will be emailed to <strong>{form.recipientEmail}</strong> within 10 minutes.
+                </p>
+                <p style={{ color: TXT_MID, fontSize: 13 }}>
+                  Questions? Call us on <strong>0594365314</strong> or <strong>020 884 8707</strong>
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+                  Your <strong>{tierConfig.label} Gift Card</strong> is ready for pickup.
+                </p>
+                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
+                  Visit us at <strong>Sakasaka, Opposite CalBank, Tamale</strong>.<br />
+                  Show your name (<strong>{form.buyerName}</strong>) and phone number at the front desk.
+                </p>
+              </>
+            )}
+            <a href="/" style={{ color: G, fontSize: 13, textDecoration: "none" }}>← Back to Zolara</a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder, type = "text" }: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string;
+}) {
+  return (
+    <div>
+      <label style={{ fontSize: 12, fontWeight: 600, color: TXT_MID, display: "block", marginBottom: 6, letterSpacing: "0.06em" }}>
+        {label.toUpperCase()}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${BORDER}`, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+      />
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <span style={{ color: TXT_MID, fontSize: 13 }}>{label}</span>
+      <span style={{ color: TXT, fontSize: 13, fontWeight: 500, maxWidth: "60%", textAlign: "right" }}>{value}</span>
     </div>
   );
 }
