@@ -338,28 +338,34 @@ export default function LandingPage() {
           <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE PERFECT PRESENT</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400, marginBottom: "20px" }}>Gift the <em>Experience</em></h2>
           <p className="sans" style={{ fontSize: "14px", color: "#5C4D3A", lineHeight: 1.85, maxWidth: "520px", margin: "0 auto 48px", fontWeight: 300 }}>
-            Give someone you love a luxury beauty experience at Zolara. Our gift cards are available in any amount and redeemable for any service.
+            Give someone you love a luxury beauty experience at Zolara. Valid for 12 months. Redeemable for any service. Delivered by email or picked up in store.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", marginBottom: "48px" }}>
-            {[["GHS 100","Starter","Perfect for a single service"],["GHS 250","Classic","For a full pampering session"],["GHS 500","Premium","The ultimate luxury gift"]].map(([amount, tier, desc]) => (
-              <div key={tier} style={{ background: tier === "Classic" ? `linear-gradient(145deg, ${dark}, #2C2416)` : cream, border: `1px solid ${tier === "Classic" ? gold : "rgba(200,169,126,0.25)"}`, borderRadius: "2px", padding: "32px 24px", position: "relative", overflow: "hidden" }}>
-                {tier === "Classic" && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(90deg, ${gold}, transparent)` }} />}
-                <p style={{ fontSize: "28px", fontWeight: 600, color: tier === "Classic" ? gold : goldDark, marginBottom: "8px" }}>{amount}</p>
-                <p className="sans" style={{ fontSize: "11px", letterSpacing: "0.15em", fontWeight: 700, color: tier === "Classic" ? "rgba(245,239,230,0.6)" : "#8B7355", marginBottom: "12px" }}>{tier.toUpperCase()}</p>
-                <p className="sans" style={{ fontSize: "12px", color: tier === "Classic" ? "rgba(245,239,230,0.7)" : "#5C4D3A", lineHeight: 1.6, fontWeight: 300 }}>{desc}</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginBottom: "48px", maxWidth: "640px", margin: "0 auto 48px" }}>
+            {[
+              { amount: "GH₵ 220", tier: "Silver",          desc: "Perfect for a treat",            gradient: "linear-gradient(135deg, #c4c4c4, #f0f0f0, #a0a0a0)" },
+              { amount: "GH₵ 450", tier: "Gold",            desc: "A full pampering session",       gradient: `linear-gradient(135deg, ${goldDark}, ${gold}, #8C6A30)` },
+              { amount: "GH₵ 650", tier: "Platinum",        desc: "Premium luxury experience",     gradient: "linear-gradient(135deg, #4B5563, #9CA3AF, #374151)" },
+              { amount: "GH₵ 1,000", tier: "Diamond Luxury Pass", desc: "The ultimate gift",       gradient: "linear-gradient(135deg, #312E81, #818CF8, #1E1B4B)" },
+            ].map(({ amount, tier, desc, gradient }) => (
+              <div key={tier} style={{ background: gradient, borderRadius: "10px", padding: "24px 20px", position: "relative", overflow: "hidden", textAlign: "left" }}>
+                <div style={{ position: "absolute", top: -12, right: -12, width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.7)", marginBottom: "12px", fontWeight: 600 }}>ZOLARA BEAUTY STUDIO</p>
+                <p style={{ fontSize: "26px", fontWeight: 700, color: "white", marginBottom: "4px", fontFamily: "'Cormorant Garamond', serif" }}>{amount}</p>
+                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.18em", fontWeight: 700, color: "rgba(255,255,255,0.75)", marginBottom: "10px" }}>{tier.toUpperCase()}</p>
+                <p className="sans" style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)", lineHeight: 1.6, fontWeight: 300 }}>{desc}</p>
               </div>
             ))}
           </div>
 
-          <Link to="/gift-cards" className="btn-primary" style={{
+          <Link to="/buy-gift-card" className="btn-primary" style={{
             textDecoration: "none", display: "inline-block",
             fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
             letterSpacing: "0.14em", color: "#fff",
             background: `linear-gradient(135deg, ${goldDark}, ${gold})`,
             padding: "16px 48px", borderRadius: "1px",
             boxShadow: `0 8px 32px rgba(139,105,20,0.3)`,
-          }}>VIEW GIFT CARDS</Link>
+          }}>BUY A GIFT CARD</Link>
         </div>
       </section>
 
