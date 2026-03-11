@@ -225,9 +225,11 @@ const DashboardLayout = () => {
         .nav-link.active { background:${GOLD_LIGHT}; color:${GOLD}; font-weight:600; border:1px solid rgba(201,168,76,0.25); }
         .nav-link.active svg { color:${GOLD} !important; }
         .nav-link:hover svg { color:${WHITE} !important; }
-        .sidebar-scroll { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.15) transparent; }
-        .sidebar-scroll::-webkit-scrollbar { width:4px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:4px; }
+        .sidebar-scroll { scrollbar-width:thin; scrollbar-color:rgba(201,168,76,0.35) rgba(255,255,255,0.05); }
+        .sidebar-scroll::-webkit-scrollbar { width:5px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); border-radius:4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background:rgba(201,168,76,0.35); border-radius:4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background:rgba(201,168,76,0.6); }
         .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:40; backdrop-filter:blur(2px); }
       `}</style>
 
@@ -274,7 +276,7 @@ const DashboardLayout = () => {
         </div>
 
         {/* Nav — scrollable */}
-        <nav className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 10px" }}>
+        <nav className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 10px 20px" }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
