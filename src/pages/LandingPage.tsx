@@ -492,8 +492,8 @@ export default function LandingPage() {
                     <p style={{ fontSize: "30px", fontWeight: 700, color: "white", marginBottom: "2px", fontFamily: "'Cormorant Garamond', serif" }}>{amount}</p>
                     <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.18em", fontWeight: 700, color: "rgba(255,255,255,0.78)", marginBottom: "10px" }}>{tier.toUpperCase()}</p>
                   </div>
-                  <div style={{ width: "40px", height: "40px", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <span style={{ color: "rgba(255,255,255,0.7)", fontSize: "16px" }}>✦</span>
+                  <div style={{ width: "40px", height: "40px", border: "2px solid rgba(255,255,255,0.35)", borderRadius: "50%", overflow: "hidden", background: "#fff", flexShrink: 0, boxShadow: "0 0 0 3px rgba(255,255,255,0.08)" }}>
+                    <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                 </div>
                 <p className="sans" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.72)", lineHeight: 1.65, fontWeight: 400, maxWidth: "280px" }}>{desc}</p>

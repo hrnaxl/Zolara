@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
+import { initiateCheckout } from "@/lib/hubtel";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
@@ -12,7 +13,9 @@ import AmandaWidget from "@/components/AmandaWidget";
 const LOGO = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 const GOLD = "#C8A97E";
 const GOLD_DARK = "#8B6914";
+const CREAM = "#F5EFE6";
 const MID = "#EDE3D5";
+const DARK = "#1C160E";
 const WHITE = "#FFFFFF";
 const BORDER = "#E5DDD3";
 const TXT = "#1C1917";
@@ -20,8 +23,6 @@ const TXT_MID = "#57534E";
 const TXT_SOFT = "#A8A29E";
 const GREEN = "#10B981";
 const RED = "#EF4444";
-const DARK = "#1C160E";
-const CREAM = "#F5EFE6";
 
 const inp = {
   width: "100%", background: WHITE, border: `1.5px solid ${BORDER}`,
@@ -41,14 +42,17 @@ const PAYMENT_ICONS: Record<string,string> = {
   cash: "💵", mobile_money: "📱", card: "💳", bank_transfer: "🏦", gift_card: "🎁",
 };
 
+type Step = "form" | "redirecting" | "verifying" | "done" | "failed";
+
 export default function PublicBooking() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { settings } = useSettings();
 
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [step, setStep] = useState<Step>("form");
+
   const [bookingRef, setBookingRef] = useState("");
   const [bookedService, setBookedService] = useState("");
   const [bookedDate, setBookedDate] = useState("");
@@ -65,7 +69,7 @@ export default function PublicBooking() {
   const [promoApplied, setPromoApplied] = useState<any>(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState("");
-  const [paymentPref, setPaymentPref] = useState("cash");
+  const [paymentPref, setPaymentPref] = useState("mobile_money");
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   const today = new Date().toISOString().split("T")[0];
@@ -79,6 +83,51 @@ export default function PublicBooking() {
       .then(({ data }) => { setServices(data || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  // Handle Hubtel return URL: /book?booking_id=xxx
+  useEffect(() => {
+    const bid = searchParams.get("booking_id");
+    if (bid) {
+      setStep("verifying");
+      pollDepositStatus(bid, 0);
+    }
+  }, []);
+
+  const pollDepositStatus = async (bookingId: string, attempt: number) => {
+    try {
+      const { data: bk } = await supabase
+        .from("bookings")
+        .select("id, booking_ref, service_name, preferred_date, preferred_time, deposit_paid, status")
+        .eq("id", bookingId)
+        .single();
+
+      if (bk?.deposit_paid || bk?.status === "confirmed") {
+        setBookingRef(bk.booking_ref || bookingId.slice(0, 10).toUpperCase());
+        setBookedService(bk.service_name || "");
+        setBookedDate(bk.preferred_date || "");
+        setBookedTime(bk.preferred_time || "");
+        setStep("done");
+        return;
+      }
+
+      if (attempt < 12) {
+        setTimeout(() => pollDepositStatus(bookingId, attempt + 1), 2000);
+      } else {
+        // Webhook may arrive shortly; show confirmation anyway
+        setBookingRef(bk?.booking_ref || bookingId.slice(0, 10).toUpperCase());
+        setBookedService(bk?.service_name || "");
+        setBookedDate(bk?.preferred_date || "");
+        setBookedTime(bk?.preferred_time || "");
+        setStep("done");
+      }
+    } catch {
+      if (attempt < 12) {
+        setTimeout(() => pollDepositStatus(bookingId, attempt + 1), 2000);
+      } else {
+        setStep("failed");
+      }
+    }
+  };
 
   const selectedService = services.find(s => s.id === serviceId);
   const grouped = services.reduce((acc, s) => {
@@ -97,7 +146,7 @@ export default function PublicBooking() {
   const total = Math.max(0, basePrice - discount);
 
   const enabledPayments = (settings as any)?.payment_methods?.filter((m: any) => m.enabled)
-    || [{ id: "cash", name: "Cash" }, { id: "mobile_money", name: "Mobile Money" }];
+    || [{ id: "mobile_money", name: "Mobile Money" }, { id: "cash", name: "Cash" }];
 
   const validate = () => {
     const e: Record<string,string> = {};
@@ -119,85 +168,119 @@ export default function PublicBooking() {
     else { setPromoError(result.message); setPromoApplied(null); }
   };
 
-  const handleSubmit = async () => {
+  const handlePayDeposit = async () => {
     if (!validate()) {
       document.getElementById("booking-form-top")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
-    setSubmitting(true);
+    setStep("redirecting");
     try {
       const normalizedTime = normalizeTimeTo24(preferredTime);
       const day = new Date(`${preferredDate}T00:00:00`).getDay();
-      if (day === 0) { toast.error("We are closed on Sundays."); setSubmitting(false); return; }
+      if (day === 0) { toast.error("We are closed on Sundays."); setStep("form"); return; }
       const openTime = (settings as any)?.open_time || "08:30";
       const closeTime = (settings as any)?.close_time || "21:00";
       if (!isTimeWithinRange(normalizedTime, openTime, closeTime)) {
         toast.error(`Please pick a time between ${openTime} and ${closeTime}`);
-        setSubmitting(false); return;
+        setStep("form"); return;
       }
+
       const cleanPhone = phone.replace(/\s/g,"");
       const clientId = await findOrCreateClient({ name, phone: cleanPhone, email: email || null });
-      const ref = `ZB${Date.now().toString(36).toUpperCase()}`;
+      const bRef = `ZB${Date.now().toString(36).toUpperCase()}`;
       const notesFull = [
         notes,
         `Balance payment preference: ${PAYMENT_LABELS[paymentPref] || paymentPref}`,
         promoApplied ? `Promo: ${promoApplied.code}` : "",
-        "GHS 50 deposit to be collected on arrival.",
       ].filter(Boolean).join("\n");
 
-      const { error } = await supabase.from("bookings").insert({
-        client_name: name,
-        client_email: email || null,
-        client_phone: cleanPhone,
-        service_id: serviceId,
-        service_name: selectedService?.name || null,
-        preferred_date: preferredDate,
-        preferred_time: normalizedTime,
-        price: total,
-        deposit_amount: 50,
-        deposit_paid: false,
-        notes: notesFull,
-        status: "pending",
-        booking_ref: ref,
-        client_id: clientId || null,
-      } as any);
+      const { data: newBooking, error: bookingError } = await supabase
+        .from("bookings")
+        .insert({
+          client_name: name, client_email: email || null, client_phone: cleanPhone,
+          service_id: serviceId, service_name: selectedService?.name || null,
+          preferred_date: preferredDate, preferred_time: normalizedTime,
+          price: total, deposit_amount: 50, deposit_paid: false,
+          notes: notesFull, status: "awaiting_deposit",
+          booking_ref: bRef, client_id: clientId || null,
+          payment_ref: bRef,
+        } as any)
+        .select("id")
+        .single();
 
-      if (error) throw error;
-      setBookingRef(ref);
-      setBookedService(selectedService?.name || "");
-      setBookedDate(preferredDate);
-      setBookedTime(preferredTime);
-      setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (bookingError) throw bookingError;
+
+      const returnUrl = `${window.location.origin}/book?booking_id=${newBooking.id}`;
+      const callbackUrl = `https://vwvrhbyfytmqsywfdhvd.supabase.co/functions/v1/hubtel-webhook`;
+
+      const { checkoutUrl, error: hubtelError } = await initiateCheckout({
+        amount: 50,
+        description: `Zolara Booking Deposit - ${selectedService?.name || "Beauty Service"}`,
+        clientReference: bRef,
+        callbackUrl,
+        returnUrl,
+        cancellationUrl: `${window.location.origin}/book`,
+        customerName: name,
+        customerPhone: cleanPhone,
+        customerEmail: email || undefined,
+      });
+
+      if (hubtelError) throw new Error(hubtelError);
+      if (!checkoutUrl) throw new Error("Could not generate payment link. Please try again.");
+
+      window.location.href = checkoutUrl;
     } catch (err: any) {
-      toast.error(err.message || "Failed to submit. Please try again.");
-    } finally {
-      setSubmitting(false);
+      console.error("Deposit error:", err);
+      toast.error(err.message || "Something went wrong. Please try again.");
+      setStep("form");
     }
   };
 
-  // SUCCESS
-  if (submitted) return (
+  // ── STATES ────────────────────────────────────────────────────
+
+  if (step === "verifying") return (
+    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap'); @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ textAlign: "center" }}>
+        <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
+        <h2 style={{ fontSize: "28px", fontWeight: 500, color: DARK, marginBottom: "8px" }}>Confirming your payment...</h2>
+        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", color: TXT_MID }}>Please wait while we confirm your deposit.</p>
+      </div>
+    </div>
+  );
+
+  if (step === "redirecting") return (
+    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond',serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Montserrat:wght@400;500&display=swap'); @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ textAlign: "center" }}>
+        <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
+        <h2 style={{ fontSize: "28px", fontWeight: 500, color: DARK, marginBottom: "8px" }}>Preparing your payment...</h2>
+        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", color: TXT_MID }}>You'll be redirected to Hubtel's secure checkout page.</p>
+      </div>
+    </div>
+  );
+
+  if (step === "done") return (
     <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&display=swap');`}</style>
       <div style={{ maxWidth: "500px", width: "100%", textAlign: "center" }}>
-        <div style={{ width: "88px", height: "88px", borderRadius: "50%", background: "rgba(200,169,126,0.12)", border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
+        <div style={{ width: "90px", height: "90px", borderRadius: "50%", background: "rgba(200,169,126,0.12)", border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
           <CheckCircle2 style={{ width: "44px", height: "44px", color: GOLD }} />
         </div>
-        <h2 style={{ fontSize: "38px", fontWeight: 600, color: DARK, marginBottom: "12px" }}>Booking Request Sent</h2>
-        <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_MID, fontSize: "14px", lineHeight: 1.85, marginBottom: "8px" }}>
-          We will confirm your appointment via SMS shortly. Please arrive 5 to 10 minutes early.
+        <h2 style={{ fontSize: "38px", fontWeight: 600, color: DARK, marginBottom: "12px" }}>Booking Confirmed</h2>
+        <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_MID, fontSize: "14px", lineHeight: 1.8, marginBottom: "8px" }}>
+          Your GHS 50 deposit has been received. We will confirm your appointment via SMS shortly. Please arrive 5 to 10 minutes early.
         </p>
         <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_SOFT, fontSize: "13px", marginBottom: "32px" }}>
-          {bookedService} {bookedDate ? `· ${bookedDate}` : ""} {bookedTime ? `· ${bookedTime}` : ""}
+          {bookedService}{bookedDate ? ` · ${bookedDate}` : ""}{bookedTime ? ` · ${bookedTime}` : ""}
         </p>
-        <div style={{ background: "rgba(200,169,126,0.1)", border: `1px solid rgba(200,169,126,0.3)`, borderRadius: "10px", padding: "20px 28px", marginBottom: "20px", display: "inline-block" }}>
+        <div style={{ background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.3)", borderRadius: "10px", padding: "20px 28px", marginBottom: "20px", display: "inline-block" }}>
           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", color: TXT_SOFT, letterSpacing: "0.18em", marginBottom: "8px" }}>BOOKING REFERENCE</p>
           <span style={{ fontFamily: "monospace", fontSize: "22px", fontWeight: 700, color: GOLD_DARK, letterSpacing: "0.12em" }}>{bookingRef}</span>
         </div>
-        <div style={{ background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "10px", padding: "16px 20px", marginBottom: "32px" }}>
-          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12.5px", color: GOLD_DARK, lineHeight: 1.8, fontWeight: 600 }}>
-            A GHS 50 deposit is required on arrival to secure your appointment.
+        <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "10px", padding: "16px 20px", marginBottom: "32px" }}>
+          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12.5px", color: GREEN, lineHeight: 1.75, fontWeight: 500 }}>
+            Pay the remaining balance at the studio on the day of your appointment.
           </p>
         </div>
         <Link to="/" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
@@ -207,21 +290,39 @@ export default function PublicBooking() {
     </div>
   );
 
+  if (step === "failed") return (
+    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap');`}</style>
+      <div style={{ maxWidth: "440px", width: "100%", textAlign: "center" }}>
+        <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: "rgba(239,68,68,0.08)", border: "2px solid #EF4444", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: "30px" }}>✗</div>
+        <h2 style={{ fontSize: "32px", fontWeight: 600, color: DARK, marginBottom: "12px" }}>Payment Not Confirmed</h2>
+        <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_MID, fontSize: "13px", lineHeight: 1.8, marginBottom: "28px" }}>
+          We could not confirm your payment. If you were charged, please call us immediately on 059 436 5314.
+        </p>
+        <button onClick={() => { setStep("form"); navigate("/book"); }}
+          style={{ fontFamily: "'Montserrat',sans-serif", padding: "14px 32px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", borderRadius: "8px", color: WHITE, fontWeight: 700, fontSize: "13px", cursor: "pointer" }}>
+          Try Again
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── MAIN FORM ─────────────────────────────────────────────────
   return (
     <div style={{ background: MID, minHeight: "100vh", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(200,169,126,0.18); }
-        .pay-btn:hover { border-color: ${GOLD} !important; }
+        .pay-btn:hover { border-color: ${GOLD} !important; background: rgba(200,169,126,0.08) !important; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes errIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .err { animation: errIn 0.25s ease; font-family: 'Montserrat',sans-serif; color: ${RED}; font-size: 11px; margin-top: 5px; }
         .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
         .svc-select:hover { border-color: ${GOLD} !important; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
-        .error-field { animation: slideDown 0.3s ease; }
-        @media (max-width: 900px) { .booking-grid { grid-template-columns: 1fr !important; } .booking-sidebar { position: static !important; } }
+        @media (max-width: 900px) { .bk-grid { grid-template-columns: 1fr !important; } .bk-sidebar { position: static !important; top: auto !important; } }
       `}</style>
 
-      {/* Top bar */}
+      {/* Topbar */}
       <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(245,239,230,0.97)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(200,169,126,0.2)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 20px rgba(28,22,14,0.06)" }}>
         <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: TXT_MID, fontSize: "13px", fontWeight: 500, fontFamily: "'Montserrat',sans-serif", transition: "color 0.15s", padding: 0 }}
           onMouseEnter={e => (e.currentTarget.style.color = GOLD_DARK)}
@@ -237,55 +338,67 @@ export default function PublicBooking() {
         </a>
       </div>
 
-      <div className="booking-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px 80px", display: "grid", gridTemplateColumns: "360px 1fr", gap: "40px", alignItems: "start" }}>
+      <div className="bk-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "44px 24px 80px", display: "grid", gridTemplateColumns: "360px 1fr", gap: "40px", alignItems: "start" }}>
 
-        {/* LEFT: KPI sidebar */}
-        <div className="booking-sidebar" style={{ position: "sticky", top: "90px" }}>
-          <div style={{ background: "linear-gradient(150deg, #2C2416 0%, #1A1008 60%, #251D0E 100%)", borderRadius: "12px", overflow: "hidden", boxShadow: "0 24px 64px rgba(28,22,14,0.25)" }}>
-            <div style={{ padding: "36px 32px 28px", borderBottom: "1px solid rgba(200,169,126,0.15)", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 0%, rgba(200,169,126,0.15) 0%, transparent 60%)", pointerEvents: "none" }} />
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9px", letterSpacing: "0.26em", color: GOLD, fontWeight: 700, marginBottom: "12px" }}>BOOK WITH CONFIDENCE</p>
-              <h2 style={{ fontSize: "26px", fontWeight: 500, color: "#F5EFE6", lineHeight: 1.2, marginBottom: "8px" }}>Your Appointment, <em>Our Promise</em></h2>
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.5)", lineHeight: 1.75, fontWeight: 400 }}>Everything you need to know before you book.</p>
+        {/* LEFT: Info panel */}
+        <div className="bk-sidebar" style={{ position: "sticky", top: "90px" }}>
+          <div style={{ background: "linear-gradient(160deg, #241C0E 0%, #1A1208 55%, #201608 100%)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 28px 72px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.15)" }}>
+
+            {/* Panel header */}
+            <div style={{ padding: "32px 28px 26px", borderBottom: "1px solid rgba(200,169,126,0.12)", position: "relative" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 70% 0%, rgba(200,169,126,0.14) 0%, transparent 65%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                <div style={{ width: "46px", height: "46px", borderRadius: "50%", border: `2px solid ${GOLD}`, overflow: "hidden", flexShrink: 0, boxShadow: "0 0 0 4px rgba(200,169,126,0.12)" }}>
+                  <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 800, letterSpacing: "0.2em", color: "#F5EFE6", lineHeight: 1.1 }}>ZOLARA</div>
+                  <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8.5px", letterSpacing: "0.2em", color: GOLD, fontWeight: 600, marginTop: "2px" }}>BEAUTY STUDIO</div>
+                </div>
+              </div>
+              <h3 style={{ fontSize: "22px", fontWeight: 500, color: "#F5EFE6", lineHeight: 1.25, marginBottom: "6px" }}>Book With <em>Confidence</em></h3>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.7, fontWeight: 400 }}>Everything you need to know before you book.</p>
             </div>
 
             {/* Deposit highlight */}
-            <div style={{ padding: "24px 32px", borderBottom: "1px solid rgba(200,169,126,0.12)", background: "rgba(200,169,126,0.08)" }}>
+            <div style={{ padding: "22px 28px", background: "rgba(200,169,126,0.1)", borderBottom: "1px solid rgba(200,169,126,0.12)" }}>
               <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: "16px" }}>💳</span>
-                </div>
+                <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "16px" }}>💳</div>
                 <div>
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", color: GOLD, marginBottom: "6px" }}>GHS 50 DEPOSIT: HOW IT WORKS</p>
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.75)", lineHeight: 1.8, fontWeight: 400 }}>
-                    A GHS 50 deposit is required on arrival to confirm your slot. It is fully applied toward your service total. You pay the remaining balance after your service is done.
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", color: GOLD, marginBottom: "7px" }}>GHS 50 DEPOSIT: HOW IT WORKS</p>
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12.5px", color: "rgba(245,239,230,0.82)", lineHeight: 1.8, fontWeight: 400 }}>
+                    A GHS 50 deposit is required to confirm your slot. It is fully counted toward your service total. You pay only the remaining balance at the studio after your service.
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Info rows */}
             {[
-              { icon: "◈", title: "Expert Stylists, Every Time", body: "All staff are certified specialists. You will never be assigned an untrained stylist at Zolara." },
+              { icon: "◈", title: "Expert Stylists, Every Time", body: "All staff are trained specialists. You will never be assigned an untrained stylist at Zolara." },
               { icon: "✦", title: "The Luxury Difference", body: "Free WiFi, chilled water, Arctic AC, and a perfume spritz with chocolate on your way out." },
-              { icon: "◇", title: "Cancellation Policy", body: "Cancel 24 or more hours out for a full reschedule at no cost. Less than 12 hours notice forfeits the deposit. Please call to cancel. SMS cancellations are not accepted." },
+              { icon: "◇", title: "Cancellation Policy", body: "Cancel 24 or more hours out for a full reschedule at no cost. Less than 12 hours forfeits the deposit. Call to cancel. SMS cancellations are not accepted." },
               { icon: "◉", title: "Lateness Policy", body: "Arrive 5 to 10 minutes early. 15 or more minutes late incurs a GHS 50 lateness fee. 30 or more minutes may result in cancellation." },
-              { icon: "❋", title: "Loyalty Rewards", body: "Earn 1 stamp per GHS 100 spent. 10 stamps earns 1 free service worth up to GHS 300. Double stamps in your birthday month." },
-              { icon: "★", title: "Student Discount", body: "10% off all services Mon to Thu with a valid student ID. Present your ID at booking to qualify." },
+              { icon: "❋", title: "Loyalty Rewards", body: "1 stamp per GHS 100 spent. 10 stamps earns 1 free service up to GHS 300. Double stamps in your birthday month." },
+              { icon: "★", title: "Student Discount", body: "10% off all services Mon to Thu with a valid student ID. Present ID when booking." },
             ].map(({ icon, title, body }) => (
-              <div key={title} style={{ padding: "18px 32px", borderBottom: "1px solid rgba(200,169,126,0.08)", display: "flex", gap: "14px", alignItems: "flex-start" }}>
-                <span style={{ color: GOLD, fontSize: "15px", flexShrink: 0, marginTop: "2px" }}>{icon}</span>
+              <div key={title} style={{ padding: "17px 28px", borderBottom: "1px solid rgba(200,169,126,0.08)", display: "flex", gap: "13px", alignItems: "flex-start" }}>
+                <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "rgba(200,169,126,0.14)", border: "1px solid rgba(200,169,126,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ color: GOLD, fontSize: "13px" }}>{icon}</span>
+                </div>
                 <div>
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(245,239,230,0.88)", marginBottom: "5px" }}>{title}</p>
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11.5px", color: "rgba(245,239,230,0.5)", lineHeight: 1.75, fontWeight: 400 }}>{body}</p>
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(245,239,230,0.92)", marginBottom: "5px" }}>{title}</p>
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.58)", lineHeight: 1.75, fontWeight: 400 }}>{body}</p>
                 </div>
               </div>
             ))}
 
-            <div style={{ padding: "22px 32px" }}>
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", letterSpacing: "0.2em", color: GOLD, fontWeight: 700, marginBottom: "10px" }}>NEED HELP? CALL US</p>
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14px", color: "rgba(245,239,230,0.8)", fontWeight: 500, marginBottom: "3px" }}>059 436 5314</p>
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14px", color: "rgba(245,239,230,0.8)", fontWeight: 500 }}>020 884 8707</p>
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.3)", marginTop: "8px", fontWeight: 400 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
+            {/* Contact */}
+            <div style={{ padding: "22px 28px" }}>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9.5px", letterSpacing: "0.22em", color: GOLD, fontWeight: 700, marginBottom: "12px" }}>NEED HELP? CALL US</p>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14.5px", color: "rgba(245,239,230,0.85)", fontWeight: 600, marginBottom: "4px" }}>059 436 5314</p>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14.5px", color: "rgba(245,239,230,0.85)", fontWeight: 600 }}>020 884 8707</p>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.32)", marginTop: "10px", fontWeight: 400 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
             </div>
           </div>
         </div>
@@ -295,11 +408,11 @@ export default function PublicBooking() {
           <div style={{ marginBottom: "32px" }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", letterSpacing: "0.26em", color: GOLD_DARK, fontWeight: 700, marginBottom: "8px" }}>BOOK YOUR APPOINTMENT</p>
             <h1 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 500, color: DARK, lineHeight: 1.15, marginBottom: "8px" }}>Reserve Your <em>Zolara</em> Experience</h1>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13.5px", color: TXT_MID, lineHeight: 1.75 }}>Fill in your details. A GHS 50 deposit is collected on arrival to secure your slot.</p>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13.5px", color: TXT_MID, lineHeight: 1.75 }}>Fill in your details below. A GHS 50 deposit via Hubtel is required to confirm your booking.</p>
           </div>
 
           {/* Personal Details */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>YOUR DETAILS</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
               <div>
@@ -308,7 +421,7 @@ export default function PublicBooking() {
                   <User size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
                   <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ ...inp, paddingLeft: "38px" }} />
                 </div>
-                {errors.name && <p className="error-field" style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "4px" }}>{errors.name}</p>}
+                {errors.name && <p className="err">{errors.name}</p>}
               </div>
               <div>
                 <label style={lbl}>Phone *</label>
@@ -316,11 +429,11 @@ export default function PublicBooking() {
                   <Phone size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0XX XXX XXXX" style={{ ...inp, paddingLeft: "38px" }} />
                 </div>
-                {errors.phone && <p className="error-field" style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "4px" }}>{errors.phone}</p>}
+                {errors.phone && <p className="err">{errors.phone}</p>}
               </div>
             </div>
             <div>
-              <label style={lbl}>Email (Optional)</label>
+              <label style={lbl}>Email <span style={{ fontSize: "9px", color: TXT_SOFT, fontWeight: 400, letterSpacing: "0.05em", textTransform: "none" }}>(Optional)</span></label>
               <div style={{ position: "relative" }}>
                 <Mail size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={{ ...inp, paddingLeft: "38px" }} />
@@ -328,11 +441,11 @@ export default function PublicBooking() {
             </div>
           </div>
 
-          {/* Service Select - dropdown */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
+          {/* Service */}
+          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>SELECT A SERVICE</p>
             {loading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+              <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
                 <Loader2 size={24} style={{ color: GOLD, animation: "spin 0.8s linear infinite" }} />
               </div>
             ) : (
@@ -353,19 +466,19 @@ export default function PublicBooking() {
               </div>
             )}
             {selectedService && (
-              <div style={{ marginTop: "16px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ marginTop: "14px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, marginBottom: "2px" }}>{selectedService.name}</p>
                   <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT }}>{selectedService.duration_minutes} minutes</p>
                 </div>
-                <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {Number(selectedService.price).toLocaleString()}</p>
+                <p style={{ fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {Number(selectedService.price).toLocaleString()}</p>
               </div>
             )}
-            {errors.service && <p className="error-field" style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "8px" }}>{errors.service}</p>}
+            {errors.service && <p className="err">{errors.service}</p>}
           </div>
 
-          {/* Date and Time */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
+          {/* Date & Time */}
+          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>DATE AND TIME</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
@@ -374,7 +487,7 @@ export default function PublicBooking() {
                   <Calendar size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
                   <input type="date" value={preferredDate} onChange={e => setDate(e.target.value)} min={today} style={{ ...inp, paddingLeft: "38px" }} />
                 </div>
-                {errors.date && <p className="error-field" style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "4px" }}>{errors.date}</p>}
+                {errors.date && <p className="err">{errors.date}</p>}
               </div>
               <div>
                 <label style={lbl}>Time *</label>
@@ -382,7 +495,7 @@ export default function PublicBooking() {
                   <Clock size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
                   <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="21:00" style={{ ...inp, paddingLeft: "38px" }} />
                 </div>
-                {errors.time && <p className="error-field" style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "4px" }}>{errors.time}</p>}
+                {errors.time && <p className="err">{errors.time}</p>}
               </div>
             </div>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, marginTop: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -391,13 +504,13 @@ export default function PublicBooking() {
           </div>
 
           {/* Special Requests */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>SPECIAL REQUESTS</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Style references, allergies, or anything we should know..." rows={3} style={{ ...inp, resize: "vertical" }} />
           </div>
 
-          {/* Promo Code */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
+          {/* Promo */}
+          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>PROMO CODE</p>
             <div style={{ display: "flex", gap: "10px" }}>
               <div style={{ position: "relative", flex: 1 }}>
@@ -409,13 +522,13 @@ export default function PublicBooking() {
                 {promoLoading ? "..." : promoApplied ? "Applied" : "Apply"}
               </button>
             </div>
-            {promoError && <p style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "6px" }}>{promoError}</p>}
+            {promoError && <p className="err">{promoError}</p>}
             {promoApplied && <p style={{ fontFamily: "'Montserrat',sans-serif", color: GREEN, fontSize: "11px", marginTop: "6px" }}>{promoApplied.discount_type === "percentage" ? `${promoApplied.discount_value}% off` : `GHS ${promoApplied.discount_value} off`} applied.</p>}
           </div>
 
           {/* Balance payment method */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "8px" }}>BALANCE PAYMENT METHOD</p>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "6px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
               {enabledPayments.map((m: any) => {
@@ -424,16 +537,16 @@ export default function PublicBooking() {
                   <button key={m.id} className="pay-btn" onClick={() => setPaymentPref(m.id)}
                     style={{ padding: "16px 10px", border: `2px solid ${sel ? GOLD : BORDER}`, borderRadius: "10px", background: sel ? "rgba(200,169,126,0.1)" : WHITE, cursor: "pointer", textAlign: "center", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
                     <div style={{ fontSize: "22px", marginBottom: "8px" }}>{PAYMENT_ICONS[m.id] || "💰"}</div>
-                    <div style={{ fontSize: "10px", fontWeight: 700, color: sel ? GOLD_DARK : TXT_MID, letterSpacing: "0.05em" }}>{PAYMENT_LABELS[m.id] || m.name || m.id}</div>
+                    <div style={{ fontSize: "10px", fontWeight: 700, color: sel ? GOLD_DARK : TXT_MID, letterSpacing: "0.05em" }}>{PAYMENT_LABELS[m.id] || m.name}</div>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Summary and submit */}
-          <div style={{ background: "linear-gradient(150deg, #2C2416 0%, #1A1008 100%)", borderRadius: "12px", padding: "32px", boxShadow: "0 8px 32px rgba(28,22,14,0.2)" }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(200,169,126,0.8)", marginBottom: "20px" }}>BOOKING SUMMARY</p>
+          {/* Summary + CTA */}
+          <div style={{ background: "linear-gradient(155deg, #241C0E 0%, #1A1208 100%)", borderRadius: "12px", padding: "32px", boxShadow: "0 12px 40px rgba(28,22,14,0.22)" }}>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(200,169,126,0.75)", marginBottom: "20px" }}>BOOKING SUMMARY</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
               {[
                 { label: "Name", value: name || "..." },
@@ -442,45 +555,44 @@ export default function PublicBooking() {
                 { label: "Date", value: preferredDate || "..." },
                 { label: "Time", value: preferredTime || "..." },
               ].map(row => (
-                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: "10px" }}>
-                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>{row.label}</span>
+                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
+                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>{row.label}</span>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#F5EFE6" }}>{row.value}</span>
                 </div>
               ))}
               {discount > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: "10px" }}>
-                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>Discount</span>
+                <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
+                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Discount</span>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: GREEN }}>GHS {discount.toFixed(0)} off</span>
                 </div>
               )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "8px" }}>
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Service Total</span>
-                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, color: GOLD }}>{selectedService ? `GHS ${total.toLocaleString()}` : "..."}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "6px" }}>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Service Total</span>
+                <span style={{ fontSize: "30px", fontWeight: 700, color: GOLD }}>{selectedService ? `GHS ${total.toLocaleString()}` : "..."}</span>
               </div>
             </div>
 
-            {/* Deposit breakdown */}
-            <div style={{ background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.25)", borderRadius: "8px", padding: "16px 18px", marginBottom: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.6)", fontWeight: 500 }}>Deposit on arrival</span>
-                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: GOLD }}>GHS 50</span>
+            <div style={{ background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "16px 18px", marginBottom: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.65)", fontWeight: 500 }}>Pay now (Hubtel deposit)</span>
+                <span style={{ fontSize: "22px", fontWeight: 700, color: GOLD }}>GHS 50</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.6)", fontWeight: 500 }}>Balance after service</span>
-                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: "rgba(245,239,230,0.7)" }}>{selectedService ? `GHS ${Math.max(0, total - 50).toLocaleString()}` : "..."}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.65)", fontWeight: 500 }}>Balance at studio</span>
+                <span style={{ fontSize: "22px", fontWeight: 700, color: "rgba(245,239,230,0.65)" }}>{selectedService ? `GHS ${Math.max(0, total - 50).toLocaleString()}` : "..."}</span>
               </div>
             </div>
 
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.35)", textAlign: "center", marginBottom: "20px", lineHeight: 1.75 }}>
-              By booking, you agree to our cancellation and lateness policies. Your deposit secures your slot.
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.3)", textAlign: "center", marginBottom: "20px", lineHeight: 1.75 }}>
+              By booking, you agree to our cancellation and lateness policies.
             </p>
 
-            <button onClick={handleSubmit} disabled={submitting}
-              style={{ width: "100%", padding: "20px", borderRadius: "8px", background: submitting ? "#555" : `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", color: WHITE, fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", cursor: submitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "'Montserrat',sans-serif", boxShadow: "0 8px 32px rgba(139,105,20,0.4)", transition: "all 0.3s ease" }}>
-              {submitting ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> SUBMITTING…</> : "REQUEST BOOKING"}
+            <button onClick={handlePayDeposit}
+              style={{ width: "100%", padding: "20px", borderRadius: "10px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", color: WHITE, fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "'Montserrat',sans-serif", boxShadow: "0 10px 36px rgba(139,105,20,0.42)", transition: "all 0.3s ease" }}>
+              PAY GHS 50 DEPOSIT TO BOOK
             </button>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.3)", textAlign: "center", marginTop: "12px" }}>
-              We will confirm your appointment via SMS within a few hours.
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", textAlign: "center", marginTop: "12px" }}>
+              Secured by Hubtel. Your card details are never stored by us.
             </p>
           </div>
         </div>
