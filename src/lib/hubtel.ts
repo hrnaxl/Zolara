@@ -24,7 +24,7 @@ export type HubtelCheckoutResult = {
 
 export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<HubtelCheckoutResult> {
   try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/hubtel-checkout`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/smart-processor`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -68,7 +68,7 @@ export async function initiateMoMoCollect(payload: {
   clientReference: string;
 }): Promise<{ success: boolean; error: string | null }> {
   try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/hubtel-checkout`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/smart-processor`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
