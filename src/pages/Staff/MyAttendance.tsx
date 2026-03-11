@@ -95,6 +95,7 @@ export default function MyAttendance() {
 
   const statusStyle = (r: AttendanceRecord) => {
     if (!r.check_out) return { bg: "rgba(74,144,217,0.1)", color: "#2471A3", label: "Active" };
+    if (r.status === "auto_checked_out") return { bg: "rgba(201,168,76,0.12)", color: "#8B6914", label: "Auto checkout" };
     return { bg: "rgba(76,175,125,0.1)", color: "#2E8A5E", label: "Complete" };
   };
 
