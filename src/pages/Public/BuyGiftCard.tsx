@@ -70,8 +70,9 @@ export default function BuyGiftCard() {
             customerEmail: form.buyerEmail,
             customerPhone: form.buyerPhone,
           });
-          if (hubtelErr) throw new Error(hubtelErr);
+          if (hubtelErr) throw new Error(`Hubtel error: ${hubtelErr}`);
           if (checkoutUrl) { window.location.href = checkoutUrl; return; }
+          throw new Error("Hubtel returned no checkout URL. Check edge function logs.");
         }
 
         // Hubtel not configured yet — show pending message

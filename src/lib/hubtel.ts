@@ -67,15 +67,27 @@ export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<
       }),
     });
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data?.error || JSON.stringify(data));
+    let data: any;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(`Edge function returned non-JSON (status ${response.status}). It may not be deployed.`);
+    }
+    if (!response.ok) throw new Error(data?.error || data?.message || JSON.stringify(data));
+
+    const checkoutUrl =
+      data?.data?.checkoutDirectUrl ||
+      data?.Data?.CheckoutDirectUrl ||
+      data?.checkoutDirectUrl ||
+      null;
 
     return {
-      checkoutUrl: data.data?.checkoutDirectUrl || data.Data?.CheckoutDirectUrl || null,
-      paymentRef: data.data?.clientReference || payload.clientReference,
+      checkoutUrl,
+      paymentRef: data?.data?.clientReference || payload.clientReference,
       error: null,
     };
   } catch (err: any) {
+    console.error("[Hubtel] initiateCheckout error:", err);
     return { checkoutUrl: null, paymentRef: null, error: err.message };
   }
 }
