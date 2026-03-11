@@ -2,41 +2,31 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { findOrCreateClient } from "@/lib/clientDedup";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
-const GOLD  = "#C9A84C";
-const GOLD_D = "#A8892E";
-const CREAM = "#FDFCF9";
+const G     = "#B8975A";
+const G_D   = "#9A7A3E";
+const G_L   = "#F5ECD6";
+const NAVY  = "#0F1E35";
+const CREAM = "#FAFAF8";
 const WHITE = "#FFFFFF";
-const BORDER = "#EDE8E0";
+const BORDER= "#E8E4DC";
 const TXT   = "#1C1917";
-const TXT_SOFT = "#A8A29E";
-const RED   = "#EF4444";
-
-const inp = {
-  width: "100%", padding: "12px 14px", borderRadius: 10,
-  border: `1.5px solid ${BORDER}`, fontSize: 14, outline: "none",
-  background: WHITE, color: TXT, fontFamily: "'Montserrat',sans-serif",
-  transition: "border-color 0.15s",
-} as const;
-
-const lbl = {
-  display: "block", fontSize: 11, fontWeight: 700,
-  letterSpacing: "0.12em", color: TXT_SOFT, marginBottom: 6,
-  textTransform: "uppercase" as const,
-} as const;
+const TXT_M = "#78716C";
+const TXT_S = "#A8A29E";
+const RED   = "#DC2626";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [name, setName]     = useState("");
-  const [email, setEmail]   = useState("");
-  const [phone, setPhone]   = useState("");
-  const [password, setPass] = useState("");
-  const [confirm, setConf]  = useState("");
+  const [mode, setMode]   = useState<"login"|"signup">("login");
+  const [name, setName]   = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pass, setPass]   = useState("");
+  const [conf, setConf]   = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState("");
+  const [error, setError] = useState("");
 
   const redirectByRole = (role: string) => {
     if (role === "owner" || role === "admin") navigate("/app/admin/dashboard", { replace: true });
@@ -46,206 +36,350 @@ export default function Auth() {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) { setError("Enter your email and password."); return; }
+    if (!email.trim() || !pass) { setError("Enter your email and password."); return; }
     setLoading(true); setError("");
+
+    // Timeout guard — prevent infinite loading if Supabase hangs
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError("Login timed out. Check your connection and try again.");
+    }, 15000);
+
     try {
-      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) { setError("Invalid email or password."); return; }
+      const { data, error: authErr } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: pass,
+      });
 
-      const userId = data.user.id;
+      if (authErr) {
+        clearTimeout(timeout);
+        if (authErr.message.includes("Email not confirmed")) {
+          setError("Please confirm your email first. Check your inbox.");
+        } else {
+          setError("Invalid email or password.");
+        }
+        return;
+      }
 
-      // Fetch role from DB — ONLY source of truth. Never trust user_metadata.
-      const { data: roleData } = await supabase
-        .from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+      const userId = data.user?.id;
+      if (!userId) {
+        clearTimeout(timeout);
+        setError("Login failed. Please try again.");
+        return;
+      }
+
+      // Fetch role — with explicit error handling, not silent failure
+      const { data: roleData, error: roleErr } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (roleErr) {
+        clearTimeout(timeout);
+        setError("Could not verify your account role. Please try again.");
+        await supabase.auth.signOut();
+        return;
+      }
 
       if (!roleData?.role) {
-        setError("Account has no role assigned. Contact the salon owner.");
+        clearTimeout(timeout);
+        setError("No role assigned to this account. Contact the salon owner.");
         await supabase.auth.signOut();
         return;
       }
 
       let role = roleData.role;
 
-      // If this user has a staff/receptionist role, verify they are still active
-      // Owner can revoke access by setting is_active = false — this enforces it on every login
+      // Enforce active-status for staff/receptionist on every login
       if (role === "staff" || role === "receptionist") {
         const { data: staffRecord } = await supabase
           .from("staff").select("is_active").eq("user_id", userId).maybeSingle();
-
         if (staffRecord && !staffRecord.is_active) {
-          // Staff has been revoked — downgrade to client immediately
           await supabase.from("user_roles").upsert({ user_id: userId, role: "client" });
           role = "client";
         }
       }
 
+      clearTimeout(timeout);
       redirectByRole(role);
-    } catch { setError("Something went wrong. Please try again."); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      clearTimeout(timeout);
+      setError(e?.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignup = async () => {
-    if (!name.trim())                                  { setError("Enter your full name."); return; }
-    if (!email.trim())                                 { setError("Enter your email."); return; }
-    if (!password || password.length < 6)              { setError("Password must be at least 6 characters."); return; }
-    if (password !== confirm)                          { setError("Passwords don't match."); return; }
+    if (!name.trim())               { setError("Enter your full name."); return; }
+    if (!email.trim())              { setError("Enter your email."); return; }
+    if (!pass || pass.length < 6)   { setError("Password must be at least 6 characters."); return; }
+    if (pass !== conf)              { setError("Passwords don't match."); return; }
     setLoading(true); setError("");
 
-    try {
-      // Whitelist check: email must exist in staff table AND be active
-      // Owner controls this registry — users cannot choose their role
-      const { data: staffMatch } = await supabase
-        .from("staff")
-        .select("id, role, name, is_active")
-        .eq("email", email.trim().toLowerCase())
-        .maybeSingle();
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError("Request timed out. Please try again.");
+    }, 15000);
 
-      // If email is in staff table but marked inactive, block signup entirely
+    try {
+      const { data: staffMatch } = await supabase
+        .from("staff").select("id, role, name, is_active")
+        .eq("email", email.trim().toLowerCase()).maybeSingle();
+
       if (staffMatch && !staffMatch.is_active) {
-        setError("This email is not authorized for access. Contact the salon owner.");
+        clearTimeout(timeout);
+        setError("This email is not authorized. Contact the salon owner.");
         return;
       }
 
-      // Active staff member → assign their pre-set role. Otherwise → client.
       const assignedRole = staffMatch?.is_active ? (staffMatch.role || "staff") : "client";
 
-      // Create auth account
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: email.trim(),
-        password,
+        password: pass,
         options: { data: { name: staffMatch?.name || name, role: assignedRole } },
       });
-      if (authErr) { setError(authErr.message); return; }
+
+      if (authErr) { clearTimeout(timeout); setError(authErr.message); return; }
 
       const userId = authData.user?.id;
-      if (!userId) { setError("Signup failed. Try again."); return; }
+      if (!userId) { clearTimeout(timeout); setError("Signup failed. Try again."); return; }
 
-      // Assign role — this must succeed before we continue
-      const { error: roleError } = await supabase
+      const { error: roleErr } = await supabase
         .from("user_roles").upsert({ user_id: userId, role: assignedRole });
-      if (roleError) { setError("Role assignment failed. Contact the salon owner."); return; }
+      if (roleErr) { clearTimeout(timeout); setError("Role assignment failed. Contact the salon owner."); return; }
 
       if (staffMatch) {
-        // Link user_id to staff record — ties auth account to staff registry
-        const { error: linkError } = await supabase
+        const { error: linkErr } = await supabase
           .from("staff").update({ user_id: userId }).eq("id", staffMatch.id);
-        if (linkError) { setError("Staff account linking failed. Contact the salon owner."); return; }
+        if (linkErr) { clearTimeout(timeout); setError("Staff linking failed. Contact the salon owner."); return; }
       } else {
-        // Client — link or create client record
         const cleanPhone = phone.replace(/\s/g, "");
-        await findOrCreateClient({ name, phone: cleanPhone, email, userId });
+        await findOrCreateClient({ name, phone: cleanPhone, email: email.trim(), userId });
       }
 
-      setError("");
-      if (assignedRole === "client") {
-        setError(""); 
-        // Show success message and switch to login
-        setMode("login");
-        setPass(""); setConf("");
-        alert(`Account created! Check your email (${email}) to confirm your account, then sign in.`);
-      } else {
-        alert(`Account created for ${staffMatch?.name}! Check your email to confirm, then sign in.`);
-        setMode("login");
-        setPass(""); setConf("");
-      }
+      clearTimeout(timeout);
+      setMode("login");
+      setPass(""); setConf("");
+      alert(`Account created${assignedRole !== "client" ? ` for ${staffMatch?.name}` : ""}! Check your email (${email.trim()}) to confirm, then sign in.`);
     } catch (e: any) {
+      clearTimeout(timeout);
       setError(e.message || "Signup failed.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const field = (
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    opts: { type?: string; placeholder?: string; hint?: string } = {}
+  ) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: TXT_M, textTransform: "uppercase" as const }}>
+        {label}
+      </label>
+      <input
+        type={opts.type || "text"}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={opts.placeholder}
+        onKeyDown={e => mode === "login" && e.key === "Enter" && handleLogin()}
+        style={{
+          padding: "13px 16px", borderRadius: 10, border: `1.5px solid ${BORDER}`,
+          fontSize: 14, background: WHITE, color: TXT, outline: "none",
+          fontFamily: "Montserrat,sans-serif", transition: "border-color 0.15s",
+        }}
+        onFocus={e => (e.target.style.borderColor = G)}
+        onBlur={e => (e.target.style.borderColor = BORDER)}
+      />
+      {opts.hint && <p style={{ fontSize: 10, color: TXT_S, margin: 0 }}>{opts.hint}</p>}
+    </div>
+  );
+
   return (
-    <div style={{ minHeight: "100vh", background: CREAM, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Montserrat',sans-serif" }}>
+    <div style={{ minHeight: "100vh", display: "flex", fontFamily: "Montserrat,sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
-        input:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px ${GOLD}22; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        *{box-sizing:border-box}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
       `}</style>
 
-      {/* Logo */}
-      <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <img src="/logo.png" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}`, marginBottom: 12 }} alt="Zolara" />
-        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 28, fontWeight: 700, color: TXT, lineHeight: 1 }}>Zolara</div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.22em", color: TXT_SOFT, marginTop: 4 }}>BEAUTY STUDIO</div>
-      </div>
+      {/* ── LEFT PANEL ─────────────────────────────────── */}
+      <div style={{
+        width: "42%", minHeight: "100vh", background: NAVY,
+        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        padding: "48px 52px", position: "relative", overflow: "hidden",
+        flexShrink: 0,
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", top: "-80px", right: "-80px", width: 320, height: 320, borderRadius: "50%", border: `1px solid rgba(184,151,90,0.12)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "-30px", right: "-30px", width: 200, height: 200, borderRadius: "50%", border: `1px solid rgba(184,151,90,0.08)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "-100px", left: "-60px", width: 360, height: 360, borderRadius: "50%", border: `1px solid rgba(184,151,90,0.07)`, pointerEvents: "none" }} />
 
-      <div style={{ width: "100%", maxWidth: 400, background: WHITE, borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", padding: 32 }}>
-
-        {/* Tabs */}
-        <div style={{ display: "flex", background: "#F5F5F4", borderRadius: 10, padding: 4, marginBottom: 28 }}>
-          {(["login", "signup"] as const).map(m => (
-            <button key={m} onClick={() => { setMode(m); setError(""); }}
-              style={{ flex: 1, padding: "9px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", background: mode === m ? WHITE : "transparent", color: mode === m ? TXT : TXT_SOFT, boxShadow: mode === m ? "0 1px 4px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
-              {m === "login" ? "Sign In" : "Sign Up"}
-            </button>
-          ))}
+        {/* Logo */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <img src="/logo.png" alt="Zolara"
+              style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", border: `2px solid ${G}44` }} />
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 600, color: WHITE, letterSpacing: "-0.01em", lineHeight: 1 }}>Zolara</div>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.24em", color: `${G}99`, marginTop: 3 }}>BEAUTY STUDIO</div>
+            </div>
+          </div>
         </div>
 
-        {error && (
-          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: RED, marginBottom: 16 }}>
-            {error}
+        {/* Center copy */}
+        <div>
+          <div style={{ width: 36, height: 2, background: G, marginBottom: 28, borderRadius: 1 }} />
+          <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,3vw,40px)", fontWeight: 500, color: WHITE, lineHeight: 1.25, margin: 0, letterSpacing: "-0.01em" }}>
+            Every detail.<br />
+            <em style={{ color: G }}>Perfected.</em>
+          </p>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 20, lineHeight: 1.7, fontWeight: 300, maxWidth: 280 }}>
+            Tamale's premier luxury beauty destination. Sign in to manage your bookings and studio operations.
+          </p>
+        </div>
+
+        {/* Bottom */}
+        <div>
+          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", letterSpacing: "0.06em" }}>
+            © {new Date().getFullYear()} Zolara Beauty Studio
+          </p>
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL ────────────────────────────────── */}
+      <div style={{
+        flex: 1, background: CREAM, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", padding: "48px 40px",
+        overflowY: "auto",
+      }}>
+        <div style={{ width: "100%", maxWidth: 420, animation: "fadeUp 0.4s ease both" }}>
+
+          {/* Heading */}
+          <div style={{ marginBottom: 36 }}>
+            <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,3vw,38px)", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1, letterSpacing: "-0.02em" }}>
+              {mode === "login" ? "Welcome back" : "Create account"}
+            </h1>
+            <p style={{ fontSize: 12, color: TXT_S, marginTop: 8, fontWeight: 400 }}>
+              {mode === "login"
+                ? "Sign in to access your dashboard."
+                : "Staff accounts are approved by the salon owner."}
+            </p>
           </div>
-        )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {mode === "signup" && (
-            <div>
-              <label style={lbl}>Full Name</label>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={inp} />
-            </div>
-          )}
-
-          <div>
-            <label style={lbl}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={inp}
-              onKeyDown={e => mode === "login" && e.key === "Enter" && handleLogin()} />
-          </div>
-
-          {mode === "signup" && (
-            <div>
-              <label style={lbl}>Phone (optional)</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0XX XXX XXXX" style={inp} />
-              <p style={{ fontSize: 10, color: TXT_SOFT, marginTop: 4 }}>Helps link your booking history</p>
-            </div>
-          )}
-
-          <div>
-            <label style={lbl}>Password</label>
-            <div style={{ position: "relative" }}>
-              <input type={showPw ? "text" : "password"} value={password} onChange={e => setPass(e.target.value)}
-                placeholder={mode === "login" ? "Your password" : "Min 6 characters"} style={{ ...inp, paddingRight: 44 }}
-                onKeyDown={e => mode === "login" && e.key === "Enter" && handleLogin()} />
-              <button onClick={() => setShowPw(p => !p)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: TXT_SOFT, display: "flex", alignItems: "center" }}>
-                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+          {/* Tab switcher */}
+          <div style={{ display: "flex", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 4, marginBottom: 28, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+            {(["login", "signup"] as const).map(m => (
+              <button key={m} onClick={() => { setMode(m); setError(""); }}
+                style={{
+                  flex: 1, padding: "10px", borderRadius: 9, border: "none", cursor: "pointer",
+                  fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                  fontFamily: "Montserrat,sans-serif", transition: "all 0.15s",
+                  background: mode === m ? NAVY : "transparent",
+                  color: mode === m ? WHITE : TXT_S,
+                  boxShadow: mode === m ? "0 2px 8px rgba(15,30,53,0.2)" : "none",
+                }}>
+                {m === "login" ? "Sign In" : "Sign Up"}
               </button>
-            </div>
+            ))}
           </div>
 
-          {mode === "signup" && (
-            <div>
-              <label style={lbl}>Confirm Password</label>
-              <input type={showPw ? "text" : "password"} value={confirm} onChange={e => setConf(e.target.value)} placeholder="Repeat password" style={inp} />
+          {/* Error */}
+          {error && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "11px 14px", fontSize: 12, color: RED, marginBottom: 20, display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <span style={{ flexShrink: 0 }}>⚠</span>
+              <span>{error}</span>
             </div>
           )}
 
-          <button onClick={mode === "login" ? handleLogin : handleSignup} disabled={loading}
-            style={{ padding: "14px", borderRadius: 12, background: loading ? "#D4C5A9" : `linear-gradient(135deg, ${GOLD}, ${GOLD_D})`, border: "none", color: WHITE, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "'Montserrat',sans-serif", marginTop: 4 }}>
-            {loading
-              ? <><Loader2 size={15} style={{ animation: "spin 0.8s linear infinite" }} /> LOADING…</>
-              : mode === "login" ? "SIGN IN" : "CREATE ACCOUNT"}
-          </button>
+          {/* Form */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {mode === "signup" && field("Full Name", name, setName, { placeholder: "Your full name" })}
+            {field("Email", email, setEmail, { type: "email", placeholder: "your@email.com" })}
+            {mode === "signup" && field("Phone", phone, setPhone, { type: "tel", placeholder: "0XX XXX XXXX", hint: "Optional — helps link your booking history" })}
+
+            {/* Password with show/hide */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: TXT_M, textTransform: "uppercase" }}>Password</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={pass} onChange={e => setPass(e.target.value)}
+                  placeholder={mode === "login" ? "Your password" : "Min 6 characters"}
+                  onKeyDown={e => mode === "login" && e.key === "Enter" && handleLogin()}
+                  style={{ width: "100%", padding: "13px 44px 13px 16px", borderRadius: 10, border: `1.5px solid ${BORDER}`, fontSize: 14, background: WHITE, color: TXT, outline: "none", fontFamily: "Montserrat,sans-serif", transition: "border-color 0.15s" }}
+                  onFocus={e => (e.target.style.borderColor = G)}
+                  onBlur={e => (e.target.style.borderColor = BORDER)}
+                />
+                <button onClick={() => setShowPw(p => !p)} type="button"
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: TXT_S, display: "flex", padding: 4 }}>
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+
+            {mode === "signup" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: TXT_M, textTransform: "uppercase" }}>Confirm Password</label>
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={conf} onChange={e => setConf(e.target.value)}
+                  placeholder="Repeat password"
+                  style={{ padding: "13px 16px", borderRadius: 10, border: `1.5px solid ${BORDER}`, fontSize: 14, background: WHITE, color: TXT, outline: "none", fontFamily: "Montserrat,sans-serif" }}
+                  onFocus={e => (e.target.style.borderColor = G)}
+                  onBlur={e => (e.target.style.borderColor = BORDER)}
+                />
+              </div>
+            )}
+
+            {mode === "login" && (
+              <div style={{ textAlign: "right", marginTop: -8 }}>
+                <a href="https://zolarasalon.com/app/auth" style={{ fontSize: 11, color: G, textDecoration: "none", fontWeight: 600 }}>
+                  Forgot password?
+                </a>
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              onClick={mode === "login" ? handleLogin : handleSignup}
+              disabled={loading}
+              style={{
+                padding: "15px", borderRadius: 12, border: "none", cursor: loading ? "not-allowed" : "pointer",
+                background: loading ? "#D4C5A9" : `linear-gradient(135deg, ${G} 0%, ${G_D} 100%)`,
+                color: WHITE, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em",
+                fontFamily: "Montserrat,sans-serif", display: "flex", alignItems: "center",
+                justifyContent: "center", gap: 10, marginTop: 4,
+                boxShadow: loading ? "none" : `0 4px 20px ${G}44`,
+                transition: "all 0.2s",
+              }}>
+              {loading
+                ? <><span style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: WHITE, display: "inline-block", animation: "spin 0.8s linear infinite" }} /> PLEASE WAIT…</>
+                : mode === "login" ? "SIGN IN" : "CREATE ACCOUNT"
+              }
+            </button>
+          </div>
+
+          {/* Switch mode */}
+          <p style={{ textAlign: "center", fontSize: 12, color: TXT_S, marginTop: 24 }}>
+            {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+            <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}
+              style={{ background: "none", border: "none", color: G, fontWeight: 700, cursor: "pointer", fontSize: 12, fontFamily: "Montserrat,sans-serif" }}>
+              {mode === "login" ? "Sign up" : "Sign in"}
+            </button>
+          </p>
+
+          <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${BORDER}`, textAlign: "center" }}>
+            <a href="/" style={{ fontSize: 11, color: TXT_S, textDecoration: "none" }}>← Back to homepage</a>
+          </div>
         </div>
-
-        <p style={{ textAlign: "center", fontSize: 11, color: TXT_SOFT, marginTop: 20 }}>
-          {mode === "login" ? "Don't have an account? " : "Already have an account? "}
-          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}
-            style={{ background: "none", border: "none", color: GOLD, fontWeight: 700, cursor: "pointer", fontSize: 11, fontFamily: "'Montserrat',sans-serif" }}>
-            {mode === "login" ? "Sign up" : "Sign in"}
-          </button>
-        </p>
       </div>
-
-      <a href="/" style={{ marginTop: 24, fontSize: 12, color: TXT_SOFT, textDecoration: "none" }}>← Back to homepage</a>
     </div>
   );
 }
