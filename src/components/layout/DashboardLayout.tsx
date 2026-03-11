@@ -148,38 +148,52 @@ const DashboardLayout = () => {
   // ==========================================================
   const getNavItemsForRole = (role: string) => {
     switch (role) {
-      case "admin":
-        return baseNavItems.map((item) => ({
-          ...item,
-          path: `/app/admin/${item.path}`,
-        }))
-      // ------------------------------------------------------
-      // OWNER: FULL ACCESS
-      // ------------------------------------------------------
+      // ── OWNER / ADMIN: full access, all items ──────────────────
       case "owner":
+      case "admin":
         return baseNavItems.map((item) => ({
           ...item,
           path: `/app/admin/${item.path}`,
         }));
 
-      // ------------------------------------------------------
-      // RECEPTIONIST: LIMITED ACCESS
-      // Staff List → Allowed
-      // Sales / Reports → Hidden
-      // Attendance Reports → Admin only
-      // ------------------------------------------------------
-      case "receptionist":
+      // ── RECEPTIONIST: front-desk operations ────────────────────
+      // No: Sales, Analytics, Reports, Attendance Reports, Settings,
+      //     Add-ons, SMS Campaigns, Subscriptions, Products
+      case "receptionist": {
+        const allowed = [
+          "Dashboard", "Bookings", "Clients", "Staff",
+          "Services", "Gift Cards", "Checkout", "Loyalty",
+          "Waitlist", "Promo Codes", "Client Notes", "Attendance",
+        ];
         return baseNavItems
-          .filter((item) => !["Sales", "Reports", "Attendance Reports"].includes(item.label))
-          .map((item) => ({ ...item, path: `/app/admin/${item.path}` }));
+          .filter((item) => allowed.includes(item.label))
+          .map((item) => ({ ...item, path: `/app/receptionist/${item.path}` }));
+      }
+
+      // ── STAFF: personal work only ───────────────────────────────
+      case "staff": {
+        const allowed = ["Dashboard", "Bookings", "Services", "Attendance"];
+        return baseNavItems
+          .filter((item) => allowed.includes(item.label))
+          .map((item) => ({ ...item, path: `/app/staff/${item.path}` }));
+      }
+
+      // ── CLIENT: personal portal ─────────────────────────────────
+      case "client": {
+        const allowed = ["Dashboard", "Bookings", "Services"];
+        return baseNavItems
+          .filter((item) => allowed.includes(item.label))
+          .map((item) => ({ ...item, path: `/app/client/${item.path}` }));
+      }
 
       default:
-        return baseNavItems.map((item) => ({ ...item, path: `/app/admin/${item.path}` }));
+        return [];
     }
   };
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-  const navItems = getNavItemsForRole(currentRole || storedUser.role || "");
+  const activeRole = currentRole || storedUser.role || "";
+  const navItems = getNavItemsForRole(activeRole);
 
   const roleLabels: Record<string, string> = {
     owner: "Owner Access",
@@ -244,7 +258,7 @@ const DashboardLayout = () => {
               <div style={{ fontSize: "8px", fontWeight: 600, letterSpacing: "0.22em", color: WHITE_DIM, marginTop: "3px" }}>BEAUTY STUDIO</div>
               <div style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", background: GOLD_LIGHT, borderRadius: "20px", padding: "2px 8px", border: "1px solid rgba(201,168,76,0.2)" }}>
                 <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", color: GOLD }}>
-                  {roleLabels[storedUser.role] || "Access"}
+                  {roleLabels[activeRole] || "Access"}
                 </span>
               </div>
             </div>
