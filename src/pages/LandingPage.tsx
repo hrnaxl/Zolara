@@ -55,27 +55,41 @@ export default function LandingPage() {
         @keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes shimmer { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
-        @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
+        @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-14px); } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes pulseGold { 0%,100% { box-shadow: 0 0 0 0 rgba(200,169,126,0); } 50% { box-shadow: 0 0 0 8px rgba(200,169,126,0.15); } }
+        @keyframes sparkle { 0%,100% { opacity:0; transform:scale(0) rotate(0deg); } 50% { opacity:1; transform:scale(1) rotate(180deg); } }
+        @keyframes borderGlow { 0%,100% { border-color: rgba(200,169,126,0.3); box-shadow: 0 24px 64px rgba(28,22,14,0.10); } 50% { border-color: rgba(200,169,126,0.65); box-shadow: 0 28px 80px rgba(200,169,126,0.18), 0 0 40px rgba(200,169,126,0.06); } }
+        @keyframes orb { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,-30px) scale(1.1); } 66% { transform: translate(-20px,20px) scale(0.95); } }
+        @keyframes shimmerBg { 0%,100% { background-position: 200% center; } 50% { background-position: -200% center; } }
         .fade-up { animation: fadeUp 0.9s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
         .delay-1 { animation-delay: 0.15s; }
         .delay-2 { animation-delay: 0.3s; }
         .delay-3 { animation-delay: 0.45s; }
         .delay-4 { animation-delay: 0.6s; }
         .delay-5 { animation-delay: 0.75s; }
-        .service-card { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease; cursor: default; }
-        .service-card:hover { transform: translateY(-8px); box-shadow: 0 32px 64px rgba(28,22,14,0.15); }
+        .service-card { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, background 0.4s ease; cursor: default; }
+        .service-card:hover { transform: translateY(-10px); box-shadow: 0 32px 64px rgba(28,22,14,0.15), 0 0 0 1px rgba(200,169,126,0.3); background: #fff !important; }
         .btn-primary { transition: all 0.3s ease; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(139,105,20,0.4); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(139,105,20,0.45); }
         .btn-outline:hover { background: ${dark} !important; color: ${cream} !important; }
         .nav-link { position: relative; }
         .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1px; background: ${gold}; transition: width 0.3s ease; }
         .nav-link:hover::after { width: 100%; }
         .ornament { animation: shimmer 3s ease-in-out infinite; }
         .float { animation: float 6s ease-in-out infinite; }
-        .marquee-track { animation: marquee 30s linear infinite; }
+        .marquee-track { animation: marquee 28s linear infinite; }
         .review-card { transition: all 0.5s ease; }
+        .hero-floating-card { animation: borderGlow 4s ease-in-out infinite; }
+        .visit-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .visit-card:hover { transform: translateY(-5px); box-shadow: 0 20px 48px rgba(28,22,14,0.1); }
+        .gift-card-tile { transition: transform 0.35s ease, box-shadow 0.35s ease; cursor: pointer; }
+        .gift-card-tile:hover { transform: translateY(-6px) scale(1.025); box-shadow: 0 28px 60px rgba(0,0,0,0.28); }
+        .orb-1 { animation: orb 12s ease-in-out infinite; }
+        .orb-2 { animation: orb 16s ease-in-out infinite reverse; animation-delay: -4s; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulseGold 2s ease-in-out infinite; box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+        @media (max-width: 768px) { .hero-floating-card-wrapper { display: none !important; } }
       `}</style>
 
       {/* ── NAVBAR ─────────────────────────────── */}
@@ -94,8 +108,8 @@ export default function LandingPage() {
             <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div>
-            <div className="sans" style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.2em", color: dark }}>ZOLARA</div>
-            <div className="sans" style={{ fontSize: "8px", letterSpacing: "0.25em", color: gold, marginTop: "-1px" }}>BEAUTY STUDIO</div>
+            <div className="sans" style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.22em", color: dark }}>ZOLARA</div>
+            <div className="sans" style={{ fontSize: "9.5px", letterSpacing: "0.22em", color: gold, marginTop: "1px", fontWeight: 600 }}>BEAUTY STUDIO</div>
           </div>
         </a>
 
@@ -119,38 +133,58 @@ export default function LandingPage() {
       <section ref={heroRef} style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", padding: "0 clamp(24px,6vw,100px)" }}>
 
         {/* Background texture */}
-        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, rgba(200,169,126,0.12) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(200,169,126,0.08) 0%, transparent 50%)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, rgba(200,169,126,0.14) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(200,169,126,0.09) 0%, transparent 50%)`, pointerEvents: "none" }} />
+
+        {/* Animated orbs */}
+        <div className="orb-1" style={{ position: "absolute", top: "15%", right: "30%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(200,169,126,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div className="orb-2" style={{ position: "absolute", bottom: "10%", right: "10%", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(200,169,126,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+        {/* Fine diagonal lines texture */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(200,169,126,0.025) 60px, rgba(200,169,126,0.025) 61px)`, pointerEvents: "none" }} />
 
         {/* Decorative large letter */}
         <div style={{ position: "absolute", right: "-2%", top: "50%", transform: "translateY(-50%)", fontSize: "clamp(280px,35vw,480px)", fontWeight: 700, color: "rgba(200,169,126,0.06)", lineHeight: 1, pointerEvents: "none", userSelect: "none", letterSpacing: "-0.05em" }}>Z</div>
 
         {/* Floating ornament */}
-        <div className="float" style={{ position: "absolute", right: "clamp(24px,8vw,120px)", top: "20%", width: "280px", pointerEvents: "none" }}>
-          <div className="hero-floating-card" style={{ width: "280px", height: "380px", border: `1px solid rgba(200,169,126,0.25)`, borderRadius: "2px", background: "rgba(237,227,213,0.6)", backdropFilter: "blur(10px)", padding: "32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
-            <div style={{ width: "64px", height: "64px", borderRadius: "50%", border: `2px solid ${gold}`, overflow: "hidden", background: "#fff" }}>
+        <div className="hero-floating-card-wrapper float" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "18%", width: "296px", pointerEvents: "none" }}>
+          <div className="hero-floating-card" style={{ width: "296px", border: `1px solid rgba(200,169,126,0.35)`, borderRadius: "4px", background: "rgba(250,248,243,0.88)", backdropFilter: "blur(20px)", padding: "36px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "18px", boxShadow: "0 24px 64px rgba(28,22,14,0.12), 0 0 0 1px rgba(200,169,126,0.1)" }}>
+            <div style={{ width: "68px", height: "68px", borderRadius: "50%", border: `2px solid ${gold}`, overflow: "hidden", background: "#fff", boxShadow: `0 0 0 4px rgba(200,169,126,0.15)` }}>
               <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
-            <div style={{ width: "32px", height: "1px", background: gold }} />
-            <p style={{ fontStyle: "italic", fontSize: "17px", color: dark, textAlign: "center", lineHeight: 1.65 }}>
+            <div style={{ width: "36px", height: "1px", background: `linear-gradient(90deg, transparent, ${gold}, transparent)` }} />
+            <p style={{ fontStyle: "italic", fontSize: "16.5px", color: dark, textAlign: "center", lineHeight: 1.7, letterSpacing: "0.01em" }}>
               "Not just a salon. A complete luxury experience."
             </p>
-            <div style={{ width: "32px", height: "1px", background: gold }} />
+            <div style={{ width: "36px", height: "1px", background: `linear-gradient(90deg, transparent, ${gold}, transparent)` }} />
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "14px" }}>
-              {[["LOCATION","Sakasaka, Tamale"],["HOURS","Mon – Sat · 8:30 AM – 9 PM"],["CALL","0594 365 314"]].map(([l,v]) => (
-                <div key={l}>
-                  <p className="sans" style={{ fontSize: "8px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "3px" }}>{l}</p>
-                  <p className="sans" style={{ fontSize: "11px", color: dark }}>{v}</p>
-                </div>
-              ))}
+              <div>
+                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>LOCATION</p>
+                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400 }}>Sakasaka, Tamale</p>
+              </div>
+              <div>
+                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>HOURS</p>
+                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400 }}>Mon – Sat · 8:30 AM – 9:00 PM</p>
+              </div>
+              <div>
+                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>CALL</p>
+                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400 }}>0594 365 314</p>
+                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400, marginTop: "2px" }}>020 884 8707</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Left content */}
         <div style={{ maxWidth: "600px", paddingTop: "80px", paddingBottom: "80px", position: "relative", zIndex: 2 }}>
-          <div className="fade-up sans" style={{ display: "inline-flex", alignItems: "center", gap: "10px", marginBottom: "32px" }}>
-            <div style={{ width: "32px", height: "1px", background: gold }} />
-            <span style={{ fontSize: "10px", letterSpacing: "0.25em", color: gold, fontWeight: 600 }}>TAMALE'S FINEST BEAUTY STUDIO</span>
+          <div className="fade-up sans" style={{ display: "inline-flex", alignItems: "center", gap: "16px", marginBottom: "32px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: "32px", height: "1px", background: gold }} />
+              <span style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: gold, fontWeight: 700 }}>TAMALE'S FINEST BEAUTY STUDIO</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.3)", borderRadius: "100px", padding: "4px 10px" }}>
+              <div className="live-dot" />
+              <span style={{ fontSize: "9px", letterSpacing: "0.15em", color: "#22c55e", fontWeight: 700 }}>NOW OPEN</span>
+            </div>
           </div>
 
           <h1 className="fade-up delay-1" style={{ fontSize: "clamp(56px,8vw,96px)", fontWeight: 300, lineHeight: 1.0, marginBottom: "8px", letterSpacing: "-0.01em" }}>
@@ -160,7 +194,7 @@ export default function LandingPage() {
             Meets Beauty.
           </h1>
 
-          <p className="fade-up delay-3 sans" style={{ fontSize: "15px", lineHeight: 1.85, color: "#5C4D3A", maxWidth: "460px", marginBottom: "44px", fontWeight: 300 }}>
+          <p className="fade-up delay-3 sans" style={{ fontSize: "15px", lineHeight: 1.85, color: "#4A3C2A", maxWidth: "460px", marginBottom: "44px", fontWeight: 400 }}>
             A sanctuary crafted for women who demand the finest. Every appointment at Zolara is a ritual, every stylist an artist, every result extraordinary.
           </p>
 
@@ -184,11 +218,11 @@ export default function LandingPage() {
           </div>
 
           {/* Stats */}
-          <div className="fade-up delay-5" style={{ display: "flex", gap: "40px", marginTop: "56px", paddingTop: "40px", borderTop: `1px solid rgba(200,169,126,0.25)` }}>
+          <div className="fade-up delay-5" style={{ display: "flex", gap: "40px", marginTop: "56px", paddingTop: "40px", borderTop: `1px solid rgba(200,169,126,0.3)` }}>
             {[["500+","Happy Clients"],["7","Expert Stylists"],["4+","Years of Excellence"]].map(([n,l]) => (
-              <div key={l}>
-                <p style={{ fontSize: "clamp(28px,3vw,40px)", fontWeight: 600, color: goldDark, lineHeight: 1 }}>{n}</p>
-                <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.1em", color: "#8B7355", marginTop: "4px" }}>{l}</p>
+              <div key={l} className="stat-item">
+                <p className="stat-num" style={{ fontSize: "clamp(28px,3vw,40px)", fontWeight: 600, color: goldDark, lineHeight: 1, transition: "color 0.3s" }}>{n}</p>
+                <p className="sans" style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "#6B5740", marginTop: "5px", fontWeight: 500 }}>{l}</p>
               </div>
             ))}
           </div>
@@ -196,13 +230,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── MARQUEE STRIP ──────────────────────── */}
-      <div style={{ background: dark, overflow: "hidden", padding: "18px 0", borderTop: `1px solid rgba(200,169,126,0.15)` }}>
+      <div style={{ background: `linear-gradient(90deg, #1C160E, #2A1F12, #1C160E)`, overflow: "hidden", padding: "20px 0", borderTop: `1px solid rgba(200,169,126,0.2)`, borderBottom: `1px solid rgba(200,169,126,0.1)` }}>
         <div className="marquee-track" style={{ display: "flex", gap: "0", whiteSpace: "nowrap", width: "max-content" }}>
           {[...Array(3)].map((_, i) => (
             <span key={i} className="sans" style={{ display: "inline-flex", alignItems: "center", gap: "0" }}>
               {["HAIR BRAIDING","NAIL CARE","LASH EXTENSIONS","MAKEUP","WIG STYLING","LOYALTY REWARDS","FREE WIFI","FREE WATER","PREMIUM PRODUCTS","EXPERT STYLISTS"].map(item => (
                 <span key={item} style={{ display: "inline-flex", alignItems: "center", gap: "20px", paddingRight: "48px" }}>
-                  <span style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(245,239,230,0.7)", fontWeight: 500 }}>{item}</span>
+                  <span style={{ fontSize: "10px", letterSpacing: "0.22em", color: "rgba(245,239,230,0.85)", fontWeight: 600 }}>{item}</span>
                   <span style={{ color: gold, fontSize: "14px" }}>✦</span>
                 </span>
               ))}
@@ -227,7 +261,7 @@ export default function LandingPage() {
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(90deg, ${s.color}, transparent)` }} />
               <div style={{ fontSize: "28px", color: s.color, marginBottom: "20px", lineHeight: 1 }}>{s.icon}</div>
               <h3 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "12px" }}>{s.name}</h3>
-              <p className="sans" style={{ fontSize: "13px", color: "#5C4D3A", lineHeight: 1.75, marginBottom: "24px", fontWeight: 300 }}>{s.desc}</p>
+              <p className="sans" style={{ fontSize: "13px", color: "#4A3C2A", lineHeight: 1.75, marginBottom: "24px", fontWeight: 400 }}>{s.desc}</p>
               <p className="sans" style={{ fontSize: "11px", fontWeight: 700, color: goldDark, letterSpacing: "0.05em" }}>{s.price}</p>
             </div>
           ))}
@@ -253,7 +287,7 @@ export default function LandingPage() {
           <div>
             <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
             <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
-            <p className="sans" style={{ fontSize: "14px", color: "#5C4D3A", lineHeight: 1.9, marginBottom: "36px", fontWeight: 300 }}>
+            <p className="sans" style={{ fontSize: "14px", color: "#3D3025", lineHeight: 1.9, marginBottom: "36px", fontWeight: 400 }}>
               Every visit to Zolara is designed to be more than just a salon appointment. From the moment you walk in to your Exit Ritual, a perfume spritz, a piece of chocolate, and a final mirror check, you leave feeling extraordinary.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -266,7 +300,7 @@ export default function LandingPage() {
               ].map(([item, icon]) => (
                 <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
                   <span style={{ color: gold, fontSize: "14px", flexShrink: 0, marginTop: "2px" }}>{icon}</span>
-                  <span className="sans" style={{ fontSize: "13px", color: "#4A3C2A", lineHeight: 1.6, fontWeight: 300 }}>{item}</span>
+                  <span className="sans" style={{ fontSize: "13px", color: "#3D3025", lineHeight: 1.6, fontWeight: 400 }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -337,7 +371,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
           <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE PERFECT PRESENT</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400, marginBottom: "20px" }}>Gift the <em>Experience</em></h2>
-          <p className="sans" style={{ fontSize: "14px", color: "#5C4D3A", lineHeight: 1.85, maxWidth: "520px", margin: "0 auto 48px", fontWeight: 300 }}>
+          <p className="sans" style={{ fontSize: "14px", color: "#3D3025", lineHeight: 1.85, maxWidth: "520px", margin: "0 auto 48px", fontWeight: 400 }}>
             Give someone you love a luxury beauty experience at Zolara. Valid for 12 months. Redeemable for any service. Delivered by email or picked up in store.
           </p>
 
@@ -348,7 +382,7 @@ export default function LandingPage() {
               { amount: "GH₵ 650", tier: "Platinum",        desc: "Premium luxury experience",     gradient: "linear-gradient(135deg, #4B5563, #9CA3AF, #374151)" },
               { amount: "GH₵ 1,000", tier: "Diamond Luxury Pass", desc: "The ultimate gift",       gradient: "linear-gradient(135deg, #312E81, #818CF8, #1E1B4B)" },
             ].map(({ amount, tier, desc, gradient }) => (
-              <div key={tier} style={{ background: gradient, borderRadius: "10px", padding: "24px 20px", position: "relative", overflow: "hidden", textAlign: "left" }}>
+            <div key={tier} className="gift-card-tile" style={{ background: gradient, borderRadius: "10px", padding: "24px 20px", position: "relative", overflow: "hidden", textAlign: "left" }}>
                 <div style={{ position: "absolute", top: -12, right: -12, width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.7)", marginBottom: "12px", fontWeight: 600 }}>ZOLARA BEAUTY STUDIO</p>
                 <p style={{ fontSize: "26px", fontWeight: 700, color: "white", marginBottom: "4px", fontFamily: "'Cormorant Garamond', serif" }}>{amount}</p>
@@ -383,10 +417,10 @@ export default function LandingPage() {
             { icon: "◇", label: "HOURS", lines: ["Monday – Saturday", "8:30 AM – 9:00 PM"] },
             { icon: "✦", label: "CLOSED", lines: ["Every Sunday", "We rest so we can serve you better"] },
           ].map(item => (
-            <div key={item.label} style={{ background: mid, border: `1px solid rgba(200,169,126,0.2)`, borderRadius: "2px", padding: "36px 28px", textAlign: "center" }}>
+            <div key={item.label} className="visit-card" style={{ background: mid, border: `1px solid rgba(200,169,126,0.25)`, borderRadius: "2px", padding: "36px 28px", textAlign: "center" }}>
               <div style={{ fontSize: "24px", color: gold, marginBottom: "16px" }}>{item.icon}</div>
               <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "12px" }}>{item.label}</p>
-              {item.lines.map(l => <p key={l} className="sans" style={{ fontSize: "13px", color: dark, lineHeight: 1.7, fontWeight: 300 }}>{l}</p>)}
+              {item.lines.map(l => <p key={l} className="sans" style={{ fontSize: "13px", color: dark, lineHeight: 1.7, fontWeight: 400 }}>{l}</p>)}
             </div>
           ))}
         </div>
