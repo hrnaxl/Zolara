@@ -254,33 +254,39 @@ const DashboardLayout = () => {
       }} className={`transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
 
         {/* Logo / Brand */}
-        <div style={{ padding: "22px 20px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
-            <div style={{ width: "46px", height: "46px", borderRadius: "50%", overflow: "hidden", border: `2px solid ${GOLD}`, flexShrink: 0, boxShadow: "0 0 0 3px rgba(201,168,76,0.15)" }}>
-              <img
-                src={settings.logo_url !== null ? settings.logo_url : "/logo.png"}
-                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }}
-                onClick={() => navigate("/")}
-                alt="Zolara"
-              />
-            </div>
-            <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", fontWeight: 700, color: WHITE, lineHeight: 1 }}>Zolara</div>
-              <div style={{ fontSize: "8px", fontWeight: 600, letterSpacing: "0.22em", color: WHITE_DIM, marginTop: "3px" }}>BEAUTY STUDIO</div>
-              <div style={{ marginTop: "6px", display: "inline-flex", alignItems: "center", background: GOLD_LIGHT, borderRadius: "20px", padding: "2px 8px", border: "1px solid rgba(201,168,76,0.2)" }}>
-                <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", color: GOLD }}>
-                  {roleLabels[activeRole] || "Access"}
-                </span>
+        <div style={{ padding: "0 0 0", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+          <div style={{ padding: "20px 18px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ width: "42px", height: "42px", borderRadius: "50%", overflow: "hidden", border: `2px solid ${GOLD}`, flexShrink: 0, boxShadow: "0 0 0 3px rgba(201,168,76,0.12)" }}>
+                <img
+                  src={settings.logo_url !== null ? settings.logo_url : "/logo.png"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }}
+                  onClick={() => navigate("/")}
+                  alt="Zolara"
+                />
+              </div>
+              <div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "21px", fontWeight: 700, color: WHITE, lineHeight: 1.1 }}>Zolara</div>
+                <div style={{ fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.24em", color: WHITE_DIM, marginTop: "2px" }}>BEAUTY STUDIO</div>
               </div>
             </div>
+            <button
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: WHITE_DIM, padding: "4px" }}
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: WHITE_DIM, padding: "4px" }}
-          >
-            <X size={18} />
-          </button>
+          {/* Role badge — full-width strip below the logo row */}
+          <div style={{ padding: "0 18px 14px" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(201,168,76,0.12)", borderRadius: "6px", padding: "5px 10px", border: "1px solid rgba(201,168,76,0.2)" }}>
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: GOLD, flexShrink: 0 }} />
+              <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: GOLD }}>
+                {roleLabels[activeRole] || "Access"}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Nav — scrollable */}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSettings } from "@/context/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { BusinessInfoSection } from "@/components/settings/BusinessInfoSection";
@@ -62,13 +63,22 @@ const defaultSettings: Settings = {
 };
 
 export default function Settings() {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const { settings: ctxSettings, setSettings: setCtxSettings } = useSettings();
+  const [settings, setSettings] = useState<Settings>({ ...defaultSettings, ...ctxSettings });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchSettings();
+  }, []);
+
+  // Keep local state in sync if context loads/updates after mount
+  useEffect(() => {
+    if (ctxSettings && ctxSettings.business_name !== undefined) {
+      setSettings(prev => ({ ...defaultSettings, ...ctxSettings, ...prev }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSettings = async () => {
@@ -137,6 +147,10 @@ export default function Settings() {
         business_email: settings.business_email,
         business_address: settings.business_address,
         payment_methods: settings.payment_methods,
+        staff_roles: settings.staff_roles,
+        service_categories: settings.service_categories,
+        use_24_hour_format: settings.use_24_hour_format,
+        paystack_enabled: settings.paystack_enabled,
         gallery_images: (settings as any).gallery_images ?? [],
       };
 
@@ -160,8 +174,11 @@ export default function Settings() {
       toast.success("Settings saved successfully!");
 
       setLogoFile(null);
-      // Update local state directly — don't re-fetch (would overwrite with cached DB data)
-      setSettings(prev => ({ ...prev, ...settingsData, logo_url: logoUrl || prev.logo_url }));
+      const merged = { ...settings, ...settingsData, logo_url: logoUrl || settings.logo_url };
+      // Update local state
+      setSettings(merged);
+      // Sync context so navigating away and back shows correct data immediately
+      setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Failed to save settings");
