@@ -379,7 +379,7 @@ export default function PublicBooking() {
               { icon: "✦", title: "The Luxury Difference", body: "Free WiFi, chilled water, Arctic AC, and a perfume spritz with chocolate on your way out." },
               { icon: "◇", title: "Cancellation Policy", body: "Cancel 24 or more hours out for a full reschedule at no cost. Less than 12 hours forfeits the deposit. Call to cancel. SMS cancellations are not accepted." },
               { icon: "◉", title: "Lateness Policy", body: "Arrive 5 to 10 minutes early. 15 or more minutes late incurs a GHS 50 lateness fee. 30 or more minutes may result in cancellation." },
-              { icon: "❋", title: "Loyalty Rewards", body: "1 stamp per GHS 100 spent. 10 stamps earns 1 free service up to GHS 300. Double stamps in your birthday month." },
+              { icon: "❋", title: "Loyalty Rewards", body: "1 stamp per GHS 100 spent. 20 stamps = GHS 50 discount. Double stamps in your birthday month." },
               { icon: "★", title: "Student Discount", body: "10% off all services Mon to Thu with a valid student ID. Present ID when booking." },
             ].map(({ icon, title, body }) => (
               <div key={title} style={{ padding: "17px 28px", borderBottom: "1px solid rgba(200,169,126,0.08)", display: "flex", gap: "13px", alignItems: "flex-start" }}>
@@ -466,12 +466,17 @@ export default function PublicBooking() {
               </div>
             )}
             {selectedService && (
-              <div style={{ marginTop: "14px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, marginBottom: "2px" }}>{selectedService.name}</p>
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT }}>{selectedService.duration_minutes} minutes</p>
+              <div style={{ marginTop: "14px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "14px 18px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: selectedService.description ? "10px" : "0" }}>
+                  <div>
+                    <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, marginBottom: "2px" }}>{selectedService.name}</p>
+                    <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT }}>{selectedService.duration_minutes} minutes</p>
+                  </div>
+                  <p style={{ fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {Number(selectedService.price).toLocaleString()}</p>
                 </div>
-                <p style={{ fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {Number(selectedService.price).toLocaleString()}</p>
+                {selectedService.description && (
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, lineHeight: 1.5, paddingTop: "10px", borderTop: "1px solid rgba(200,169,126,0.2)" }}>{selectedService.description}</p>
+                )}
               </div>
             )}
             {errors.service && <p className="err">{errors.service}</p>}

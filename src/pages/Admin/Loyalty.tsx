@@ -29,8 +29,8 @@ interface Client {
   email?: string;
 }
 
-const STAMPS_PER_REWARD = 10;
-const MAX_REWARD_VALUE = 300;
+const STAMPS_PER_REWARD = 20;
+const REWARD_DISCOUNT = 50;
 const STAMP_EARN_RATE = 100; // GHS per stamp
 
 export default function Loyalty() {
@@ -104,7 +104,7 @@ export default function Loyalty() {
 
     if (error) { toast.error("Failed to redeem"); }
     else {
-      toast.success(`Reward redeemed! Free service up to GHS ${MAX_REWARD_VALUE} applied.`);
+      toast.success(`Reward redeemed! GHS ${REWARD_DISCOUNT} discount applied.`);
       fetchClients();
       setSelected(null);
       setRedeemOpen(false);
@@ -132,7 +132,7 @@ export default function Loyalty() {
           </div>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 600, color: G.charcoal, fontFamily: "Playfair Display, serif" }}>Loyalty Program</h1>
-            <p style={{ fontSize: 13, color: G.warmGrey }}>1 stamp per GHS 100 spent. 10 stamps = free service up to GHS 300</p>
+            <p style={{ fontSize: 13, color: G.warmGrey }}>1 stamp per GHS 100 spent. 20 stamps = GHS 50 discount</p>
           </div>
         </div>
       </div>
@@ -285,14 +285,14 @@ export default function Loyalty() {
                 style={{ width: "100%", padding: "14px", background: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? `linear-gradient(135deg, ${G.charcoal}, #2D2D2D)` : G.border, border: "none", borderRadius: 8, cursor: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? "pointer" : "not-allowed", color: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? G.white : G.warmGrey, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "Jost, sans-serif" }}>
                 <Gift size={16} />
                 {(selected.loyalty_points || 0) >= STAMPS_PER_REWARD
-                  ? `Redeem Reward (Free service up to GHS ${MAX_REWARD_VALUE})`
+                  ? `Redeem Reward (GHS ${REWARD_DISCOUNT} discount)`
                   : `Need ${stampsToNext(selected.loyalty_points || 0)} more stamp${stampsToNext(selected.loyalty_points || 0) !== 1 ? "s" : ""} to redeem`}
               </button>
 
               <div style={{ marginTop: 16, padding: "12px 14px", background: `${G.gold}10`, border: `1px solid ${G.border}`, borderRadius: 8 }}>
                 <p style={{ fontSize: 11, fontWeight: 600, color: G.goldDark, marginBottom: 4, fontFamily: "Jost, sans-serif", letterSpacing: "0.08em" }}>HOW LOYALTY WORKS</p>
                 <ul style={{ listStyle: "none", padding: 0 }}>
-                  {["1 stamp per GHS 100 spent", "Birthday month = double stamps", "10 stamps = free service up to GHS 300", `${selected.name} has redeemed ${selected.loyalty_rewards_redeemed || 0} reward${(selected.loyalty_rewards_redeemed || 0) !== 1 ? "s" : ""} total`].map(item => (
+                  {["1 stamp per GHS 100 spent", "Birthday month = double stamps", "20 stamps = GHS 50 discount", `${selected.name} has redeemed ${selected.loyalty_rewards_redeemed || 0} reward${(selected.loyalty_rewards_redeemed || 0) !== 1 ? "s" : ""} total`].map(item => (
                     <li key={item} style={{ fontSize: 11, color: G.warmGrey, padding: "2px 0", fontFamily: "Jost, sans-serif", display: "flex", gap: 6, alignItems: "center" }}>
                       <span style={{ width: 4, height: 4, borderRadius: "50%", background: G.gold, flexShrink: 0 }} />{item}
                     </li>

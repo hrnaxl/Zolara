@@ -145,9 +145,6 @@ export default function Settings() {
         business_email: settings.business_email,
         business_address: settings.business_address,
         payment_methods: settings.payment_methods,
-        staff_roles: settings.staff_roles,
-        service_categories: settings.service_categories,
-        use_24_hour_format: settings.use_24_hour_format,
         gallery_images: (settings as any).gallery_images ?? [],
       };
 

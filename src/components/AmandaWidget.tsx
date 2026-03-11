@@ -112,7 +112,7 @@ BOOKING AND DEPOSITS:
 
 LOYALTY PROGRAM:
 - 1 stamp per GHS 100 spent
-- 10 stamps = 1 free service up to GHS 300
+- 20 stamps = GHS 50 discount
 - Birthday month = double stamps
 
 DISCOUNTS:
