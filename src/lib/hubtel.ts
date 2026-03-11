@@ -1,8 +1,3 @@
-// ================================================================
-// HUBTEL PAYMENT GATEWAY
-// Placeholder — swap in real credentials when account is approved
-// ================================================================
-
 const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "noDLLP";
 const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "51c9ad0e01864fd8b214a39a7ca92c44";
 const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
@@ -11,9 +6,9 @@ const BASE_URL = "https://api-txnghana.hubtel.com";
 export type HubtelCheckoutPayload = {
   amount: number;
   description: string;
-  clientReference: string;   // our internal ref (booking_ref, purchase id)
-  callbackUrl: string;       // webhook URL (Supabase edge function)
-  returnUrl: string;         // redirect after payment
+  clientReference: string;
+  callbackUrl: string;
+  returnUrl: string;
   cancellationUrl: string;
   customerName: string;
   customerEmail?: string;
@@ -26,56 +21,42 @@ export type HubtelCheckoutResult = {
   error: string | null;
 };
 
-/**
- * Initiate a Hubtel hosted checkout.
- * Returns the URL to redirect the customer to.
- * PLACEHOLDER: returns mock data until credentials are live.
- */
 export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<HubtelCheckoutResult> {
-  // PLACEHOLDER — real implementation once Hubtel account is active
-  if (HUBTEL_CLIENT_ID === "PENDING") {
-    console.warn("[Hubtel] Credentials not configured — running in placeholder mode");
-    // Simulate a checkout URL for testing
-    return {
-      checkoutUrl: null,
-      paymentRef: `MOCK-${payload.clientReference}`,
-      error: "Hubtel not configured yet. Payment will be marked as pending.",
-    };
-  }
-
   try {
-    // Route through Supabase edge function to avoid CORS
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vwvrhbyfytmqsywfdhvd.supabase.co";
-    const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTA1MTQsImV4cCI6MjA4ODcyNjUxNH0.UFzTXEiS-dPXDoeSJSVfQGkRUuFA1aNQxHWu6jk62L4";
-    const fnUrl = `${SUPABASE_URL}/functions/v1/hubtel-checkout`;
-    console.log("[Hubtel] Calling:", fnUrl);
-    const response = await fetch(fnUrl, {
+    const auth = btoa(`${HUBTEL_CLIENT_ID}:${HUBTEL_CLIENT_SECRET}`);
+    const url = `${BASE_URL}/v1/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/online`;
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey": SUPABASE_ANON,
-        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "Authorization": `Basic ${auth}`,
       },
       body: JSON.stringify({
-        amount: payload.amount,
-        description: payload.description,
-        callbackUrl: payload.callbackUrl,
-        returnUrl: payload.returnUrl,
-        cancellationUrl: payload.cancellationUrl,
-        clientReference: payload.clientReference,
-        customerName: payload.customerName,
-        customerEmail: payload.customerEmail || "",
-        customerPhone: payload.customerPhone || "",
+        TotalAmount: payload.amount,
+        Description: payload.description,
+        CallbackUrl: payload.callbackUrl,
+        ReturnUrl: payload.returnUrl,
+        CancellationUrl: payload.cancellationUrl,
+        ClientReference: payload.clientReference,
+        Store: {
+          Id: "zolara",
+          Name: "Zolara Beauty Studio",
+          TagLine: "Luxury salon experience in Tamale",
+          LogoUrl: "https://zolarasalon.com/logo.png",
+        },
+        Customer: {
+          Name: payload.customerName || "",
+          Email: payload.customerEmail || "",
+          PhoneNumber: payload.customerPhone || "",
+        },
       }),
     });
 
     let data: any;
-    try {
-      data = await response.json();
-    } catch {
-      throw new Error(`Edge function returned non-JSON (status ${response.status}). It may not be deployed.`);
-    }
-    if (!response.ok) throw new Error(data?.error || data?.message || JSON.stringify(data));
+    try { data = await response.json(); } catch { throw new Error(`Hubtel status ${response.status} — no JSON response`); }
+
+    if (!response.ok) throw new Error(data?.message || data?.Message || data?.error || `Hubtel error ${response.status}`);
 
     const checkoutUrl =
       data?.data?.checkoutDirectUrl ||
@@ -83,32 +64,18 @@ export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<
       data?.checkoutDirectUrl ||
       null;
 
-    return {
-      checkoutUrl,
-      paymentRef: data?.data?.clientReference || payload.clientReference,
-      error: null,
-    };
+    return { checkoutUrl, paymentRef: data?.data?.clientReference || payload.clientReference, error: null };
   } catch (err: any) {
-    console.error("[Hubtel] initiateCheckout error:", err);
-    return { checkoutUrl: null, paymentRef: null, error: `${err.message} (type: ${err.name})` };
+    return { checkoutUrl: null, paymentRef: null, error: err.message };
   }
 }
 
-/**
- * Initiate a MoMo collect (push payment) via Hubtel.
- * Used for in-store MoMo payments.
- */
 export async function initiateMoMoCollect(payload: {
   amount: number;
   customerPhone: string;
   description: string;
   clientReference: string;
 }): Promise<{ success: boolean; error: string | null }> {
-  if (HUBTEL_CLIENT_ID === "PENDING") {
-    console.warn("[Hubtel] Credentials not configured — MoMo collect placeholder");
-    return { success: false, error: "Hubtel not configured yet." };
-  }
-
   try {
     const response = await fetch(`${BASE_URL}/v1/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/mobilemoney`, {
       method: "POST",
@@ -119,13 +86,12 @@ export async function initiateMoMoCollect(payload: {
       body: JSON.stringify({
         Amount: payload.amount,
         CustomerMsisdn: payload.customerPhone,
-        Channel: "mtn-gh", // auto-detect later
+        Channel: "mtn-gh",
         PrimaryCallbackUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hubtel-webhook`,
         ClientReference: payload.clientReference,
         Description: payload.description,
       }),
     });
-
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || "MoMo collect failed");
     return { success: true, error: null };

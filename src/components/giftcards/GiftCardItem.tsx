@@ -103,7 +103,7 @@ export function GiftCardItem({ card, onEdit, onAction, readOnly = false, expande
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => { console.log("[GiftCard] toggle clicked, id:", card.id, "onToggle:", !!onToggle, "expanded:", expanded); onToggle?.(); }}
+            onClick={() => onToggle ? onToggle() : null}
             title={expanded ? "Collapse" : "View details"}
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
