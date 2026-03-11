@@ -168,7 +168,6 @@ const Clients = () => {
       const { data, count, error } = await supabase
         .from("clients")
         .select("*", { count: "exact" })
-        .or("archived.is.null,archived.eq.false")
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -229,7 +228,6 @@ const Clients = () => {
         name: validated.name,
         phone: normalizePhone(validated.phone),
         ...(validated.email && { email: validated.email.toLowerCase().trim() }),
-        ...(validated.address && { address: validated.address }),
         ...(validated.notes && { notes: validated.notes }),
       };
 
