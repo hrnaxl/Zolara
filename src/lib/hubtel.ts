@@ -1,5 +1,10 @@
-const SUPABASE_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTA1MTQsImV4cCI6MjA4ODcyNjUxNH0.UFzTXEiS-dPXDoeSJSVfQGkRUuFA1aNQxHWu6jk62L4";
+// Hubtel checkout via direct URL redirect to unified-pay.hubtel.com
+// This is exactly what the @hubteljs/checkout SDK does internally
+
+const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "D0jDmnq";
+const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "b55d6377fd6b459fbb07fb1492d36ccf";
+// unified-pay uses the phone-based merchant number, not the account ID
+const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
 
 export type HubtelCheckoutPayload = {
   amount: number;
@@ -21,28 +26,34 @@ export type HubtelCheckoutResult = {
 
 export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<HubtelCheckoutResult> {
   try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/smart-processor`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_ANON}`,
-        "apikey": SUPABASE_ANON,
-      },
-      body: JSON.stringify(payload),
-    });
+    const basicAuth = btoa(`${HUBTEL_CLIENT_ID}:${HUBTEL_CLIENT_SECRET}`);
 
-    let data: any;
-    try { data = await response.json(); } catch { throw new Error(`Edge function status ${response.status}`); }
-    if (!response.ok) throw new Error(data?.error || data?.message || `Error ${response.status}`);
+    // Ensure unique clientReference every time
+    const uniqueRef = `${payload.clientReference}-${Date.now()}`;
 
-    const checkoutUrl =
-      data?.data?.checkoutDirectUrl ||
-      data?.Data?.CheckoutDirectUrl ||
-      data?.checkoutDirectUrl ||
-      data?.checkoutUrl ||
-      null;
+    const params: Record<string, string> = {
+      amount: String(payload.amount),
+      purchaseDescription: payload.description,
+      clientReference: uniqueRef,
+      callbackUrl: payload.callbackUrl,
+      returnUrl: payload.returnUrl,
+      cancellationUrl: payload.cancellationUrl,
+      merchantAccount: HUBTEL_MERCHANT_ACCOUNT,
+      basicAuth: basicAuth,
+      branding: "enabled",
+    };
 
-    return { checkoutUrl, paymentRef: payload.clientReference, error: null };
+    if (payload.customerPhone) params.customerPhoneNumber = payload.customerPhone;
+
+    const queryString = Object.entries(params)
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join("&");
+
+    const encoded = btoa(unescape(encodeURIComponent(queryString)));
+    const checkoutUrl = `https://unified-pay.hubtel.com/pay?p=${encodeURIComponent(encoded)}`;
+
+    console.log("[Hubtel] Redirecting to unified-pay, ref:", uniqueRef);
+    return { checkoutUrl, paymentRef: uniqueRef, error: null };
   } catch (err: any) {
     return { checkoutUrl: null, paymentRef: null, error: err.message };
   }
