@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode } from "@/lib/promoCodes";
+import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -153,12 +154,7 @@ export default function EnhancedBookingForm() {
         toast.error(`Please pick a time between ${openTime} and ${closeTime}`); return;
       }
       const cleanPhone = phone.replace(/\s/g,"");
-      const { data: existingClient } = await supabase.from("clients").select("id").eq("phone", cleanPhone).maybeSingle();
-      let clientId = existingClient?.id;
-      if (!clientId) {
-        const { data: nc } = await supabase.from("clients").insert({ name, phone: cleanPhone, email: email || null }).select("id").single();
-        clientId = nc?.id;
-      }
+      const clientId = await findOrCreateClient({ name, phone: cleanPhone, email: email || null });
       const ref = `ZB${Date.now().toString(36).toUpperCase()}`;
       const notesFull = [
         notes,

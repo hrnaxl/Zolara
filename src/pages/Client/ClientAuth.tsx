@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { findOrCreateClient } from "@/lib/clientDedup";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -70,13 +71,8 @@ export default function ClientAuth() {
       // Assign client role
       await supabase.from("user_roles").upsert({ user_id: userId, role: "client" });
 
-      // Link to existing client record by phone, or create new one
-      const { data: existingClient } = await supabase.from("clients").select("id").eq("phone", cleanPhone).maybeSingle();
-      if (existingClient?.id) {
-        await supabase.from("clients").update({ user_id: userId, email, name }).eq("id", existingClient.id);
-      } else {
-        await supabase.from("clients").insert({ name, email, phone: cleanPhone, user_id: userId });
-      }
+      // Link to existing client record or create new one (dedup by phone + email)
+      await findOrCreateClient({ name, phone: cleanPhone, email, userId });
 
       toast.success("Account created! Please check your email to confirm.");
       navigate("/app/client/dashboard", { replace: true });

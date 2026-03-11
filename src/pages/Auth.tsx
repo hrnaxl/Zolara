@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { findOrCreateClient } from "@/lib/clientDedup";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const GOLD  = "#C9A84C";
@@ -132,15 +133,7 @@ export default function Auth() {
       } else {
         // Client — link or create client record
         const cleanPhone = phone.replace(/\s/g, "");
-        const { data: existingClient } = await supabase
-          .from("clients").select("id")
-          .eq("phone", cleanPhone).maybeSingle();
-
-        if (existingClient?.id) {
-          await supabase.from("clients").update({ user_id: userId, email, name }).eq("id", existingClient.id);
-        } else {
-          await supabase.from("clients").insert({ name, email, phone: cleanPhone || null, user_id: userId });
-        }
+        await findOrCreateClient({ name, phone: cleanPhone, email, userId });
       }
 
       setError("");

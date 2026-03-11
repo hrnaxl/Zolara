@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { findOrCreateClient } from "@/lib/clientDedup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -147,25 +148,17 @@ const StaffBookings = () => {
       return;
     }
 
-    const { data: existingClient } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (!existingClient) {
-      await supabase.from("clients").insert({
-        id: user.id,
-        name: user.user_metadata.full_name || user.user_metadata.name,
-        email: user.email,
-        phone: user.user_metadata.phone || "",
-      });
-    }
+    const clientId = await findOrCreateClient({
+      name: user.user_metadata.full_name || user.user_metadata.name || user.email || "Staff Member",
+      email: user.email,
+      phone: user.user_metadata.phone || null,
+      userId: user.id,
+    });
 
     // @ts-ignore
     const { error } = await supabase.from("bookings").insert([
       {
-        client_id: user.id,
+        client_id: clientId,
         service_id: selectedService,
         preferred_date: preferredDate,
         preferred_time: preferredTime,
