@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone } from "@/lib/clientDedup";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -429,8 +430,8 @@ const Clients = () => {
 
       const clientData: any = {
         name: validated.name,
-        phone: validated.phone,
-        ...(validated.email && { email: validated.email }),
+        phone: normalizePhone(validated.phone),
+        ...(validated.email && { email: validated.email.toLowerCase().trim() }),
         ...(validated.notes && { notes: validated.notes }),
       };
 
@@ -469,6 +470,28 @@ const Clients = () => {
         if (error) throw error;
         toast.success("Client updated successfully");
       } else {
+        // Check for duplicate before inserting
+        const dupeChecks = [];
+        if (clientData.phone) {
+          dupeChecks.push(
+            supabase.from("clients").select("id,name").in("phone", [
+              clientData.phone,
+              clientData.phone.startsWith("+233") ? "0" + clientData.phone.slice(4) : clientData.phone,
+            ]).limit(1).maybeSingle()
+          );
+        }
+        if (clientData.email) {
+          dupeChecks.push(
+            supabase.from("clients").select("id,name").ilike("email", clientData.email).limit(1).maybeSingle()
+          );
+        }
+        const dupeResults = await Promise.all(dupeChecks);
+        const dupe = dupeResults.find(r => r.data)?.data;
+        if (dupe) {
+          toast.error(`A client with this phone or email already exists: ${dupe.name}`);
+          setUploading(false);
+          return;
+        }
         const { error } = await supabase.from("clients").insert([clientData]);
         if (error) throw error;
         toast.success("Client added successfully");
