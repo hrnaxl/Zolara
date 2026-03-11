@@ -9,7 +9,35 @@ export default function AuthCallback() {
   const redirectByRole = async (userId: string, metadata: any) => {
     const { data: roleData } = await supabase
       .from("user_roles").select("role").eq("user_id", userId).maybeSingle();
-    let role = roleData?.role || metadata?.role || "client";
+    let role = roleData?.role;
+
+    // If no role row exists yet (RLS blocked the signup upsert), derive from staff table or metadata
+    if (!role) {
+      const { data: staffRecord } = await supabase
+        .from("staff").select("role, is_active").eq("user_id", userId).maybeSingle();
+      if (staffRecord?.is_active) {
+        role = staffRecord.role || "staff";
+      } else if (staffRecord && !staffRecord.is_active) {
+        role = "client";
+      } else {
+        // Check staff table by email from metadata
+        const email = metadata?.email;
+        if (email) {
+          const { data: staffByEmail } = await supabase
+            .from("staff").select("role, is_active, user_id").eq("email", email.toLowerCase()).maybeSingle();
+          if (staffByEmail?.is_active) {
+            role = staffByEmail.role || "staff";
+            // Link user_id if missing
+            if (!staffByEmail.user_id) {
+              await supabase.from("staff").update({ user_id: userId }).eq("email", email.toLowerCase());
+            }
+          }
+        }
+        if (!role) role = metadata?.role || "client";
+      }
+      // Write the role so future logins work
+      await supabase.from("user_roles").upsert({ user_id: userId, role }, { onConflict: "user_id" });
+    }
 
     // Validate active status for staff/receptionist — revoked staff land as client
     if (role === "staff" || role === "receptionist") {

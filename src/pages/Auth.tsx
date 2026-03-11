@@ -147,9 +147,15 @@ export default function Auth() {
       const userId = authData.user?.id;
       if (!userId) { clearTimeout(timeout); setError("Signup failed. Try again."); return; }
 
+      // Upsert role — if row already exists (e.g. email-confirmed re-attempt), update it
       const { error: roleErr } = await supabase
-        .from("user_roles").upsert({ user_id: userId, role: assignedRole });
-      if (roleErr) { clearTimeout(timeout); setError("Role assignment failed. Contact the salon owner."); return; }
+        .from("user_roles")
+        .upsert({ user_id: userId, role: assignedRole }, { onConflict: "user_id" });
+      // RLS may block this on first signup (session not yet active) — tolerate and continue
+      // The AuthCallback will re-set the role once the email is confirmed
+      if (roleErr) {
+        console.warn("Role upsert warning (non-fatal):", roleErr.message);
+      }
 
       if (staffMatch) {
         const { error: linkErr } = await supabase

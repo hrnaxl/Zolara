@@ -221,6 +221,70 @@ const Clients = () => {
     return counts;
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const validated = clientSchema.parse(formData);
+      const clientData: any = {
+        name: validated.name,
+        phone: normalizePhone(validated.phone),
+        ...(validated.email && { email: validated.email.toLowerCase().trim() }),
+        ...(validated.address && { address: validated.address }),
+        ...(validated.notes && { notes: validated.notes }),
+      };
+
+      if (validated.image) {
+        setUploading(true);
+        const fileExtension = validated.image.name.split(".").pop();
+        const uniqueId = editingClientId || Date.now();
+        const fileName = `client-${uniqueId}.${fileExtension}`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars").upload(fileName, validated.image, { cacheControl: "3600", upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
+        clientData.avatar_url = urlData.publicUrl;
+        setUploading(false);
+      }
+
+      if (editingClientId) {
+        const { error } = await supabase.from("clients").update(clientData).eq("id", editingClientId);
+        if (error) throw error;
+        toast.success("Client updated successfully");
+      } else {
+        // Dedup check before insert
+        const dupeChecks = [];
+        if (clientData.phone) {
+          const local = clientData.phone.startsWith("+233") ? "0" + clientData.phone.slice(4) : clientData.phone;
+          dupeChecks.push(supabase.from("clients").select("id,name").in("phone", [clientData.phone, local]).limit(1).maybeSingle());
+        }
+        if (clientData.email) {
+          dupeChecks.push(supabase.from("clients").select("id,name").ilike("email", clientData.email).limit(1).maybeSingle());
+        }
+        if (dupeChecks.length > 0) {
+          const results = await Promise.all(dupeChecks);
+          const dupe = results.find(r => r.data)?.data;
+          if (dupe) {
+            toast.error(`A client with this phone or email already exists: ${dupe.name}`);
+            setUploading(false);
+            return;
+          }
+        }
+        const { error } = await supabase.from("clients").insert([clientData]);
+        if (error) throw error;
+        toast.success("Client added successfully");
+      }
+
+      setDialogOpen(false);
+      setEditingClientId(null);
+      setFormData({ name: "", phone: "", email: "", address: "", notes: "", image: null });
+      fetchClients();
+    } catch (error: any) {
+      if (error?.errors?.[0]?.message) toast.error(error.errors[0].message);
+      else toast.error(error.message || "Failed to save client");
+      setUploading(false);
+    }
+  };
+
   const handleDeleteClient = async () => {
     if (!deleteClientId) return;
 
