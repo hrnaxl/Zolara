@@ -123,7 +123,7 @@ export default function Loyalty() {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
+    <div style={{ padding: "clamp(14px,3vw,24px)", maxWidth: 1200, margin: "0 auto", overflowY: "auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
@@ -178,7 +178,7 @@ export default function Loyalty() {
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: "center", color: G.warmGrey, fontSize: 14 }}>No clients found</div>
           ) : (
-            <div style={{ overflowY: "auto", maxHeight: 600 }}>
+            <div style={{ overflowY: "visible" }}>
               {filtered.map(client => {
                 const t = tier(client.loyalty_points || 0);
                 const prog = progress(client.loyalty_points || 0);

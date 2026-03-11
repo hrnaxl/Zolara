@@ -142,7 +142,6 @@ export async function generatePhysicalBatch(opts: {
       payment_status: "pending",
       batch_id: opts.batchId,
       is_admin_generated: true,
-      created_by: opts.adminUserId,
       expires_at: expiresAt.toISOString(),
     }));
 
