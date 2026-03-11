@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 const LOGO = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 
@@ -174,17 +173,19 @@ export default function AmandaWidget() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("amanda", {
-        body: {
+      const res = await fetch("/api/amanda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 600,
           system: SYSTEM_PROMPT,
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-        },
+        }),
       });
 
-      if (error) throw error;
-
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
       const reply = data?.content?.[0]?.text || "I'm sorry, I had a small moment there. Please try again or call us at 059 436 5314!";
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
     } catch {
