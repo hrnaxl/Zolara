@@ -44,30 +44,30 @@ export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/v1/merchantaccount/merchants/${HUBTEL_MERCHANT_ACCOUNT}/receive/online`, {
+    // Route through Supabase edge function to avoid CORS
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wbcuyabgzfqjarrpuocr.supabase.co";
+    const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/hubtel-checkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Basic " + btoa(`${HUBTEL_CLIENT_ID}:${HUBTEL_CLIENT_SECRET}`),
+        "apikey": SUPABASE_ANON,
       },
       body: JSON.stringify({
-        totalAmount: payload.amount,
+        amount: payload.amount,
         description: payload.description,
         callbackUrl: payload.callbackUrl,
         returnUrl: payload.returnUrl,
         cancellationUrl: payload.cancellationUrl,
-        merchantAccountNumber: HUBTEL_MERCHANT_ACCOUNT,
         clientReference: payload.clientReference,
-        customerInfo: {
-          customerName: payload.customerName,
-          customerEmail: payload.customerEmail || "",
-          customerMsisdn: payload.customerPhone || "",
-        },
+        customerName: payload.customerName,
+        customerEmail: payload.customerEmail || "",
+        customerPhone: payload.customerPhone || "",
       }),
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data?.message || data?.ResponseMessage || JSON.stringify(data));
+    if (!response.ok) throw new Error(data?.error || JSON.stringify(data));
 
     return {
       checkoutUrl: data.data?.checkoutDirectUrl || data.Data?.CheckoutDirectUrl || null,

@@ -167,15 +167,15 @@ const GiftCards = () => {
     }
 
     try {
-      const codes = generated.map((r) => r.final_code);
+      const codes = generated.map((r) => (r as any).code || r.final_code);
       const { data: existing, error: existingErr } =
         await checkExistingGiftCards(codes);
       if (existingErr) throw existingErr;
       const existingSet = new Set(existing || []);
       const marked: PreviewRow[] = generated.map((r) => ({
         ...r,
-        _valid: !existingSet.has(r.final_code),
-        _message: existingSet.has(r.final_code) ? "collision" : r._message,
+        _valid: !existingSet.has((r as any).code || r.final_code),
+        _message: existingSet.has((r as any).code || r.final_code) ? "collision" : r._message,
       }));
       setPreviewRows([...marked, ...previewRows]);
       toast.success(`Generated ${generated.length} codes`);
@@ -198,7 +198,7 @@ const GiftCards = () => {
     setImporting(true);
     try {
       const toImport = rowsToImport.map((r) => ({
-        final_code: r.final_code,
+        final_code: (r as any).code || r.final_code,
         tier: r.tier,
         year: r.year,
         batch: r.batch,
@@ -212,7 +212,7 @@ const GiftCards = () => {
       if (res.error) throw res.error;
       toast.success(`Committed ${toImport.length} generated codes`);
       setPreviewRows((prev) =>
-        prev.filter((r) => !toImport.find((t) => t.final_code === r.final_code))
+        prev.filter((r) => !toImport.find((t) => t.final_code === (r as any).code || r.final_code))
       );
       await fetchList();
     } catch (err: any) {
@@ -226,7 +226,7 @@ const GiftCards = () => {
   const mapRawToPreview = (raw: Record<string, any>[]) => {
     const rows: PreviewRow[] = raw.map((r) => {
       const final_code = (
-        r.final_code ||
+        (r as any).code || r.final_code ||
         r.code ||
         r["Final Code"] ||
         r["Code"] ||
@@ -279,7 +279,7 @@ const GiftCards = () => {
     const toImport = previewRows
       .filter((r) => r._valid)
       .map((r) => ({
-        final_code: r.final_code,
+        final_code: (r as any).code || r.final_code,
         tier: r.tier,
         year: r.year,
         batch: r.batch,
@@ -383,7 +383,7 @@ const GiftCards = () => {
     .filter((r) => {
       if (!searchQuery) return true;
       const q = searchQuery.toLowerCase();
-      return r.final_code.toLowerCase().includes(q);
+      return (r as any).code || r.final_code.toLowerCase().includes(q);
     });
 
   return (
@@ -556,10 +556,10 @@ const GiftCards = () => {
                           }`}
                         >
                           <td className="p-2 font-mono text-xs">
-                            {r.final_code}
+                            {(r as any).code || r.final_code}
                           </td>
                           <td className="p-2">
-                            GH₵{Number(r.card_value || 0).toFixed(0)}
+                            GH₵{Number((r as any).amount || r.card_value || 0).toFixed(0)}
                           </td>
                           <td className="p-2">{r.tier}</td>
                           <td className="p-2 text-xs text-muted-foreground">

@@ -15,9 +15,9 @@ export type GiftCardTier = keyof typeof GIFT_CARD_TIERS;
 // Generate a random redeemable code e.g. GOLD-X7K2-9QMT
 export function generateRedeemableCode(tier: GiftCardTier): string {
   const prefix = tier.substring(0, 3).toUpperCase();
-  const part1 = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const part2 = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${part1}-${part2}`;
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const rand = (n: number) => Array.from({length: n}, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `${prefix}-${rand(4)}-${rand(4)}`;
 }
 
 // Generate serial number for physical card e.g. ZLR-GLD-0047
