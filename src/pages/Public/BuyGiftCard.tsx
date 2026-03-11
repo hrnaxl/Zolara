@@ -99,6 +99,12 @@ export default function BuyGiftCard() {
 
   return (
     <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
+      {/* Back to homepage */}
+      <div style={{ position: "fixed", top: 16, left: 16, zIndex: 100 }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(15,30,53,0.85)", color: "white", textDecoration: "none", padding: "8px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, backdropFilter: "blur(8px)" }}>
+          ← Back to Zolara
+        </a>
+      </div>
       {/* Header */}
       <div style={{ background: NAVY, padding: "20px 24px", display: "flex", alignItems: "center", gap: 12 }}>
         <Link to="/" style={{ color: "#9CA3AF", fontSize: 12, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, marginRight: 16, whiteSpace: "nowrap" }}>

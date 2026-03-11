@@ -43,11 +43,21 @@ export default function GiftCardBatchGenerator() {
         adminUserId: user.id,
       });
 
-      if (error) throw new Error(error);
+      if (error) {
+        // Show the actual DB error so we know what column is missing
+        toast.error(`DB Error: ${error}`);
+        console.error("Generate error:", error);
+        return;
+      }
+      if (!cards || cards.length === 0) {
+        toast.error("No cards were created. Check if the migration SQL has been run in Supabase.");
+        return;
+      }
       setGeneratedCards(cards);
       toast.success(`${cards.length} ${tier} gift cards generated and ready to send to print`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate cards");
+      console.error("Generate exception:", err);
     } finally {
       setGenerating(false);
     }
