@@ -70,9 +70,9 @@ export default function BuyGiftCard() {
             customerEmail: form.buyerEmail,
             customerPhone: form.buyerPhone,
           });
-          if (hubtelErr && hubtelErr !== "Payment cancelled") throw new Error(`Hubtel error: ${hubtelErr}`);
-          // Modal handles payment — nothing more to do here
-          return;
+          if (hubtelErr) throw new Error(`Hubtel error: ${hubtelErr}`);
+          if (checkoutUrl) { window.location.href = checkoutUrl; return; }
+          throw new Error("No checkout URL returned.");
         }
 
         // Hubtel not configured yet — show pending message
@@ -102,9 +102,9 @@ export default function BuyGiftCard() {
             customerEmail: form.buyerEmail,
             customerPhone: form.buyerPhone,
           });
-          if (hubtelErr && hubtelErr !== "Payment cancelled") throw new Error(`Hubtel error: ${hubtelErr}`);
-          // Modal handles payment — nothing more to do here
-          return;
+          if (hubtelErr) throw new Error(`Hubtel error: ${hubtelErr}`);
+          if (checkoutUrl) { window.location.href = checkoutUrl; return; }
+          throw new Error("No checkout URL returned.");
         }
 
         setStep("done");
