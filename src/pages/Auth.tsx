@@ -119,12 +119,16 @@ export default function Auth() {
       const userId = authData.user?.id;
       if (!userId) { setError("Signup failed. Try again."); return; }
 
-      // Assign role
-      await supabase.from("user_roles").upsert({ user_id: userId, role: assignedRole });
+      // Assign role — this must succeed before we continue
+      const { error: roleError } = await supabase
+        .from("user_roles").upsert({ user_id: userId, role: assignedRole });
+      if (roleError) { setError("Role assignment failed. Contact the salon owner."); return; }
 
       if (staffMatch) {
-        // Link user_id to staff record
-        await supabase.from("staff").update({ user_id: userId }).eq("id", staffMatch.id);
+        // Link user_id to staff record — ties auth account to staff registry
+        const { error: linkError } = await supabase
+          .from("staff").update({ user_id: userId }).eq("id", staffMatch.id);
+        if (linkError) { setError("Staff account linking failed. Contact the salon owner."); return; }
       } else {
         // Client — link or create client record
         const cleanPhone = phone.replace(/\s/g, "");
