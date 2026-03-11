@@ -78,7 +78,6 @@ const Clients = () => {
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [archiveReason, setArchiveReason] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -222,305 +221,6 @@ const Clients = () => {
     return counts;
   };
 
-  const handleArchiveClient = async () => {
-    if (!deleteClientId) return;
-    try {
-      const { error } = await supabase
-        .from("clients")
-        .update({
-          //@ts-ignore
-          archived: true,
-          archive_reason: archiveReason || null,
-          archived_at: new Date().toISOString(),
-        })
-        .eq("id", deleteClientId);
-
-      if (error) throw error;
-
-      toast.success("Client archived");
-      setClients(prev => prev.filter(c => c.id !== deleteClientId));
-      setFilteredClients(prev => prev.filter(c => c.id !== deleteClientId));
-    } catch (err: any) {
-      toast.error(err.message || "Failed to archive client");
-    } finally {
-      setDeleteDialogOpen(false);
-      setDeleteClientId(null);
-      setArchiveReason("");
-    }
-  };
-
-  const handleFilterByDate = () => {
-    setActiveFilter("date");
-  };
-
-  const handleMostActiveClient = () => {
-    setActiveFilter("most_active");
-  };
-
-  const handleServiceHistory = (serviceName: string) => {
-    setSelectedService(serviceName);
-    setActiveFilter("service_history");
-    setShowServiceList(false);
-  };
-
-  const clearFilters = () => {
-    setActiveFilter("none");
-    setSelectedService("");
-    setSearchTerm("");
-    setSearchResults(null);
-    setFilteredClients(clients);
-  };
-
-  // Helper: check if a booking date falls within start/end (full-day) bounds
-  const bookingInRange = (rawDate: any, s: Date, e: Date) => {
-    if (!rawDate) return false;
-    const ad = new Date(rawDate);
-    if (!isNaN(ad.getTime())) return ad >= s && ad <= e;
-    const parsed = new Date(`${rawDate}T00:00:00`);
-    if (!isNaN(parsed.getTime())) return parsed >= s && parsed <= e;
-    return false;
-  };
-
-  // Centralized filter application so filters compose
-  const runFilters = () => {
-    setFiltering(true);
-    // enrich clients with derived metrics used by smart filters
-    const enriched = (clients || []).map((c: any) => {
-      const bookings = c.bookings || [];
-      const visitsCount = bookings.length;
-      const totalSpent = bookings.reduce((s: number, b: any) => {
-        const st = (b.status || "").toLowerCase();
-        // count only completed-type statuses as spent
-        if (st.includes("complete")) return s + Number(b.services?.price || 0);
-        return s;
-      }, 0);
-      const lastBooking =
-        bookings
-          .map((b: any) => b.preferred_date)
-          .filter(Boolean)
-          .sort()
-          .reverse()[0] || null;
-      const noShowCount = bookings.filter((b: any) =>
-        (b.status || "").toLowerCase().includes("no")
-      ).length;
-      const lateCancelCount = bookings.filter((b: any) => {
-        const st = (b.status || "").toLowerCase();
-        if (st.includes("late")) return true;
-        if (
-          st.includes("cancel") &&
-          (b.is_late_cancel ||
-            (b.cancel_reason || "").toLowerCase().includes("late"))
-        )
-          return true;
-        return false;
-      }).length;
-      return {
-        ...c,
-        visitsCount,
-        totalSpent,
-        lastBooking,
-        noShowCount,
-        lateCancelCount,
-      };
-    });
-
-    // Base data: if user used the search widget and we have searchResults, respect them
-    let data =
-      activeFilter === "search" && searchResults && searchResults.length > 0
-        ? (searchResults || []).slice()
-        : enriched.slice();
-
-    // --- Date Filter (created_at) --- (only when date filter is active)
-    if (activeFilter === "date" && (startDate || endDate)) {
-      data = data.filter((item: any) => {
-        const created = new Date(item.created_at);
-        if (startDate && created < new Date(startDate + "T00:00:00"))
-          return false;
-        if (endDate && created > new Date(endDate + "T23:59:59")) return false;
-        return true;
-      });
-    }
-
-    // --- Service Filter: clients who had the selected service (only when service filter active) ---
-    if (
-      (activeFilter === "service_history" || selectedService) &&
-      selectedService &&
-      selectedService !== "all"
-    ) {
-      data = data.filter((item: any) =>
-        (item.bookings || []).some(
-          (b: any) => (b.services?.name || "") === selectedService
-        )
-      );
-    }
-
-    // --- Search Filter (if using the text input search rather than the collapsible) ---
-    if (activeFilter !== "search" && searchTerm.trim() !== "") {
-      const term = searchTerm.toLowerCase();
-      data = data.filter(
-        (item: any) =>
-          item.name?.toLowerCase().includes(term) ||
-          (item.phone || "").toLowerCase().includes(term) ||
-          (item.email || "").toLowerCase().includes(term)
-      );
-    }
-
-    // --- Smart / active filters ---
-    switch (activeFilter) {
-      case "most_active":
-      case "most_frequent":
-        data = data.sort(
-          (a: any, b: any) => (b.visitsCount || 0) - (a.visitsCount || 0)
-        );
-        break;
-      case "highest_spenders":
-        data = data.sort(
-          (a: any, b: any) => (b.totalSpent || 0) - (a.totalSpent || 0)
-        );
-        break;
-      case "last_visit":
-        data = data.sort(
-          (a: any, b: any) =>
-            new Date(b.lastBooking || 0).getTime() -
-            new Date(a.lastBooking || 0).getTime()
-        );
-        break;
-      case "inactive_60": {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - 60);
-        data = data.filter(
-          (c: any) => !c.lastBooking || new Date(c.lastBooking) < cutoff
-        );
-        break;
-      }
-      case "inactive_90": {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - 90);
-        data = data.filter(
-          (c: any) => !c.lastBooking || new Date(c.lastBooking) < cutoff
-        );
-        break;
-      }
-      default:
-        break;
-    }
-
-    setFilteredClients(data);
-    setFiltering(false);
-  };
-
-  useEffect(() => {
-    runFilters();
-  }, [
-    clients,
-    startDate,
-    endDate,
-    activeFilter,
-    selectedService,
-    searchTerm,
-    searchResults,
-  ]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      // Validate form data
-      const validated = clientSchema.parse(formData);
-
-      const clientData: any = {
-        name: validated.name,
-        phone: normalizePhone(validated.phone),
-        ...(validated.email && { email: validated.email.toLowerCase().trim() }),
-        ...(validated.notes && { notes: validated.notes }),
-      };
-
-      // Handle image upload if exists
-      if (validated.image) {
-        setUploading(true);
-
-        const fileExtension = validated.image.name.split(".").pop();
-        const uniqueId = editingClientId || Date.now();
-        const fileName = `client-${uniqueId}.${fileExtension}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(fileName, validated.image, {
-            cacheControl: "3600",
-            upsert: true,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(fileName);
-
-        clientData.avatar_url = urlData.publicUrl;
-        setUploading(false);
-      }
-
-      if (editingClientId) {
-        // Update existing client
-        const { error } = await supabase
-          .from("clients")
-          .update(clientData)
-          .eq("id", editingClientId);
-
-        if (error) throw error;
-        toast.success("Client updated successfully");
-      } else {
-        // Check for duplicate before inserting
-        const dupeChecks = [];
-        if (clientData.phone) {
-          dupeChecks.push(
-            supabase.from("clients").select("id,name").in("phone", [
-              clientData.phone,
-              clientData.phone.startsWith("+233") ? "0" + clientData.phone.slice(4) : clientData.phone,
-            ]).limit(1).maybeSingle()
-          );
-        }
-        if (clientData.email) {
-          dupeChecks.push(
-            supabase.from("clients").select("id,name").ilike("email", clientData.email).limit(1).maybeSingle()
-          );
-        }
-        const dupeResults = await Promise.all(dupeChecks);
-        const dupe = dupeResults.find(r => r.data)?.data;
-        if (dupe) {
-          toast.error(`A client with this phone or email already exists: ${dupe.name}`);
-          setUploading(false);
-          return;
-        }
-        const { error } = await supabase.from("clients").insert([clientData]);
-        if (error) throw error;
-        toast.success("Client added successfully");
-      }
-
-      // Reset form
-      setDialogOpen(false);
-      setEditingClientId(null);
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        address: "",
-        notes: "",
-        image: null,
-      });
-
-      // Refresh client list
-      fetchClients();
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        toast.error(error.message || "Failed to save client");
-      }
-      setUploading(false);
-    }
-  };
-
   const handleDeleteClient = async () => {
     if (!deleteClientId) return;
 
@@ -533,7 +233,8 @@ const Clients = () => {
       if (error) throw error;
 
       toast.success("Client deleted successfully");
-      fetchClients();
+      setClients(prev => prev.filter(c => c.id !== deleteClientId));
+      setFilteredClients(prev => prev.filter(c => c.id !== deleteClientId));
     } catch (error: any) {
       toast.error(error.message || "Failed to delete client");
     } finally {
@@ -633,32 +334,19 @@ const Clients = () => {
           </DialogContent>
         </Dialog>
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>Archive client</DialogTitle>
+              <DialogTitle>Delete client</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground mb-4">
-              Instead of deleting, you can archive this client. Archiving hides
-              the client from lists but preserves history. Please provide a
-              reason (optional).
+            <p className="text-sm text-muted-foreground">
+              This will permanently delete the client and all their data. This action cannot be undone.
             </p>
-            <div className="space-y-3">
-              <Label>Reason for archiving (optional)</Label>
-              <Textarea
-                value={archiveReason}
-                onChange={(e) => setArchiveReason(e.target.value)}
-                placeholder="e.g. duplicate, test data, no-show"
-              />
-            </div>
             <div className="flex justify-end gap-2 mt-4">
-              <Button
-                variant="outline"
-                onClick={() => setDeleteDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleArchiveClient}>
-                Archive
+              <Button variant="destructive" onClick={handleDeleteClient}>
+                Delete permanently
               </Button>
             </div>
           </DialogContent>
