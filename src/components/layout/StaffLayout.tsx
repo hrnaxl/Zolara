@@ -1,308 +1,318 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subDays, eachDayOfInterval } from "date-fns";
-import {
-  Calendar,
-  Clock,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Star,
-  Target,
-} from "lucide-react";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { StatCard } from "@/components/dashboard/StatCard";
-import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import { DonutChart } from "@/components/dashboard/DonutChart";
-import { ActivityList } from "@/components/dashboard/ActivityList";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
-import { fetchStaffBookings, fetchStaffPayments } from "@/lib/utils";
+import { format, startOfDay, endOfDay, subDays, eachDayOfInterval } from "date-fns";
 
 const StaffDashboard = () => {
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState<string>("");
+  const [staffId, setStaffId] = useState<string | null>(null);
   const [stats, setStats] = useState({
-    total: 0,
-    completed: 0,
-    cancelled: 0,
-    upcoming: 0,
-    totalEarned: 0,
+    todayTotal: 0, upcoming: 0, completed: 0, cancelled: 0, completionRate: 0,
   });
-  const [performanceData, setPerformanceData] = useState<{ name: string; revenue: number }[]>([]);
   const [bookingStatusData, setBookingStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
+  const [sparkData, setSparkData] = useState<number[]>([]);
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchUserRole();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const fetchUserRole = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
-      const metaDataRole = (user as any).user_metadata?.role;
-      setUserRole(roleData?.role || metaDataRole || "");
-    } catch (err) {
-      console.error("Failed to fetch user role", err);
+
+      // Get staff record
+      const { data: profile } = await supabase
+        .from("staff").select("id, name").eq("user_id", user.id).maybeSingle();
+      if (profile) {
+        setUserName(profile.name);
+        setStaffId(profile.id);
+      }
+
+      const staffName = profile?.name || null;
+      const todayStr    = format(new Date(), "yyyy-MM-dd");
+      const tomorrowStr = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
+
+      // Fetch all this staff member's bookings (by staff_name or staff_id)
+      const { data: allBookings = [] } = await supabase
+        .from("bookings").select("*")
+        .or(staffName ? `staff_name.ilike.${staffName},staff_id.eq.${profile?.id ?? "00000000-0000-0000-0000-000000000000"}` : `staff_id.eq.${profile?.id ?? "00000000-0000-0000-0000-000000000000"}`)
+        .order("preferred_date", { ascending: false });
+
+      // Today's schedule for this staff
+      const { data: todayBookings = [] } = await supabase
+        .from("bookings").select("*")
+        .gte("preferred_date", todayStr).lt("preferred_date", tomorrowStr)
+        .or(staffName ? `staff_name.ilike.${staffName},staff_id.eq.${profile?.id ?? "00000000-0000-0000-0000-000000000000"}` : `staff_id.eq.${profile?.id ?? "00000000-0000-0000-0000-000000000000"}`)
+        .order("preferred_time", { ascending: true });
+
+      // Upcoming (today + future, pending or confirmed)
+      const upcoming = (allBookings as any[]).filter((b: any) =>
+        b.preferred_date >= todayStr && (b.status === "pending" || b.status === "confirmed")
+      ).length;
+      const completed  = (allBookings as any[]).filter((b: any) => b.status === "completed").length;
+      const cancelled  = (allBookings as any[]).filter((b: any) => b.status === "cancelled").length;
+      const total      = allBookings.length;
+      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      setStats({ todayTotal: todayBookings.length, upcoming, completed, cancelled, completionRate });
+
+      setBookingStatusData([
+        { name: "Upcoming",  value: upcoming,   color: "#C9A84C" },
+        { name: "Completed", value: completed,  color: "#4CAF7D" },
+        { name: "Cancelled", value: cancelled,  color: "#E05A5A" },
+      ].filter(d => d.value > 0));
+
+      setTodaySchedule((todayBookings as any[]).map((b: any) => ({
+        id: b.id, clientName: b.client_name || "Client",
+        serviceName: b.service_name || "Service",
+        time: b.preferred_time, status: b.status,
+        price: b.price,
+      })));
+
+      // Last 7 days booking count for sparkline
+      const last7 = eachDayOfInterval({ start: subDays(new Date(), 6), end: new Date() });
+      const sparkCounts = last7.map(day => {
+        const d = format(day, "yyyy-MM-dd");
+        return (allBookings as any[]).filter((b: any) => b.preferred_date === d).length;
+      });
+      setSparkData(sparkCounts);
+
+    } catch {
+      // fail silently
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    const user = (await supabase.auth.getUser()).data.user;
+  // ── DESIGN TOKENS (identical to admin + receptionist) ──────────
+  const G        = "#B8975A";
+  const G_LIGHT  = "#F5ECD6";
+  const CREAM    = "#FAFAF8";
+  const WHITE    = "#FFFFFF";
+  const BORDER   = "#EDEBE5";
+  const NAVY     = "#0F1E35";
+  const TXT      = "#1C1917";
+  const TXT_MID  = "#78716C";
+  const TXT_SOFT = "#A8A29E";
+  const SHADOW   = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
+  const SHADOW_MD= "0 2px 8px rgba(0,0,0,0.06), 0 12px 36px rgba(0,0,0,0.1)";
 
-    if (!user) return;
+  // Donut geometry
+  const statusTotal = bookingStatusData.reduce((s, d) => s + d.value, 0);
+  const DONUT_R = 60, DONUT_CX = 74, DONUT_CY = 74;
+  let cumDeg = -90;
+  const donutPaths = bookingStatusData.map((d) => {
+    const sweep = statusTotal > 0 ? (d.value / statusTotal) * 360 : 0;
+    const s = (cumDeg * Math.PI) / 180;
+    const e = ((cumDeg + sweep) * Math.PI) / 180;
+    cumDeg += sweep;
+    const x1 = DONUT_CX + DONUT_R * Math.cos(s);
+    const y1 = DONUT_CY + DONUT_R * Math.sin(s);
+    const x2 = DONUT_CX + DONUT_R * Math.cos(e);
+    const y2 = DONUT_CY + DONUT_R * Math.sin(e);
+    return { ...d, path: `M${DONUT_CX},${DONUT_CY} L${x1.toFixed(2)},${y1.toFixed(2)} A${DONUT_R},${DONUT_R} 0 ${sweep > 180 ? 1 : 0},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z` };
+  });
 
-    // Get user profile name
-    const { data: profile } = await supabase
-      .from("staff")
-      .select("name")
-      .eq("user_id", user.id)
-      .single();
-    
-    if (profile) setUserName(profile.name);
+  // Sparkline path
+  const sparkMax = Math.max(...sparkData, 1);
+  const SPARK_W = 120, SPARK_H = 36;
+  const sparkPoints = sparkData.map((v, i) => {
+    const x = (i / (sparkData.length - 1)) * SPARK_W;
+    const y = SPARK_H - (v / sparkMax) * SPARK_H;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
 
-    const bookings = await fetchStaffBookings(user.id);
-    setBookings(bookings);
-
-    const { paymentsWithBooking, stats } = await fetchStaffPayments(user.id);
-    setPayments(paymentsWithBooking);
-    setStats(stats);
-
-    // Calculate status distribution
-    const statusCounts: Record<string, number> = {
-      completed: stats.completed,
-      cancelled: stats.cancelled,
-      upcoming: stats.upcoming,
-    };
-
-    const statusColors: Record<string, string> = {
-      completed: "hsl(152, 60%, 42%)",
-      cancelled: "hsl(0, 72%, 55%)",
-      upcoming: "hsl(210, 80%, 52%)",
-    };
-
-    const statusData = Object.entries(statusCounts)
-      .filter(([_, value]) => value > 0)
-      .map(([name, value]) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        value,
-        color: statusColors[name] || "hsl(220, 10%, 50%)",
-      }));
-    
-    setBookingStatusData(statusData);
-
-    // Calculate last 7 days performance
-    const today = new Date();
-    const last7Days = eachDayOfInterval({
-      start: subDays(today, 6),
-      end: today,
-    });
-
-    const revenueByDay = (paymentsWithBooking || []).reduce((acc: any, p: any) => {
-      if (p?.booking?.status === "completed" && p?.payment_date) {
-        const day = format(new Date(p.payment_date), "yyyy-MM-dd");
-        acc[day] = (acc[day] || 0) + Number(p.amount || 0);
-      }
-      return acc;
-    }, {});
-
-    const performanceChartData = last7Days.map((day) => ({
-      name: format(day, "EEE"),
-      revenue: revenueByDay[format(day, "yyyy-MM-dd")] || 0,
-    }));
-
-    setPerformanceData(performanceChartData);
-    setLoading(false);
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
   };
 
-  // Calculate completion rate
-  const completionRate = stats.total > 0 
-    ? Math.round((stats.completed / stats.total) * 100) 
-    : 0;
+  const statusStyle = (s: string): { bg: string; color: string; label: string } => {
+    if (s === "completed") return { bg: "rgba(76,175,125,0.1)", color: "#2E8A5E", label: "Completed" };
+    if (s === "cancelled") return { bg: "rgba(224,90,90,0.1)", color: "#C0392B", label: "Cancelled" };
+    if (s === "confirmed") return { bg: "rgba(74,144,217,0.1)", color: "#2471A3", label: "Confirmed" };
+    return { bg: "rgba(201,168,76,0.12)", color: "#8B6914", label: "Pending" };
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
-            <Loader2 className="w-16 h-16 absolute inset-0 animate-spin text-primary" />
-          </div>
-          <p className="text-muted-foreground font-medium">Loading dashboard...</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", background: CREAM }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: `2.5px solid ${G_LIGHT}`, borderTopColor: G, margin: "0 auto 14px", animation: "spin 0.9s linear infinite" }} />
+          <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: "10px", letterSpacing: "0.18em", color: TXT_SOFT, textTransform: "uppercase" }}>Loading</p>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       </div>
     );
   }
 
-  // Format recent bookings for activity list
-  const recentBookingItems = bookings.slice(0, 5).map((b) => ({
-    id: b.id,
-    title: b.services?.name || "Service",
-    subtitle: format(new Date(b.preferred_date), "MMM d") + " at " + b.preferred_time,
-    date: b.preferred_date,
-    status: b.status,
-  }));
-
-  // Format recent payments for activity list
-  const recentPaymentItems = payments.slice(0, 5).map((p) => ({
-    id: p.id,
-    title: p.booking?.services?.name || "Service Payment",
-    date: p.payment_date,
-    amount: Number(p.amount),
-  }));
-
   return (
-    <div className="space-y-8 p-6">
-      <DashboardHeader
-        title="Staff Dashboard"
-        userName={userName}
-        subtitle="Track your bookings, performance, and earnings"
-      />
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 36px", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        *{box-sizing:border-box}
+        .sc{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW};transition:box-shadow 0.2s,transform 0.2s}
+        .sc:hover{box-shadow:${SHADOW_MD};transform:translateY(-1px)}
+        .sc-flat{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .au{animation:up 0.35s ease both}
+        .row-hover:hover{background:rgba(184,151,90,0.04)}
+      `}</style>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Bookings"
-          value={stats.total}
-          icon={<Calendar className="w-6 h-6" />}
-          variant="gold"
-          delay={0}
-        />
-        <StatCard
-          title="Upcoming"
-          value={stats.upcoming}
-          icon={<Clock className="w-6 h-6" />}
-          variant="blue"
-          delay={0.1}
-        />
-        <StatCard
-          title="Completed"
-          value={stats.completed}
-          icon={<TrendingUp className="w-6 h-6" />}
-          variant="green"
-          delay={0.2}
-        />
-        <StatCard
-          title="Cancelled"
-          value={stats.cancelled}
-          icon={<TrendingDown className="w-6 h-6" />}
-          variant="default"
-          delay={0.3}
-        />
+      {/* ── HEADER ─────────────────────────────────────── */}
+      <div className="au" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px" }}>
+        <div>
+          <p style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", color: G, marginBottom: "6px", textTransform: "uppercase" }}>
+            {format(new Date(), "EEEE, MMMM d, yyyy")}
+          </p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(30px,4vw,44px)", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1, letterSpacing: "-0.02em" }}>
+            {userName ? `${greeting()}, ${userName.split(" ")[0]}` : "My Dashboard"}
+          </h1>
+          <p style={{ fontSize: "12px", color: TXT_SOFT, marginTop: "6px", fontWeight: 400 }}>
+            Your appointments, schedule, and performance at a glance.
+          </p>
+        </div>
+        <button onClick={fetchData}
+          style={{ width: "38px", height: "38px", borderRadius: "50%", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, fontSize: "16px", flexShrink: 0 }}>
+          ↻
+        </button>
       </div>
 
-      {/* Earnings & Performance (financial widgets hidden for non-admin roles) */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Total Earnings Card */}
-        {(userRole === "owner" || userRole === "admin") && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <Card className="gradient-gold text-primary-foreground h-full overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <CardHeader className="relative z-10">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                <CardTitle className="text-lg font-display">Total Earnings</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <p className="text-4xl font-bold font-display">
-                GH₵{stats.totalEarned.toLocaleString()}
-              </p>
-              <p className="text-sm opacity-80 mt-2">From completed services</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        )}
+      {/* ── KPI ROW (4 cards) ─────────────────────────── */}
+      <div className="au" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "20px" }}>
+        {[
+          { label: "Today's Appointments", value: stats.todayTotal, icon: "📅", accent: NAVY },
+          { label: "Upcoming",             value: stats.upcoming,   icon: "⏰", accent: "#C9A84C" },
+          { label: "Completed",            value: stats.completed,  icon: "✅", accent: "#4CAF7D" },
+          { label: "Cancelled",            value: stats.cancelled,  icon: "✕",  accent: "#E05A5A" },
+        ].map((k, i) => (
+          <div key={i} className="sc" style={{ animationDelay: `${i * 0.06}s` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", margin: 0 }}>{k.label}</p>
+              <div style={{ width: "30px", height: "30px", borderRadius: "8px", background: `${k.accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }}>{k.icon}</div>
+            </div>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "38px", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1 }}>{k.value}</p>
+          </div>
+        ))}
+      </div>
 
-        {/* Completion Rate */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <Card className="glass-card h-full">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-success" />
-                <CardTitle className="text-lg font-display">Completion Rate</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-3">
-                <p className="text-4xl font-bold font-display">{completionRate}%</p>
-                <div className="flex items-center gap-1 text-sm text-success mb-1">
-                  <Star className="w-4 h-4 fill-success" />
-                  <span>Excellent</span>
+      {/* ── MIDDLE ROW: Sparkline + Completion Rate + Donut ── */}
+      <div className="au" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px", animationDelay: "0.1s" }}>
+
+        {/* 7-day activity sparkline */}
+        <div className="sc-flat" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "4px" }}>7-Day Activity</p>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "34px", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1 }}>
+              {sparkData.reduce((a, b) => a + b, 0)}
+            </p>
+            <p style={{ fontSize: "11px", color: TXT_SOFT, marginTop: "4px" }}>Bookings this week</p>
+          </div>
+          <div style={{ marginTop: "16px", overflow: "hidden" }}>
+            <svg width="100%" height={SPARK_H} viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} preserveAspectRatio="none">
+              <polyline points={sparkPoints} fill="none" stroke={G} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+              {sparkData.map((v, i) => {
+                const x = (i / (sparkData.length - 1)) * SPARK_W;
+                const y = SPARK_H - (v / sparkMax) * SPARK_H;
+                return <circle key={i} cx={x} cy={y} r="2.5" fill={G} />;
+              })}
+            </svg>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+              {eachDayOfInterval({ start: subDays(new Date(), 6), end: new Date() }).map((d, i) => (
+                <span key={i} style={{ fontSize: "9px", color: TXT_SOFT, fontWeight: 500 }}>{format(d, "EEE")[0]}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Completion rate */}
+        <div className="sc-flat" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "4px" }}>Completion Rate</p>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "38px", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1 }}>{stats.completionRate}%</p>
+            <p style={{ fontSize: "11px", color: TXT_SOFT, marginTop: "4px" }}>
+              {stats.completionRate >= 80 ? "Excellent performance" : stats.completionRate >= 50 ? "Keep it up" : "Room to improve"}
+            </p>
+          </div>
+          <div style={{ marginTop: "16px" }}>
+            <div style={{ height: "6px", background: "#F0EDE8", borderRadius: "99px", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${stats.completionRate}%`, background: stats.completionRate >= 80 ? "#4CAF7D" : stats.completionRate >= 50 ? G : "#E05A5A", borderRadius: "99px", transition: "width 1s ease" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px" }}>
+              <span style={{ fontSize: "9px", color: TXT_SOFT }}>0%</span>
+              <span style={{ fontSize: "9px", color: TXT_SOFT }}>100%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Booking status donut */}
+        <div className="sc-flat">
+          <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "14px" }}>Booking Status</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <svg width={DONUT_CX * 2} height={DONUT_CY * 2} style={{ flexShrink: 0 }}>
+              {donutPaths.length > 0
+                ? donutPaths.map((s, i) => <path key={i} d={s.path} fill={s.color} opacity="0.9" />)
+                : <circle cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R} fill="#F0EDE8" />}
+              <circle cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R * 0.58} fill={WHITE} />
+              <text x={DONUT_CX} y={DONUT_CY - 3} textAnchor="middle" style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, fill: TXT }}>{statusTotal}</text>
+              <text x={DONUT_CX} y={DONUT_CY + 13} textAnchor="middle" style={{ fontFamily: "Montserrat,sans-serif", fontSize: "8px", fill: TXT_SOFT }}>Total</text>
+            </svg>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "8px" }}>
+              {bookingStatusData.map((d, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                  <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: "10px", color: TXT_MID, flex: 1 }}>{d.name}</span>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: TXT }}>{d.value}</span>
                 </div>
-              </div>
-              <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${completionRate}%` }}
-                  transition={{ duration: 1, delay: 0.6 }}
-                  className="h-full bg-success rounded-full"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Booking Distribution */}
-        <DonutChart
-          data={bookingStatusData}
-          title="Booking Status"
-          subtitle="Your distribution"
-          centerValue={stats.total}
-          centerLabel="Total"
-        />
+              ))}
+              {bookingStatusData.length === 0 && <span style={{ fontSize: "11px", color: TXT_SOFT }}>No data yet</span>}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Performance Chart (financial) */}
-      {(userRole === "owner" || userRole === "admin") ? (
-        <RevenueChart
-          data={performanceData}
-          title="Your Earnings"
-          subtitle="Last 7 days performance"
-        />
-      ) : null}
+      {/* ── TODAY'S SCHEDULE ─────────────────────────── */}
+      <div className="au sc-flat" style={{ animationDelay: "0.15s" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
+          <div>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: TXT, margin: 0 }}>Today's Schedule</p>
+            <p style={{ fontSize: "11px", color: TXT_SOFT, marginTop: "2px" }}>{format(new Date(), "EEEE, MMMM d")}</p>
+          </div>
+          <div style={{ background: G_LIGHT, borderRadius: "20px", padding: "4px 12px", border: `1px solid rgba(184,151,90,0.25)` }}>
+            <span style={{ fontSize: "10px", fontWeight: 700, color: G }}>{stats.todayTotal} appointment{stats.todayTotal !== 1 ? "s" : ""}</span>
+          </div>
+        </div>
 
-      {/* Activity Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ActivityList
-          title="Recent Bookings"
-          subtitle="Your latest appointments"
-          items={recentBookingItems}
-          icon={<Calendar className="w-5 h-5 text-primary" />}
-          emptyMessage="No assigned bookings yet"
-        />
-        {(userRole === "owner" || userRole === "admin") ? (
-          <ActivityList
-            title="Payment History"
-            subtitle="Your earnings log"
-            items={recentPaymentItems}
-            showAmount
-            icon={<DollarSign className="w-5 h-5 text-success" />}
-            emptyMessage="No payments recorded yet"
-          />
+        {todaySchedule.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: TXT_SOFT }}>
+            <div style={{ fontSize: "32px", marginBottom: "10px" }}>🗓</div>
+            <p style={{ fontSize: "13px", fontWeight: 500 }}>No appointments today</p>
+            <p style={{ fontSize: "11px", marginTop: "4px" }}>Enjoy your day off!</p>
+          </div>
         ) : (
-          <ActivityList
-            title="Recent Activity"
-            subtitle="Your recent bookings"
-            items={recentBookingItems}
-            icon={<Calendar className="w-5 h-5 text-primary" />}
-            emptyMessage="No recent activity"
-          />
+          <div>
+            {/* Column headers */}
+            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "0 12px 10px", borderBottom: `1px solid ${BORDER}`, marginBottom: "4px" }}>
+              {["Time", "Client", "Service", "Status"].map(h => (
+                <span key={h} style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</span>
+              ))}
+            </div>
+            {todaySchedule.map((appt, i) => {
+              const s = statusStyle(appt.status);
+              return (
+                <div key={appt.id} className="row-hover" style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < todaySchedule.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "16px", fontWeight: 600, color: TXT }}>{appt.time?.slice(0, 5) || "—"}</span>
+                  <span style={{ fontSize: "12px", fontWeight: 500, color: TXT }}>{appt.clientName}</span>
+                  <span style={{ fontSize: "12px", color: TXT_MID }}>{appt.serviceName}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: s.bg, color: s.color, whiteSpace: "nowrap" }}>{s.label}</span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
