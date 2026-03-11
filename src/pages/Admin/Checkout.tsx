@@ -300,23 +300,10 @@ const Checkout = () => {
       const orig = Number(originalPrice || booking.price || booking.services?.price || 0);
       const remaining = Math.max(0, orig - value);
 
-      // Mark card as redeemed
-      const { error: updateErr } = await (supabase as any)
-        .from("gift_cards")
-        .update({ status: "redeemed", redeemed_by_client: booking.client_name || null })
-        .eq("id", card.id);
-
-      if (updateErr) throw updateErr;
-
+      // Store card info — actual redemption happens on checkout completion
       setRedeemedCard({ id: card.id, value });
       setAmount(String(remaining.toFixed(2)));
       toast.success(`Gift card applied: GH₵ ${value.toFixed(2)} off`);
-
-      if (res?.success) {
-        // legacy path — not reached
-      } else {
-        // handled above
-      }
     } catch (err: any) {
       console.error("Redeem error:", err);
       toast.error(err.message || "Redeem failed");
@@ -473,6 +460,17 @@ const Checkout = () => {
               setProcessing(false);
               return;
             }
+
+            // NOW mark the card as redeemed — only after sale is recorded
+            await (supabase as any)
+              .from("gift_cards")
+              .update({
+                status: "redeemed",
+                balance: 0,
+                redeemed_at: new Date().toISOString(),
+                redeemed_by_client: booking.client_name || null,
+              })
+              .eq("id", redeemedCard.id);
           }
         } catch (err: any) {
           console.error("Unexpected error recording gift card payment:", err);
