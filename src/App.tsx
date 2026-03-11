@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import LandingPage from "./pages/LandingPage";
 import PublicBooking from "./pages/PublicBooking";
 
@@ -68,6 +69,8 @@ const App = () => (
           
           {/* Staff Login Page */}
           <Route path="/app/auth" element={<Auth />} />
+
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Client self-service portal */}
           <Route path="/app/client/auth" element={<ClientAuth />} />
