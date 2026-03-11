@@ -54,6 +54,18 @@ export type Database = {
           avatar_url?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
         Relationships: []
       }
+      service_variants: {
+        Row: { id: string; service_id: string; name: string; price_adjustment: number; duration_adjustment: number; sort_order: number; is_active: boolean; created_at: string }
+        Insert: { id?: string; service_id: string; name: string; price_adjustment?: number; duration_adjustment?: number; sort_order?: number; is_active?: boolean; created_at?: string }
+        Update: { id?: string; service_id?: string; name?: string; price_adjustment?: number; duration_adjustment?: number; sort_order?: number; is_active?: boolean }
+        Relationships: []
+      }
+      service_addons: {
+        Row: { id: string; service_id: string; name: string; description: string | null; price: number; duration_adjustment: number; sort_order: number; is_active: boolean; created_at: string }
+        Insert: { id?: string; service_id: string; name: string; description?: string | null; price?: number; duration_adjustment?: number; sort_order?: number; is_active?: boolean; created_at?: string }
+        Update: { id?: string; service_id?: string; name?: string; description?: string | null; price?: number; duration_adjustment?: number; sort_order?: number; is_active?: boolean }
+        Relationships: []
+      }
       services: {
         Row: {
           id: string; name: string; description: string | null; category: string | null
@@ -93,7 +105,8 @@ export type Database = {
           preferred_date: string; preferred_time: string
           status: BookingStatus; notes: string | null; price: number | null
           duration_minutes: number | null; deposit_amount: number | null
-          deposit_paid: boolean | null; booking_ref: string | null
+          deposit_paid: boolean | null; booking_ref: string | null;
+          variant_id: string | null; variant_name: string | null; selected_addons: any | null
           created_at: string; updated_at: string
         }
         Insert: { id?: string; client_id?: string | null; staff_id?: string | null; service_id?: string | null
