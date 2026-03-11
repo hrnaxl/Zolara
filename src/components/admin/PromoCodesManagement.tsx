@@ -4,8 +4,9 @@ import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 
 export default function PromoCodesManagement() {
-  const { userRole } = useSettings();
-  const canEdit = userRole !== "receptionist";
+  const { userRole, loading: roleLoading } = useSettings();
+  // While role is loading, default to view-only (safest). Once loaded, use real role.
+  const canEdit = !roleLoading && userRole !== "receptionist";
 
   const [codes, setCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

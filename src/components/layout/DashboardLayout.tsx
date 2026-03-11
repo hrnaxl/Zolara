@@ -52,6 +52,7 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<string>("");
+  const [roleLoading, setRoleLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -79,13 +80,14 @@ const DashboardLayout = () => {
         if (!user) return;
         const { data: roleData } = await supabase
           .from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
-        if (!roleData?.role) return;
+        if (!roleData?.role) { setRoleLoading(false); return; }
         const role = roleData.role;
         setCurrentRole(role);
-        // Update localStorage so nav paths are always fresh
         localStorage.setItem("user", JSON.stringify({ id: user.id, email: user.email, role }));
       } catch (err) {
         console.error("Failed to sync user role", err);
+      } finally {
+        setRoleLoading(false);
       }
     };
 
@@ -192,8 +194,7 @@ const DashboardLayout = () => {
     }
   };
 
-  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-  const activeRole = currentRole || storedUser.role || "";
+  const activeRole = currentRole;
   const navItems = getNavItemsForRole(activeRole);
 
   const roleLabels: Record<string, string> = {
@@ -277,7 +278,13 @@ const DashboardLayout = () => {
 
         {/* Nav — scrollable */}
         <nav className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", padding: "10px 10px 20px" }}>
-          {navItems.map((item) => {
+          {roleLoading ? (
+            <div style={{ padding: "20px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} style={{ height: "36px", borderRadius: "10px", background: "rgba(255,255,255,0.05)" }} />
+              ))}
+            </div>
+          ) : navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (

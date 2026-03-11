@@ -45,7 +45,7 @@ type PreviewRow = {
 };
 
 const GiftCards = () => {
-  const { userRole } = useSettings();
+  const { userRole, loading: roleLoading } = useSettings();
   const [fileName, setFileName] = useState<string | null>(null);
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [importing, setImporting] = useState(false);
@@ -400,7 +400,7 @@ const GiftCards = () => {
             />
             Refresh
           </Button>
-          {userRole === "owner" && (
+          {!roleLoading && userRole === "owner" && (
             <Button variant="outline" onClick={exportList}>
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -410,7 +410,7 @@ const GiftCards = () => {
       </div>
 
       {/* Import Section */}
-      {userRole === "owner" && (
+      {!roleLoading && userRole === "owner" && (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -654,9 +654,9 @@ const GiftCards = () => {
                 userRole={userRole}
                 key={card.id}
                 card={card}
-                onEdit={userRole === "receptionist" ? undefined : openEdit}
-                onAction={userRole === "receptionist" ? undefined : openConfirm}
-                readOnly={userRole === "receptionist"}
+                onEdit={roleLoading || userRole === "receptionist" ? undefined : openEdit}
+                onAction={roleLoading || userRole === "receptionist" ? undefined : openConfirm}
+                readOnly={roleLoading || userRole === "receptionist"}
               />
             ))}
           </div>
