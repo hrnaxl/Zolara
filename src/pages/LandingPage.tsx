@@ -5,7 +5,7 @@ import AmandaWidget from "@/components/AmandaWidget";
 const LOGO = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 
 const services = [
-  { name: "Hair Braiding", icon: "✦", desc: "Cornrows, box braids, twists & knotless braids crafted with precision and care.", price: "From GHS 30", color: "#C8A97E" },
+  { name: "Hair Braiding", icon: "✦", desc: "Cornrows, box braids, twists and knotless braids crafted with precision and care.", price: "From GHS 30", color: "#C8A97E" },
   { name: "Nail Care", icon: "◈", desc: "Manicure, pedicure, gel, acrylic and nail art by certified nail technicians.", price: "From GHS 60", color: "#B8956A" },
   { name: "Lash Extensions", icon: "◇", desc: "Classic, hybrid and volume sets using only premium mink-effect lashes.", price: "From GHS 50", color: "#A0825A" },
   { name: "Hair Washing", icon: "❋", desc: "Deep cleanse, conditioning and blow-dry treatments for every hair type.", price: "From GHS 40", color: "#C8A97E" },
@@ -22,7 +22,6 @@ const reviews = [
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [activeReview, setActiveReview] = useState(0);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +32,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    const iv = setInterval(() => setActiveReview(r => (r + 1) % reviews.length), 4000);
+    const iv = setInterval(() => setActiveReview(r => (r + 1) % reviews.length), 4500);
     return () => clearInterval(iv);
   }, []);
 
@@ -50,71 +49,72 @@ export default function LandingPage() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body { overflow-x: hidden; }
-        ::selection { background: ${gold}55; }
+        ::selection { background: #C8A97E55; }
         .sans { font-family: 'Montserrat', sans-serif; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes shimmer { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(36px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-14px); } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @keyframes pulseGold { 0%,100% { box-shadow: 0 0 0 0 rgba(200,169,126,0); } 50% { box-shadow: 0 0 0 8px rgba(200,169,126,0.15); } }
-        @keyframes sparkle { 0%,100% { opacity:0; transform:scale(0) rotate(0deg); } 50% { opacity:1; transform:scale(1) rotate(180deg); } }
-        @keyframes borderGlow { 0%,100% { border-color: rgba(200,169,126,0.3); box-shadow: 0 24px 64px rgba(28,22,14,0.10); } 50% { border-color: rgba(200,169,126,0.65); box-shadow: 0 28px 80px rgba(200,169,126,0.18), 0 0 40px rgba(200,169,126,0.06); } }
+        @keyframes pulseGreen { 0%,100% { opacity:1; } 60% { opacity:0.75; } }
+        @keyframes borderGlow { 0%,100% { box-shadow: 0 24px 64px rgba(28,22,14,0.10), 0 0 0 1px rgba(200,169,126,0.22); } 50% { box-shadow: 0 32px 80px rgba(200,169,126,0.16), 0 0 0 1.5px rgba(200,169,126,0.55); } }
         @keyframes orb { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,-30px) scale(1.1); } 66% { transform: translate(-20px,20px) scale(0.95); } }
-        @keyframes shimmerBg { 0%,100% { background-position: 200% center; } 50% { background-position: -200% center; } }
+        @keyframes goldPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
         .fade-up { animation: fadeUp 0.9s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
         .delay-1 { animation-delay: 0.15s; }
         .delay-2 { animation-delay: 0.3s; }
         .delay-3 { animation-delay: 0.45s; }
         .delay-4 { animation-delay: 0.6s; }
         .delay-5 { animation-delay: 0.75s; }
-        .service-card { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, background 0.4s ease; cursor: default; }
-        .service-card:hover { transform: translateY(-10px); box-shadow: 0 32px 64px rgba(28,22,14,0.15), 0 0 0 1px rgba(200,169,126,0.3); background: #fff !important; }
+        .service-card { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, background 0.3s ease; cursor: default; }
+        .service-card:hover { transform: translateY(-12px); box-shadow: 0 40px 72px rgba(28,22,14,0.14), 0 0 0 1.5px rgba(200,169,126,0.35); background: #fff !important; }
+        .service-card:hover .svc-icon { transform: scale(1.25) rotate(15deg); }
+        .svc-icon { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); display: inline-block; }
         .btn-primary { transition: all 0.3s ease; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(139,105,20,0.45); }
-        .btn-outline:hover { background: ${dark} !important; color: ${cream} !important; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(139,105,20,0.48) !important; }
+        .btn-outline:hover { background: #1C160E !important; color: #F5EFE6 !important; }
         .nav-link { position: relative; }
-        .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1px; background: ${gold}; transition: width 0.3s ease; }
+        .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1.5px; background: #C8A97E; transition: width 0.3s ease; }
         .nav-link:hover::after { width: 100%; }
-        .ornament { animation: shimmer 3s ease-in-out infinite; }
-        .float { animation: float 6s ease-in-out infinite; }
+        .float { animation: float 7s ease-in-out infinite; }
         .marquee-track { animation: marquee 28s linear infinite; }
         .review-card { transition: all 0.5s ease; }
-        .hero-floating-card { animation: borderGlow 4s ease-in-out infinite; }
-        .visit-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .visit-card:hover { transform: translateY(-5px); box-shadow: 0 20px 48px rgba(28,22,14,0.1); }
+        .hero-floating-card { animation: borderGlow 4.5s ease-in-out infinite; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulseGreen 2s ease-in-out infinite; flex-shrink: 0; }
+        .visit-card { transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease; }
+        .visit-card:hover { transform: translateY(-7px); box-shadow: 0 24px 60px rgba(28,22,14,0.13); border-color: rgba(200,169,126,0.5) !important; }
         .gift-card-tile { transition: transform 0.35s ease, box-shadow 0.35s ease; cursor: pointer; }
-        .gift-card-tile:hover { transform: translateY(-6px) scale(1.025); box-shadow: 0 28px 60px rgba(0,0,0,0.28); }
-        .orb-1 { animation: orb 12s ease-in-out infinite; }
-        .orb-2 { animation: orb 16s ease-in-out infinite reverse; animation-delay: -4s; }
-        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulseGold 2s ease-in-out infinite; box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
-        @media (max-width: 768px) { .hero-floating-card-wrapper { display: none !important; } }
+        .gift-card-tile:hover { transform: translateY(-9px) scale(1.03); box-shadow: 0 36px 72px rgba(0,0,0,0.32); }
+        .orb-bg { position: absolute; border-radius: 50%; pointer-events: none; }
+        @media (max-width: 768px) {
+          .hero-floating-card-wrapper { display: none !important; }
+          .landing-experience-grid { grid-template-columns: 1fr !important; }
+          .landing-footer-grid { grid-template-columns: 1fr !important; }
+          .desktop-nav { display: none !important; }
+        }
       `}</style>
 
-      {/* ── NAVBAR ─────────────────────────────── */}
+      {/* NAVBAR */}
       <nav style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
         padding: "0 clamp(24px,5vw,80px)",
-        height: scrolled ? "60px" : "72px",
+        height: scrolled ? "60px" : "74px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        background: scrolled ? `rgba(245,239,230,0.96)` : "transparent",
-        backdropFilter: scrolled ? "blur(20px)" : "none",
-        borderBottom: scrolled ? `1px solid rgba(200,169,126,0.2)` : "none",
+        background: scrolled ? "rgba(245,239,230,0.97)" : "transparent",
+        backdropFilter: scrolled ? "blur(24px)" : "none",
+        borderBottom: scrolled ? "1px solid rgba(200,169,126,0.2)" : "none",
+        boxShadow: scrolled ? "0 4px 40px rgba(28,22,14,0.06)" : "none",
         transition: "all 0.4s ease",
       }}>
-        <a href="#" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <div style={{ width: "38px", height: "38px", borderRadius: "50%", border: `1.5px solid ${gold}`, overflow: "hidden", background: "#fff", flexShrink: 0 }}>
+        <a href="#" style={{ display: "flex", alignItems: "center", gap: "11px", textDecoration: "none" }}>
+          <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", background: "#fff", flexShrink: 0, boxShadow: "0 0 0 3px rgba(200,169,126,0.15)" }}>
             <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div>
-            <div className="sans" style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.22em", color: dark }}>ZOLARA</div>
-            <div className="sans" style={{ fontSize: "9.5px", letterSpacing: "0.22em", color: gold, marginTop: "1px", fontWeight: 600 }}>BEAUTY STUDIO</div>
+            <div className="sans" style={{ fontSize: "13px", fontWeight: 800, letterSpacing: "0.22em", color: dark, lineHeight: 1.1 }}>ZOLARA</div>
+            <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, marginTop: "2px", fontWeight: 600, lineHeight: 1 }}>BEAUTY STUDIO</div>
           </div>
         </a>
 
-        {/* Desktop Nav */}
-        <div style={{ display: "flex", gap: "36px", alignItems: "center" }} className="desktop-nav hidden md:flex">
+        <div className="desktop-nav" style={{ display: "flex", gap: "36px", alignItems: "center" }}>
           {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
             <a key={label} href={href} className="nav-link sans" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", color: dark, textDecoration: "none" }}>{label}</a>
           ))}
@@ -123,78 +123,71 @@ export default function LandingPage() {
         <Link to="/book" className="btn-primary" style={{
           fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 700,
           letterSpacing: "0.14em", color: "#fff", textDecoration: "none",
-          background: `linear-gradient(135deg, ${goldDark}, ${gold})`,
-          padding: "10px 24px", borderRadius: "1px",
-          boxShadow: `0 4px 20px rgba(139,105,20,0.3)`,
+          background: "linear-gradient(135deg, #8B6914, #C8A97E)",
+          padding: "10px 26px", borderRadius: "1px",
+          boxShadow: "0 4px 20px rgba(139,105,20,0.32)",
         }}>BOOK NOW</Link>
       </nav>
 
-      {/* ── HERO ───────────────────────────────── */}
+      {/* HERO */}
       <section ref={heroRef} style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", padding: "0 clamp(24px,6vw,100px)" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 65% 40%, rgba(200,169,126,0.17) 0%, transparent 55%), radial-gradient(ellipse at 15% 85%, rgba(200,169,126,0.10) 0%, transparent 45%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 80px, rgba(200,169,126,0.018) 80px, rgba(200,169,126,0.018) 81px)", pointerEvents: "none" }} />
+        <div className="orb-bg" style={{ top: "12%", right: "28%", width: "480px", height: "480px", background: "radial-gradient(circle, rgba(200,169,126,0.12) 0%, transparent 70%)", animation: "orb 14s ease-in-out infinite" }} />
+        <div className="orb-bg" style={{ bottom: "8%", right: "8%", width: "320px", height: "320px", background: "radial-gradient(circle, rgba(200,169,126,0.08) 0%, transparent 70%)", animation: "orb 18s ease-in-out infinite reverse", animationDelay: "-6s" }} />
 
-        {/* Background texture */}
-        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 70% 50%, rgba(200,169,126,0.14) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(200,169,126,0.09) 0%, transparent 50%)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: "-1%", top: "50%", transform: "translateY(-50%)", fontSize: "clamp(280px,35vw,500px)", fontWeight: 700, color: "rgba(200,169,126,0.055)", lineHeight: 1, pointerEvents: "none", userSelect: "none", letterSpacing: "-0.05em" }}>Z</div>
 
-        {/* Animated orbs */}
-        <div className="orb-1" style={{ position: "absolute", top: "15%", right: "30%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(200,169,126,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div className="orb-2" style={{ position: "absolute", bottom: "10%", right: "10%", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(200,169,126,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-        {/* Fine diagonal lines texture */}
-        <div style={{ position: "absolute", inset: 0, backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(200,169,126,0.025) 60px, rgba(200,169,126,0.025) 61px)`, pointerEvents: "none" }} />
-
-        {/* Decorative large letter */}
-        <div style={{ position: "absolute", right: "-2%", top: "50%", transform: "translateY(-50%)", fontSize: "clamp(280px,35vw,480px)", fontWeight: 700, color: "rgba(200,169,126,0.06)", lineHeight: 1, pointerEvents: "none", userSelect: "none", letterSpacing: "-0.05em" }}>Z</div>
-
-        {/* Floating ornament */}
-        <div className="hero-floating-card-wrapper float" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "18%", width: "296px", pointerEvents: "none" }}>
-          <div className="hero-floating-card" style={{ width: "296px", border: `1px solid rgba(200,169,126,0.35)`, borderRadius: "4px", background: "rgba(250,248,243,0.88)", backdropFilter: "blur(20px)", padding: "36px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "18px", boxShadow: "0 24px 64px rgba(28,22,14,0.12), 0 0 0 1px rgba(200,169,126,0.1)" }}>
-            <div style={{ width: "68px", height: "68px", borderRadius: "50%", border: `2px solid ${gold}`, overflow: "hidden", background: "#fff", boxShadow: `0 0 0 4px rgba(200,169,126,0.15)` }}>
+        {/* Floating info card */}
+        <div className="hero-floating-card-wrapper float" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "50%", transform: "translateY(-52%)", width: "300px", pointerEvents: "none" }}>
+          <div className="hero-floating-card" style={{ width: "300px", border: "1px solid rgba(200,169,126,0.4)", borderRadius: "5px", background: "rgba(252,249,244,0.92)", backdropFilter: "blur(24px)", padding: "36px 30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+            <div style={{ width: "70px", height: "70px", borderRadius: "50%", border: "2.5px solid #C8A97E", overflow: "hidden", background: "#fff", boxShadow: "0 0 0 5px rgba(200,169,126,0.15)" }}>
               <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
-            <div style={{ width: "36px", height: "1px", background: `linear-gradient(90deg, transparent, ${gold}, transparent)` }} />
-            <p style={{ fontStyle: "italic", fontSize: "16.5px", color: dark, textAlign: "center", lineHeight: 1.7, letterSpacing: "0.01em" }}>
+            <div style={{ width: "40px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
+            <p style={{ fontStyle: "italic", fontSize: "17px", color: dark, textAlign: "center", lineHeight: 1.7, letterSpacing: "0.01em", fontWeight: 500 }}>
               "Not just a salon. A complete luxury experience."
             </p>
-            <div style={{ width: "36px", height: "1px", background: `linear-gradient(90deg, transparent, ${gold}, transparent)` }} />
+            <div style={{ width: "40px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>LOCATION</p>
-                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400 }}>Sakasaka, Tamale</p>
+                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Sakasaka, Tamale</p>
               </div>
               <div>
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>HOURS</p>
-                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400 }}>Mon – Sat · 8:30 AM – 9:00 PM</p>
+                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Mon – Sat · 8:30 AM – 9:00 PM</p>
               </div>
               <div>
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>CALL</p>
-                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400 }}>0594 365 314</p>
-                <p className="sans" style={{ fontSize: "12px", color: dark, fontWeight: 400, marginTop: "2px" }}>020 884 8707</p>
+                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>0594 365 314</p>
+                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500, marginTop: "2px" }}>020 884 8707</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Left content */}
-        <div style={{ maxWidth: "600px", paddingTop: "80px", paddingBottom: "80px", position: "relative", zIndex: 2 }}>
+        {/* Hero left */}
+        <div style={{ maxWidth: "600px", paddingTop: "90px", paddingBottom: "90px", position: "relative", zIndex: 2 }}>
           <div className="fade-up sans" style={{ display: "inline-flex", alignItems: "center", gap: "16px", marginBottom: "32px", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: "32px", height: "1px", background: gold }} />
+              <div style={{ width: "32px", height: "1.5px", background: gold }} />
               <span style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: gold, fontWeight: 700 }}>TAMALE'S FINEST BEAUTY STUDIO</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.3)", borderRadius: "100px", padding: "4px 10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "7px", background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.35)", borderRadius: "100px", padding: "4px 12px" }}>
               <div className="live-dot" />
-              <span style={{ fontSize: "9px", letterSpacing: "0.15em", color: "#22c55e", fontWeight: 700 }}>NOW OPEN</span>
+              <span className="sans" style={{ fontSize: "9px", letterSpacing: "0.15em", color: "#15803d", fontWeight: 700 }}>NOW OPEN</span>
             </div>
           </div>
 
-          <h1 className="fade-up delay-1" style={{ fontSize: "clamp(56px,8vw,96px)", fontWeight: 300, lineHeight: 1.0, marginBottom: "8px", letterSpacing: "-0.01em" }}>
+          <h1 className="fade-up delay-1" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 300, lineHeight: 1.0, marginBottom: "8px", letterSpacing: "-0.01em" }}>
             Where Luxury
           </h1>
-          <h1 className="fade-up delay-2" style={{ fontSize: "clamp(56px,8vw,96px)", fontWeight: 600, fontStyle: "italic", color: gold, lineHeight: 1.0, marginBottom: "36px", letterSpacing: "-0.01em" }}>
+          <h1 className="fade-up delay-2" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 600, fontStyle: "italic", color: gold, lineHeight: 1.0, marginBottom: "36px", letterSpacing: "-0.01em" }}>
             Meets Beauty.
           </h1>
 
-          <p className="fade-up delay-3 sans" style={{ fontSize: "15px", lineHeight: 1.85, color: "#4A3C2A", maxWidth: "460px", marginBottom: "44px", fontWeight: 400 }}>
+          <p className="fade-up delay-3 sans" style={{ fontSize: "15.5px", lineHeight: 1.9, color: "#3D2E1A", maxWidth: "460px", marginBottom: "44px", fontWeight: 400 }}>
             A sanctuary crafted for women who demand the finest. Every appointment at Zolara is a ritual, every stylist an artist, every result extraordinary.
           </p>
 
@@ -203,41 +196,40 @@ export default function LandingPage() {
               textDecoration: "none", display: "inline-block",
               fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
               letterSpacing: "0.14em", color: "#fff",
-              background: `linear-gradient(135deg, ${goldDark}, ${gold})`,
-              padding: "16px 36px", borderRadius: "1px",
-              boxShadow: `0 8px 32px rgba(139,105,20,0.35)`,
+              background: "linear-gradient(135deg, #8B6914, #C8A97E)",
+              padding: "17px 38px", borderRadius: "1px",
+              boxShadow: "0 8px 32px rgba(139,105,20,0.38)",
             }}>BOOK YOUR APPOINTMENT →</Link>
 
             <a href="#services" className="btn-outline sans" style={{
               textDecoration: "none", display: "inline-block",
               fontSize: "11px", fontWeight: 600, letterSpacing: "0.14em",
-              color: dark, border: `1.5px solid ${dark}`,
-              padding: "15px 32px", borderRadius: "1px",
+              color: dark, border: "1.5px solid #1C160E",
+              padding: "16px 32px", borderRadius: "1px",
               transition: "all 0.3s ease", background: "transparent",
             }}>VIEW SERVICES</a>
           </div>
 
-          {/* Stats */}
-          <div className="fade-up delay-5" style={{ display: "flex", gap: "40px", marginTop: "56px", paddingTop: "40px", borderTop: `1px solid rgba(200,169,126,0.3)` }}>
+          <div className="fade-up delay-5" style={{ display: "flex", gap: "44px", marginTop: "60px", paddingTop: "40px", borderTop: "1px solid rgba(200,169,126,0.3)" }}>
             {[["500+","Happy Clients"],["7","Expert Stylists"],["4+","Years of Excellence"]].map(([n,l]) => (
-              <div key={l} className="stat-item">
-                <p className="stat-num" style={{ fontSize: "clamp(28px,3vw,40px)", fontWeight: 600, color: goldDark, lineHeight: 1, transition: "color 0.3s" }}>{n}</p>
-                <p className="sans" style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "#6B5740", marginTop: "5px", fontWeight: 500 }}>{l}</p>
+              <div key={l}>
+                <p style={{ fontSize: "clamp(28px,3vw,42px)", fontWeight: 600, color: goldDark, lineHeight: 1 }}>{n}</p>
+                <p className="sans" style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "#6B5740", marginTop: "6px", fontWeight: 500 }}>{l}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── MARQUEE STRIP ──────────────────────── */}
-      <div style={{ background: `linear-gradient(90deg, #1C160E, #2A1F12, #1C160E)`, overflow: "hidden", padding: "20px 0", borderTop: `1px solid rgba(200,169,126,0.2)`, borderBottom: `1px solid rgba(200,169,126,0.1)` }}>
+      {/* MARQUEE */}
+      <div style={{ background: "linear-gradient(90deg, #1A1208, #2C2010, #1A1208)", overflow: "hidden", padding: "20px 0", borderTop: "1px solid rgba(200,169,126,0.18)", borderBottom: "1px solid rgba(200,169,126,0.18)" }}>
         <div className="marquee-track" style={{ display: "flex", gap: "0", whiteSpace: "nowrap", width: "max-content" }}>
           {[...Array(3)].map((_, i) => (
-            <span key={i} className="sans" style={{ display: "inline-flex", alignItems: "center", gap: "0" }}>
+            <span key={i} className="sans" style={{ display: "inline-flex", alignItems: "center" }}>
               {["HAIR BRAIDING","NAIL CARE","LASH EXTENSIONS","MAKEUP","WIG STYLING","LOYALTY REWARDS","FREE WIFI","FREE WATER","PREMIUM PRODUCTS","EXPERT STYLISTS"].map(item => (
-                <span key={item} style={{ display: "inline-flex", alignItems: "center", gap: "20px", paddingRight: "48px" }}>
-                  <span style={{ fontSize: "10px", letterSpacing: "0.22em", color: "rgba(245,239,230,0.85)", fontWeight: 600 }}>{item}</span>
-                  <span style={{ color: gold, fontSize: "14px" }}>✦</span>
+                <span key={item} style={{ display: "inline-flex", alignItems: "center", gap: "20px", paddingRight: "52px" }}>
+                  <span style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: "rgba(245,239,230,0.78)", fontWeight: 600 }}>{item}</span>
+                  <span style={{ color: gold, fontSize: "11px" }}>✦</span>
                 </span>
               ))}
             </span>
@@ -245,112 +237,128 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── SERVICES ───────────────────────────── */}
-      <section id="services" style={{ padding: "clamp(60px,8vw,120px) clamp(24px,6vw,100px)", background: mid }}>
-        <div style={{ textAlign: "center", marginBottom: "64px" }}>
-          <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>WHAT WE OFFER</div>
+      {/* SERVICES */}
+      <section id="services" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 85% 15%, rgba(200,169,126,0.08) 0%, transparent 45%), radial-gradient(circle at 15% 85%, rgba(200,169,126,0.06) 0%, transparent 45%)", pointerEvents: "none" }} />
+
+        <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
+          <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>WHAT WE OFFER</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400, marginBottom: "16px", letterSpacing: "-0.01em" }}>Our <em>Services</em></h2>
-          <p className="sans" style={{ fontSize: "13px", color: "#5C4D3A", maxWidth: "400px", margin: "0 auto", lineHeight: 1.8, fontWeight: 300 }}>
-            From precision braids to flawless nails. every service at Zolara is delivered with artistry and care.
+          <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", maxWidth: "420px", margin: "0 auto", lineHeight: 1.85, fontWeight: 400 }}>
+            From precision braids to flawless nails, every service at Zolara is delivered with artistry and care.
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", position: "relative", zIndex: 1 }}>
           {services.map((s, i) => (
-            <div key={s.name} className="service-card fade-up" style={{ animationDelay: `${i * 0.1}s`, background: cream, borderRadius: "2px", padding: "40px 32px", position: "relative", overflow: "hidden", border: `1px solid rgba(200,169,126,0.15)` }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(90deg, ${s.color}, transparent)` }} />
-              <div style={{ fontSize: "28px", color: s.color, marginBottom: "20px", lineHeight: 1 }}>{s.icon}</div>
-              <h3 style={{ fontSize: "22px", fontWeight: 500, marginBottom: "12px" }}>{s.name}</h3>
-              <p className="sans" style={{ fontSize: "13px", color: "#4A3C2A", lineHeight: 1.75, marginBottom: "24px", fontWeight: 400 }}>{s.desc}</p>
-              <p className="sans" style={{ fontSize: "11px", fontWeight: 700, color: goldDark, letterSpacing: "0.05em" }}>{s.price}</p>
+            <div key={s.name} className="service-card fade-up" style={{ animationDelay: `${i * 0.08}s`, background: cream, borderRadius: "3px", padding: "40px 32px", position: "relative", overflow: "hidden", border: "1px solid rgba(200,169,126,0.18)" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: `linear-gradient(90deg, ${s.color}, ${s.color}88, transparent)` }} />
+              <div className="svc-icon" style={{ fontSize: "30px", color: s.color, marginBottom: "20px", lineHeight: 1 }}>{s.icon}</div>
+              <h3 style={{ fontSize: "23px", fontWeight: 500, marginBottom: "12px" }}>{s.name}</h3>
+              <p className="sans" style={{ fontSize: "13.5px", color: "#3D2E1A", lineHeight: 1.85, marginBottom: "24px", fontWeight: 400 }}>{s.desc}</p>
+              <p className="sans" style={{ fontSize: "11.5px", fontWeight: 700, color: goldDark, letterSpacing: "0.06em" }}>{s.price}</p>
             </div>
           ))}
         </div>
 
-        <div style={{ textAlign: "center", marginTop: "56px" }}>
+        <div style={{ textAlign: "center", marginTop: "60px", position: "relative", zIndex: 1 }}>
           <Link to="/book" className="btn-primary" style={{
             textDecoration: "none", display: "inline-block",
             fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
             letterSpacing: "0.14em", color: "#fff",
-            background: `linear-gradient(135deg, ${goldDark}, ${gold})`,
-            padding: "16px 48px", borderRadius: "1px",
-            boxShadow: `0 8px 32px rgba(139,105,20,0.3)`,
+            background: "linear-gradient(135deg, #8B6914, #C8A97E)",
+            padding: "17px 52px", borderRadius: "1px",
+            boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
           }}>BOOK AN APPOINTMENT</Link>
         </div>
       </section>
 
-      {/* ── EXPERIENCE ─────────────────────────── */}
-      <section id="experience" style={{ padding: "clamp(60px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", right: "-80px", top: "50%", transform: "translateY(-50%)", fontSize: "320px", color: "rgba(200,169,126,0.05)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
+      {/* EXPERIENCE */}
+      <section id="experience" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", right: "-60px", top: "50%", transform: "translateY(-50%)", fontSize: "380px", color: "rgba(200,169,126,0.045)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
 
         <div className="landing-experience-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center", maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div>
-            <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
+            <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
             <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
-            <p className="sans" style={{ fontSize: "14px", color: "#3D3025", lineHeight: 1.9, marginBottom: "36px", fontWeight: 400 }}>
+            <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", lineHeight: 1.95, marginBottom: "36px", fontWeight: 400 }}>
               Every visit to Zolara is designed to be more than just a salon appointment. From the moment you walk in to your Exit Ritual, a perfume spritz, a piece of chocolate, and a final mirror check, you leave feeling extraordinary.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               {[
                 ["Free WiFi and complimentary bottled water for every client","✦"],
                 ["Ghana's first salon loyalty rewards program","◈"],
                 ["Certified stylists with specialised training","◇"],
-                ["Premium products only. no compromises","❋"],
+                ["Premium products only. No compromises.","❋"],
                 ["Private, comfortable styling stations","◉"],
               ].map(([item, icon]) => (
                 <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                  <span style={{ color: gold, fontSize: "14px", flexShrink: 0, marginTop: "2px" }}>{icon}</span>
-                  <span className="sans" style={{ fontSize: "13px", color: "#3D3025", lineHeight: 1.6, fontWeight: 400 }}>{item}</span>
+                  <span style={{ color: gold, fontSize: "15px", flexShrink: 0, marginTop: "2px" }}>{icon}</span>
+                  <span className="sans" style={{ fontSize: "13.5px", color: "#3D2E1A", lineHeight: 1.65, fontWeight: 400 }}>{item}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div style={{ position: "relative" }}>
-            <div style={{ background: `linear-gradient(145deg, #2C2416, #1A1008)`, borderRadius: "2px", padding: "56px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 50% 0%, rgba(200,169,126,0.15) 0%, transparent 60%)`, pointerEvents: "none" }} />
-              <div style={{ position: "absolute", top: "20px", right: "20px", width: "60px", height: "60px", border: `1px solid rgba(200,169,126,0.2)`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: gold, fontSize: "20px" }}>✦</span>
+            <div style={{ position: "absolute", inset: "-20px", background: "radial-gradient(circle at 50% 50%, rgba(200,169,126,0.1) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+            <div style={{ background: "linear-gradient(150deg, #2C2416 0%, #1A1008 60%, #251D0E 100%)", borderRadius: "4px", padding: "60px 48px", textAlign: "center", position: "relative", overflow: "hidden", boxShadow: "0 32px 80px rgba(28,22,14,0.35)" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 0%, rgba(200,169,126,0.18) 0%, transparent 55%)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", top: "0", left: "0", right: "0", height: "3px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
+              <div style={{ position: "absolute", top: "20px", right: "20px", width: "52px", height: "52px", border: "1px solid rgba(200,169,126,0.28)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: gold, fontSize: "18px", animation: "goldPulse 3s ease-in-out infinite" }}>✦</span>
               </div>
-              <p style={{ fontStyle: "italic", fontSize: "clamp(18px,2.5vw,26px)", color: "#F5EFE6", lineHeight: 1.65, marginBottom: "32px", position: "relative", zIndex: 1 }}>
+              <p style={{ fontStyle: "italic", fontSize: "clamp(18px,2.5vw,27px)", color: "#F5EFE6", lineHeight: 1.65, marginBottom: "32px", position: "relative", zIndex: 1, fontWeight: 400 }}>
                 "Not just a salon. A complete luxury experience."
               </p>
-              <div style={{ width: "40px", height: "1px", background: gold, margin: "0 auto 24px" }} />
-              <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.2em", color: gold, fontWeight: 600 }}>ZOLARA BEAUTY STUDIO</p>
-              <p className="sans" style={{ fontSize: "11px", color: "rgba(245,239,230,0.5)", marginTop: "6px" }}>Sakasaka, Tamale</p>
-              <div style={{ marginTop: "40px", display: "flex", justifyContent: "center", gap: "8px" }}>
-                {[1,2,3,4,5].map(s => <span key={s} style={{ color: gold, fontSize: "16px" }}>★</span>)}
+              <div style={{ width: "44px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)", margin: "0 auto 24px" }} />
+              <p className="sans" style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: gold, fontWeight: 700 }}>ZOLARA BEAUTY STUDIO</p>
+              <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", marginTop: "8px", fontWeight: 400 }}>Sakasaka, Tamale</p>
+              <div style={{ marginTop: "36px", display: "flex", justifyContent: "center", gap: "8px" }}>
+                {[1,2,3,4,5].map(s => <span key={s} style={{ color: gold, fontSize: "18px" }}>★</span>)}
               </div>
-              <p className="sans" style={{ fontSize: "10px", color: "rgba(245,239,230,0.5)", marginTop: "8px" }}>5.0 · 500+ Reviews</p>
+              <p className="sans" style={{ fontSize: "11px", color: "rgba(245,239,230,0.55)", marginTop: "10px", fontWeight: 400 }}>5.0 · 500+ Reviews</p>
+              <div style={{ marginTop: "36px", padding: "24px 0 0", borderTop: "1px solid rgba(200,169,126,0.15)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  {[["Free WiFi","◈"],["Free Water","❋"],["Loyalty Program","◉"],["Exit Ritual","✦"]].map(([f,ic]) => (
+                    <div key={f} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                      <span style={{ color: gold, fontSize: "15px" }}>{ic}</span>
+                      <span className="sans" style={{ fontSize: "9.5px", color: "rgba(245,239,230,0.65)", letterSpacing: "0.12em", fontWeight: 600 }}>{(f as string).toUpperCase()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── REVIEWS ────────────────────────────── */}
-      <section id="reviews" style={{ padding: "clamp(60px,8vw,120px) clamp(24px,6vw,100px)", background: dark, textAlign: "center", overflow: "hidden", position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 0%, rgba(200,169,126,0.08) 0%, transparent 60%)`, pointerEvents: "none" }} />
+      {/* REVIEWS */}
+      <section id="reviews" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: dark, textAlign: "center", overflow: "hidden", position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(200,169,126,0.10) 0%, transparent 55%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 60px, rgba(200,169,126,0.015) 60px, rgba(200,169,126,0.015) 61px)", pointerEvents: "none" }} />
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>CLIENT STORIES</div>
-          <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, color: cream, marginBottom: "56px" }}>What Our <em>Clients</em> Say</h2>
+          <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>CLIENT STORIES</div>
+          <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, color: cream, marginBottom: "60px" }}>What Our <em>Clients</em> Say</h2>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", maxWidth: "1100px", margin: "0 auto 56px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", maxWidth: "1100px", margin: "0 auto 60px" }}>
             {reviews.map((r, i) => (
               <div key={r.name} className="review-card" style={{
-                background: i === activeReview ? "rgba(200,169,126,0.12)" : "rgba(255,255,255,0.03)",
-                border: `1px solid ${i === activeReview ? "rgba(200,169,126,0.35)" : "rgba(255,255,255,0.06)"}`,
-                borderRadius: "2px", padding: "36px 28px", textAlign: "left",
+                background: i === activeReview ? "rgba(200,169,126,0.13)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${i === activeReview ? "rgba(200,169,126,0.42)" : "rgba(255,255,255,0.07)"}`,
+                borderRadius: "3px", padding: "36px 28px", textAlign: "left",
+                boxShadow: i === activeReview ? "0 16px 48px rgba(200,169,126,0.12)" : "none",
               }}>
                 <div style={{ display: "flex", gap: "4px", marginBottom: "20px" }}>
-                  {[1,2,3,4,5].map(s => <span key={s} style={{ color: gold, fontSize: "14px" }}>★</span>)}
+                  {[1,2,3,4,5].map(s => <span key={s} style={{ color: gold, fontSize: "15px" }}>★</span>)}
                 </div>
-                <p style={{ fontStyle: "italic", fontSize: "16px", color: "rgba(245,239,230,0.85)", lineHeight: 1.75, marginBottom: "24px" }}>"{r.text}"</p>
+                <p style={{ fontStyle: "italic", fontSize: "17px", color: "rgba(245,239,230,0.90)", lineHeight: 1.8, marginBottom: "24px", fontWeight: 400 }}>"{r.text}"</p>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: `linear-gradient(135deg, ${gold}, ${goldDark})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span className="sans" style={{ fontSize: "12px", fontWeight: 700, color: "#fff" }}>{r.name[0]}</span>
+                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #C8A97E, #8B6914)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span className="sans" style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{r.name[0]}</span>
                   </div>
-                  <p className="sans" style={{ fontSize: "12px", fontWeight: 600, color: gold }}>{r.name}</p>
+                  <p className="sans" style={{ fontSize: "13px", fontWeight: 600, color: gold }}>{r.name}</p>
                 </div>
               </div>
             ))}
@@ -360,34 +368,36 @@ export default function LandingPage() {
             textDecoration: "none", display: "inline-block",
             fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
             letterSpacing: "0.14em", color: dark,
-            background: `linear-gradient(135deg, ${gold}, #E8C89A)`,
-            padding: "16px 48px", borderRadius: "1px",
+            background: "linear-gradient(135deg, #C8A97E, #E8C89A)",
+            padding: "17px 52px", borderRadius: "1px",
           }}>JOIN OUR HAPPY CLIENTS</Link>
         </div>
       </section>
 
-      {/* ── GIFT CARDS ─────────────────────────── */}
-      <section id="gift-cards" style={{ padding: "clamp(60px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
-        <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
-          <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE PERFECT PRESENT</div>
+      {/* GIFT CARDS */}
+      <section id="gift-cards" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 70% 30%, rgba(200,169,126,0.07) 0%, transparent 50%)", pointerEvents: "none" }} />
+        <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
+          <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE PERFECT PRESENT</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400, marginBottom: "20px" }}>Gift the <em>Experience</em></h2>
-          <p className="sans" style={{ fontSize: "14px", color: "#3D3025", lineHeight: 1.85, maxWidth: "520px", margin: "0 auto 48px", fontWeight: 400 }}>
+          <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", lineHeight: 1.9, maxWidth: "520px", margin: "0 auto 52px", fontWeight: 400 }}>
             Give someone you love a luxury beauty experience at Zolara. Valid for 12 months. Redeemable for any service. Delivered by email or picked up in store.
           </p>
 
-          <div className="gift-tier-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginBottom: "48px", maxWidth: "640px", margin: "0 auto 48px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", maxWidth: "640px", margin: "0 auto 52px" }}>
             {[
-              { amount: "GH₵ 220", tier: "Silver",          desc: "Perfect for a treat",            gradient: "linear-gradient(135deg, #c4c4c4, #f0f0f0, #a0a0a0)" },
-              { amount: "GH₵ 450", tier: "Gold",            desc: "A full pampering session",       gradient: `linear-gradient(135deg, ${goldDark}, ${gold}, #8C6A30)` },
-              { amount: "GH₵ 650", tier: "Platinum",        desc: "Premium luxury experience",     gradient: "linear-gradient(135deg, #4B5563, #9CA3AF, #374151)" },
-              { amount: "GH₵ 1,000", tier: "Diamond Luxury Pass", desc: "The ultimate gift",       gradient: "linear-gradient(135deg, #312E81, #818CF8, #1E1B4B)" },
+              { amount: "GH₵ 220", tier: "Silver", desc: "Perfect for a treat", gradient: "linear-gradient(145deg, #a8a8a8, #f0f0f0, #8a8a8a)" },
+              { amount: "GH₵ 450", tier: "Gold", desc: "A full pampering session", gradient: "linear-gradient(145deg, #8B6914, #C8A97E, #A07030)" },
+              { amount: "GH₵ 650", tier: "Platinum", desc: "Premium luxury experience", gradient: "linear-gradient(145deg, #3D4852, #8B9BAB, #2D3740)" },
+              { amount: "GH₵ 1,000", tier: "Diamond Luxury Pass", desc: "The ultimate gift", gradient: "linear-gradient(145deg, #2D2570, #7C6FD4, #1E1860)" },
             ].map(({ amount, tier, desc, gradient }) => (
-            <div key={tier} className="gift-card-tile" style={{ background: gradient, borderRadius: "10px", padding: "24px 20px", position: "relative", overflow: "hidden", textAlign: "left" }}>
-                <div style={{ position: "absolute", top: -12, right: -12, width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
-                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.7)", marginBottom: "12px", fontWeight: 600 }}>ZOLARA BEAUTY STUDIO</p>
-                <p style={{ fontSize: "26px", fontWeight: 700, color: "white", marginBottom: "4px", fontFamily: "'Cormorant Garamond', serif" }}>{amount}</p>
-                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.18em", fontWeight: 700, color: "rgba(255,255,255,0.75)", marginBottom: "10px" }}>{tier.toUpperCase()}</p>
-                <p className="sans" style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)", lineHeight: 1.6, fontWeight: 300 }}>{desc}</p>
+              <div key={tier} className="gift-card-tile" style={{ background: gradient, borderRadius: "10px", padding: "28px 24px", position: "relative", overflow: "hidden", textAlign: "left" }}>
+                <div style={{ position: "absolute", top: -14, right: -14, width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+                <div style={{ position: "absolute", bottom: -10, left: -10, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.72)", marginBottom: "14px", fontWeight: 600 }}>ZOLARA BEAUTY STUDIO</p>
+                <p style={{ fontSize: "28px", fontWeight: 700, color: "white", marginBottom: "4px", fontFamily: "'Cormorant Garamond', serif" }}>{amount}</p>
+                <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.18em", fontWeight: 700, color: "rgba(255,255,255,0.78)", marginBottom: "12px" }}>{tier.toUpperCase()}</p>
+                <p className="sans" style={{ fontSize: "12px", color: "rgba(255,255,255,0.68)", lineHeight: 1.65, fontWeight: 400 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -396,70 +406,73 @@ export default function LandingPage() {
             textDecoration: "none", display: "inline-block",
             fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
             letterSpacing: "0.14em", color: "#fff",
-            background: `linear-gradient(135deg, ${goldDark}, ${gold})`,
-            padding: "16px 48px", borderRadius: "1px",
-            boxShadow: `0 8px 32px rgba(139,105,20,0.3)`,
+            background: "linear-gradient(135deg, #8B6914, #C8A97E)",
+            padding: "17px 52px", borderRadius: "1px",
+            boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
           }}>BUY A GIFT CARD</Link>
         </div>
       </section>
 
-      {/* ── VISIT US ───────────────────────────── */}
-      <section id="visit-us" style={{ padding: "clamp(60px,8vw,120px) clamp(24px,6vw,100px)", background: cream }}>
-        <div style={{ textAlign: "center", marginBottom: "64px" }}>
-          <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.25em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FIND US</div>
+      {/* VISIT US */}
+      <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
+
+        <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
+          <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FIND US</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400 }}>Come <em>Visit Us</em></h2>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 56px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 60px", position: "relative", zIndex: 1 }}>
           {[
             { icon: "◉", label: "LOCATION", lines: ["Sakasaka, Opposite CalBank", "Tamale, Ghana"] },
             { icon: "◈", label: "CALL US", lines: ["0594 365 314", "020 884 8707"] },
             { icon: "◇", label: "HOURS", lines: ["Monday – Saturday", "8:30 AM – 9:00 PM"] },
             { icon: "✦", label: "CLOSED", lines: ["Every Sunday", "We rest so we can serve you better"] },
           ].map(item => (
-            <div key={item.label} className="visit-card" style={{ background: mid, border: `1px solid rgba(200,169,126,0.25)`, borderRadius: "2px", padding: "36px 28px", textAlign: "center" }}>
-              <div style={{ fontSize: "24px", color: gold, marginBottom: "16px" }}>{item.icon}</div>
-              <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "12px" }}>{item.label}</p>
-              {item.lines.map(l => <p key={l} className="sans" style={{ fontSize: "13px", color: dark, lineHeight: 1.7, fontWeight: 400 }}>{l}</p>)}
+            <div key={item.label} className="visit-card" style={{ background: mid, border: "1px solid rgba(200,169,126,0.22)", borderRadius: "3px", padding: "40px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "48px", height: "2px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
+              <div style={{ fontSize: "26px", color: gold, marginBottom: "18px" }}>{item.icon}</div>
+              <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "14px" }}>{item.label}</p>
+              {item.lines.map(l => <p key={l} className="sans" style={{ fontSize: "14px", color: dark, lineHeight: 1.75, fontWeight: 400 }}>{l}</p>)}
             </div>
           ))}
         </div>
 
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
           <Link to="/book" className="btn-primary" style={{
             textDecoration: "none", display: "inline-block",
             fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
             letterSpacing: "0.14em", color: "#fff",
-            background: `linear-gradient(135deg, ${goldDark}, ${gold})`,
-            padding: "16px 48px", borderRadius: "1px",
-            boxShadow: `0 8px 32px rgba(139,105,20,0.3)`,
+            background: "linear-gradient(135deg, #8B6914, #C8A97E)",
+            padding: "17px 52px", borderRadius: "1px",
+            boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
           }}>BOOK YOUR APPOINTMENT</Link>
         </div>
       </section>
 
-      {/* ── FOOTER ─────────────────────────────── */}
-      <footer style={{ background: `linear-gradient(160deg, #1C160E, #0F0C08)`, padding: "clamp(40px,6vw,80px) clamp(24px,6vw,100px)", borderTop: `1px solid rgba(200,169,126,0.12)` }}>
+      {/* FOOTER */}
+      <footer style={{ background: "linear-gradient(160deg, #1A1208, #0D0A06)", padding: "clamp(40px,6vw,80px) clamp(24px,6vw,100px)", borderTop: "1px solid rgba(200,169,126,0.14)" }}>
         <div className="landing-footer-grid" style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "clamp(32px,5vw,80px)", alignItems: "flex-start", marginBottom: "48px" }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              <div style={{ width: "38px", height: "38px", borderRadius: "50%", border: `1.5px solid ${gold}`, overflow: "hidden", background: "#fff" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "11px", marginBottom: "18px" }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", background: "#fff" }}>
                 <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <div>
-                <div className="sans" style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.2em", color: cream }}>ZOLARA</div>
-                <div className="sans" style={{ fontSize: "8px", letterSpacing: "0.25em", color: gold }}>BEAUTY STUDIO</div>
+                <div className="sans" style={{ fontSize: "13px", fontWeight: 800, letterSpacing: "0.22em", color: cream, lineHeight: 1.1 }}>ZOLARA</div>
+                <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, marginTop: "2px", fontWeight: 600 }}>BEAUTY STUDIO</div>
               </div>
             </div>
-            <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.4)", lineHeight: 1.7, maxWidth: "240px", fontWeight: 300 }}>
+            <p className="sans" style={{ fontSize: "12.5px", color: "rgba(245,239,230,0.45)", lineHeight: 1.8, maxWidth: "240px", fontWeight: 400 }}>
               Tamale's premier luxury beauty studio. Where every visit is an experience.
             </p>
           </div>
 
           <div>
-            <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "20px" }}>NAVIGATE</p>
+            <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "20px" }}>NAVIGATE</p>
             {[["#services","Services"],["#experience","Experience"],["#gift-cards","Gift Cards"],["#visit-us","Visit Us"]].map(([href,label]) => (
-              <div key={label} style={{ marginBottom: "10px" }}>
-                <a href={href} className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", textDecoration: "none", fontWeight: 300, transition: "color 0.2s" }}
+              <div key={label} style={{ marginBottom: "12px" }}>
+                <a href={href} className="sans" style={{ fontSize: "13px", color: "rgba(245,239,230,0.55)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
                   onMouseEnter={e => (e.target as HTMLElement).style.color = gold}
                   onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(245,239,230,0.55)"}
                 >{label}</a>
@@ -468,10 +481,10 @@ export default function LandingPage() {
           </div>
 
           <div>
-            <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "20px" }}>SOCIAL</p>
+            <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "20px" }}>SOCIAL</p>
             {[["https://www.instagram.com/zolarastudio","Instagram"],["https://www.tiktok.com/@zolarastudio","TikTok"],["https://x.com/zolarastudio","X (Twitter)"]].map(([href,label]) => (
-              <div key={label} style={{ marginBottom: "10px" }}>
-                <a href={href} target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", textDecoration: "none", fontWeight: 300, transition: "color 0.2s" }}
+              <div key={label} style={{ marginBottom: "12px" }}>
+                <a href={href} target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "13px", color: "rgba(245,239,230,0.55)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
                   onMouseEnter={e => (e.target as HTMLElement).style.color = gold}
                   onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(245,239,230,0.55)"}
                 >{label}</a>
@@ -480,9 +493,9 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div style={{ borderTop: `1px solid rgba(200,169,126,0.1)`, paddingTop: "28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <p className="sans" style={{ fontSize: "11px", color: "rgba(245,239,230,0.25)", fontWeight: 300 }}>© {new Date().getFullYear()} Zolara Beauty Studio. All rights reserved.</p>
-          <Link to="/app/auth" className="sans" style={{ fontSize: "11px", color: "rgba(200,169,126,0.5)", textDecoration: "none" }}>Staff Login</Link>
+        <div style={{ borderTop: "1px solid rgba(200,169,126,0.1)", paddingTop: "28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.28)", fontWeight: 400 }}>© {new Date().getFullYear()} Zolara Beauty Studio. All rights reserved.</p>
+          <Link to="/app/auth" className="sans" style={{ fontSize: "12px", color: "rgba(200,169,126,0.5)", textDecoration: "none" }}>Staff Login</Link>
         </div>
       </footer>
       <AmandaWidget />
