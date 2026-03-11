@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
@@ -12,9 +12,7 @@ import AmandaWidget from "@/components/AmandaWidget";
 const LOGO = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 const GOLD = "#C8A97E";
 const GOLD_DARK = "#8B6914";
-const CREAM = "#F5EFE6";
 const MID = "#EDE3D5";
-const DARK = "#1C160E";
 const WHITE = "#FFFFFF";
 const BORDER = "#E5DDD3";
 const TXT = "#1C1917";
@@ -22,18 +20,18 @@ const TXT_MID = "#57534E";
 const TXT_SOFT = "#A8A29E";
 const GREEN = "#10B981";
 const RED = "#EF4444";
+const DARK = "#1C160E";
+const CREAM = "#F5EFE6";
 
 const inp = {
   width: "100%", background: WHITE, border: `1.5px solid ${BORDER}`,
   borderRadius: "8px", padding: "12px 16px", color: TXT, fontSize: "14px",
-  outline: "none", fontFamily: "'Montserrat',sans-serif",
-  transition: "border-color 0.15s",
+  outline: "none", fontFamily: "'Montserrat',sans-serif", transition: "border-color 0.15s",
 } as const;
 
 const lbl = {
   display: "block", fontSize: "10px", fontWeight: 700,
-  letterSpacing: "0.14em", color: TXT_SOFT, textTransform: "uppercase" as const,
-  marginBottom: "6px",
+  letterSpacing: "0.14em", color: TXT_SOFT, textTransform: "uppercase" as const, marginBottom: "6px",
 } as const;
 
 const PAYMENT_LABELS: Record<string,string> = {
@@ -43,22 +41,19 @@ const PAYMENT_ICONS: Record<string,string> = {
   cash: "💵", mobile_money: "📱", card: "💳", bank_transfer: "🏦", gift_card: "🎁",
 };
 
-type FlowStep = "form" | "paying" | "verifying" | "done" | "failed";
-
 export default function PublicBooking() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { settings } = useSettings();
 
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<FlowStep>("form");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
   const [bookedService, setBookedService] = useState("");
   const [bookedDate, setBookedDate] = useState("");
   const [bookedTime, setBookedTime] = useState("");
 
-  // Form fields
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -80,55 +75,10 @@ export default function PublicBooking() {
       .from("services")
       .select("id, name, category, price, duration_minutes, is_active")
       .eq("is_active", true)
-      .order("category")
-      .order("name")
+      .order("category").order("name")
       .then(({ data }) => { setServices(data || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
-
-  // Handle Paystack callback: /book?reference=xxx&booking_id=yyy
-  useEffect(() => {
-    const ref = searchParams.get("reference") || searchParams.get("trxref");
-    const bid = searchParams.get("booking_id");
-    if (ref && bid) {
-      setStep("verifying");
-      verifyDepositPayment(ref, bid);
-    }
-  }, []);
-
-  const verifyDepositPayment = async (reference: string, bookingId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("verify-payment", {
-        body: { reference },
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error("Payment was not successful. Please try again.");
-
-      // Mark booking deposit as paid and status as pending
-      const { error: updateErr } = await supabase
-        .from("bookings")
-        .update({ deposit_paid: true, payment_status: "paid", status: "pending" } as any)
-        .eq("id", bookingId);
-      if (updateErr) throw updateErr;
-
-      // Fetch booking details to show confirmation
-      const { data: bk } = await supabase
-        .from("bookings")
-        .select("booking_ref, service_name, preferred_date, preferred_time")
-        .eq("id", bookingId)
-        .single();
-
-      setBookingRef(bk?.booking_ref || reference.slice(0,10).toUpperCase());
-      setBookedService(bk?.service_name || "");
-      setBookedDate(bk?.preferred_date || "");
-      setBookedTime(bk?.preferred_time || "");
-      setStep("done");
-    } catch (err: any) {
-      console.error("Verification error:", err);
-      setStep("failed");
-      toast.error(err.message || "Payment verification failed.");
-    }
-  };
 
   const selectedService = services.find(s => s.id === serviceId);
   const grouped = services.reduce((acc, s) => {
@@ -153,7 +103,6 @@ export default function PublicBooking() {
     const e: Record<string,string> = {};
     if (!name.trim() || name.trim().length < 2) e.name = "Enter your full name";
     if (!phone.trim() || phone.replace(/\s/g,"").length < 10) e.phone = "Enter a valid phone number";
-    if (!email.trim() || !email.includes("@")) e.email = "Email is required to process your deposit payment";
     if (!serviceId) e.service = "Please select a service";
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
@@ -170,112 +119,85 @@ export default function PublicBooking() {
     else { setPromoError(result.message); setPromoApplied(null); }
   };
 
-  const handlePayDeposit = async () => {
+  const handleSubmit = async () => {
     if (!validate()) {
       document.getElementById("booking-form-top")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
-    setStep("paying");
+    setSubmitting(true);
     try {
       const normalizedTime = normalizeTimeTo24(preferredTime);
       const day = new Date(`${preferredDate}T00:00:00`).getDay();
-      if (day === 0) { toast.error("We are closed on Sundays."); setStep("form"); return; }
+      if (day === 0) { toast.error("We are closed on Sundays."); setSubmitting(false); return; }
       const openTime = (settings as any)?.open_time || "08:30";
       const closeTime = (settings as any)?.close_time || "21:00";
       if (!isTimeWithinRange(normalizedTime, openTime, closeTime)) {
         toast.error(`Please pick a time between ${openTime} and ${closeTime}`);
-        setStep("form"); return;
+        setSubmitting(false); return;
       }
-
       const cleanPhone = phone.replace(/\s/g,"");
-      const clientId = await findOrCreateClient({ name, phone: cleanPhone, email });
+      const clientId = await findOrCreateClient({ name, phone: cleanPhone, email: email || null });
       const ref = `ZB${Date.now().toString(36).toUpperCase()}`;
       const notesFull = [
         notes,
-        `Payment preference (balance): ${PAYMENT_LABELS[paymentPref] || paymentPref}`,
+        `Balance payment preference: ${PAYMENT_LABELS[paymentPref] || paymentPref}`,
         promoApplied ? `Promo: ${promoApplied.code}` : "",
+        "GHS 50 deposit to be collected on arrival.",
       ].filter(Boolean).join("\n");
 
-      // Create booking with "awaiting_deposit" status
-      const { data: newBooking, error: bookingError } = await supabase
-        .from("bookings")
-        .insert({
-          client_name: name, client_email: email, client_phone: cleanPhone,
-          service_id: serviceId, service_name: selectedService?.name || null,
-          preferred_date: preferredDate, preferred_time: normalizedTime,
-          price: total, deposit_amount: 50, deposit_paid: false,
-          notes: notesFull, status: "awaiting_deposit",
-          booking_ref: ref, client_id: clientId || null,
-        } as any)
-        .select("id")
-        .single();
+      const { error } = await supabase.from("bookings").insert({
+        client_name: name,
+        client_email: email || null,
+        client_phone: cleanPhone,
+        service_id: serviceId,
+        service_name: selectedService?.name || null,
+        preferred_date: preferredDate,
+        preferred_time: normalizedTime,
+        price: total,
+        deposit_amount: 50,
+        deposit_paid: false,
+        notes: notesFull,
+        status: "pending",
+        booking_ref: ref,
+        client_id: clientId || null,
+      } as any);
 
-      if (bookingError) throw bookingError;
-
-      const callbackUrl = `${window.location.origin}/book?reference={PAYSTACK_REF}&booking_id=${newBooking.id}&trxref={PAYSTACK_REF}`;
-
-      // Initialize Paystack payment for GHS 50 deposit
-      const { data: payData, error: payError } = await supabase.functions.invoke("initialize-payment", {
-        body: {
-          email,
-          amount: 50,
-          booking_id: newBooking.id,
-          callback_url: `${window.location.origin}/book?booking_id=${newBooking.id}`,
-          metadata: {
-            booking_id: newBooking.id,
-            client_name: name,
-            service_name: selectedService?.name || "",
-            booking_ref: ref,
-          },
-        },
-      });
-
-      if (payError) throw payError;
-      if (!payData?.authorization_url) throw new Error("Could not get payment link. Please try again.");
-
-      // Redirect to Paystack
-      window.location.href = payData.authorization_url;
+      if (error) throw error;
+      setBookingRef(ref);
+      setBookedService(selectedService?.name || "");
+      setBookedDate(preferredDate);
+      setBookedTime(preferredTime);
+      setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      console.error("Deposit error:", err);
-      toast.error(err.message || "Something went wrong. Please try again.");
-      setStep("form");
+      toast.error(err.message || "Failed to submit. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // VERIFYING STATE
-  if (step === "verifying") return (
-    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap'); @keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ textAlign: "center" }}>
-        <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
-        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 500, color: DARK, marginBottom: "8px" }}>Confirming your payment...</h2>
-        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", color: TXT_MID }}>Please wait while we verify your deposit.</p>
-      </div>
-    </div>
-  );
-
-  // SUCCESS STATE
-  if (step === "done") return (
+  // SUCCESS
+  if (submitted) return (
     <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&display=swap');`}</style>
       <div style={{ maxWidth: "500px", width: "100%", textAlign: "center" }}>
         <div style={{ width: "88px", height: "88px", borderRadius: "50%", background: "rgba(200,169,126,0.12)", border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
           <CheckCircle2 style={{ width: "44px", height: "44px", color: GOLD }} />
         </div>
-        <h2 style={{ fontSize: "38px", fontWeight: 600, color: DARK, marginBottom: "12px" }}>Booking Confirmed</h2>
-        <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_MID, fontSize: "14px", lineHeight: 1.8, marginBottom: "8px" }}>
-          Your GHS 50 deposit has been received. We will confirm your appointment via SMS shortly.
+        <h2 style={{ fontSize: "38px", fontWeight: 600, color: DARK, marginBottom: "12px" }}>Booking Request Sent</h2>
+        <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_MID, fontSize: "14px", lineHeight: 1.85, marginBottom: "8px" }}>
+          We will confirm your appointment via SMS shortly. Please arrive 5 to 10 minutes early.
         </p>
         <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_SOFT, fontSize: "13px", marginBottom: "32px" }}>
           {bookedService} {bookedDate ? `· ${bookedDate}` : ""} {bookedTime ? `· ${bookedTime}` : ""}
         </p>
-        <div style={{ background: "rgba(200,169,126,0.1)", border: `1px solid rgba(200,169,126,0.3)`, borderRadius: "10px", padding: "20px 28px", marginBottom: "32px", display: "inline-block" }}>
+        <div style={{ background: "rgba(200,169,126,0.1)", border: `1px solid rgba(200,169,126,0.3)`, borderRadius: "10px", padding: "20px 28px", marginBottom: "20px", display: "inline-block" }}>
           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", color: TXT_SOFT, letterSpacing: "0.18em", marginBottom: "8px" }}>BOOKING REFERENCE</p>
           <span style={{ fontFamily: "monospace", fontSize: "22px", fontWeight: 700, color: GOLD_DARK, letterSpacing: "0.12em" }}>{bookingRef}</span>
         </div>
-        <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "10px", padding: "16px 20px", marginBottom: "32px" }}>
-          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12.5px", color: GREEN, lineHeight: 1.75, fontWeight: 500 }}>
-            Please arrive 5 to 10 minutes before your appointment. Pay your remaining balance at the studio on the day.
+        <div style={{ background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "10px", padding: "16px 20px", marginBottom: "32px" }}>
+          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12.5px", color: GOLD_DARK, lineHeight: 1.8, fontWeight: 600 }}>
+            A GHS 50 deposit is required on arrival to secure your appointment.
           </p>
         </div>
         <Link to="/" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
@@ -285,48 +207,17 @@ export default function PublicBooking() {
     </div>
   );
 
-  // FAILED STATE
-  if (step === "failed") return (
-    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap');`}</style>
-      <div style={{ maxWidth: "440px", width: "100%", textAlign: "center" }}>
-        <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "2px solid #EF4444", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: "32px" }}>✗</div>
-        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "32px", fontWeight: 600, color: DARK, marginBottom: "12px" }}>Payment Not Confirmed</h2>
-        <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_MID, fontSize: "13px", lineHeight: 1.8, marginBottom: "28px" }}>
-          We could not verify your deposit. If you were charged, please call us immediately on 059 436 5314.
-        </p>
-        <button onClick={() => { setStep("form"); navigate("/book"); }}
-          style={{ fontFamily: "'Montserrat',sans-serif", padding: "14px 32px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", borderRadius: "8px", color: WHITE, fontWeight: 700, fontSize: "13px", cursor: "pointer" }}>
-          Try Again
-        </button>
-      </div>
-    </div>
-  );
-
-  // PAYING STATE (brief loading before redirect)
-  if (step === "paying") return (
-    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Montserrat:wght@400;500&display=swap'); @keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ textAlign: "center" }}>
-        <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
-        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 500, color: DARK, marginBottom: "8px" }}>Preparing your payment...</h2>
-        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", color: TXT_MID }}>You'll be redirected to our secure payment page.</p>
-      </div>
-    </div>
-  );
-
-  // MAIN FORM
   return (
     <div style={{ background: MID, minHeight: "100vh", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(200,169,126,0.18); }
         .pay-btn:hover { border-color: ${GOLD} !important; }
+        .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+        .svc-select:hover { border-color: ${GOLD} !important; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
         .error-field { animation: slideDown 0.3s ease; }
-        .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
-        .svc-select:hover { border-color: ${GOLD} !important; }
         @media (max-width: 900px) { .booking-grid { grid-template-columns: 1fr !important; } .booking-sidebar { position: static !important; } }
       `}</style>
 
@@ -348,20 +239,17 @@ export default function PublicBooking() {
 
       <div className="booking-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px 80px", display: "grid", gridTemplateColumns: "360px 1fr", gap: "40px", alignItems: "start" }}>
 
-        {/* LEFT: KPI Marketing Panel */}
+        {/* LEFT: KPI sidebar */}
         <div className="booking-sidebar" style={{ position: "sticky", top: "90px" }}>
           <div style={{ background: "linear-gradient(150deg, #2C2416 0%, #1A1008 60%, #251D0E 100%)", borderRadius: "12px", overflow: "hidden", boxShadow: "0 24px 64px rgba(28,22,14,0.25)" }}>
-            {/* Header */}
             <div style={{ padding: "36px 32px 28px", borderBottom: "1px solid rgba(200,169,126,0.15)", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 0%, rgba(200,169,126,0.15) 0%, transparent 60%)", pointerEvents: "none" }} />
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9px", letterSpacing: "0.26em", color: GOLD, fontWeight: 700, marginBottom: "12px" }}>BOOK WITH CONFIDENCE</p>
               <h2 style={{ fontSize: "26px", fontWeight: 500, color: "#F5EFE6", lineHeight: 1.2, marginBottom: "8px" }}>Your Appointment, <em>Our Promise</em></h2>
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.5)", lineHeight: 1.75, fontWeight: 400 }}>
-                Everything you need to know before you book.
-              </p>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.5)", lineHeight: 1.75, fontWeight: 400 }}>Everything you need to know before you book.</p>
             </div>
 
-            {/* Deposit info - highlighted */}
+            {/* Deposit highlight */}
             <div style={{ padding: "24px 32px", borderBottom: "1px solid rgba(200,169,126,0.12)", background: "rgba(200,169,126,0.08)" }}>
               <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
                 <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -370,7 +258,7 @@ export default function PublicBooking() {
                 <div>
                   <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", color: GOLD, marginBottom: "6px" }}>GHS 50 DEPOSIT: HOW IT WORKS</p>
                   <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.75)", lineHeight: 1.8, fontWeight: 400 }}>
-                    A GHS 50 deposit is required to confirm your booking. It is fully applied toward your service total. You pay the remaining balance at the studio after your service.
+                    A GHS 50 deposit is required on arrival to confirm your slot. It is fully applied toward your service total. You pay the remaining balance after your service is done.
                   </p>
                 </div>
               </div>
@@ -402,12 +290,12 @@ export default function PublicBooking() {
           </div>
         </div>
 
-        {/* RIGHT: Booking Form */}
+        {/* RIGHT: Form */}
         <div id="booking-form-top">
           <div style={{ marginBottom: "32px" }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", letterSpacing: "0.26em", color: GOLD_DARK, fontWeight: 700, marginBottom: "8px" }}>BOOK YOUR APPOINTMENT</p>
             <h1 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 500, color: DARK, lineHeight: 1.15, marginBottom: "8px" }}>Reserve Your <em>Zolara</em> Experience</h1>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13.5px", color: TXT_MID, lineHeight: 1.75 }}>Fill in your details. A GHS 50 deposit is required to secure your slot.</p>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13.5px", color: TXT_MID, lineHeight: 1.75 }}>Fill in your details. A GHS 50 deposit is collected on arrival to secure your slot.</p>
           </div>
 
           {/* Personal Details */}
@@ -432,16 +320,15 @@ export default function PublicBooking() {
               </div>
             </div>
             <div>
-              <label style={lbl}>Email * <span style={{ fontSize: "9px", color: TXT_SOFT, fontWeight: 400, letterSpacing: "0.05em" }}>(Required for deposit payment)</span></label>
+              <label style={lbl}>Email (Optional)</label>
               <div style={{ position: "relative" }}>
                 <Mail size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={{ ...inp, paddingLeft: "38px" }} />
               </div>
-              {errors.email && <p className="error-field" style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "4px" }}>{errors.email}</p>}
             </div>
           </div>
 
-          {/* Service Selection - dropdown list */}
+          {/* Service Select - dropdown */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>SELECT A SERVICE</p>
             {loading ? (
@@ -450,12 +337,7 @@ export default function PublicBooking() {
               </div>
             ) : (
               <div style={{ position: "relative" }}>
-                <select
-                  className="svc-select"
-                  value={serviceId}
-                  onChange={e => setServiceId(e.target.value)}
-                  style={{ ...inp, paddingRight: "44px", background: WHITE }}
-                >
+                <select className="svc-select" value={serviceId} onChange={e => setServiceId(e.target.value)} style={{ ...inp, paddingRight: "44px" }}>
                   <option value="">Choose a service...</option>
                   {Object.entries(grouped).map(([cat, svcs]) => (
                     <optgroup key={cat} label={cat}>
@@ -482,7 +364,7 @@ export default function PublicBooking() {
             {errors.service && <p className="error-field" style={{ fontFamily: "'Montserrat',sans-serif", color: RED, fontSize: "11px", marginTop: "8px" }}>{errors.service}</p>}
           </div>
 
-          {/* Date & Time */}
+          {/* Date and Time */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>DATE AND TIME</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
@@ -511,9 +393,7 @@ export default function PublicBooking() {
           {/* Special Requests */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>SPECIAL REQUESTS</p>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="Style references, allergies, or anything we should know..."
-              rows={3} style={{ ...inp, resize: "vertical" }} />
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Style references, allergies, or anything we should know..." rows={3} style={{ ...inp, resize: "vertical" }} />
           </div>
 
           {/* Promo Code */}
@@ -522,8 +402,7 @@ export default function PublicBooking() {
             <div style={{ display: "flex", gap: "10px" }}>
               <div style={{ position: "relative", flex: 1 }}>
                 <Tag size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
-                <input value={promoCode} onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(null); setPromoError(""); }}
-                  placeholder="ENTER CODE" style={{ ...inp, paddingLeft: "38px", fontFamily: "monospace", letterSpacing: "0.1em" }} />
+                <input value={promoCode} onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(null); setPromoError(""); }} placeholder="ENTER CODE" style={{ ...inp, paddingLeft: "38px", fontFamily: "monospace", letterSpacing: "0.1em" }} />
               </div>
               <button onClick={handleApplyPromo} disabled={!promoCode || promoLoading}
                 style={{ padding: "12px 20px", background: promoApplied ? GREEN : `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", borderRadius: "8px", color: WHITE, fontWeight: 700, fontSize: "12px", cursor: "pointer", whiteSpace: "nowrap", opacity: !promoCode ? 0.5 : 1, fontFamily: "'Montserrat',sans-serif" }}>
@@ -534,7 +413,7 @@ export default function PublicBooking() {
             {promoApplied && <p style={{ fontFamily: "'Montserrat',sans-serif", color: GREEN, fontSize: "11px", marginTop: "6px" }}>{promoApplied.discount_type === "percentage" ? `${promoApplied.discount_value}% off` : `GHS ${promoApplied.discount_value} off`} applied.</p>}
           </div>
 
-          {/* Payment Method (balance) */}
+          {/* Balance payment method */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.06)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "8px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
@@ -552,7 +431,7 @@ export default function PublicBooking() {
             </div>
           </div>
 
-          {/* Summary + Pay Deposit CTA */}
+          {/* Summary and submit */}
           <div style={{ background: "linear-gradient(150deg, #2C2416 0%, #1A1008 100%)", borderRadius: "12px", padding: "32px", boxShadow: "0 8px 32px rgba(28,22,14,0.2)" }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(200,169,126,0.8)", marginBottom: "20px" }}>BOOKING SUMMARY</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
@@ -583,11 +462,11 @@ export default function PublicBooking() {
             {/* Deposit breakdown */}
             <div style={{ background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.25)", borderRadius: "8px", padding: "16px 18px", marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.6)", fontWeight: 500 }}>Deposit to pay now</span>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.6)", fontWeight: 500 }}>Deposit on arrival</span>
                 <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: GOLD }}>GHS 50</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.6)", fontWeight: 500 }}>Balance at studio</span>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.6)", fontWeight: 500 }}>Balance after service</span>
                 <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: "rgba(245,239,230,0.7)" }}>{selectedService ? `GHS ${Math.max(0, total - 50).toLocaleString()}` : "..."}</span>
               </div>
             </div>
@@ -596,12 +475,12 @@ export default function PublicBooking() {
               By booking, you agree to our cancellation and lateness policies. Your deposit secures your slot.
             </p>
 
-            <button onClick={handlePayDeposit}
-              style={{ width: "100%", padding: "20px", borderRadius: "8px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", color: WHITE, fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "'Montserrat',sans-serif", boxShadow: "0 8px 32px rgba(139,105,20,0.45)", transition: "all 0.3s ease" }}>
-              PAY GHS 50 DEPOSIT TO BOOK
+            <button onClick={handleSubmit} disabled={submitting}
+              style={{ width: "100%", padding: "20px", borderRadius: "8px", background: submitting ? "#555" : `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", color: WHITE, fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", cursor: submitting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "'Montserrat',sans-serif", boxShadow: "0 8px 32px rgba(139,105,20,0.4)", transition: "all 0.3s ease" }}>
+              {submitting ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> SUBMITTING…</> : "REQUEST BOOKING"}
             </button>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.3)", textAlign: "center", marginTop: "12px" }}>
-              Secured by Paystack. Your payment details are never stored on our servers.
+              We will confirm your appointment via SMS within a few hours.
             </p>
           </div>
         </div>
