@@ -56,6 +56,9 @@ const GiftCards = () => {
   const [tierFilter, setTierFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // Expanded card tracking
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+
   // Edit dialog
   const [editCard, setEditCard] = useState<GiftCard | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -654,6 +657,8 @@ const GiftCards = () => {
                 userRole={userRole}
                 key={card.id}
                 card={card}
+                expanded={expandedCardId === card.id}
+                onToggle={() => setExpandedCardId(expandedCardId === card.id ? null : card.id)}
                 onEdit={!roleReady || userRole === null || userRole === "receptionist" ? undefined : openEdit}
                 onAction={!roleReady || userRole === null || userRole === "receptionist" ? undefined : openConfirm}
                 readOnly={!roleReady || userRole === null || userRole === "receptionist"}

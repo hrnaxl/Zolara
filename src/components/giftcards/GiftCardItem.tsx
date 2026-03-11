@@ -23,10 +23,14 @@ type Props = {
     code: string
   ) => void;
   readOnly?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
 };
 
-export function GiftCardItem({ userRole, card, onEdit, onAction, readOnly = false }: Props) {
-  const [expanded, setExpanded] = useState(false);
+export function GiftCardItem({ userRole, card, onEdit, onAction, readOnly = false, expanded: expandedProp, onToggle }: Props) {
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = expandedProp !== undefined ? expandedProp : localExpanded;
+  const setExpanded = onToggle ? onToggle : (v: boolean) => setLocalExpanded(v);
 
   const copyCode = () => {
     navigator.clipboard?.writeText(card.final_code);
@@ -98,7 +102,7 @@ export function GiftCardItem({ userRole, card, onEdit, onAction, readOnly = fals
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setExpanded(!expanded)}
+              onClick={() => typeof setExpanded === "function" ? setExpanded(!expanded) : setExpanded(!expanded)}
               title={expanded ? "Collapse" : "Expand"}
             >
               {expanded ? (
