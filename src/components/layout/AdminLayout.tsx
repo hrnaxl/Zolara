@@ -440,8 +440,10 @@ const AdminDashboard = () => {
         bookings: 0,
       }));
 
-      // Payment method breakdown
-      const paymentMethods = periodPaymentsRes.data?.reduce(
+      // Payment method breakdown — use todayPaymentsRes when filter is "today" since
+      // periodPaymentsRes uses date-string comparison which cuts off intraday timestamps
+      const breakdownSource = dateFilter === "today" ? todayPaymentsRes.data : periodPaymentsRes.data;
+      const paymentMethods = breakdownSource?.reduce(
         (acc: any, p: any) => {
           const method = p.payment_method || "cash";
           if (!acc[method]) {

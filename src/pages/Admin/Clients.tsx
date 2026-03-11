@@ -683,7 +683,7 @@ const Clients = () => {
       </div>
       <div className="z-page">
         {/* Client Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr items-stretch">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px", alignItems: "stretch" }}>
           {filteredClients.map((client) => {
             const s = new Date(`${startDate}T00:00:00`);
             const e = new Date(`${endDate}T23:59:59`);
@@ -703,196 +703,73 @@ const Clients = () => {
               null as any
             );
 
+            const isVip = client.totalSpent > 5000 || client.visitsCount > 10;
+            const isNew = client.visitsCount === 0;
+            const isRisk = client.noShowCount >= 3;
+
             return (
-              <Card
+              <div
                 key={client.id}
-                onClick={() => {
-                  setSelectedClient(client);
-                  setProfileOpen(true);
+                onClick={() => { setSelectedClient(client); setProfileOpen(true); }}
+                style={{
+                  background: "#fff", borderRadius: "16px", border: "1px solid #EDE8E0",
+                  boxShadow: "0 2px 16px rgba(28,22,14,0.06)", cursor: "pointer",
+                  transition: "all 0.2s ease", overflow: "hidden",
                 }}
-                className="h-full cursor-pointer hover:shadow-2xl transition-all transform hover:-translate-y-1 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white/80 to-white/60 dark:from-gray-900/70 dark:to-gray-800/50 backdrop-blur-lg"
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 40px rgba(28,22,14,0.12)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 16px rgba(28,22,14,0.06)"; }}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start gap-4">
-                    {/* Avatar */}
-                    <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
+                {/* Gold accent bar */}
+                <div style={{ height: "3px", background: isVip ? "linear-gradient(90deg, #8B6914, #C8A97E, #FFD700)" : "linear-gradient(90deg, #8B6914, #C8A97E)" }} />
+                <div style={{ padding: "20px 20px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "14px" }}>
+                    <div style={{ width: "50px", height: "50px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: "2px solid #C8A97E", boxShadow: "0 0 0 3px rgba(200,169,126,0.12)" }}>
                       {client.image ? (
-                        <img
-                          src={client.image}
-                          alt={client.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={client.image} alt={client.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-green-500 to-teal-500 text-white flex items-center justify-center font-semibold text-lg">
-                          {client.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")}
+                        <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: "#fff" }}>
+                          {client.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                         </div>
                       )}
                     </div>
-
-                    {/* Identity */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <CardTitle className="text-lg truncate">
-                          {client.name}
-                        </CardTitle>
-
-                        {/* Status */}
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            client.noShowCount >= 3
-                              ? "z-badge z-badge-red"
-                              : client.totalSpent > 5000 ||
-                                client.visitsCount > 10
-                              ? "z-badge z-badge-amber"
-                              : client.visitsCount === 0
-                              ? "z-badge z-badge-green"
-                              : "z-badge z-badge-gray"
-                          }`}
-                        >
-                          {client.noShowCount >= 3
-                            ? "Blacklisted"
-                            : client.totalSpent > 5000 ||
-                              client.visitsCount > 10
-                            ? "VIP"
-                            : client.visitsCount === 0
-                            ? "New"
-                            : "Regular"}
-                        </span>
-
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
-                          {bookingsCount} visits
-                        </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
+                        <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "17px", fontWeight: 700, color: "#1C160E" }}>{client.name}</span>
+                        {isVip && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(200,169,126,0.15)", color: "#8B6914", border: "1px solid rgba(200,169,126,0.3)" }}>VIP</span>}
+                        {isNew && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(59,130,246,0.1)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.2)" }}>NEW</span>}
+                        {isRisk && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}>AT RISK</span>}
                       </div>
-
-                      <p className="text-sm text-muted-foreground mt-1 truncate">
-                        {lastBooking
-                          ? `Last visit: ${format(
-                              new Date(lastBooking),
-                              "MMM dd, yyyy"
-                            )}`
-                          : "No appointments yet"}
-                      </p>
-
-                      {client.specialization && (
-                        <p className="text-sm text-gray-500 truncate">
-                          {client.specialization}
-                        </p>
+                      {client.phone && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <Phone style={{ width: "11px", height: "11px", color: "#C8A97E", flexShrink: 0 }} />
+                          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "#78716C" }}>{client.phone}</span>
+                        </div>
                       )}
                     </div>
                   </div>
-                </CardHeader>
 
-                <CardContent className="space-y-4">
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <Stat
-                      label="No-shows"
-                      value={() =>
-                        (client.bookings || []).filter((b: any) =>
-                          (b.status || "").toLowerCase().includes("no")
-                        ).length
-                      }
-                    />
-                    <Stat
-                      label="Late cancels"
-                      value={() =>
-                        (client.bookings || []).filter((b: any) => {
-                          const st = (b.status || "").toLowerCase();
-                          return st.includes("late") || b.is_late_cancel;
-                        }).length
-                      }
-                    />
+                  {/* Stats row */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "14px" }}>
+                    {[
+                      { label: "VISITS", value: bookingsCount || client.total_visits || 0 },
+                      { label: "SPENT", value: `GHS ${(client.total_spent || 0).toLocaleString()}` },
+                      { label: "POINTS", value: client.loyalty_points || 0 },
+                    ].map(({ label, value }) => (
+                      <div key={label} style={{ background: "#F8F3EC", borderRadius: "8px", padding: "8px 10px", textAlign: "center" }}>
+                        <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.14em", color: "#A8A29E", marginBottom: "3px" }}>{label}</div>
+                        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "15px", fontWeight: 700, color: "#1C160E" }}>{value}</div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Contact */}
-                  <div className="space-y-1">
-                    {client.phone && (
-                      <a
-                        href={`tel:${client.phone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 text-sm text-gray-600 truncate"
-                      >
-                        <Phone className="w-4 h-4" />
-                        {client.phone}
-                      </a>
-                    )}
-
-                    {client.email && (
-                      <a
-                        href={`mailto:${client.email}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 text-sm text-gray-600 truncate"
-                      >
-                        <Mail className="w-4 h-4" />
-                        {client.email}
-                      </a>
-                    )}
-                  </div>
-                </CardContent>
-
-                <CardFooter className="flex flex-wrap gap-2 justify-end border-t pt-3">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setProfileOpen(true);
-                      setSelectedClient(client);
-                    }}
-                  >
-                    <History className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-1">History</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDialogOpen(true);
-                      setEditingClientId(client.id);
-                    }}
-                  >
-                    <Pencil className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-1">Edit</span>
-                  </Button>
-
-                  {client.phone && (
-                    <a
-                      href={`https://wa.me/${String(client.phone).replace(
-                        /\D/g,
-                        ""
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button size="sm" variant="ghost">
-                        <Phone className="w-4 h-4" />
-                      </Button>
-                    </a>
+                  {lastBooking && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", paddingTop: "10px", borderTop: "1px solid #F0EBE2" }}>
+                      <CalendarClock style={{ width: "11px", height: "11px", color: "#C8A97E" }} />
+                      <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "#78716C" }}>Last visit: {format(new Date(lastBooking), "MMM d, yyyy")}</span>
+                    </div>
                   )}
-
-                  {userRole === "owner" && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteClientId(client.id);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            );
-          })}
+                </div>
+            );\n          })}
 
           {/* Profile Dialog */}
           <Dialog open={profileOpen} onOpenChange={setProfileOpen}>

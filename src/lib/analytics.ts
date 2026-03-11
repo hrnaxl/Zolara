@@ -37,13 +37,23 @@ export const getTopServices = async () => {
 };
 
 export const getTopClients = async () => {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("name, total_spent, total_visits, loyalty_points, created_at")
-    .order("total_spent", { ascending: false })
-    .limit(10);
+  // total_spent on the clients table is not reliably updated, so calculate from sales
+  const { data: sales, error } = await supabase
+    .from("sales")
+    .select("client_name, amount")
+    .eq("status", "completed");
   if (error) throw error;
-  return data || [];
+
+  const map: Record<string, number> = {};
+  for (const s of sales || []) {
+    const key = s.client_name || "Unknown";
+    map[key] = (map[key] || 0) + Number(s.amount || 0);
+  }
+
+  return Object.entries(map)
+    .map(([name, total_spent]) => ({ name, total_spent, total_visits: 0 }))
+    .sort((a, b) => b.total_spent - a.total_spent)
+    .slice(0, 10);
 };
 
 export const getRevenueByDay = (sales: any[], days = 30) => {

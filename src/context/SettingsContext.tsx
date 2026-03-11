@@ -15,7 +15,6 @@ interface PaymentMethod {
 
 interface Settings {
   logo_url: string;
-  paystack_enabled: boolean;
   payment_methods: PaymentMethod[];
   business_name: string;
   open_time: string;
@@ -31,7 +30,6 @@ interface Settings {
 
 const defaultSettings: Settings = {
   logo_url: "",
-  paystack_enabled: true,
   payment_methods: [
     { id: "cash", name: "Cash", enabled: true },
     { id: "mobile_money", name: "Mobile Money (MoMo)", enabled: true },

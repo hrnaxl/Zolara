@@ -548,96 +548,88 @@ const Staff = () => {
       </div>
 
       {/* Staff List */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px", alignItems: "stretch" }}>
         {staff.map((member) => (
-          <Card
+          <div
             key={member.id}
             onClick={() => {
               setSelectedStaff(member);
               setProfileOpen(true);
               fetchStaffProfile(member.id);
             }}
-            className="cursor-pointer hover:shadow-xl transition-shadow rounded-2xl border border-gray-200"
+            style={{
+              background: "#fff", borderRadius: "16px", border: "1px solid #EDE8E0",
+              boxShadow: "0 2px 16px rgba(28,22,14,0.06)", cursor: "pointer",
+              transition: "all 0.2s ease", overflow: "hidden",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 40px rgba(28,22,14,0.12)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 16px rgba(28,22,14,0.06)"; }}
           >
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  {/* Staff Avatar */}
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+            {/* Gold accent bar */}
+            <div style={{ height: "3px", background: "linear-gradient(90deg, #8B6914, #C8A97E)" }} />
+            <div style={{ padding: "22px 22px 18px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div style={{ width: "52px", height: "52px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: "2px solid #C8A97E", boxShadow: "0 0 0 3px rgba(200,169,126,0.12)" }}>
                     {member.image ? (
-                      <img
-                        src={member.image}
-                        alt={member.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={member.image} alt={member.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-lg shadow-md">
-                        {member.name
-                          .split(" ")
-                          .map((n: string) => n[0])
-                          .join("")}
+                      <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: "#fff" }}>
+                        {member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                       </div>
                     )}
                   </div>
-
                   <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg font-semibold">
-                        {member.name}
-                      </CardTitle>
-                      {member.role && (
-                        <span className="text-xs px-2 py-1 rounded-md z-badge z-badge-gray">
-                          {member.role}
-                        </span>
-                      )}
-                    </div>
-
-                    {staffRatings[member.id] !== undefined && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Avg rating:{" "}
-                        {staffRatings[member.id] !== null
-                          ? Number(staffRatings[member.id]).toFixed(2)
-                          : "N/A"}
-                      </p>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: "#1C160E", lineHeight: 1.2 }}>{member.name}</div>
+                    {member.role && (
+                      <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.14em", color: "#C8A97E", marginTop: "3px", textTransform: "uppercase" }}>{member.role}</div>
                     )}
                   </div>
                 </div>
-
-                <Badge variant={(member.status ? member.status === 'active' : member.is_active) ? "default" : "secondary"}>
-                  {member.status ? member.status.replace('_', ' ') : (member.is_active ? "Active" : "Inactive")}
-                </Badge>
+                <span style={{
+                  fontFamily: "'Montserrat',sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em",
+                  padding: "4px 10px", borderRadius: "20px",
+                  background: (member.status ? member.status === "active" : member.is_active) ? "rgba(16,185,129,0.1)" : "rgba(107,114,128,0.1)",
+                  color: (member.status ? member.status === "active" : member.is_active) ? "#10B981" : "#6B7280",
+                  border: `1px solid ${(member.status ? member.status === "active" : member.is_active) ? "rgba(16,185,129,0.25)" : "rgba(107,114,128,0.25)"}`,
+                  textTransform: "uppercase",
+                }}>
+                  {member.status ? member.status.replace("_", " ") : (member.is_active ? "Active" : "Inactive")}
+                </span>
               </div>
-            </CardHeader>
 
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Phone className="w-4 h-4" />
-                <span>{member.phone}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                {member.phone && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Phone style={{ width: "13px", height: "13px", color: "#C8A97E", flexShrink: 0 }} />
+                    <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "#57534E" }}>{member.phone}</span>
+                  </div>
+                )}
+                {member.email && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Mail style={{ width: "13px", height: "13px", color: "#C8A97E", flexShrink: 0 }} />
+                    <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "#57534E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{member.email}</span>
+                  </div>
+                )}
+                {staffRatings[member.id] !== undefined && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ color: "#C8A97E", fontSize: "13px" }}>★</span>
+                    <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "#57534E" }}>
+                      {staffRatings[member.id] !== null ? Number(staffRatings[member.id]).toFixed(2) : "N/A"} rating
+                    </span>
+                  </div>
+                )}
               </div>
-              {member.email && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Mail className="w-4 h-4" />
-                  <span>{member.email}</span>
-                </div>
-              )}
 
-              <div className="flex justify-end gap-2 pt-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditMember(member);
-                  }}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", paddingTop: "12px", borderTop: "1px solid #F0EBE2" }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleEditMember(member); }}
+                  style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #EDE8E0", background: "#fff", color: "#57534E", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.15s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#C8A97E"; (e.currentTarget as HTMLElement).style.color = "#8B6914"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#EDE8E0"; (e.currentTarget as HTMLElement).style.color = "#57534E"; }}
                 >
-                  <Pencil className="w-4 h-4" />
-                </Button>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-xl"
+                  <Pencil style={{ width: "12px", height: "12px" }} /> Edit
+                </button>
                     onClick={(e) => {
                       e.stopPropagation();
                       // open profile then assign dialog
@@ -662,22 +654,22 @@ const Staff = () => {
                     Schedule
                   </Button>
                 {userRole === "owner" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="rounded-xl text-red-500 border-red-300"
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeleteStaffId(member.id);
                       setDeleteDialogOpen(true);
                     }}
+                    style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, padding: "7px 12px", borderRadius: "8px", border: "1.5px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.06)", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.15s" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.12)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.06)"; }}
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    <Trash2 style={{ width: "12px", height: "12px" }} />
+                  </button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
 
         {staff.length === 0 && (

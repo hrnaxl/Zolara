@@ -25,6 +25,7 @@ export default function LandingPage() {
   const [activeReview, setActiveReview] = useState(0);
   const [reviewVisible, setReviewVisible] = useState(false);
   const [expVisible, setExpVisible] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const reviewRef = useRef<HTMLDivElement>(null);
   const expRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -117,13 +118,14 @@ export default function LandingPage() {
           .landing-gift-grid { grid-template-columns: 1fr !important; }
           .landing-footer-grid { grid-template-columns: 1fr !important; }
           .desktop-nav { display: none !important; }
+          .mobile-ham { display: flex !important; }
         }
       `}</style>
 
       {/* NAVBAR */}
       <nav style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-        padding: "0 clamp(24px,5vw,80px)",
+        padding: "0 clamp(20px,5vw,80px)",
         height: scrolled ? "60px" : "74px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         background: scrolled ? "rgba(245,239,230,0.97)" : "transparent",
@@ -133,7 +135,7 @@ export default function LandingPage() {
         transition: "all 0.4s ease",
       }}>
         <a href="#" style={{ display: "flex", alignItems: "center", gap: "11px", textDecoration: "none" }}>
-          <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", background: "#fff", flexShrink: 0, boxShadow: "0 0 0 3px rgba(200,169,126,0.15)" }}>
+          <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", background: "#fff", flexShrink: 0 }}>
             <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div>
@@ -148,14 +150,62 @@ export default function LandingPage() {
           ))}
         </div>
 
-        <Link to="/book" className="btn-primary" style={{
-          fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 700,
-          letterSpacing: "0.14em", color: "#fff", textDecoration: "none",
-          background: "linear-gradient(135deg, #8B6914, #C8A97E)",
-          padding: "10px 26px", borderRadius: "1px",
-          boxShadow: "0 4px 20px rgba(139,105,20,0.32)",
-        }}>BOOK NOW</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Link to="/book" className="btn-primary" style={{
+            fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 700,
+            letterSpacing: "0.14em", color: "#fff", textDecoration: "none",
+            background: "linear-gradient(135deg, #8B6914, #C8A97E)",
+            padding: "10px 22px", borderRadius: "1px",
+            boxShadow: "0 4px 20px rgba(139,105,20,0.32)",
+          }}>BOOK NOW</Link>
+          <button onClick={() => setMobileMenuOpen(o => !o)}
+            className="mobile-ham" aria-label="Menu"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "none", flexDirection: "column", gap: "5px" }}>
+            <span style={{ display: "block", width: "22px", height: "2px", background: dark, borderRadius: "2px", transition: "all 0.25s", transform: mobileMenuOpen ? "rotate(45deg) translateY(7px)" : "none" }} />
+            <span style={{ display: "block", width: "22px", height: "2px", background: dark, borderRadius: "2px", transition: "all 0.25s", opacity: mobileMenuOpen ? 0 : 1 }} />
+            <span style={{ display: "block", width: "22px", height: "2px", background: dark, borderRadius: "2px", transition: "all 0.25s", transform: mobileMenuOpen ? "rotate(-45deg) translateY(-7px)" : "none" }} />
+          </button>
+        </div>
       </nav>
+
+      {/* Mobile menu backdrop */}
+      {mobileMenuOpen && (
+        <div onClick={() => setMobileMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 99, background: "rgba(28,22,14,0.55)", backdropFilter: "blur(4px)" }} />
+      )}
+      {/* Mobile menu panel */}
+      <div style={{
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 105,
+        width: "min(300px, 85vw)",
+        background: "linear-gradient(180deg, #1C160E 0%, #2A1E0D 100%)",
+        transform: mobileMenuOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.32s cubic-bezier(0.16,1,0.3,1)",
+        display: "flex", flexDirection: "column", padding: "80px 28px 48px",
+        boxShadow: "-24px 0 80px rgba(0,0,0,0.35)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "36px" }}>
+          <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: `2px solid ${gold}`, overflow: "hidden" }}>
+            <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 800, letterSpacing: "0.2em", color: "#F5EFE6" }}>ZOLARA</div>
+            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", letterSpacing: "0.2em", color: gold, fontWeight: 600 }}>BEAUTY STUDIO</div>
+          </div>
+        </div>
+        {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href, label]) => (
+          <a key={label} href={href} onClick={() => setMobileMenuOpen(false)}
+            style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", color: "rgba(245,239,230,0.7)", textDecoration: "none", padding: "15px 0", borderBottom: "1px solid rgba(200,169,126,0.1)" }}>
+            {label}
+          </a>
+        ))}
+        <Link to="/book" onClick={() => setMobileMenuOpen(false)}
+          style={{ marginTop: "28px", fontFamily: "'Montserrat',sans-serif", display: "block", textAlign: "center", padding: "16px", background: `linear-gradient(135deg, #8B6914, ${gold})`, color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: "11px", letterSpacing: "0.14em", borderRadius: "2px" }}>
+          BOOK AN APPOINTMENT
+        </Link>
+        <div style={{ marginTop: "auto", paddingTop: "28px" }}>
+          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", marginBottom: "5px" }}>059 436 5314</p>
+          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)" }}>020 884 8707</p>
+        </div>
+      </div>
 
       {/* HERO */}
       <section ref={heroRef} style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", padding: "0 clamp(24px,6vw,100px)" }}>

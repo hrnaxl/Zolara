@@ -34,7 +34,6 @@ interface Settings {
   business_email: string;
   business_address: string;
   payment_methods: PaymentMethod[];
-  paystack_enabled: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -59,7 +58,6 @@ const defaultSettings: Settings = {
   business_email: "",
   business_address: "",
   payment_methods: [],
-  paystack_enabled: true,
 };
 
 export default function Settings() {
@@ -150,7 +148,6 @@ export default function Settings() {
         staff_roles: settings.staff_roles,
         service_categories: settings.service_categories,
         use_24_hour_format: settings.use_24_hour_format,
-        paystack_enabled: settings.paystack_enabled,
         gallery_images: (settings as any).gallery_images ?? [],
       };
 
@@ -279,11 +276,7 @@ export default function Settings() {
 
         <PaymentMethodsSection
           paymentMethods={settings.payment_methods}
-          paystackEnabled={settings.paystack_enabled}
           onPaymentMethodToggle={handlePaymentMethodToggle}
-          onPaystackToggle={(v) =>
-            setSettings(prev => ({ ...prev, paystack_enabled: v  }))
-          }
         />
 
         <DataManagementSection />

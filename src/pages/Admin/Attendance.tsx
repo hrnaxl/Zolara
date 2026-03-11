@@ -359,21 +359,21 @@ export default function Attendance() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <Card className="p-4">
-            <div className="text-sm text-muted-foreground">Present</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 items-stretch">
+          <Card className="p-4 flex flex-col justify-between">
+            <div className="text-sm text-muted-foreground mb-1">Present</div>
             <div className="text-2xl font-bold">{summary.present}</div>
           </Card>
-          <Card className="p-4">
-            <div className="text-sm text-muted-foreground">Absent</div>
+          <Card className="p-4 flex flex-col justify-between">
+            <div className="text-sm text-muted-foreground mb-1">Absent</div>
             <div className="text-2xl font-bold">{summary.absent}</div>
           </Card>
-          <Card className="p-4">
-            <div className="text-sm text-muted-foreground">Late</div>
+          <Card className="p-4 flex flex-col justify-between">
+            <div className="text-sm text-muted-foreground mb-1">Late</div>
             <div className="text-2xl font-bold">{summary.late}</div>
           </Card>
-          <Card className="p-4">
-            <div className="text-sm text-muted-foreground">Total Hours</div>
+          <Card className="p-4 flex flex-col justify-between">
+            <div className="text-sm text-muted-foreground mb-1">Total Hours</div>
             <div className="text-2xl font-bold">{summary.totalHours.toFixed(2)}</div>
           </Card>
         </div>
