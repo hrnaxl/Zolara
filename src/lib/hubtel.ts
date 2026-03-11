@@ -1,13 +1,5 @@
-// ================================================================
-// HUBTEL PAYMENT - Direct URL redirect approach
-// SDK source: @hubteljs/checkout@1.1.4
-// Checkout goes to: https://unified-pay.hubtel.com/pay?p=<base64>
-// ================================================================
-
-const HUBTEL_CLIENT_ID = import.meta.env.VITE_HUBTEL_CLIENT_ID || "D0jDmnq";
-const HUBTEL_CLIENT_SECRET = import.meta.env.VITE_HUBTEL_CLIENT_SECRET || "b55d6377fd6b459fbb07fb1492d36ccf";
-const HUBTEL_MERCHANT_ACCOUNT = import.meta.env.VITE_HUBTEL_MERCHANT_ACCOUNT || "233594922679";
-const HUBTEL_BASE_URL = "https://unified-pay.hubtel.com";
+const SUPABASE_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTA1MTQsImV4cCI6MjA4ODcyNjUxNH0.UFzTXEiS-dPXDoeSJSVfQGkRUuFA1aNQxHWu6jk62L4";
 
 export type HubtelCheckoutPayload = {
   amount: number;
@@ -27,35 +19,29 @@ export type HubtelCheckoutResult = {
   error: string | null;
 };
 
-function buildHubtelUrl(payload: HubtelCheckoutPayload): string {
-  const basicAuth = btoa(`${HUBTEL_CLIENT_ID}:${HUBTEL_CLIENT_SECRET}`);
-
-  const data: Record<string, any> = {
-    amount: payload.amount,
-    purchaseDescription: payload.description,
-    customerPhoneNumber: payload.customerPhone || "",
-    clientReference: payload.clientReference,
-    callbackUrl: payload.callbackUrl,
-    merchantAccount: HUBTEL_MERCHANT_ACCOUNT,
-    basicAuth: basicAuth,
-    branding: "enabled",
-    returnUrl: payload.returnUrl,
-    cancellationUrl: payload.cancellationUrl,
-  };
-
-  const queryString = Object.keys(data)
-    .filter((k) => data[k] !== null && data[k] !== undefined)
-    .map((k) => `${k}=${encodeURIComponent(data[k])}`)
-    .join("&");
-
-  const encoded = btoa(unescape(encodeURIComponent(queryString)));
-  return `${HUBTEL_BASE_URL}/pay?p=${encodeURIComponent(encoded)}`;
-}
-
 export async function initiateCheckout(payload: HubtelCheckoutPayload): Promise<HubtelCheckoutResult> {
   try {
-    const checkoutUrl = buildHubtelUrl(payload);
-    console.log("[Hubtel] Redirecting to:", checkoutUrl);
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/smart-processor`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "apikey": SUPABASE_ANON,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    let data: any;
+    try { data = await response.json(); } catch { throw new Error(`Edge function status ${response.status}`); }
+    if (!response.ok) throw new Error(data?.error || data?.message || `Error ${response.status}`);
+
+    const checkoutUrl =
+      data?.data?.checkoutDirectUrl ||
+      data?.Data?.CheckoutDirectUrl ||
+      data?.checkoutDirectUrl ||
+      data?.checkoutUrl ||
+      null;
+
     return { checkoutUrl, paymentRef: payload.clientReference, error: null };
   } catch (err: any) {
     return { checkoutUrl: null, paymentRef: null, error: err.message };
