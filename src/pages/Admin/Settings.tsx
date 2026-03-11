@@ -126,21 +126,18 @@ export default function Settings() {
     try {
       const logoUrl = await uploadLogo();
 
+      // Only include columns that actually exist in the settings table
       const settingsData = {
         business_name: settings.business_name,
         logo_url: logoUrl,
         open_time: settings.open_time,
         close_time: settings.close_time,
         currency: settings.currency,
-        staff_roles: settings.staff_roles,
-        service_categories: settings.service_categories,
-        use_24_hour_format: settings.use_24_hour_format,
         business_phone: settings.business_phone,
         business_email: settings.business_email,
         business_address: settings.business_address,
         payment_methods: settings.payment_methods,
-        paystack_enabled: settings.paystack_enabled, //@ts-ignore
-        gallery_images: settings.gallery_images,
+        gallery_images: (settings as any).gallery_images ?? [],
       };
 
       // Always fetch the real row id first, then update
@@ -164,7 +161,7 @@ export default function Settings() {
       fetchSettings();
     } catch (err: any) {
       console.error(err);
-      toast.error("Failed to save settings");
+      toast.error(err?.message || "Failed to save settings");
     } finally {
       setSaving(false);
     }
