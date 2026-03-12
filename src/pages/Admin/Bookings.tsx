@@ -47,7 +47,7 @@ import { TodaysBookings } from "@/components/bookings/TodaysBookings";
 import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
 
 const bookingSchema = z.object({
-  client_id: z.string().uuid("Invalid client selection"),
+  client_id: z.string().optional(),
   service_id: z.string().uuid("Invalid service selection"),
   staff_id: z
     .string()
@@ -92,6 +92,19 @@ const Bookings = () => {
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+
+  // New-client-inline state
+  const [clientMode, setClientMode] = useState<"search" | "new">("search");
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+
+  // Variant / addon state for booking form
+  const [bookingVariants, setBookingVariants] = useState<any[]>([]);
+  const [bookingAddons, setBookingAddons] = useState<any[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  const [allVariantsMap, setAllVariantsMap] = useState<Record<string, any[]>>({});
 
   // New state for enhanced features
   const [activeFilter, setActiveFilter] = useState<BookingFilter>("all");
@@ -299,15 +312,24 @@ const Bookings = () => {
     // Safety timeout — always clear loading after 8s even if queries hang
     const timeout = setTimeout(() => setLoading(false), 8000);
     try {
-      const [clientsRes, staffRes, servicesRes] = await Promise.all([
+      const [clientsRes, staffRes, servicesRes, variantsRes] = await Promise.all([
         supabase.from("clients").select("id, name, email, phone").order("name"),
         supabase.from("staff").select("*"),
-        supabase.from("services").select("*").order("created_at"),
+        supabase.from("services").select("*").eq("is_active", true).order("category").order("name"),
+        (supabase as any).from("service_variants").select("service_id, id, name, price_adjustment, duration_adjustment").eq("is_active", true).order("sort_order"),
       ]);
 
       if (clientsRes.data) setClients(clientsRes.data);
       if (staffRes.data) setStaff(staffRes.data);
       if (servicesRes.data) setServices(servicesRes.data);
+      if (variantsRes.data) {
+        const vm: Record<string, any[]> = {};
+        for (const v of variantsRes.data) {
+          if (!vm[v.service_id]) vm[v.service_id] = [];
+          vm[v.service_id].push(v);
+        }
+        setAllVariantsMap(vm);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -315,6 +337,17 @@ const Bookings = () => {
       setLoading(false);
     }
   };
+
+  // Load variants + addons when service selected in booking form
+  useEffect(() => {
+    setBookingVariants([]); setBookingAddons([]); setSelectedVariantId(""); setSelectedAddonIds([]);
+    const svcId = formData.service_id;
+    if (!svcId) return;
+    (supabase as any).from("service_variants").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order")
+      .then(({ data }: any) => setBookingVariants(data || []));
+    (supabase as any).from("service_addons").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order")
+      .then(({ data }: any) => setBookingAddons(data || []));
+  }, [formData.service_id]);
 
   // Filter bookings based on active filter
   // Debounced client search: update filteredClients when the debounced query changes
@@ -469,26 +502,75 @@ const Bookings = () => {
         }
       }
 
+      // Resolve client — either existing or create new inline
+      let resolvedClientId = validated.client_id || null;
+      let resolvedClientName = "";
+      let resolvedClientPhone = "";
+      let resolvedClientEmail = "";
+
+      if (clientMode === "new") {
+        if (!newClientName.trim() || !newClientPhone.trim()) {
+          toast.error("New client requires name and phone"); setCreating(false); return;
+        }
+        const { data: existingByPhone } = await supabase.from("clients").select("id, name, phone, email").eq("phone", newClientPhone.trim()).maybeSingle();
+        if (existingByPhone) {
+          resolvedClientId = existingByPhone.id;
+          resolvedClientName = existingByPhone.name;
+          resolvedClientPhone = existingByPhone.phone;
+          resolvedClientEmail = existingByPhone.email || "";
+          toast.info("Existing client matched by phone.");
+        } else {
+          const { data: nc, error: ncErr } = await supabase.from("clients").insert({ name: newClientName.trim(), phone: newClientPhone.trim(), email: newClientEmail.trim() || null, loyalty_points: 0, total_visits: 0, total_spent: 0 }).select("id").single();
+          if (ncErr) throw new Error("Failed to create client: " + ncErr.message);
+          resolvedClientId = nc.id;
+          resolvedClientName = newClientName.trim();
+          resolvedClientPhone = newClientPhone.trim();
+          resolvedClientEmail = newClientEmail.trim();
+        }
+        // Refresh clients list
+        supabase.from("clients").select("id, name, email, phone").order("name").then(({ data }) => { if (data) setClients(data); });
+      } else {
+        const c = clients.find((c: any) => c.id === validated.client_id);
+        resolvedClientName = c?.name || "";
+        resolvedClientPhone = c?.phone || "";
+        resolvedClientEmail = c?.email || "";
+      }
+
       // Denormalize client and service info for easy display
-      const selectedClient = clients.find((c: any) => c.id === validated.client_id);
       const selectedService = services.find((s: any) => s.id === validated.service_id);
       const selectedStaffMember = staff.find((s: any) => s.id === validated.staff_id);
+      const selectedVariant = bookingVariants.find(v => v.id === selectedVariantId);
+      const chosenAddons = bookingAddons.filter(a => selectedAddonIds.includes(a.id));
+
+      // Price: base from variant price_adjustment (the actual price) or service price, + addons
+      const basePrice = selectedVariant
+        ? Number(selectedVariant.price_adjustment)
+        : Number(selectedService?.price || 0);
+      const addonTotal = chosenAddons.reduce((sum: number, a: any) => sum + Number(a.price), 0);
+      const totalPrice = basePrice + addonTotal;
+
+      const serviceName = selectedVariant
+        ? `${selectedService?.name} (${selectedVariant.name})`
+        : selectedService?.name || null;
 
       const bookingData = {
-        client_id: validated.client_id,
+        client_id: resolvedClientId,
         service_id: validated.service_id,
         staff_id: validated.staff_id || null,
-        client_name: selectedClient?.name || null,
-        client_phone: selectedClient?.phone || null,
-        client_email: selectedClient?.email || null,
-        service_name: selectedService?.name || null,
+        client_name: resolvedClientName || null,
+        client_phone: resolvedClientPhone || null,
+        client_email: resolvedClientEmail || null,
+        service_name: serviceName,
         staff_name: selectedStaffMember?.name || null,
-        price: selectedService?.price || null,
+        price: totalPrice || null,
         duration_minutes: selectedService?.duration_minutes || null,
         preferred_date: validated.preferred_date,
         preferred_time: validated.preferred_time,
         status: validated.status || "pending",
         notes: validated.notes || null,
+        variant_id: selectedVariant?.id || null,
+        variant_name: selectedVariant?.name || null,
+        selected_addons: chosenAddons.length > 0 ? chosenAddons.map((a: any) => ({ id: a.id, name: a.name, price: a.price })) : [],
       };
 
       if (editingBookingId) {
@@ -534,15 +616,11 @@ const Bookings = () => {
   };
 
   const resetFormData = () => {
-    setFormData({
-      client_id: "",
-      staff_id: "",
-      service_id: "",
-      preferred_date: "",
-      preferred_time: "",
-      status: "pending",
-      notes: "",
-    });
+    setFormData({ client_id: "", staff_id: "", service_id: "", preferred_date: "", preferred_time: "", status: "pending", notes: "" });
+    setClientMode("search");
+    setNewClientName(""); setNewClientPhone(""); setNewClientEmail("");
+    setBookingVariants([]); setBookingAddons([]);
+    setSelectedVariantId(""); setSelectedAddonIds([]);
   };
 
   const handleDelete = async () => {
@@ -839,120 +917,178 @@ const Bookings = () => {
               </DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={(e) => handleSubmit(e)} className="space-y-4">
-              <div className="space-y-1">
-                <Label>Client</Label>
+            <form onSubmit={(e) => handleSubmit(e)} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
 
-                <Select
-                  value={formData.client_id || ""}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, client_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select client" />
-                  </SelectTrigger>
+              {/* ── CLIENT ── */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Client</Label>
+                  <button type="button" onClick={() => { setClientMode(clientMode === "search" ? "new" : "search"); }}
+                    className="text-xs text-amber-700 font-semibold underline underline-offset-2">
+                    {clientMode === "search" ? "+ New client" : "← Existing client"}
+                  </button>
+                </div>
 
-                  <SelectContent className="p-0">
-                    {/* Subtle search input */}
-                    <div className="px-2 py-2 border-b">
-                      <input
-                        type="text"
-                        placeholder="Search client…"
-                        aria-label="Search clients"
-                        value={clientSearchQuery}
-                        onChange={(e) => setClientSearchQuery(e.target.value)}
-                        className="w-full rounded-md border px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-muted"
-                      />
-                    </div>
-
-                    {(filteredClients.length ? filteredClients : clients).map(
-                      (c) => (
+                {clientMode === "search" ? (
+                  <Select value={formData.client_id || ""} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
+                    <SelectTrigger><SelectValue placeholder="Search client…" /></SelectTrigger>
+                    <SelectContent className="p-0">
+                      <div className="px-2 py-2 border-b">
+                        <input type="text" placeholder="Type name or phone…" value={clientSearchQuery}
+                          onChange={(e) => setClientSearchQuery(e.target.value)}
+                          className="w-full rounded-md border px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-amber-300" />
+                      </div>
+                      {(filteredClients.length ? filteredClients : clients).slice(0, 80).map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.name}
+                          <span className="font-medium">{c.name}</span>
+                          {c.phone && <span className="text-muted-foreground text-xs ml-2">{c.phone}</span>}
                         </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
+                      ))}
+                      {!clientSearchQuery && clients.length > 80 && (
+                        <p className="text-xs text-center text-muted-foreground py-2">Type to search all {clients.length} clients</p>
+                      )}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-xs text-amber-700 font-semibold mb-1">NEW CLIENT</p>
+                    <Input placeholder="Full name *" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
+                    <Input placeholder="Phone * (e.g. 0594365314)" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
+                    <Input placeholder="Email (optional)" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">If this phone already exists in the system, we'll match the existing client automatically.</p>
+                  </div>
+                )}
               </div>
 
-              <div>
+              {/* ── SERVICE ── */}
+              <div className="space-y-2">
                 <Label>Service</Label>
-                <Select
-                  value={formData.service_id || ""}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, service_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select service" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                  <input type="text" placeholder="Search services…" value={clientSearchQuery.startsWith("svc:") ? clientSearchQuery.slice(4) : ""}
+                    onChange={e => setClientSearchQuery("svc:" + e.target.value)}
+                    className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-amber-300" />
+                </div>
+                <div className="max-h-44 overflow-y-auto rounded-lg border divide-y">
+                  {services
+                    .filter(s => !clientSearchQuery.startsWith("svc:") || s.name.toLowerCase().includes(clientSearchQuery.slice(4).toLowerCase()))
+                    .map((s) => {
+                      const vars = allVariantsMap[s.id] || [];
+                      const prices = vars.map(v => Number(v.price_adjustment));
+                      const priceLabel = vars.length === 0
+                        ? (Number(s.price) > 0 ? `GHS ${Number(s.price).toLocaleString()}` : "")
+                        : prices.length === 1 ? `GHS ${prices[0].toLocaleString()}`
+                        : `GHS ${Math.min(...prices).toLocaleString()} – ${Math.max(...prices).toLocaleString()}`;
+                      const active = formData.service_id === s.id;
+                      return (
+                        <button key={s.id} type="button"
+                          onClick={() => { setFormData({ ...formData, service_id: s.id }); if (clientSearchQuery.startsWith("svc:")) setClientSearchQuery(""); }}
+                          className={`w-full text-left px-3 py-2.5 flex justify-between items-center transition-colors ${active ? "bg-amber-50 border-l-2 border-amber-500" : "hover:bg-gray-50"}`}>
+                          <div>
+                            <p className="text-sm font-semibold">{s.name}</p>
+                            <p className="text-xs text-muted-foreground">{s.category} · {s.duration_minutes} min</p>
+                          </div>
+                          <span className="text-xs font-bold text-amber-700 shrink-0 ml-2">{priceLabel}</span>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
 
+              {/* ── VARIANTS ── */}
+              {bookingVariants.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Size / Length <span className="text-red-500">*</span></Label>
+                  <div className="flex flex-wrap gap-2">
+                    {bookingVariants.map(v => (
+                      <button key={v.id} type="button" onClick={() => setSelectedVariantId(v.id)}
+                        className={`rounded-lg px-3 py-2 text-xs font-bold border transition-all ${selectedVariantId === v.id ? "bg-amber-700 text-white border-amber-700" : "bg-white border-gray-200 text-gray-700 hover:border-amber-400"}`}>
+                        {v.name}
+                        <span className={`block text-xs mt-0.5 ${selectedVariantId === v.id ? "text-amber-200" : "text-amber-700"}`}>GHS {Number(v.price_adjustment).toLocaleString()}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── ADD-ONS ── */}
+              {bookingAddons.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Add-ons <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+                  <div className="space-y-1.5">
+                    {bookingAddons.map(a => {
+                      const checked = selectedAddonIds.includes(a.id);
+                      return (
+                        <button key={a.id} type="button" onClick={() => setSelectedAddonIds(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])}
+                          className={`w-full flex justify-between items-center rounded-lg border px-3 py-2 text-sm transition-all ${checked ? "bg-purple-50 border-purple-400" : "bg-white border-gray-200 hover:border-purple-300"}`}>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${checked ? "bg-purple-600 border-purple-600" : "border-gray-300"}`}>
+                              {checked && <span className="text-white text-xs">✓</span>}
+                            </div>
+                            <span className={`font-medium ${checked ? "text-purple-900" : ""}`}>{a.name}</span>
+                            {a.description && <span className="text-xs text-muted-foreground">— {a.description}</span>}
+                          </div>
+                          <span className={`font-bold text-xs shrink-0 ml-2 ${checked ? "text-purple-700" : "text-muted-foreground"}`}>+GHS {Number(a.price).toLocaleString()}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── PRICE PREVIEW ── */}
+              {formData.service_id && (bookingVariants.length === 0 || selectedVariantId) && (
+                <div className="rounded-lg bg-gray-50 border px-4 py-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">TOTAL</p>
+                    {selectedAddonIds.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {bookingVariants.length > 0 ? `GHS ${Number(bookingVariants.find(v=>v.id===selectedVariantId)?.price_adjustment||0).toLocaleString()}` : `GHS ${Number(services.find(s=>s.id===formData.service_id)?.price||0).toLocaleString()}`}
+                        {bookingAddons.filter(a=>selectedAddonIds.includes(a.id)).map(a=>(
+                          <span key={a.id}> + {a.name} GHS {Number(a.price).toLocaleString()}</span>
+                        ))}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xl font-bold text-amber-700">
+                    GHS {(
+                      (selectedVariantId ? Number(bookingVariants.find(v=>v.id===selectedVariantId)?.price_adjustment||0) : Number(services.find(s=>s.id===formData.service_id)?.price||0))
+                      + bookingAddons.filter(a=>selectedAddonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0)
+                    ).toLocaleString()}
+                  </span>
+                </div>
+              )}
+
+              {/* ── STAFF ── */}
               <div>
                 <Label>Staff</Label>
-                <Select
-                  value={formData.staff_id || ""}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, staff_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Assign staff" />
-                  </SelectTrigger>
+                <Select value={formData.staff_id || ""} onValueChange={(value) => setFormData({ ...formData, staff_id: value })}>
+                  <SelectTrigger><SelectValue placeholder="Assign staff (optional)" /></SelectTrigger>
                   <SelectContent>
                     {staff.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* ── DATE & TIME ── */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.preferred_date || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        preferred_date: e.target.value,
-                      })
-                    }
-                  />
+                  <Input type="date" value={formData.preferred_date || ""}
+                    onChange={(e) => setFormData({ ...formData, preferred_date: e.target.value })} />
                 </div>
                 <div>
                   <Label>Time</Label>
-                  <Select
-                    value={formData.preferred_time || ""}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, preferred_time: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select time" />
-                    </SelectTrigger>
+                  <Select value={formData.preferred_time || ""} onValueChange={(value) => setFormData({ ...formData, preferred_time: value })}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Select time" /></SelectTrigger>
                     <SelectContent>
                       {availableTimes.length === 0 ? (
                         <SelectItem value="">No available times</SelectItem>
                       ) : (
                         availableTimes.map((t) => (
                           <SelectItem key={t} value={t}>
-                            {(settings as any)?.use24HourFormat
-                              ? t
-                              : formatTo12Hour(t)}
+                            {(settings as any)?.use24HourFormat ? t : formatTo12Hour(t)}
                           </SelectItem>
                         ))
                       )}
@@ -961,16 +1097,11 @@ const Bookings = () => {
                 </div>
               </div>
 
+              {/* ── NOTES ── */}
               <div>
                 <Label>Notes</Label>
-                <Textarea
-                  placeholder="Optional notes"
-                  value={formData.notes || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  rows={3}
-                />
+                <Textarea placeholder="Optional notes" value={formData.notes || ""}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} />
               </div>
 
               <Button type="submit" className="w-full" disabled={creating}>
