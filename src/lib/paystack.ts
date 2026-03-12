@@ -1,14 +1,12 @@
-// Paystack payment utility — replaces Hubtel
-// Secret key lives only in edge functions. Public key used for frontend only.
+// Paystack payment utility
+// Uses Paystack's frontend SDK approach — public key only, no edge function needed for init
 
 export const PAYSTACK_PUBLIC_KEY = "pk_live_94ba104d1a317293c36d777871df51a0ccc617d9";
-const SUPABASE_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTA1MTQsImV4cCI6MjA4ODcyNjUxNH0.UFzTXEiS-dPXDoeSJSVfQGkRUuFA1aNQxHWu6jk62L4";
 
 export type PaystackInitPayload = {
-  amount: number;             // in GHS (we convert to pesewas in edge fn)
+  amount: number;         // in GHS
   email: string;
-  reference: string;          // unique, stored as clientReference in DB
+  reference: string;
   metadata?: Record<string, any>;
   callbackUrl: string;
 };
@@ -19,21 +17,37 @@ export type PaystackInitResult = {
   error: string | null;
 };
 
-/** Initialise a Paystack transaction via edge function (keeps secret key server-side) */
+/** Initialise a Paystack transaction directly via Paystack API using public key */
 export async function initiatePaystackPayment(payload: PaystackInitPayload): Promise<PaystackInitResult> {
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/paystack-init`, {
+    const pesewas = Math.round(Number(payload.amount) * 100);
+
+    const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${PAYSTACK_PUBLIC_KEY}`,
         "Content-Type": "application/json",
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        email: payload.email,
+        amount: pesewas,
+        reference: payload.reference,
+        currency: "GHS",
+        callback_url: payload.callbackUrl,
+        metadata: payload.metadata || {},
+      }),
     });
+
     const data = await res.json();
-    if (!res.ok || data.error) return { authorizationUrl: null, reference: null, error: data.error || "Payment init failed" };
-    return { authorizationUrl: data.authorizationUrl, reference: payload.reference, error: null };
+    if (!data.status) {
+      return { authorizationUrl: null, reference: null, error: data.message || "Payment init failed" };
+    }
+
+    return {
+      authorizationUrl: data.data.authorization_url,
+      reference: data.data.reference,
+      error: null,
+    };
   } catch (err: any) {
     return { authorizationUrl: null, reference: null, error: err.message };
   }
