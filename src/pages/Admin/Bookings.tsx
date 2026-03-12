@@ -582,7 +582,7 @@ const Bookings = () => {
         const svc = services.find((s: any) => s.id === item.serviceId);
         const variant = item.variants.find(v => v.id === item.variantId);
         const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
-        const svcBaseEdit=Number(svc?.price||0); const basePrice = variant ? (svcBaseEdit + Number(variant.price_adjustment)) : svcBaseEdit;
+        const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price||0);
         const totalPrice = basePrice + chosenAddons.reduce((s:number,a:any)=>s+Number(a.price),0);
         const { error } = await supabase.from("bookings").update({
           client_id: resolvedClientId, service_id: item.serviceId,
@@ -604,7 +604,7 @@ const Bookings = () => {
           const svc = services.find((s: any) => s.id === item.serviceId);
           const variant = item.variants.find(v => v.id === item.variantId);
           const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
-          const svcBaseQ=Number(svc?.price||0); const basePrice = variant ? (svcBaseQ+Number(variant.price_adjustment)) : svcBaseQ;
+          const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price||0);
           const totalPrice = basePrice + chosenAddons.reduce((s:number,a:any)=>s+Number(a.price),0);
           return {
             client_id: resolvedClientId, service_id: item.serviceId,
@@ -936,11 +936,11 @@ const Bookings = () => {
               <Plus className="w-4 h-4 mr-2" /> New Booking
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg" style={{padding:0,display:"block",maxHeight:"90vh",overflow:"hidden"}}>
-            <div style={{padding:"20px 24px 14px",borderBottom:"1px solid #F0EAE2"}}>
+          <DialogContent className="max-w-lg" style={{maxHeight:"88vh",overflowY:"auto",overflowX:"hidden",padding:"0"}}>
+            <div style={{position:"sticky",top:0,background:"#fff",zIndex:10,padding:"20px 24px 14px",borderBottom:"1px solid #F0EAE2"}}>
               <h2 style={{fontSize:"18px",fontWeight:700,margin:0}}>{editingBookingId ? "Update Booking" : "Create New Booking"}</h2>
             </div>
-            <div style={{height:"calc(90vh - 65px)",overflowY:"scroll",overflowX:"hidden",WebkitOverflowScrolling:"touch" as any,padding:"16px 24px 32px"}}>
+            <div style={{padding:"16px 24px 32px"}}>
               <form onSubmit={(e) => handleSubmit(e)} style={{display:"flex",flexDirection:"column",gap:"16px"}}>
 
               {/* ── CLIENT ── */}
@@ -1011,8 +1011,7 @@ const Bookings = () => {
                     .filter(s => (svcCat==="all" || s.category===svcCat) && (!svcSearch || s.name.toLowerCase().includes(svcSearch.toLowerCase())))
                     .map(s => {
                       const vars = allVariantsMap[s.id]||[];
-                      const base = Number(s.price||0);
-                      const prices = vars.map(v=> base + Number(v.price_adjustment));
+                      const prices = vars.map(v=> Number(v.price_adjustment));
                       const priceLabel = vars.length===0
                         ? (base>0?`GHS ${base.toLocaleString()}`:"")
                         : prices.length===1?`GHS ${prices[0].toLocaleString()}`
@@ -1070,7 +1069,7 @@ const Bookings = () => {
                                 background:item.variantId===v.id?"#8B6914":"white",
                                 color:item.variantId===v.id?"white":"#1C160E"}}>
                               <span style={{fontSize:"12px",fontWeight:600,display:"block"}}>{v.name}</span>
-                              <span style={{fontSize:"11px",fontWeight:700,display:"block",color:item.variantId===v.id?"rgba(255,255,255,0.8)":"#8B6914"}}>{(() => { const svcBase = Number(services.find(s=>s.id===item.serviceId)?.price||0); return `GHS ${(svcBase + Number(v.price_adjustment)).toLocaleString()}`; })()}</span>
+                              <span style={{fontSize:"11px",fontWeight:700,display:"block",color:item.variantId===v.id?"rgba(255,255,255,0.8)":"#8B6914"}}>{`GHS ${Number(v.price_adjustment).toLocaleString()}`}</span>
                             </button>
                           ))}
                         </div>
@@ -1113,7 +1112,7 @@ const Bookings = () => {
                   {serviceCart.map(item=>{
                     const svc=services.find(s=>s.id===item.serviceId);
                     const variant=item.variants.find(v=>v.id===item.variantId);
-                    const svcBase=Number(svc?.price||0); const base=variant?(svcBase+Number(variant.price_adjustment)):svcBase;
+                    const base=variant?Number(variant.price_adjustment):Number(svc?.price||0);
                     const adds=item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0);
                     if (!svc) return null;
                     return (
@@ -1128,7 +1127,7 @@ const Bookings = () => {
                     <span style={{fontSize:"20px",fontWeight:700,color:"#8B6914"}}>GHS {serviceCart.reduce((total,item)=>{
                       const svc=services.find(s=>s.id===item.serviceId);
                       const variant=item.variants.find(v=>v.id===item.variantId);
-                      const svcBase2=Number(svc?.price||0); const base=variant?(svcBase2+Number(variant.price_adjustment)):svcBase2;
+                      const base=variant?Number(variant.price_adjustment):Number(svc?.price||0);
                       const adds=item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0);
                       return total+base+adds;
                     },0).toLocaleString()}</span>

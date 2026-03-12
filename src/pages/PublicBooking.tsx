@@ -166,10 +166,9 @@ export default function PublicBooking() {
 
   // Helper: get display price range for a service
   const getPriceDisplay = (svc: any) => {
-    const base = Number(svc.price);
     const vars = allVariantsMap[svc.id] || [];
     if (vars.length === 0) return `GHS ${base.toLocaleString()}`;
-    const prices = vars.map(v => base + Number(v.price_adjustment));
+    const prices = vars.map(v => Number(v.price_adjustment));
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     return min === max ? `GHS ${min.toLocaleString()}` : `GHS ${min.toLocaleString()} – ${max.toLocaleString()}`;
@@ -184,8 +183,8 @@ export default function PublicBooking() {
     return matchCat && matchSearch;
   });
 
-  const basePrice = Number(selectedService?.price || 0);
-  const variantAdj = selectedVariant ? Number(selectedVariant.price_adjustment) : 0;
+  const basePrice = selectedVariant ? Number(selectedVariant.price_adjustment) : Number(selectedService?.price || 0);
+  const variantAdj = 0;
   const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
   const subtotal = basePrice + variantAdj + addonTotal;
   const discount = promoApplied
@@ -589,7 +588,7 @@ export default function PublicBooking() {
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {variants.map((v: any) => {
-                    const vPrice = Number(selectedService?.price || 0) + Number(v.price_adjustment);
+                    const vPrice = Number(v.price_adjustment);
                     const active = selectedVariantId === v.id;
                     return (
                       <button key={v.id} onClick={() => setSelectedVariantId(v.id)}

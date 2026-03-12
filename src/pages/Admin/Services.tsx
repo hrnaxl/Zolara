@@ -79,7 +79,8 @@ const Services = () => {
   useEffect(() => { fetchAll(); }, []);
 
   const catalog = useCatalog();
-  const { settings, setSettings } = useSettings();
+  const { settings, setSettings, userRole } = useSettings();
+  const isReadOnly = userRole === "receptionist";
 
   // ── Fetch everything at once ──────────────────────────────────
   const fetchAll = async () => {
@@ -531,6 +532,11 @@ const Services = () => {
 
   return (
     <div className="z-page">
+      {isReadOnly && (
+        <div style={{background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:"8px",padding:"10px 16px",marginBottom:"16px",fontSize:"13px",color:"#92400E",fontWeight:600}}>
+          👁 View only — contact an admin to make changes to services.
+        </div>
+      )}
       <div className="flex justify-between items-center mb-4">
         <div>
           <h1 className="z-title" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Services</h1>
@@ -609,7 +615,7 @@ const Services = () => {
                   <Label>Description</Label>
                   <Textarea placeholder="Short description shown to clients" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>
-                <Button type="submit" className="w-full">{!editingServiceId ? "Add Service" : "Update Service"}</Button>
+                <Button type="submit" className="w-full">{!editingServiceId ? "Add Service" disabled={isReadOnly} style={{opacity: isReadOnly ? 0.4 : 1}} : "Update Service"}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -640,7 +646,7 @@ const Services = () => {
                   setFormData({ name: "", category, price: "", duration_minutes: "", description: "", specialization: "" });
                   setEditingServiceId(null);
                   setDialogOpen(true);
-                }}>Add Item</Button>
+                }} disabled={isReadOnly} style={{display:isReadOnly?"none":undefined}}>Add Item</Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -662,7 +668,7 @@ const Services = () => {
                 setFormData({ name: "", category, price: "", duration_minutes: "", description: "", specialization: "" });
                 setEditingServiceId(null);
                 setDialogOpen(true);
-              }}>Add Item</Button>
+              }} disabled={isReadOnly} style={{display:isReadOnly?"none":undefined}}>Add Item</Button>
             </div>
           </CardHeader>
           <CardContent>
