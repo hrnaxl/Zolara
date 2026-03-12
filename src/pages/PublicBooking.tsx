@@ -271,7 +271,7 @@ export default function PublicBooking() {
             : [],
           preferred_date: preferredDate, preferred_time: normalizedTime,
           price: total, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false,
-          notes: notesFull, status: "awaiting_deposit",
+          notes: notesFull, status: "pending",
           booking_ref: bRef, client_id: clientId || null,
         } as any)
         .select("id")
