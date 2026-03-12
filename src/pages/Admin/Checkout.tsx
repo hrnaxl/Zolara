@@ -243,12 +243,14 @@ const Checkout = () => {
     try {
       const { data, error } = await supabase
         .from("staff")
-        .select("id, name, specialties")
+        .select("id, name, specialties, role")
         .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
-      setStaff(data || []);
+      // Only show operational staff (not cleaners or receptionists)
+      const operational = (data || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || ""));
+      setStaff(operational);
 
       // Load today's attendance to flag absent staff
       const today = new Date().toISOString().slice(0, 10);
@@ -634,41 +636,24 @@ const Checkout = () => {
         return;
       }
 
-      // Non-cash or bank_transfer via Paystack → initialize via edge function
-      const callbackUrl =
-        userRole === "owner"
-          ? `${window.location.origin}/app/admin/checkout?booking=${booking.id}`
-          : `${window.location.origin}/app/receptionist/checkout?booking=${booking.id}`;
-
-      const { data, error } = await supabase.functions.invoke(
-        "initialize-payment",
-        {
-          body: {
-            email: booking.clients?.email,
-            amount: paymentAmount,
-            booking_id: booking.id,
-            callback_url: callbackUrl,
-            payment_method: paymentMethod,
-            metadata: {
-              booking_id: booking.id,
-              client_name: booking.client_name,
-              service_name: booking.service_name,
-            },
-          },
-        }
-      );
-
-      if (error)
-        throw new Error(error.message || "Payment initialization failed");
-
-      if (!data?.authorization_url)
-        throw new Error("Payment authorization URL missing");
-
-      toast.success("Redirecting to payment...");
-      window.open(data.authorization_url, "_blank");
-
-      // mark UI as pending until webhook/verify updates payment_status
+      // bank_transfer via Paystack (usePaystackForTransfer=true) → just record as pending
+      const { error: btErr } = await supabase.from("sales").insert({
+        booking_id: booking.id,
+        amount: paymentAmount,
+        payment_method: "bank_transfer",
+        status: "pending",
+        client_name: booking.client_name || null,
+        service_name: booking.service_name || null,
+        client_id: booking.clients?.id || null,
+        notes: notes || "Bank transfer — awaiting confirmation",
+        promo_code: appliedPromo?.code || null,
+        promo_discount: promoDiscount > 0 ? promoDiscount : null,
+      });
+      if (btErr) throw btErr;
+      await supabase.from("bookings").update({ status: "confirmed" } as any).eq("id", booking.id);
+      setPaymentMethod("bank_transfer");
       setPending(true);
+      toast.success("Bank transfer recorded. Awaiting confirmation.");
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast.error(error.message || "Failed to complete checkout");

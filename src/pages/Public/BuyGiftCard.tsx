@@ -47,22 +47,23 @@ export default function BuyGiftCard() {
 
     try {
       if (deliveryType === "email") {
-        const { id, error } = await createDigitalPurchase({
-          tier: selectedTier,
-          buyerName: form.buyerName,
-          buyerEmail: form.buyerEmail,
-          buyerPhone: form.buyerPhone,
-          recipientName: form.recipientName,
-          recipientEmail: form.recipientEmail,
-          message: form.message,
-        });
-        if (error) throw new Error(error);
-
+        // Don't create DB record yet — only create after payment succeeds (webhook handles it)
+        const ref = `GC-${Date.now().toString(36).toUpperCase()}`;
         const { authorizationUrl, error: psErr } = await initiatePaystackPayment({
           amount: GIFT_CARD_TIERS[selectedTier].value,
           email: form.buyerEmail || "noemail@zolara.com",
-          reference: id!,
-          metadata: { tier: selectedTier, recipientName: form.recipientName, buyerName: form.buyerName },
+          reference: ref,
+          metadata: {
+            create_gift_card: true,
+            tier: selectedTier,
+            card_type: "digital",
+            buyer_name: form.buyerName,
+            buyer_email: form.buyerEmail,
+            buyer_phone: form.buyerPhone,
+            recipient_name: form.recipientName,
+            recipient_email: form.recipientEmail,
+            message: form.message || "",
+          },
           callbackUrl: `${window.location.origin}/gift-card/success`,
         });
         if (psErr) throw new Error(psErr);
@@ -70,22 +71,23 @@ export default function BuyGiftCard() {
         throw new Error("No checkout URL returned.");
       } else {
         // Physical card — record the order then process via Paystack
-        const { id, error } = await createDigitalPurchase({
-          tier: selectedTier,
-          buyerName: form.buyerName,
-          buyerEmail: form.buyerEmail || "noemail@zolara.com",
-          buyerPhone: form.buyerPhone,
-          recipientName: form.buyerName,
-          recipientEmail: form.buyerEmail || "noemail@zolara.com",
-          message: "Physical card pickup",
-        });
-        if (error) throw new Error(error);
-
+        // Don't create DB record yet — webhook creates it on payment success
+        const ref2 = `GC-${Date.now().toString(36).toUpperCase()}`;
         const { authorizationUrl: pUrl, error: psErr2 } = await initiatePaystackPayment({
           amount: GIFT_CARD_TIERS[selectedTier].value,
-          email: form.buyerEmail || "noemail@zolara.com",
-          reference: id!,
-          metadata: { tier: selectedTier, type: "physical", buyerName: form.buyerName },
+          email: form.buyerEmail || `${form.buyerPhone}@zolara.com`,
+          reference: ref2,
+          metadata: {
+            create_gift_card: true,
+            tier: selectedTier,
+            card_type: "physical",
+            buyer_name: form.buyerName,
+            buyer_email: form.buyerEmail,
+            buyer_phone: form.buyerPhone,
+            recipient_name: form.buyerName,
+            recipient_email: form.buyerEmail || "",
+            message: "Physical card pickup",
+          },
           callbackUrl: `${window.location.origin}/gift-card/success`,
         });
         if (psErr2) throw new Error(psErr2);

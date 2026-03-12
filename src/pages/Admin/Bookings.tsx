@@ -1289,6 +1289,33 @@ const Bookings = () => {
         </Dialog>
       </div>
 
+      {/* ── KPI STRIP ─────────────────────────────────── */}
+      {(() => {
+        const today = new Date().toISOString().slice(0,10);
+        const todayBks = allBookings.filter((b: any) => b.preferred_date === today);
+        const confirmed = todayBks.filter((b: any) => b.status === "confirmed").length;
+        const pending = todayBks.filter((b: any) => b.status === "pending").length;
+        const completed = todayBks.filter((b: any) => b.status === "completed").length;
+        const cancelled = todayBks.filter((b: any) => b.status === "cancelled").length;
+        const kpis = [
+          { label: "TODAY",        value: todayBks.length, color: "#C8A97E", bg: "#FBF6EE", border: "#F0E4CC" },
+          { label: "CONFIRMED",    value: confirmed,       color: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
+          { label: "PENDING",      value: pending,         color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+          { label: "COMPLETED",    value: completed,       color: "#6366F1", bg: "#EEF2FF", border: "#C7D2FE" },
+          { label: "CANCELLED",    value: cancelled,       color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+        ];
+        return (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"12px", marginBottom:"8px" }}>
+            {kpis.map(k => (
+              <div key={k.label} style={{ background:k.bg, border:`1px solid ${k.border}`, borderRadius:"14px", padding:"16px 18px" }}>
+                <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:k.color, marginBottom:"6px" }}>{k.label}</p>
+                <p style={{ fontSize:"28px", fontWeight:700, color:"#1C160E", margin:0, fontFamily:"'Cormorant Garamond',serif" }}>{k.value}</p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Today's Bookings Summary */}
       <TodaysBookings
         bookings={allBookings}
@@ -1387,138 +1414,6 @@ const Bookings = () => {
           )}
       </div>
 
-      {/* Booking Requests Section */}
-      <div className="flex justify-start mb-4">
-        <Select
-          value={requestFilter}
-          onValueChange={(value) => {
-            setRequestFilter(value);
-          }}
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter requests" />
-          </SelectTrigger>
-
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="confirmed">Confirmed</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-            <SelectItem value="no_show">No Show</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="w-full space-y-4">
-        <h2 className="text-2xl font-bold">Booking Requests</h2>
-        {/* <select
-              value={requestFilter}
-              onChange={(e) => {
-                setRequestFilter(e.target.value);
-                setRequestPage(1); // reset pagination
-              }}
-            >
-              <option value="all">All</option>
-              <option value="pending">Scheduled</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="rejected">Rejected</option>
-            </select> */}
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {requests.map((r) => (
-            <Card
-              key={r.id}
-              className="rounded-2xl border shadow-sm hover:shadow-lg transition-all"
-            >
-              <CardHeader className="flex justify-between items-start pb-2">
-                <div>
-                  <CardTitle className="text-xl font-semibold">
-                    {r.service_name}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <span className="font-medium">Client:</span>{" "}
-                    {r.client_name || "Unknown"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {r.preferred_date ? format(new Date(r.preferred_date), "MMM dd, yyyy") : "Date TBD"} at{" "}
-                    {r.preferred_time || ""}
-                  </p>
-                </div>
-                <Badge
-                  className={`${getStatusColor(
-                    r.status,
-                  )} text-xs px-3 py-1 rounded-full`}
-                >
-                  {r.status}
-                </Badge>
-              </CardHeader>
-
-              {r.status === "pending" && (
-                <CardContent className="flex gap-3 pt-2">
-                  <Button
-                    className="flex-1 rounded-xl"
-                    onClick={() => handleRequestStatus(r.id, "confirmed")}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    className="flex-1 rounded-xl"
-                    variant="destructive"
-                    onClick={() => handleRequestStatus(r.id, "cancelled")}
-                  >
-                    Decline
-                  </Button>
-                </CardContent>
-              )}
-            </Card>
-          ))}
-
-          {requests.length === 0 && (
-            <p className="text-muted-foreground text-center py-4 col-span-full">
-              No booking requests at the moment.
-            </p>
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <button
-            disabled={requestPage === 1}
-            onClick={() => setRequestPage((p) => p - 1)}
-            className="px-4 py-2 rounded-lg bg-muted text-foreground disabled:opacity-50 hover:bg-muted/80 transition"
-          >
-            Prev
-          </button>
-          <span className="px-3 py-2 text-sm text-muted-foreground">
-            Page {requestPage} of {totalRequestPages}
-          </span>
-          <button
-            disabled={requestPage >= totalRequestPages}
-            onClick={() => setRequestPage((p) => p + 1)}
-            className="px-4 py-2 rounded-lg bg-muted text-foreground disabled:opacity-50 hover:bg-muted/80 transition"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-
-      {/* Cancel Booking Dialog */}
-      <CancelBookingDialog
-        open={cancelDialogOpen}
-        onOpenChange={setCancelDialogOpen}
-        onConfirm={handleCancelWithReason}
-        bookingInfo={
-          bookingToCancel
-            ? {
-                clientName: bookingToCancel.clients?.name,
-                serviceName: bookingToCancel.services?.name,
-              }
-            : undefined
-        }
-      />
     </div>
   );
 };
