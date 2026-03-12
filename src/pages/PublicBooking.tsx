@@ -106,32 +106,55 @@ export default function PublicBooking() {
     }).catch(() => setLoading(false));
   }, []);
 
-  // Handle Paystack return URL: /book?booking_id=xxx&ref=ZBxxx
+  // Handle Paystack return URL
+  // Paystack appends ?trxref=ZBxxx&reference=ZBxxx to whatever callbackUrl we set
+  // Read our booking_id from the URL if present, otherwise fall back to Paystack's reference param
   useEffect(() => {
     const bookingId = searchParams.get("booking_id");
-    const ref = searchParams.get("ref");
-    if (bookingId && ref) {
+    const ref = searchParams.get("ref") || searchParams.get("reference") || searchParams.get("trxref");
+    if (ref && ref.startsWith("ZB")) {
       setStep("verifying");
       confirmAndPoll(bookingId, ref, 0);
     }
   }, []);
 
-  const confirmAndPoll = async (bookingId: string, ref: string, attempt: number) => {
+  const confirmAndPoll = async (bookingId: string | null, ref: string, attempt: number) => {
     try {
-      // First mark deposit paid directly — Paystack only calls our callback on success
+      // Resolve booking ID from ref if not available
+      let resolvedId = bookingId;
+      if (!resolvedId) {
+        const { data: found } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("booking_ref", ref)
+          .maybeSingle();
+        resolvedId = found?.id || null;
+      }
+
+      if (!resolvedId) {
+        // Booking not in DB yet — retry
+        if (attempt < 8) {
+          setTimeout(() => confirmAndPoll(null, ref, attempt + 1), 1500);
+        } else {
+          setStep("failed");
+        }
+        return;
+      }
+
+      // Mark deposit confirmed — Paystack only redirects here on successful payment
       if (attempt === 0) {
         await supabase.from("bookings").update({
           deposit_paid: true,
           payment_ref: ref,
           payment_status: "paid",
           status: "confirmed",
-        } as any).eq("id", bookingId).eq("deposit_paid", false);
+        } as any).eq("id", resolvedId).eq("deposit_paid", false);
       }
 
       const { data: bk } = await supabase
         .from("bookings")
         .select("id, booking_ref, service_name, preferred_date, preferred_time, deposit_paid, status")
-        .eq("id", bookingId)
+        .eq("id", resolvedId)
         .single();
 
       if (bk) {
@@ -141,20 +164,20 @@ export default function PublicBooking() {
         setBookedTime(bk.preferred_time || "");
         setStep("done");
 
-        // Also call verify-deposit in background to get actual amount from Paystack
+        // Call verify-deposit in background to get exact amount from Paystack
         fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-            body: JSON.stringify({ booking_id: bookingId, reference: ref }),
+            body: JSON.stringify({ booking_id: resolvedId, reference: ref }),
           }
         ).catch(() => null);
         return;
       }
 
       if (attempt < 5) {
-        setTimeout(() => confirmAndPoll(bookingId, ref, attempt + 1), 1500);
+        setTimeout(() => confirmAndPoll(resolvedId, ref, attempt + 1), 1500);
       } else {
         setStep("failed");
       }
