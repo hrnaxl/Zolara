@@ -123,7 +123,15 @@ export default function GiftCards() {
   const filtered = cards.filter(c => {
     if (tab === "digital" && !isDigit(c)) return false;
     if (tab === "physical" && !isPhys(c)) return false;
-    if (statusFilter !== "all" && c.status !== statusFilter) return false;
+    const effectiveStatus = c.payment_status === "voided" ? "voided"
+                         : c.payment_status === "expired" ? "expired"
+                         : c.status || "active";
+    if (statusFilter !== "all") {
+      // "void" filter matches voided, "active" matches all active-like states
+      if (statusFilter === "void" && effectiveStatus !== "voided") return false;
+      if (statusFilter === "active" && !["active","unused","available"].includes(effectiveStatus)) return false;
+      if (statusFilter !== "void" && statusFilter !== "active" && effectiveStatus !== statusFilter) return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       return (
