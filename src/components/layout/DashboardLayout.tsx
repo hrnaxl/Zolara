@@ -29,14 +29,10 @@ import {
   CheckIcon,
   Gift,
   Star,
-  ListOrdered,
-  Sparkles,
   Tag,
-  MessageSquare,
   BarChart2,
   ShoppingBag,
   RefreshCw,
-  StickyNote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -138,13 +134,9 @@ const DashboardLayout = () => {
     { icon: Gift,            label: "Print Gift Cards",     path: "gift-card-batches" },
     { icon: CheckIcon,       label: "Checkout",            path: "checkout" },
     { icon: Star,            label: "Loyalty",             path: "loyalty" },
-    { icon: ListOrdered,     label: "Waitlist",            path: "waitlist" },
-    { icon: Sparkles,        label: "Add-ons",             path: "addons" },
     { icon: Tag,             label: "Promo Codes",         path: "promo-codes" },
-    { icon: MessageSquare,   label: "SMS Campaigns",       path: "sms" },
     { icon: ShoppingBag,     label: "Products",            path: "products" },
     { icon: RefreshCw,       label: "Subscriptions",       path: "subscriptions" },
-    { icon: StickyNote,      label: "Client Notes",        path: "client-notes" },
     { icon: BarChart2,       label: "Analytics",           path: "analytics" },
     { icon: FileText,        label: "Reports",             path: "reports" },
     { icon: Clock,           label: "Attendance",          path: "attendance" },
@@ -172,7 +164,7 @@ const DashboardLayout = () => {
         const allowed = [
           "Dashboard", "Bookings", "Clients", "Staff",
           "Services", "Gift Cards", "Checkout", "Loyalty",
-          "Waitlist", "Promo Codes", "Client Notes", "Attendance",
+          "Promo Codes", "Attendance",
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))

@@ -38,16 +38,12 @@ import ClientDashboard from "./pages/Client/ClientDashboard";
 import ViewServices from "./pages/Client/ViewServices";
 import SettingsPage from "./pages/Admin/Settings";
 import Loyalty from "./pages/Admin/Loyalty";
-import WaitlistPage from "./pages/Admin/Waitlist";
-import AddonsPage from "./pages/Admin/Addons";
 import PromoCodesPage from "./pages/Admin/PromoCodes";
 import BuyGiftCard from "./pages/Public/BuyGiftCard";
 import GiftCardBatchGenerator from "./pages/Admin/GiftCardBatchGenerator";
-import SMSPage from "./pages/Admin/SMS";
 import AnalyticsPage from "./pages/Admin/Analytics";
 import ProductsPage from "./pages/Admin/Products";
 import SubscriptionsPage from "./pages/Admin/Subscriptions";
-import ClientNotesPage from "./pages/Admin/ClientNotes";
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
 
@@ -101,14 +97,8 @@ const App = () => (
               <Route path="/app/admin/gift-cards" element={<GiftCards />} />
               <Route path="/app/admin/gift-card-batches" element={<GiftCardBatchGenerator />} />
               <Route path="/app/admin/loyalty" element={<Loyalty />} />
-              <Route path="/app/admin/waitlist" element={<WaitlistPage />} />
-              <Route path="/app/admin/addons" element={<AddonsPage />} />
               <Route path="/app/admin/promo-codes" element={<PromoCodesPage />} />
-              <Route path="/app/admin/sms" element={<SMSPage />} />
               <Route path="/app/admin/analytics" element={<AnalyticsPage />} />
-              <Route path="/app/admin/products" element={<ProductsPage />} />
-              <Route path="/app/admin/subscriptions" element={<SubscriptionsPage />} />
-              <Route path="/app/admin/client-notes" element={<ClientNotesPage />} />
               <Route path="/app/admin/settings" element={<SettingsPage />} />
             </Route>
           </Route>
@@ -124,9 +114,7 @@ const App = () => (
               <Route path="/app/receptionist/checkout" element={<Checkout />} />
               <Route path="/app/receptionist/attendance" element={<Attendance />} />
               <Route path="/app/receptionist/services" element={<ViewServices />} />
-              <Route path="/app/receptionist/waitlist" element={<WaitlistPage />} />
               <Route path="/app/receptionist/promo-codes" element={<PromoCodesPage />} />
-              <Route path="/app/receptionist/client-notes" element={<ClientNotesPage />} />
               <Route path="/app/receptionist/loyalty" element={<Loyalty />} />
             </Route>
           </Route>
