@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
     const insertPayload: any = {
       final_code: finalCode,
       card_value: body.amount,
-      status: "unused",
+      status: "active",
     };
 
     if (body.expire_at) insertPayload.expire_at = body.expire_at;

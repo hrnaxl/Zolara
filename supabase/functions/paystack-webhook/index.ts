@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       await supabase.from("gift_cards").update({
         payment_ref: paymentRef,
         payment_status: giftCard.card_type === "digital" ? "pending_send" : "paid",
-        // status stays "unused" — email cron reads payment_status="pending_send" to queue send
+        // status stays "active" — email cron reads payment_status="pending_send" to queue send
       }).eq("id", giftCard.id);
 
       // Log to online_purchases

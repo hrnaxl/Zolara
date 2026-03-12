@@ -67,7 +67,7 @@ export async function createDigitalPurchase(opts: {
         recipient_name: opts.recipientName,
         recipient_email: opts.recipientEmail,
         message: opts.message || null,
-        status: "unused",
+        status: "active",
         payment_status: "pending",
         is_admin_generated: false,
         expires_at: expiresAt.toISOString(),
@@ -89,7 +89,7 @@ export async function markGiftCardPaid(giftCardId: string, paymentRef: string): 
       .from("gift_cards")
       .update({
         payment_ref: paymentRef,
-        payment_status: "pending_send", // triggers email cron (status stays "unused" until sent)
+        payment_status: "pending_send", // triggers email cron
       })
       .eq("id", giftCardId);
 
@@ -136,7 +136,7 @@ export async function generatePhysicalBatch(opts: {
       tier: opts.tier,
       card_type: "physical",
       delivery_type: "physical",
-      status: "unused",
+      status: "active",
       payment_status: "pending",
       batch_id: opts.batchId,
       is_admin_generated: true,
@@ -173,7 +173,7 @@ export async function redeemGiftCardAtCheckout(opts: {
       .from("gift_cards")
       .select("*")
       .eq("code", opts.code.trim().toUpperCase())
-      .eq("status", "unused")
+      .eq("status", "active")
       .eq("payment_status", "paid")
       .maybeSingle();
 

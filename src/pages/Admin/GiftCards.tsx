@@ -109,12 +109,12 @@ export default function GiftCards() {
   const isPhys   = (c: any) => c.card_type === "physical" || c.delivery_type === "physical" || c.is_admin_generated;
 
   // ─── Stats ───────────────────────────────────────────────────
-  const totalActive    = cards.filter(c => ["active","unused","available"].includes(c.status) && c.payment_status !== "voided" && c.payment_status !== "expired").length;
+  const totalActive    = cards.filter(c => ["active","available","pending_send"].includes(c.status) && c.payment_status !== "voided" && c.payment_status !== "expired").length;
   const totalPendingEmail = cards.filter(c => c.status === "pending_send" || (c.status === "unused" && c.payment_status === "paid" && isDigit(c) && !c.redeemed_at)).length;
   const thisMonth      = cards.filter(c => {
     const d = new Date(c.created_at);
     const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && ["active","unused","available","redeemed"].includes(c.status) && c.payment_status === "paid";
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && ["active","available","pending_send","redeemed"].includes(c.status) && c.payment_status === "paid";
   });
   const monthRevenue   = thisMonth.reduce((s, c) => s + getValue(c), 0);
   const totalRedeemed  = cards.filter(c => c.status === "redeemed").length;
@@ -129,7 +129,7 @@ export default function GiftCards() {
     if (statusFilter !== "all") {
       // "void" filter matches voided, "active" matches all active-like states
       if (statusFilter === "void" && effectiveStatus !== "voided") return false;
-      if (statusFilter === "active" && !["active","unused","available"].includes(effectiveStatus)) return false;
+      if (statusFilter === "active" && !["active","available","pending_send"].includes(effectiveStatus)) return false;
       if (statusFilter !== "void" && statusFilter !== "active" && effectiveStatus !== statusFilter) return false;
     }
     if (search) {
@@ -305,7 +305,7 @@ export default function GiftCards() {
           <select className="gc-input" style={{ width:"160px" }} value={statusFilter} onChange={e => setStatus(e.target.value)}>
             <option value="all">All Status</option>
             <option value="active">Active</option>
-            <option value="unused">Unused</option>
+            <option value="active">Active</option>
             <option value="available">Available</option>
             <option value="pending_send">Pending Email</option>
             <option value="pending_payment">Awaiting Payment</option>
