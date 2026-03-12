@@ -131,16 +131,36 @@ export default function PublicBooking() {
         return;
       }
 
-      if (attempt < 12) {
-        setTimeout(() => pollByRef(ref, attempt + 1), 2500);
+      if (attempt < 3) {
+        // Poll DB a few times first (webhook may have beaten us)
+        setTimeout(() => pollByRef(ref, attempt + 1), 1500);
       } else {
-        // Webhook may still be processing — show done anyway, booking is created async
-        setBookingRef(ref);
-        setStep("done");
+        // Webhook hasn't fired — call verify-deposit to create booking directly
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+              body: JSON.stringify({ reference: ref }),
+            }
+          );
+          const data = await res.json();
+          if (data.status === "created" || data.status === "already_exists") {
+            setBookingRef(ref);
+            setBookedService(data.service_name || "");
+            setBookedDate(data.preferred_date || "");
+            setBookedTime(data.preferred_time || "");
+            setStep("done");
+            return;
+          }
+        } catch (e) { console.error("verify-deposit fallback error:", e); }
+        // Payment may be genuinely unconfirmed
+        setStep("failed");
       }
     } catch {
-      if (attempt < 12) {
-        setTimeout(() => pollByRef(ref, attempt + 1), 2500);
+      if (attempt < 3) {
+        setTimeout(() => pollByRef(ref, attempt + 1), 1500);
       } else {
         setStep("failed");
       }
