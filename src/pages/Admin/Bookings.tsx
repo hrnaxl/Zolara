@@ -631,6 +631,7 @@ const Bookings = () => {
         variant_name: first.variant_name,
         selected_addons: first.addons,
         services_cart: cartData,
+        duration_minutes: 0,
       };
 
       if (editingBookingId) {
@@ -763,6 +764,7 @@ const Bookings = () => {
             preferred_time: request.preferred_time,
             status: "pending",
             notes: request.notes,
+            duration_minutes: 0,
           },
         ]);
 

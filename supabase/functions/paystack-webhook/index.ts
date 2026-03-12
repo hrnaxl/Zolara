@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
           preferred_date: meta.preferred_date || null,
           preferred_time: meta.preferred_time || null,
           price: meta.price ? Number(meta.price) : null,
+          duration_minutes: 0,
           deposit_amount: depositGhs,
           deposit_paid: true,
           notes: meta.notes || null,
