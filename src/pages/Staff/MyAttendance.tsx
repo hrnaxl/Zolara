@@ -191,7 +191,7 @@ export default function MyAttendance() {
               const checkIn = isValid(parseISO(r.check_in)) ? parseISO(r.check_in) : null;
               const checkOut = r.check_out && isValid(parseISO(r.check_out)) ? parseISO(r.check_out) : null;
               return (
-                <div key={r.id} className="row-hover" className="staff-row-grid" style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 90px 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < records.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <div key={r.id} className="row-hover staff-row-grid" style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 90px 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < records.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                   <span style={{ fontSize: "13px", fontWeight: 500, color: TXT }}>{checkIn ? format(checkIn, "EEE, MMM d yyyy") : "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{checkIn ? format(checkIn, "h:mm a") : "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{checkOut ? format(checkOut, "h:mm a") : "—"}</span>

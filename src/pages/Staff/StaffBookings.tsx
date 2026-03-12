@@ -193,7 +193,7 @@ const StaffBookings = () => {
               const s = statusStyle(b.status);
               const canAct = b.status === "pending" || b.status === "confirmed";
               return (
-                <div key={b.id} className="row-hover" className="staff-row-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 100px", gap: "12px", padding: "13px 12px", borderRadius: "10px", alignItems: "center", borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <div key={b.id} className="row-hover staff-row-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 90px 100px", gap: "12px", padding: "13px 12px", borderRadius: "10px", alignItems: "center", borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                   <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{b.service_name || "Service"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{b.client_name || "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{b.preferred_date ? format(new Date(b.preferred_date + "T00:00:00"), "MMM d") : "—"}</span>

@@ -111,8 +111,7 @@ Please arrive 5 mins early.
       `Book again: zolarasalon.com`,
       `-- Zolara Beauty Studio`,
     ];
-    return parts.join("
-");
+    return parts.join("\n");
   },
 
   // Appointment reminder (day before)
