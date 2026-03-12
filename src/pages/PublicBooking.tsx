@@ -57,6 +57,7 @@ export default function PublicBooking() {
   const [bookedService, setBookedService] = useState("");
   const [bookedDate, setBookedDate] = useState("");
   const [bookedTime, setBookedTime] = useState("");
+  const [pendingMeta, setPendingMeta] = useState<any>(null); // stored in sessionStorage for fallback
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -137,16 +138,22 @@ export default function PublicBooking() {
       } else {
         // Webhook hasn't fired — call verify-deposit to create booking directly
         try {
+          // Read metadata from sessionStorage as fallback
+          const storedMeta = sessionStorage.getItem(`zolara_booking_${ref}`);
+          const metadata = storedMeta ? JSON.parse(storedMeta) : null;
+
           const res = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-              body: JSON.stringify({ reference: ref }),
+              body: JSON.stringify({ reference: ref, metadata }),
             }
           );
           const data = await res.json();
+          console.log("verify-deposit response:", data);
           if (data.status === "created" || data.status === "already_exists") {
+            sessionStorage.removeItem(`zolara_booking_${ref}`);
             setBookingRef(ref);
             setBookedService(data.service_name || "");
             setBookedDate(data.preferred_date || "");
@@ -155,7 +162,6 @@ export default function PublicBooking() {
             return;
           }
         } catch (e) { console.error("verify-deposit fallback error:", e); }
-        // Payment may be genuinely unconfirmed
         setStep("failed");
       }
     } catch {
@@ -285,30 +291,35 @@ export default function PublicBooking() {
       // All booking data travels as Paystack metadata.
       const returnUrl = `${window.location.origin}/book?ref=${bRef}`;
 
+      const bookingMeta = {
+        booking_ref: bRef,
+        client_name: name,
+        client_phone: cleanPhone,
+        client_email: email || null,
+        service_id: serviceId,
+        service_name: selectedService?.name || null,
+        variant_id: selectedVariantId || null,
+        variant_name: selectedVariant?.name || null,
+        selected_addons: selectedAddons.length > 0
+          ? JSON.stringify(addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price })))
+          : "[]",
+        preferred_date: preferredDate,
+        preferred_time: normalizedTime,
+        price: total,
+        deposit_amount: (settings as any)?.deposit_amount ?? 50,
+        notes: notesFull,
+        promo_code: promoApplied?.code || null,
+        promo_discount: discount > 0 ? discount : null,
+      };
+
+      // Save to sessionStorage so verify-deposit can use it as fallback on return
+      sessionStorage.setItem(`zolara_booking_${bRef}`, JSON.stringify(bookingMeta));
+
       const { authorizationUrl, error: psError } = await initiatePaystackPayment({
         amount: (settings as any)?.deposit_amount ?? 50,
         email: email || `${cleanPhone}@zolara.com`,
         reference: bRef,
-        metadata: {
-          booking_ref: bRef,
-          client_name: name,
-          client_phone: cleanPhone,
-          client_email: email || null,
-          service_id: serviceId,
-          service_name: selectedService?.name || null,
-          variant_id: selectedVariantId || null,
-          variant_name: selectedVariant?.name || null,
-          selected_addons: selectedAddons.length > 0
-            ? JSON.stringify(addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price })))
-            : "[]",
-          preferred_date: preferredDate,
-          preferred_time: normalizedTime,
-          price: total,
-          deposit_amount: (settings as any)?.deposit_amount ?? 50,
-          notes: notesFull,
-          promo_code: promoApplied?.code || null,
-          promo_discount: discount > 0 ? discount : null,
-        },
+        metadata: bookingMeta,
         callbackUrl: returnUrl,
       });
 
