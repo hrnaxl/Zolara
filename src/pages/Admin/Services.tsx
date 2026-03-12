@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Clock, Trash, Move, Layers, Sparkles } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Plus, Trash, Move, Layers, Sparkles, Pencil, X, Check } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -28,9 +28,16 @@ const serviceSchema = z.object({
   order: z.number().int().optional(),
 });
 
+const GOLD = "#C8A97E";
+const GOLD_DARK = "#8B6914";
+
 const Services = () => {
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // variantsMap: serviceId -> variant[]
+  const [variantsMap, setVariantsMap] = useState<Record<string, any[]>>({});
+  // addonsMap: serviceId -> addon[]
+  const [addonsMap, setAddonsMap] = useState<Record<string, any[]>>({});
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -49,32 +56,48 @@ const Services = () => {
   const [editingCatValue, setEditingCatValue] = useState("");
   const [savingCats, setSavingCats] = useState(false);
 
-  // Variants
+  // Variant inline editing
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [activeServiceForVariants, setActiveServiceForVariants] = useState<any>(null);
-  const [serviceVariants, setServiceVariants] = useState<any[]>([]);
   const [variantForm, setVariantForm] = useState({ name: "", price_adjustment: "", duration_adjustment: "" });
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [savingVariant, setSavingVariant] = useState(false);
 
-  // Add-ons
+  // Addon inline editing
   const [addonDialogOpen, setAddonDialogOpen] = useState(false);
   const [activeServiceForAddons, setActiveServiceForAddons] = useState<any>(null);
-  const [serviceAddons, setServiceAddons] = useState<any[]>([]);
   const [addonForm, setAddonForm] = useState({ name: "", description: "", price: "", duration_adjustment: "" });
   const [editingAddonId, setEditingAddonId] = useState<string | null>(null);
   const [savingAddon, setSavingAddon] = useState(false);
 
-  useEffect(() => { fetchServices(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const catalog = useCatalog();
   const { settings, setSettings } = useSettings();
 
-  const fetchServices = async () => {
+  // ── Fetch everything at once ──────────────────────────────────
+  const fetchAll = async () => {
     try {
-      const { data, error } = await supabase.from("services").select("*").order("category").order("order", { ascending: true });
-      if (error) throw error;
-      setServices(data || []);
+      const [{ data: svcs }, { data: variants }, { data: addons }] = await Promise.all([
+        supabase.from("services").select("*").order("category").order("order", { ascending: true }),
+        (supabase as any).from("service_variants").select("*").order("sort_order"),
+        (supabase as any).from("service_addons").select("*").order("sort_order"),
+      ]);
+      setServices(svcs || []);
+
+      const vMap: Record<string, any[]> = {};
+      for (const v of (variants || [])) {
+        if (!vMap[v.service_id]) vMap[v.service_id] = [];
+        vMap[v.service_id].push(v);
+      }
+      setVariantsMap(vMap);
+
+      const aMap: Record<string, any[]> = {};
+      for (const a of (addons || [])) {
+        if (!aMap[a.service_id]) aMap[a.service_id] = [];
+        aMap[a.service_id].push(a);
+      }
+      setAddonsMap(aMap);
     } catch (error: any) {
       console.error(error);
       toast.error("Failed to fetch services");
@@ -113,12 +136,11 @@ const Services = () => {
     await supabase.from("services").update({ category: name }).eq("category", oldName);
     await saveCategories(cats);
     setEditingCat(null);
-    fetchServices();
+    fetchAll();
   };
 
   const handleDeleteCategory = async (name: string) => {
-    const cats = getCategories().filter(c => c !== name);
-    await saveCategories(cats);
+    await saveCategories(getCategories().filter(c => c !== name));
   };
 
   // ── Variants ──────────────────────────────────────────────────
@@ -126,8 +148,6 @@ const Services = () => {
     setActiveServiceForVariants(svc);
     setVariantForm({ name: "", price_adjustment: "", duration_adjustment: "" });
     setEditingVariantId(null);
-    const { data } = await (supabase as any).from("service_variants").select("*").eq("service_id", svc.id).order("sort_order");
-    setServiceVariants(data || []);
     setVariantDialogOpen(true);
   };
 
@@ -140,7 +160,7 @@ const Services = () => {
         name: variantForm.name.trim(),
         price_adjustment: parseFloat(variantForm.price_adjustment || "0"),
         duration_adjustment: parseInt(variantForm.duration_adjustment || "0"),
-        sort_order: editingVariantId ? undefined : serviceVariants.length,
+        sort_order: editingVariantId ? undefined : (variantsMap[activeServiceForVariants.id] || []).length,
         is_active: true,
       };
       if (editingVariantId) {
@@ -152,19 +172,23 @@ const Services = () => {
         if (error) throw error;
         toast.success("Variant added");
       }
-      const { data } = await (supabase as any).from("service_variants").select("*").eq("service_id", activeServiceForVariants.id).order("sort_order");
-      setServiceVariants(data || []);
       setVariantForm({ name: "", price_adjustment: "", duration_adjustment: "" });
       setEditingVariantId(null);
+      await refreshVariants(activeServiceForVariants.id);
     } catch (err: any) { toast.error(err.message || "Failed to save variant"); }
     finally { setSavingVariant(false); }
   };
 
-  const deleteVariant = async (id: string) => {
+  const deleteVariant = async (serviceId: string, id: string) => {
     const { error } = await (supabase as any).from("service_variants").delete().eq("id", id);
     if (error) { toast.error("Failed to delete variant"); return; }
-    setServiceVariants(prev => prev.filter(v => v.id !== id));
+    setVariantsMap(prev => ({ ...prev, [serviceId]: (prev[serviceId] || []).filter(v => v.id !== id) }));
     toast.success("Variant removed");
+  };
+
+  const refreshVariants = async (serviceId: string) => {
+    const { data } = await (supabase as any).from("service_variants").select("*").eq("service_id", serviceId).order("sort_order");
+    setVariantsMap(prev => ({ ...prev, [serviceId]: data || [] }));
   };
 
   // ── Add-ons ───────────────────────────────────────────────────
@@ -172,8 +196,6 @@ const Services = () => {
     setActiveServiceForAddons(svc);
     setAddonForm({ name: "", description: "", price: "", duration_adjustment: "" });
     setEditingAddonId(null);
-    const { data } = await (supabase as any).from("service_addons").select("*").eq("service_id", svc.id).order("sort_order");
-    setServiceAddons(data || []);
     setAddonDialogOpen(true);
   };
 
@@ -187,7 +209,7 @@ const Services = () => {
         description: addonForm.description.trim() || null,
         price: parseFloat(addonForm.price || "0"),
         duration_adjustment: parseInt(addonForm.duration_adjustment || "0"),
-        sort_order: editingAddonId ? undefined : serviceAddons.length,
+        sort_order: editingAddonId ? undefined : (addonsMap[activeServiceForAddons.id] || []).length,
         is_active: true,
       };
       if (editingAddonId) {
@@ -199,19 +221,23 @@ const Services = () => {
         if (error) throw error;
         toast.success("Add-on added");
       }
-      const { data } = await (supabase as any).from("service_addons").select("*").eq("service_id", activeServiceForAddons.id).order("sort_order");
-      setServiceAddons(data || []);
       setAddonForm({ name: "", description: "", price: "", duration_adjustment: "" });
       setEditingAddonId(null);
+      await refreshAddons(activeServiceForAddons.id);
     } catch (err: any) { toast.error(err.message || "Failed to save add-on"); }
     finally { setSavingAddon(false); }
   };
 
-  const deleteAddon = async (id: string) => {
+  const deleteAddon = async (serviceId: string, id: string) => {
     const { error } = await (supabase as any).from("service_addons").delete().eq("id", id);
     if (error) { toast.error("Failed to delete add-on"); return; }
-    setServiceAddons(prev => prev.filter(a => a.id !== id));
+    setAddonsMap(prev => ({ ...prev, [serviceId]: (prev[serviceId] || []).filter(a => a.id !== id) }));
     toast.success("Add-on removed");
+  };
+
+  const refreshAddons = async (serviceId: string) => {
+    const { data } = await (supabase as any).from("service_addons").select("*").eq("service_id", serviceId).order("sort_order");
+    setAddonsMap(prev => ({ ...prev, [serviceId]: data || [] }));
   };
 
   // ── Service CRUD ──────────────────────────────────────────────
@@ -236,7 +262,7 @@ const Services = () => {
       setDialogOpen(false);
       setEditingServiceId(null);
       setFormData({ name: "", category: "", price: "", duration_minutes: "", description: "", specialization: "" });
-      fetchServices();
+      fetchAll();
       try { catalog.refreshCatalog(); } catch {}
     } catch (error: any) {
       if (error instanceof z.ZodError) toast.error(error.errors[0].message);
@@ -250,7 +276,7 @@ const Services = () => {
       const { error } = await supabase.from("services").delete().eq("id", deleteServiceId);
       if (error) throw error;
       toast.success("Service deleted");
-      fetchServices();
+      fetchAll();
       try { catalog.refreshCatalog(); } catch {}
     } catch (error: any) {
       toast.error(error.message || "Failed to delete service");
@@ -283,12 +309,11 @@ const Services = () => {
   const saveReorder = async () => {
     try {
       for (const [index, item] of reorderServices.entries()) {
-        const { error } = await supabase.from("services").update({ order: index } as any).eq("id", item.id);
-        if (error) throw error;
+        await supabase.from("services").update({ order: index } as any).eq("id", item.id);
       }
       toast.success("Services reordered");
       setReorderOpen(false);
-      fetchServices();
+      fetchAll();
       try { catalog.refreshCatalog(); } catch {}
     } catch (error: any) {
       toast.error(error.message || "Failed to reorder");
@@ -301,58 +326,140 @@ const Services = () => {
     </div>
   );
 
-  const renderServiceRow = (service: any) => (
-    <div key={service.id} className="rounded-lg border bg-white/60 dark:bg-gray-900/40 p-3 sm:p-4 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-      <div className="space-y-1 sm:space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
-          <p className="text-sm font-semibold">{service.name}</p>
-        </div>
-        {service.description && <p className="text-xs sm:text-sm text-muted-foreground">{service.description}</p>}
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
-        <div className="flex justify-between sm:block text-sm">
-          <span className="sm:hidden text-muted-foreground">Price</span>
-          <div className="text-right">
-            <p className="font-semibold">GH&#8373;{Number(service.price || 0).toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground">{service.duration_minutes} min</p>
+  // ── Service card (now shows variants + addons inline) ─────────
+  const renderServiceCard = (service: any) => {
+    const variants = variantsMap[service.id] || [];
+    const addons = addonsMap[service.id] || [];
+    const basePrice = Number(service.price || 0);
+
+    return (
+      <div key={service.id} style={{ border: "1px solid #E5DDD3", borderRadius: "12px", background: "white", overflow: "hidden", marginBottom: "10px" }}>
+        {/* Top row: name, price, actions */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "16px 16px 12px", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: "180px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+              <p style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E", margin: 0 }}>{service.name}</p>
+              <Switch
+                checked={service.is_active}
+                onCheckedChange={async (checked) => {
+                  try {
+                    await supabase.from("services").update({ is_active: checked }).eq("id", service.id);
+                    setServices(prev => prev.map(s => s.id === service.id ? { ...s, is_active: checked } : s));
+                    try { catalog.refreshCatalog(); } catch {}
+                  } catch { toast.error("Failed to update status"); }
+                }}
+              />
+            </div>
+            {service.description && <p style={{ fontSize: "12px", color: "#78716C", margin: 0, lineHeight: 1.5 }}>{service.description}</p>}
+            <p style={{ fontSize: "11px", color: "#A8A29E", margin: "4px 0 0" }}>{service.duration_minutes} min base</p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+            {variants.length === 0 && (
+              <span style={{ fontSize: "14px", fontWeight: 700, color: GOLD_DARK }}>
+                GH&#8373;{basePrice.toLocaleString()}
+              </span>
+            )}
+            {variants.length > 0 && (
+              <span style={{ fontSize: "13px", fontWeight: 700, color: GOLD_DARK }}>
+                GH&#8373;{Math.min(...variants.map(v => basePrice + v.price_adjustment)).toLocaleString()}
+                {" "}&ndash;{" "}
+                GH&#8373;{Math.max(...variants.map(v => basePrice + v.price_adjustment)).toLocaleString()}
+              </span>
+            )}
+            <Button size="sm" variant="outline" className="px-2 h-7 text-xs"
+              onClick={() => { setFormData({ name: service.name, category: service.category, price: service.price.toString(), duration_minutes: service.duration_minutes.toString(), description: service.description || "", specialization: "" }); setEditingServiceId(service.id); setDialogOpen(true); }}>
+              <Pencil className="w-3 h-3" />
+            </Button>
+            <Button size="sm" variant="destructive" className="px-2 h-7"
+              onClick={() => { setDeleteServiceId(service.id); setDeleteDialogOpen(true); }}>
+              <Trash className="w-3 h-3" />
+            </Button>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-1 sm:justify-start flex-wrap">
-          <Switch
-            checked={service.is_active}
-            onCheckedChange={async (checked) => {
-              try {
-                const { error } = await supabase.from("services").update({ is_active: checked }).eq("id", service.id);
-                if (error) throw error;
-                setServices(prev => prev.map(s => s.id === service.id ? { ...s, is_active: checked } : s));
-                try { catalog.refreshCatalog(); } catch {}
-              } catch { toast.error("Failed to update status"); }
-            }}
-          />
-          <Button size="sm" variant="outline" className="px-2" title="Manage size/length variants" onClick={() => openVariants(service)}>
-            <Layers className="w-3 h-3 mr-1" /><span className="text-xs">Variants</span>
-          </Button>
-          <Button size="sm" variant="outline" className="px-2" title="Manage add-ons" onClick={() => openAddons(service)}>
-            <Sparkles className="w-3 h-3 mr-1" /><span className="text-xs">Add-ons</span>
-          </Button>
-          <Button size="sm" variant="outline" className="px-2 sm:px-3"
-            onClick={() => {
-              setFormData({ name: service.name, category: service.category, price: service.price.toString(), duration_minutes: service.duration_minutes.toString(), description: service.description || "", specialization: service.specialization || "" });
-              setEditingServiceId(service.id);
-              setDialogOpen(true);
-            }}>
-            <span className="hidden sm:inline">Edit</span><span className="sm:hidden">&#9998;</span>
-          </Button>
-          <Button size="sm" variant="destructive" className="px-2 sm:px-3"
-            onClick={() => { setDeleteServiceId(service.id); setDeleteDialogOpen(true); }}>
-            <Trash className="w-4 h-4" />
-          </Button>
+
+        {/* Variants section */}
+        <div style={{ borderTop: "1px solid #F0EAE2", padding: "10px 16px 10px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: variants.length > 0 ? "8px" : "0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <Layers style={{ width: "12px", height: "12px", color: GOLD_DARK }} />
+              <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: GOLD_DARK, textTransform: "uppercase" }}>
+                Variants {variants.length > 0 ? `(${variants.length})` : ""}
+              </span>
+            </div>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => openVariants(service)}>
+              <Plus className="w-3 h-3 mr-1" /> Add
+            </Button>
+          </div>
+
+          {variants.length === 0 && (
+            <p style={{ fontSize: "11px", color: "#A8A29E", margin: 0, fontStyle: "italic" }}>
+              No variants. Clients will book at the base price. Add variants if price depends on length or size.
+            </p>
+          )}
+
+          {variants.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {variants.map((v: any) => (
+                <div key={v.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#FBF7F3", border: "1px solid #E5DDD3", borderRadius: "20px", padding: "3px 10px 3px 10px", fontSize: "12px" }}>
+                  <span style={{ fontWeight: 600, color: "#1C160E" }}>{v.name}</span>
+                  <span style={{ color: GOLD_DARK, fontWeight: 700 }}>
+                    &nbsp;GH&#8373;{(Number(service.price) + Number(v.price_adjustment)).toLocaleString()}
+                  </span>
+                  {v.duration_adjustment !== 0 && (
+                    <span style={{ color: "#A8A29E", fontSize: "10px" }}>
+                      &nbsp;+{v.duration_adjustment}min
+                    </span>
+                  )}
+                  <button onClick={() => deleteVariant(service.id, v.id)}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 2px", display: "flex", alignItems: "center", color: "#A8A29E" }}>
+                    <X style={{ width: "11px", height: "11px" }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Add-ons section */}
+        <div style={{ borderTop: "1px solid #F0EAE2", padding: "10px 16px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: addons.length > 0 ? "8px" : "0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <Sparkles style={{ width: "12px", height: "12px", color: "#7C3AED" }} />
+              <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#7C3AED", textTransform: "uppercase" }}>
+                Add-ons {addons.length > 0 ? `(${addons.length})` : ""}
+              </span>
+            </div>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => openAddons(service)}>
+              <Plus className="w-3 h-3 mr-1" /> Add
+            </Button>
+          </div>
+
+          {addons.length === 0 && (
+            <p style={{ fontSize: "11px", color: "#A8A29E", margin: 0, fontStyle: "italic" }}>
+              No add-ons. Add optional extras clients can choose (e.g. Beads, Gel Polish, Lash Tint).
+            </p>
+          )}
+
+          {addons.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {addons.map((a: any) => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: "20px", padding: "3px 10px", fontSize: "12px" }}>
+                  <span style={{ fontWeight: 600, color: "#1C160E" }}>{a.name}</span>
+                  <span style={{ color: "#7C3AED", fontWeight: 700 }}>+GH&#8373;{Number(a.price).toLocaleString()}</span>
+                  <button onClick={() => deleteAddon(service.id, a.id)}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 2px", display: "flex", alignItems: "center", color: "#A8A29E" }}>
+                    <X style={{ width: "11px", height: "11px" }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const listedCats = (settings && (settings as any).service_categories && (settings as any).service_categories.length > 0)
+  const listedCats = (settings && (settings as any).service_categories?.length > 0)
     ? (settings as any).service_categories
     : Object.keys(groupedServices);
   const listedSet = new Set(listedCats);
@@ -360,13 +467,13 @@ const Services = () => {
 
   return (
     <div className="z-page">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-4">
         <div>
           <h1 className="z-title" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Services</h1>
-          <p className="z-subtitle">Manage your salon services, variants, and add-ons</p>
+          <p className="z-subtitle">Manage services, size variants and optional add-ons</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 justify-end w-full mb-4">
-          <Button className="flex-1 sm:flex-none" onClick={openReorder}>
+        <div className="flex gap-2 flex-wrap justify-end">
+          <Button variant="outline" onClick={openReorder}>
             <Move className="w-4 h-4 mr-2" /> Reorder
           </Button>
           <Dialog open={catManagerOpen} onOpenChange={setCatManagerOpen}>
@@ -412,7 +519,7 @@ const Services = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Service Name *</Label>
-                  <Input placeholder="e.g. Boho Knotless Braids" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                  <Input placeholder="e.g. Knotless Braids" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
                 </div>
                 <div className="space-y-2">
                   <Label>Category *</Label>
@@ -432,7 +539,8 @@ const Services = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Base Price (GH&#8373;) *</Label>
-                    <Input type="number" placeholder="e.g. 380" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                    <Input type="number" placeholder="e.g. 250" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                    <p className="text-xs text-muted-foreground">Set this to your lowest price. Variants can increase it.</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Duration (min) *</Label>
@@ -441,15 +549,24 @@ const Services = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <Textarea placeholder="Short description shown to clients during booking" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                  <Textarea placeholder="Short description shown to clients" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>
-                <p className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded p-2">
-                  After saving, use the <strong>Variants</strong> button to add length/size options and <strong>Add-ons</strong> to add optional extras.
-                </p>
                 <Button type="submit" className="w-full">{!editingServiceId ? "Add Service" : "Update Service"}</Button>
               </form>
             </DialogContent>
           </Dialog>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: "flex", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#78716C" }}>
+          <Layers style={{ width: "13px", height: "13px", color: GOLD_DARK }} />
+          <span><strong style={{ color: GOLD_DARK }}>Variants</strong> = size/length options. Client must pick one. Price changes per variant.</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#78716C" }}>
+          <Sparkles style={{ width: "13px", height: "13px", color: "#7C3AED" }} />
+          <span><strong style={{ color: "#7C3AED" }}>Add-ons</strong> = optional extras stacked on top. Client picks zero, one, or many.</span>
         </div>
       </div>
 
@@ -458,7 +575,7 @@ const Services = () => {
         const categoryServices = groupedServices[category] || [];
         return (
           <Card key={category} className="mb-6 rounded-xl border border-gray-200">
-            <CardHeader>
+            <CardHeader className="pb-2">
               <div className="flex justify-between items-center w-full">
                 <h2 className="text-xl font-semibold">{category}</h2>
                 <Button size="sm" variant="outline" onClick={() => {
@@ -468,11 +585,11 @@ const Services = () => {
                 }}>Add Item</Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {categoryServices.map(renderServiceRow)}
+            <CardContent>
               {categoryServices.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">No services in this category yet.</p>
               )}
+              {categoryServices.map(renderServiceCard)}
             </CardContent>
           </Card>
         );
@@ -480,7 +597,7 @@ const Services = () => {
 
       {otherCats.map((category: string) => (
         <Card key={category} className="mb-6 rounded-xl border border-gray-200">
-          <CardHeader>
+          <CardHeader className="pb-2">
             <div className="flex justify-between items-center w-full">
               <h2 className="text-xl font-semibold">{category}</h2>
               <Button size="sm" variant="outline" onClick={() => {
@@ -490,8 +607,8 @@ const Services = () => {
               }}>Add Item</Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {(groupedServices[category] || []).map(renderServiceRow)}
+          <CardContent>
+            {(groupedServices[category] || []).map(renderServiceCard)}
           </CardContent>
         </Card>
       ))}
@@ -512,7 +629,7 @@ const Services = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Reorder modal */}
+      {/* Reorder */}
       <Dialog open={reorderOpen} onOpenChange={setReorderOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Reorder Services</DialogTitle></DialogHeader>
@@ -546,64 +663,49 @@ const Services = () => {
       <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Variants &mdash; {activeServiceForVariants?.name}</DialogTitle>
+            <DialogTitle>Add Variant &mdash; {activeServiceForVariants?.name}</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground mb-3">
-            Variants let clients choose length or size (e.g. Short, Medium, Waist Length). Each variant adjusts base price and duration. The booking page will require clients to pick one before booking.
+          <p className="text-xs text-muted-foreground mb-1">
+            Each variant sets a specific size/length with its own total price. The base price on the service is the floor — set variants relative to it.
           </p>
-          <div className="space-y-2 mb-4 max-h-52 overflow-y-auto">
-            {serviceVariants.map(v => (
-              <div key={v.id} className="flex items-center justify-between border rounded px-3 py-2 text-sm gap-2">
-                {editingVariantId === v.id ? (
-                  <div className="flex gap-2 flex-1">
-                    <Input value={variantForm.name} onChange={e => setVariantForm({ ...variantForm, name: e.target.value })} placeholder="Name" className="h-7 text-xs" />
-                    <Input type="number" value={variantForm.price_adjustment} onChange={e => setVariantForm({ ...variantForm, price_adjustment: e.target.value })} placeholder="+/-GHS" className="h-7 text-xs w-20" />
-                    <Input type="number" value={variantForm.duration_adjustment} onChange={e => setVariantForm({ ...variantForm, duration_adjustment: e.target.value })} placeholder="+min" className="h-7 text-xs w-16" />
-                  </div>
-                ) : (
-                  <div className="flex-1">
-                    <span className="font-medium">{v.name}</span>
-                    <span className="text-muted-foreground ml-2 text-xs">
-                      {v.price_adjustment >= 0 ? "+" : ""}GHS {v.price_adjustment}
-                      {v.duration_adjustment !== 0 ? ` / ${v.duration_adjustment > 0 ? "+" : ""}${v.duration_adjustment}min` : ""}
-                    </span>
-                  </div>
+          <div className="space-y-3 pt-2">
+            <Input value={variantForm.name} onChange={e => setVariantForm({ ...variantForm, name: e.target.value })} placeholder="e.g. Short, Medium, Waist Length, Long, Extra Long" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Price Adjustment (GHS)</Label>
+                <Input type="number" value={variantForm.price_adjustment} onChange={e => setVariantForm({ ...variantForm, price_adjustment: e.target.value })} placeholder="e.g. 0, 100, 200" />
+                {variantForm.price_adjustment && activeServiceForVariants && (
+                  <p className="text-xs text-amber-700 mt-1 font-semibold">
+                    Total: GH&#8373;{(Number(activeServiceForVariants.price) + Number(variantForm.price_adjustment || 0)).toLocaleString()}
+                  </p>
                 )}
-                <div className="flex gap-1 shrink-0">
-                  {editingVariantId === v.id ? (
-                    <>
-                      <Button size="sm" disabled={savingVariant} onClick={saveVariant} className="h-6 text-xs px-2">Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingVariantId(null)} className="h-6 text-xs px-2">Cancel</Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button size="sm" variant="ghost" onClick={() => { setEditingVariantId(v.id); setVariantForm({ name: v.name, price_adjustment: String(v.price_adjustment), duration_adjustment: String(v.duration_adjustment) }); }} className="h-6 text-xs px-2">Edit</Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteVariant(v.id)} className="h-6 text-xs px-2 text-red-500">Del</Button>
-                    </>
-                  )}
-                </div>
               </div>
-            ))}
-            {serviceVariants.length === 0 && <p className="text-xs text-muted-foreground py-3 text-center">No variants yet.</p>}
+              <div>
+                <Label className="text-xs">Duration Add (min)</Label>
+                <Input type="number" value={variantForm.duration_adjustment} onChange={e => setVariantForm({ ...variantForm, duration_adjustment: e.target.value })} placeholder="e.g. 0, 30, 60" />
+              </div>
+            </div>
+            <Button disabled={savingVariant || !variantForm.name.trim()} onClick={saveVariant} className="w-full">
+              <Plus className="w-4 h-4 mr-2" /> Add Variant
+            </Button>
           </div>
-          {!editingVariantId && (
-            <div className="border-t pt-4 space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add Variant</p>
-              <Input value={variantForm.name} onChange={e => setVariantForm({ ...variantForm, name: e.target.value })} placeholder="e.g. Short, Medium, Waist Length, Long, Extra Long" />
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">Price Adjustment (GHS)</Label>
-                  <Input type="number" value={variantForm.price_adjustment} onChange={e => setVariantForm({ ...variantForm, price_adjustment: e.target.value })} placeholder="0" />
-                  <p className="text-xs text-muted-foreground mt-1">Use 0 for base price, 50 to add GHS 50</p>
-                </div>
-                <div>
-                  <Label className="text-xs">Duration Adjustment (min)</Label>
-                  <Input type="number" value={variantForm.duration_adjustment} onChange={e => setVariantForm({ ...variantForm, duration_adjustment: e.target.value })} placeholder="0" />
-                </div>
+          {/* Existing variants for quick reference */}
+          {activeServiceForVariants && (variantsMap[activeServiceForVariants.id] || []).length > 0 && (
+            <div className="border-t pt-3 mt-2">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">EXISTING VARIANTS</p>
+              <div className="flex flex-col gap-1">
+                {(variantsMap[activeServiceForVariants.id] || []).map((v: any) => (
+                  <div key={v.id} className="flex items-center justify-between text-sm border rounded px-3 py-1.5">
+                    <span className="font-medium">{v.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-amber-700 font-semibold">GH&#8373;{(Number(activeServiceForVariants.price) + Number(v.price_adjustment)).toLocaleString()}</span>
+                      <button onClick={() => deleteVariant(activeServiceForVariants.id, v.id)} className="text-red-400 hover:text-red-600">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <Button disabled={savingVariant || !variantForm.name.trim()} onClick={saveVariant} className="w-full">
-                <Plus className="w-4 h-4 mr-2" /> Add Variant
-              </Button>
             </div>
           )}
         </DialogContent>
@@ -613,61 +715,44 @@ const Services = () => {
       <Dialog open={addonDialogOpen} onOpenChange={setAddonDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add-ons &mdash; {activeServiceForAddons?.name}</DialogTitle>
+            <DialogTitle>Add Add-on &mdash; {activeServiceForAddons?.name}</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground mb-3">
-            Add-ons are optional extras clients select during booking. The total price updates automatically. Example: Extra Curls +GHS 65.
+          <p className="text-xs text-muted-foreground mb-1">
+            Add-ons are optional extras. Clients can pick any combination. The price stacks on top of their chosen variant.
           </p>
-          <div className="space-y-2 mb-4 max-h-52 overflow-y-auto">
-            {serviceAddons.map(a => (
-              <div key={a.id} className="flex items-center justify-between border rounded px-3 py-2 text-sm gap-2">
-                {editingAddonId === a.id ? (
-                  <div className="flex gap-2 flex-1 flex-wrap">
-                    <Input value={addonForm.name} onChange={e => setAddonForm({ ...addonForm, name: e.target.value })} placeholder="Name" className="h-7 text-xs flex-1" />
-                    <Input type="number" value={addonForm.price} onChange={e => setAddonForm({ ...addonForm, price: e.target.value })} placeholder="GHS" className="h-7 text-xs w-20" />
-                  </div>
-                ) : (
-                  <div className="flex-1">
-                    <span className="font-medium">{a.name}</span>
-                    {a.description && <span className="text-muted-foreground ml-1 text-xs">— {a.description}</span>}
-                    <span className="text-amber-700 font-semibold ml-2 text-xs">+GHS {a.price}</span>
-                  </div>
-                )}
-                <div className="flex gap-1 shrink-0">
-                  {editingAddonId === a.id ? (
-                    <>
-                      <Button size="sm" disabled={savingAddon} onClick={saveAddon} className="h-6 text-xs px-2">Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingAddonId(null)} className="h-6 text-xs px-2">Cancel</Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button size="sm" variant="ghost" onClick={() => { setEditingAddonId(a.id); setAddonForm({ name: a.name, description: a.description || "", price: String(a.price), duration_adjustment: String(a.duration_adjustment || 0) }); }} className="h-6 text-xs px-2">Edit</Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteAddon(a.id)} className="h-6 text-xs px-2 text-red-500">Del</Button>
-                    </>
-                  )}
-                </div>
+          <div className="space-y-3 pt-2">
+            <Input value={addonForm.name} onChange={e => setAddonForm({ ...addonForm, name: e.target.value })} placeholder="e.g. Beads, Curly Ends, Gel Polish, Lash Tint" />
+            <Input value={addonForm.description} onChange={e => setAddonForm({ ...addonForm, description: e.target.value })} placeholder="Short description (optional)" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Price (GHS) *</Label>
+                <Input type="number" value={addonForm.price} onChange={e => setAddonForm({ ...addonForm, price: e.target.value })} placeholder="e.g. 30, 65" />
               </div>
-            ))}
-            {serviceAddons.length === 0 && <p className="text-xs text-muted-foreground py-3 text-center">No add-ons yet.</p>}
+              <div>
+                <Label className="text-xs">Duration Add (min)</Label>
+                <Input type="number" value={addonForm.duration_adjustment} onChange={e => setAddonForm({ ...addonForm, duration_adjustment: e.target.value })} placeholder="e.g. 15, 30" />
+              </div>
+            </div>
+            <Button disabled={savingAddon || !addonForm.name.trim()} onClick={saveAddon} className="w-full">
+              <Plus className="w-4 h-4 mr-2" /> Add Add-on
+            </Button>
           </div>
-          {!editingAddonId && (
-            <div className="border-t pt-4 space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add an Add-on</p>
-              <Input value={addonForm.name} onChange={e => setAddonForm({ ...addonForm, name: e.target.value })} placeholder="e.g. Extra Curls, Beads, Gel Polish, Nail Art" />
-              <Input value={addonForm.description} onChange={e => setAddonForm({ ...addonForm, description: e.target.value })} placeholder="Short description shown to clients (optional)" />
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">Price (GHS) *</Label>
-                  <Input type="number" value={addonForm.price} onChange={e => setAddonForm({ ...addonForm, price: e.target.value })} placeholder="e.g. 65" />
-                </div>
-                <div>
-                  <Label className="text-xs">Duration Add (min)</Label>
-                  <Input type="number" value={addonForm.duration_adjustment} onChange={e => setAddonForm({ ...addonForm, duration_adjustment: e.target.value })} placeholder="e.g. 15" />
-                </div>
+          {activeServiceForAddons && (addonsMap[activeServiceForAddons.id] || []).length > 0 && (
+            <div className="border-t pt-3 mt-2">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">EXISTING ADD-ONS</p>
+              <div className="flex flex-col gap-1">
+                {(addonsMap[activeServiceForAddons.id] || []).map((a: any) => (
+                  <div key={a.id} className="flex items-center justify-between text-sm border rounded px-3 py-1.5">
+                    <span className="font-medium">{a.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-purple-700 font-semibold">+GH&#8373;{Number(a.price).toLocaleString()}</span>
+                      <button onClick={() => deleteAddon(activeServiceForAddons.id, a.id)} className="text-red-400 hover:text-red-600">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <Button disabled={savingAddon || !addonForm.name.trim()} onClick={saveAddon} className="w-full">
-                <Plus className="w-4 h-4 mr-2" /> Add Add-on
-              </Button>
             </div>
           )}
         </DialogContent>
