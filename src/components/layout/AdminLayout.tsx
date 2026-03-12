@@ -191,7 +191,6 @@ const AdminDashboard = () => {
         thisMonthSalesByServiceRes,
         previousMonthServiceBookingsRes,
         depositsRes,
-        bookingsDepositRes,
         promoSavingsRes,
       ] = await Promise.all([
         supabase
@@ -320,8 +319,7 @@ const AdminDashboard = () => {
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
         // deposits collected this period
         // Deposits: from sales table (online Paystack) + from bookings.deposit_paid=true (in-store)
-        supabase.from("sales").select("amount").eq("payment_method", "deposit").eq("status", "completed").gte("created_at", periodStartTs).lte("created_at", periodEndTs),
-        supabase.from("bookings").select("deposit_amount").eq("deposit_paid", true).gte("preferred_date", periodStart).lte("preferred_date", periodEnd),
+        supabase.from("sales").select("amount, count:id").eq("payment_method", "deposit").eq("status", "completed").gte("created_at", periodStartTs).lte("created_at", periodEndTs),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
@@ -559,12 +557,9 @@ const AdminDashboard = () => {
       });
 
       // Deposits collected — combine sales table (Paystack) + bookings with deposit_paid=true
-      const salesDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.amount || 0), 0) || 0;
-      const bookingDepositsTotal = (bookingsDepositRes as any).data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
-      // Avoid double-counting: if booking.payment_status="paid" the webhook already wrote to sales
-      // Sum both: Paystack deposits (sales table) + in-person deposits (bookings with payment_status null)
-      const periodDeposits = salesDeposits + bookingDepositsTotal;
-      const depositCount = (depositsRes.data?.length || 0) || ((bookingsDepositRes as any).data?.length || 0);
+      // Deposits collected — single source of truth: sales table (webhook writes here on Paystack confirm)
+      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.amount || 0), 0) || 0;
+      const depositCount = depositsRes.data?.length || 0;
 
       // Promo savings breakdown
       const promoMap: Record<string, { savings: number; count: number }> = {};
@@ -876,7 +871,7 @@ const AdminDashboard = () => {
             {stats.depositCount} booking{stats.depositCount !== 1 ? "s" : ""} with deposit paid
           </div>
           <div style={{ marginTop:"12px", fontSize:"10px", color:"rgba(200,169,126,0.6)", fontStyle:"italic" }}>
-            Added to revenue when the service is completed at checkout.
+            Included in revenue. Balance collected at checkout.
           </div>
         </div>
 
