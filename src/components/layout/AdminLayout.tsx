@@ -318,7 +318,7 @@ const AdminDashboard = () => {
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
         // deposits collected this period
-        supabase.from("bookings").select("deposit_amount, deposit_paid").gte("preferred_date", periodStart).lte("preferred_date", periodEnd).eq("deposit_paid", true),
+        supabase.from("bookings").select("deposit_amount, deposit_paid, updated_at").gte("updated_at", periodStart).lte("updated_at", periodEnd + "T23:59:59").eq("deposit_paid", true),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);

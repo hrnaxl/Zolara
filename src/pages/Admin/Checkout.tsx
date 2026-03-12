@@ -443,7 +443,8 @@ const Checkout = () => {
         .update({
           staff_id: selectedStaff,
           notes: notes || booking.notes,
-        })
+          ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}),
+        } as any)
         .eq("id", booking.id);
 
       if (bookingError) throw bookingError;
@@ -520,7 +521,8 @@ const Checkout = () => {
             status: "completed",
             staff_id: selectedStaff,
             notes: notes || booking.notes,
-          })
+            ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}),
+          } as any)
           .eq("id", booking.id);
 
         if (bookingError) throw bookingError;
