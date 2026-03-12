@@ -275,6 +275,19 @@ export default function PublicBooking() {
             status: "confirmed",
           } as any).eq("id", bookingId);
 
+          // Update client visit count — find client by phone and increment
+          try {
+            const clientId = await findOrCreateClient({ name, phone: cleanPhone, email: email || null });
+            if (clientId) {
+              const { data: cl } = await (supabase as any).from("clients").select("total_visits").eq("id", clientId).single();
+              await (supabase as any).from("clients").update({
+                total_visits: (Number(cl?.total_visits) || 0) + 1,
+              }).eq("id", clientId);
+              // Link client to booking
+              await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", bookingId);
+            }
+          } catch { /* non-blocking */ }
+
           setBookingRef(bRef);
           setBookedService(selectedService?.name || "");
           setBookedDate(preferredDate);

@@ -601,7 +601,7 @@ const Checkout = () => {
             await supabase.from("clients" as any).update({
               loyalty_points: newStamps,
               total_spent: currentSpent + fullBookingPrice,
-              total_visits: currentVisits + 1,
+              // total_visits already incremented when deposit was paid at booking time
             }).eq("id", clientId);
             if (clientPhone) {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
