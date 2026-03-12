@@ -22,7 +22,7 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 const serviceSchema = z.object({
   name: z.string().trim().min(1).max(100),
   category: z.string().trim().min(1).max(50),
-  price: z.number().positive().max(1000000),
+  price: z.number().min(0).max(1000000),
   duration_minutes: z.number().int().positive().max(1440),
   description: z.string().max(500).optional().or(z.literal("")),
   order: z.number().int().optional(),
