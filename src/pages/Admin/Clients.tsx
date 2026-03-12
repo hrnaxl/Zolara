@@ -168,15 +168,23 @@ const Clients = () => {
       const from = (pageNumber - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Fetch clients and bookings separately — no FK relationship defined in DB
-      const [{ data, count, error }, { data: allBookings }] = await Promise.all([
-        supabase.from("clients").select("*", { count: "exact" })
-          .order("created_at", { ascending: false }).range(from, to),
-        supabase.from("bookings")
-          .select("id, client_id, preferred_date, price, status, service_name"),
-      ]);
+      // Fetch clients first
+      const { data, count, error } = await supabase
+        .from("clients")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
+
+      // Fetch bookings separately — safe fallback if it fails
+      let allBookings: any[] = [];
+      try {
+        const { data: bkData } = await supabase
+          .from("bookings")
+          .select("id, client_id, preferred_date, price, status, service_name");
+        allBookings = bkData || [];
+      } catch { allBookings = []; }
 
       // Group bookings by client_id
       const bookingsByClient: Record<string, any[]> = {};
