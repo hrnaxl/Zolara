@@ -109,7 +109,6 @@ const Checkout = () => {
   const [depositPaid, setDepositPaid] = useState(false);
   const [amount, setAmount] = useState<string>("");
   const [originalPrice, setOriginalPrice] = useState<number>(0);
-  const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
   const [giftCode, setGiftCode] = useState<string>("");
   const [redeeming, setRedeeming] = useState<boolean>(false);
   const [redeemedCard, setRedeemedCard] = useState<{
@@ -329,6 +328,7 @@ const Checkout = () => {
   };
 
   const { settings } = useSettings();
+  const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
 
   // fetch bank/payment settings for manual transfer option
   useEffect(() => {
