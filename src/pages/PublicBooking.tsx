@@ -150,10 +150,17 @@ export default function PublicBooking() {
   useEffect(() => {
     setVariants([]); setAddons([]); setSelectedVariantId(""); setSelectedAddons([]);
     if (!serviceId) return;
-    (supabase as any).from("service_variants").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order")
-      .then(({ data }: any) => setVariants(data || []));
-    (supabase as any).from("service_addons").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order")
-      .then(({ data }: any) => setAddons(data || []));
+    const fetchVariantsAndAddons = async () => {
+      const [vRes, aRes] = await Promise.all([
+        (supabase as any).from("service_variants").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order"),
+        (supabase as any).from("service_addons").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order"),
+      ]);
+      if (vRes.error) console.error("Variants fetch error:", vRes.error);
+      if (aRes.error) console.error("Addons fetch error:", aRes.error);
+      setVariants(vRes.data || []);
+      setAddons(aRes.data || []);
+    };
+    fetchVariantsAndAddons();
   }, [serviceId]);
 
   const selectedVariant = variants.find(v => v.id === selectedVariantId);
@@ -266,7 +273,6 @@ export default function PublicBooking() {
           price: total, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false,
           notes: notesFull, status: "awaiting_deposit",
           booking_ref: bRef, client_id: clientId || null,
-          payment_ref: bRef,
         } as any)
         .select("id")
         .single();
