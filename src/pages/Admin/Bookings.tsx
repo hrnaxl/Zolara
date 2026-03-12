@@ -818,12 +818,30 @@ const Bookings = () => {
 
   const handleBulkComplete = async () => {
     try {
+      const ids = Array.from(selectedBookings);
       const { error } = await supabase
         .from("bookings")
         .update({ status: "completed" })
-        .in("id", Array.from(selectedBookings));
-
+        .in("id", ids);
       if (error) throw error;
+
+      // Award loyalty points for each completed booking
+      const { data: completedBks } = await supabase
+        .from("bookings")
+        .select("client_id, price, clients(loyalty_points, total_spent, total_visits)")
+        .in("id", ids);
+      for (const bk of (completedBks || [])) {
+        const clientId = (bk as any).client_id;
+        if (!clientId) continue;
+        const cl = (bk as any).clients;
+        const fullPrice = Number((bk as any).price || 0);
+        const stampsEarned = Math.floor(fullPrice / 100);
+        await supabase.from("clients" as any).update({
+          loyalty_points: (cl?.loyalty_points || 0) + stampsEarned,
+          total_spent: (cl?.total_spent || 0) + fullPrice,
+          total_visits: (cl?.total_visits || 0) + 1,
+        }).eq("id", clientId);
+      }
 
       toast.success(`${selectedBookings.size} bookings marked as completed`);
       handleClearSelection();

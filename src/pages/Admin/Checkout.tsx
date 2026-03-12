@@ -223,10 +223,12 @@ const Checkout = () => {
         if (data.staff?.id) {
           setSelectedStaff(data.staff?.id);
         }
-        // initialize amount and original price to service price
-        const price = Number((data.services && data.services?.price) ?? 0);
+        // Use booking.price (the actual total including variant) — services.price is 0 for variant-based services
+        const price = Number((data as any).price || (data.services && data.services?.price) || 0);
         setOriginalPrice(price);
-        setAmount(String(price.toFixed(2)));
+        // Subtract deposit already paid
+        const depositAlreadyPaid = data.deposit_paid ? (Number((data as any).deposit_amount) || 50) : 0;
+        setAmount(String(Math.max(0, price - depositAlreadyPaid).toFixed(2)));
       }
     } catch (error) {
       console.error("Error fetching booking:", error);
@@ -518,23 +520,36 @@ const Checkout = () => {
         setPaymentMethod(paymentMethod);
         setCompleted(true);
         toast.success("Checkout completed successfully!");
-        // Send thank you SMS
+        // Award loyalty points + update total_spent + send SMS
         try {
+          const clientId = booking.clients?.id || (booking as any).client_id;
           const clientPhone = (booking as any).client_phone || booking.clients?.phone;
-          if (clientPhone) {
+          if (clientId) {
+            const fullBookingPrice = Number((booking as any).price || originalPrice || 0);
             const currentStamps = (booking as any).clients?.loyalty_points || 0;
-            const newStamps = currentStamps + Math.floor(paymentAmount / 100);
-            // Update loyalty stamps
+            const currentSpent = Number((booking as any).clients?.total_spent || 0);
+            const currentVisits = Number((booking as any).clients?.total_visits || 0);
+            // Birthday bonus: double stamps in birthday month
+            const clientDob = (booking as any).clients?.date_of_birth;
+            const isBirthdayMonth = clientDob
+              ? new Date(clientDob).getMonth() === new Date().getMonth()
+              : false;
+            const stampsEarned = Math.floor(fullBookingPrice / 100) * (isBirthdayMonth ? 2 : 1);
+            const newStamps = currentStamps + stampsEarned;
             await supabase.from("clients" as any).update({
-              loyalty_points: newStamps
-            }).eq("id", booking.clients?.id || (booking as any).client_id);
-            await sendSMS(clientPhone, SMS.checkoutThankYou(
-              booking.client_name || "Valued Client",
-              booking.service_name || "service",
-              newStamps
-            ));
+              loyalty_points: newStamps,
+              total_spent: currentSpent + fullBookingPrice,
+              total_visits: currentVisits + 1,
+            }).eq("id", clientId);
+            if (clientPhone) {
+              await sendSMS(clientPhone, SMS.checkoutThankYou(
+                booking.client_name || "Valued Client",
+                booking.service_name || "service",
+                newStamps
+              ));
+            }
           }
-        } catch(smsErr) { console.error("SMS error:", smsErr); }
+        } catch(loyaltyErr) { console.error("Loyalty update error:", loyaltyErr); }
         return;
       }
 
