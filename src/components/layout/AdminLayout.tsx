@@ -76,8 +76,11 @@ const AdminDashboard = () => {
     weeklyRevenueChange: 0,
     topServiceRevenue: 0,
     topServiceGrowth: 0,
-    periodDeposits: 0,
+    periodDeposits: 0,       // total deposits in hand (not yet checked out)
     depositCount: 0,
+    depositsRevenue: 0,      // deposits from checked-out bookings (real revenue)
+    depositsPending: 0,      // deposits from bookings not yet checked out
+    depositsPendingCount: 0,
     periodPromoSavings: 0,
     promoBreakdown: [] as { code: string; savings: number; count: number }[],
   });
@@ -191,6 +194,7 @@ const AdminDashboard = () => {
         thisMonthSalesByServiceRes,
         previousMonthServiceBookingsRes,
         depositsRes,
+        depositsPendingCheckoutRes,
         promoSavingsRes,
       ] = await Promise.all([
         supabase
@@ -317,8 +321,10 @@ const AdminDashboard = () => {
         supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("created_at", startOfThisMonth).lte("created_at", endOfThisMonth),
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
-        // deposits in hand: bookings where deposit was paid but not yet checked out (no sales record)
-        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).not("status", "in", '("cancelled")'),
+        // deposits pending checkout (in hand, not yet revenue)
+        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).not("status", "in", '("completed","cancelled")'),
+        // deposits from checked-out bookings (real revenue already collected)
+        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).eq("status", "completed"),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
@@ -555,10 +561,12 @@ const AdminDashboard = () => {
         lowBookingThreshold: 3,
       });
 
-      // Deposits in hand: confirmed bookings with deposit paid, not yet checked out
-      // This is money collected but not yet earned revenue — useful operational view
-      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
-      const depositCount = depositsRes.data?.length || 0;
+      // Deposits: split into pending checkout (in hand) and checked-out (revenue)
+      const depositsPending = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
+      const depositsPendingCount = depositsRes.data?.length || 0;
+      const depositsRevenue = depositsPendingCheckoutRes.data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
+      const periodDeposits = depositsPending + depositsRevenue;
+      const depositCount = depositsPendingCount + (depositsPendingCheckoutRes.data?.length || 0);
 
       // Promo savings breakdown
       const promoMap: Record<string, { savings: number; count: number }> = {};
@@ -595,6 +603,9 @@ const AdminDashboard = () => {
         topServiceGrowth: Number(topServiceGrowth.toFixed(1)),
         periodDeposits,
         depositCount,
+        depositsRevenue,
+        depositsPending,
+        depositsPendingCount,
         periodPromoSavings,
         promoBreakdown,
       });
@@ -857,20 +868,36 @@ const AdminDashboard = () => {
       {/* ── DEPOSITS + PROMO SAVINGS ──────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-2">
 
-        {/* DEPOSITS CARD */}
+        {/* DEPOSITS CARD — two buckets */}
         <div className="zc-flat au" style={{ animationDelay:"0.36s", padding:"24px" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
-            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>DEPOSITS IN HAND</span>
-            <span style={{ fontSize:"16px" }}>🔒</span>
+            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>DEPOSITS COLLECTED</span>
+            <span style={{ fontSize:"16px" }}>💰</span>
           </div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2vw,30px)", fontWeight:700, color: TXT, marginBottom:"6px" }}>
-            GHS {stats.periodDeposits.toLocaleString("en", { minimumFractionDigits:2 })}
+
+          {/* Checked-out deposits = revenue */}
+          <div style={{ marginBottom:"14px" }}>
+            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:"rgba(200,169,126,0.9)", marginBottom:"4px" }}>REVENUE (CHECKED OUT)</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(20px,2vw,28px)", fontWeight:700, color: TXT }}>
+              GHS {stats.depositsRevenue.toLocaleString("en", { minimumFractionDigits:2 })}
+            </div>
+            <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>
+              Counted in revenue · {(depositsPendingCheckoutRes?.data?.length || 0)} booking{(depositsPendingCheckoutRes?.data?.length || 0) !== 1 ? "s" : ""}
+            </div>
           </div>
-          <div style={{ fontSize:"11px", color: TXT_SOFT }}>
-            {stats.depositCount} confirmed booking{stats.depositCount !== 1 ? "s" : ""} awaiting checkout
-          </div>
-          <div style={{ marginTop:"12px", fontSize:"10px", color:"rgba(200,169,126,0.6)", fontStyle:"italic" }}>
-            Not counted as revenue yet. Added to revenue at checkout.
+
+          {/* Divider */}
+          <div style={{ borderTop:"1px solid rgba(200,169,126,0.15)", marginBottom:"14px" }} />
+
+          {/* Pending deposits = in hand, not revenue yet */}
+          <div>
+            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color: TXT_SOFT, marginBottom:"4px" }}>PENDING CHECKOUT (IN HAND)</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,1.8vw,24px)", fontWeight:600, color: TXT }}>
+              GHS {stats.depositsPending.toLocaleString("en", { minimumFractionDigits:2 })}
+            </div>
+            <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>
+              {stats.depositsPendingCount} booking{stats.depositsPendingCount !== 1 ? "s" : ""} awaiting checkout · not yet revenue
+            </div>
           </div>
         </div>
 
