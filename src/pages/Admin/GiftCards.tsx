@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
+import { notifyGiftCardsUpdated, onGiftCardsUpdated } from "@/lib/giftCardEvents";
 import { voidGiftCard, expireGiftCard, deleteGiftCard, markGiftCardSold, resendGiftCardEmail } from "@/lib/useGiftCards";
 import * as XLSX from "xlsx";
 
@@ -92,7 +93,11 @@ export default function GiftCards() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Re-fetch whenever Print Gift Cards page generates a batch
+    return onGiftCardsUpdated(load);
+  }, []);
 
   // ─── Helpers ─────────────────────────────────────────────────
   const getCode  = (c: any) => c.code || c.final_code || "—";
@@ -180,6 +185,7 @@ export default function GiftCards() {
       if (error) throw new Error(error);
       setNewBatch(generated);
       toast.success(`${generated.length} physical cards generated`);
+      notifyGiftCardsUpdated();
       await load();
     } catch (e: any) {
       toast.error(e.message || "Generation failed");

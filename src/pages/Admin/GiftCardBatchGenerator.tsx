@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
+import { notifyGiftCardsUpdated, onGiftCardsUpdated } from "@/lib/giftCardEvents";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, Printer, Plus } from "lucide-react";
@@ -29,8 +30,7 @@ export default function GiftCardBatchGenerator() {
   const [pastBatches, setPastBatches] = useState<{batchId: string; cards: any[]}[]>([]);
   const [loadingPast, setLoadingPast] = useState(true);
 
-  useEffect(() => {
-    const loadPastBatches = async () => {
+  const loadPastBatches = async () => {
       try {
         const { data, error } = await supabase
           .from("gift_cards" as any)
@@ -54,7 +54,10 @@ export default function GiftCardBatchGenerator() {
         setLoadingPast(false);
       }
     };
+  useEffect(() => {
     loadPastBatches();
+    // Re-fetch whenever Gift Cards page generates a batch
+    return onGiftCardsUpdated(loadPastBatches);
   }, []);
 
   const handleGenerate = async () => {
@@ -85,6 +88,7 @@ export default function GiftCardBatchGenerator() {
       }
       setGeneratedCards(cards);
       setPastBatches(prev => [{ batchId: newBatchId, cards }, ...prev]);
+      notifyGiftCardsUpdated();
       toast.success(`${cards.length} ${tier} gift cards generated and ready to send to print`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate cards");
