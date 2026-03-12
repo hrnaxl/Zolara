@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import AmandaWidget from "@/components/AmandaWidget";
+import { supabase } from "@/integrations/supabase/client";
 
 const LOGO = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 
@@ -26,6 +27,7 @@ export default function LandingPage() {
   const [reviewVisible, setReviewVisible] = useState(false);
   const [expVisible, setExpVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [salonSettings, setSalonSettings] = useState<any>(null);
   const reviewRef = useRef<HTMLDivElement>(null);
   const expRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -34,6 +36,11 @@ export default function LandingPage() {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    supabase.from("settings").select("open_time, close_time, closed_dates").limit(1).maybeSingle()
+      .then(({ data }) => { if (data) setSalonSettings(data); });
   }, []);
 
   useEffect(() => {
@@ -58,6 +65,28 @@ export default function LandingPage() {
   const cream = "#F5EFE6";
   const dark = "#1C160E";
   const mid = "#EDE3D5";
+
+  // Compute live open/closed status
+  const isOpenNow = (() => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD in UTC, use local
+    const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    // Check manual closure for today
+    const closedDates: string[] = salonSettings?.closed_dates || [];
+    if (closedDates.includes(localDate)) return false;
+    // Closed on Sundays
+    if (now.getDay() === 0) return false;
+    // Check hours
+    const openTime = salonSettings?.open_time || "08:30";
+    const closeTime = salonSettings?.close_time || "21:00";
+    const [oh, om] = openTime.split(":").map(Number);
+    const [ch, cm] = closeTime.split(":").map(Number);
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const openMins = oh * 60 + om;
+    const closeMins = ch * 60 + cm;
+    return nowMins >= openMins && nowMins < closeMins;
+  })();
+
 
   return (
     <div style={{ fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif", background: cream, color: dark, overflowX: "hidden" }}>
@@ -255,9 +284,17 @@ export default function LandingPage() {
               <div style={{ width: "32px", height: "1.5px", background: gold }} />
               <span style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: gold, fontWeight: 700 }}>TAMALE'S FINEST BEAUTY STUDIO</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "7px", background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.35)", borderRadius: "100px", padding: "4px 12px" }}>
-              <div className="live-dot" />
-              <span className="sans" style={{ fontSize: "9px", letterSpacing: "0.15em", color: "#15803d", fontWeight: 700 }}>NOW OPEN</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "7px",
+              background: isOpenNow ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.10)",
+              border: isOpenNow ? "1px solid rgba(74,222,128,0.35)" : "1px solid rgba(239,68,68,0.3)",
+              borderRadius: "100px", padding: "4px 12px" }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%",
+                background: isOpenNow ? "#16a34a" : "#dc2626",
+                boxShadow: isOpenNow ? "0 0 0 2px rgba(22,163,74,0.25)" : "none" }} />
+              <span className="sans" style={{ fontSize: "9px", letterSpacing: "0.15em",
+                color: isOpenNow ? "#15803d" : "#dc2626", fontWeight: 700 }}>
+                {isOpenNow ? "NOW OPEN" : "CLOSED"}
+              </span>
             </div>
           </div>
 

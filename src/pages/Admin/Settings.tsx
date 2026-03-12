@@ -13,6 +13,7 @@ import { BackupRestoreSection } from "@/components/settings/BackupRestoreSection
 import { Loader2 } from "lucide-react";
 import { GallerySettingsSection } from "@/components/settings/GalllerySection";
 import { ReviewsSettingsSection } from "@/components/settings/ReviewsManagement";
+import { TemporaryClosuresSection } from "@/components/settings/TemporaryClosuresSection";
 
 interface PaymentMethod {
   id: string;
@@ -34,6 +35,7 @@ interface Settings {
   business_email: string;
   business_address: string;
   payment_methods: PaymentMethod[];
+  closed_dates?: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -58,6 +60,7 @@ const defaultSettings: Settings = {
   business_email: "",
   business_address: "",
   payment_methods: [],
+  closed_dates: [],
 };
 
 export default function Settings() {
@@ -146,6 +149,7 @@ export default function Settings() {
         business_address: settings.business_address,
         payment_methods: settings.payment_methods,
         gallery_images: (settings as any).gallery_images ?? [],
+        closed_dates: settings.closed_dates ?? [],
       };
 
       // Always fetch the real row id first, then update
@@ -247,6 +251,12 @@ export default function Settings() {
           onFormatChange={(v) =>
             setSettings(prev => ({ ...prev, use_24_hour_format: v  }))
           }
+        />
+
+        {/* Temporary Closures */}
+        <TemporaryClosuresSection
+          closedDates={settings.closed_dates || []}
+          onClosedDatesChange={(dates) => setSettings(prev => ({ ...prev, closed_dates: dates }))}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
