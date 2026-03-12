@@ -882,7 +882,7 @@ const AdminDashboard = () => {
               GHS {stats.depositsRevenue.toLocaleString("en", { minimumFractionDigits:2 })}
             </div>
             <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>
-              Counted in revenue · {(depositsPendingCheckoutRes?.data?.length || 0)} booking{(depositsPendingCheckoutRes?.data?.length || 0) !== 1 ? "s" : ""}
+              Counted in revenue · {stats.depositCount - stats.depositsPendingCount} booking{(stats.depositCount - stats.depositsPendingCount) !== 1 ? "s" : ""}
             </div>
           </div>
 
