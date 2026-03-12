@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useOutletContext, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, isAfter } from "date-fns";
-import { Calendar, Star, Clock, Scissors, ArrowRight } from "lucide-react";
+import { Calendar, Star, Clock, Scissors, ArrowRight, RotateCcw } from "lucide-react";
 
 const GOLD = "#C9A84C";
 const G_LIGHT = "#FDF6E3";
@@ -140,12 +140,20 @@ export default function ClientDashboard() {
         <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:16, padding:"24px", boxShadow:"0 1px 4px rgba(0,0,0,0.04)" }}>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, color:TXT, marginBottom:16 }}>Recent Visits</div>
           {completed.slice(0,5).map((b,i) => (
-            <div key={b.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0", borderBottom: i < Math.min(completed.length,5)-1 ? `1px solid ${BORDER}` : "none" }}>
+            <div key={b.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom: i < Math.min(completed.length,5)-1 ? `1px solid ${BORDER}` : "none" }}>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:TXT }}>{b.service_name || "Service"}</div>
                 <div style={{ fontSize:11, color:TXT_SOFT }}>{b.preferred_date}</div>
               </div>
-              {b.price && <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color:TXT }}>GHS {Number(b.price).toLocaleString()}</span>}
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                {b.price && <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color:TXT }}>GHS {Number(b.price).toLocaleString()}</span>}
+                <a
+                  href={`/book?prefill_service=${encodeURIComponent(b.service_name || "")}`}
+                  style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"6px 12px", borderRadius:8, background:G_LIGHT, color:GOLD, fontSize:11, fontWeight:700, textDecoration:"none", border:`1px solid ${GOLD}22`, whiteSpace:"nowrap" }}
+                >
+                  <RotateCcw size={11} /> Rebook
+                </a>
+              </div>
             </div>
           ))}
         </div>

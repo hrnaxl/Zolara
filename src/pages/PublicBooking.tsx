@@ -96,6 +96,12 @@ export default function PublicBooking() {
       }
       setAllVariantsMap(vm);
       setLoading(false);
+      // Prefill service if coming from rebook link
+      const prefillName = searchParams.get("prefill_service");
+      if (prefillName && svcs) {
+        const match = svcs.find((s: any) => s.name === prefillName);
+        if (match) { setServiceId(match.id); setActiveCategory(match.category); }
+      }
     }).catch(() => setLoading(false));
   }, []);
 

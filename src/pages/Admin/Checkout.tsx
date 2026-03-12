@@ -608,6 +608,7 @@ const Checkout = () => {
             if (clientPhone) {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
               const rewardGhs = Number((settings as any)?.loyalty_reward_discount ?? 50);
+              const staffName = staff.find(s => s.id === selectedStaff)?.name;
               await sendSMS(clientPhone, SMS.checkoutComplete(
                 booking.client_name || "Valued Client",
                 booking.service_name || "service",
@@ -615,6 +616,10 @@ const Checkout = () => {
                 newStamps,
                 stampsForReward,
                 rewardGhs,
+                staffName,
+                depositPaid ? depositAmount : undefined,
+                appliedPromo?.code || undefined,
+                promoDiscount > 0 ? promoDiscount : undefined,
               ));
             }
           }

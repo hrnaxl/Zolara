@@ -85,22 +85,34 @@ Please arrive 5 mins early.
     stamps: number,
     stampsForReward: number,
     rewardGhs: number,
+    staffName?: string,
+    depositPaid?: number,
+    promoCode?: string,
+    promoSaving?: number,
   ) => {
     const stampsLeft = Math.max(0, stampsForReward - stamps);
     const loyaltyLine = stamps >= stampsForReward
-      ? `You've earned a FREE GHS ${rewardGhs} reward! Redeem on your next visit.`
+      ? `You earned a FREE GHS ${rewardGhs} reward! Redeem on your next visit.`
       : `${stamps} stamp${stamps !== 1 ? "s" : ""} collected. ${stampsLeft} more for a GHS ${rewardGhs} reward!`;
 
-    return `Thank you, ${name}! 💛
-
-Your ${service} service at Zolara is complete.
-
-Total paid: GHS ${totalPaid}
-${loyaltyLine}
-
-We'd love to see you again soon!
-Book: zolarasalon.com
-— Zolara Beauty Studio`;
+    const parts: string[] = [
+      `Thank you, ${name}!`,
+      ``,
+      `Your ${service} service at Zolara is complete.`,
+      ``,
+      `-- RECEIPT --`,
+      ...(staffName ? [`Stylist: ${staffName}`] : []),
+      ...(depositPaid ? [`Deposit paid: GHS ${depositPaid}`] : []),
+      ...((promoCode && promoSaving) ? [`Promo (${promoCode}): -GHS ${promoSaving}`] : []),
+      `Total: GHS ${totalPaid}`,
+      ``,
+      loyaltyLine,
+      ``,
+      `Book again: zolarasalon.com`,
+      `-- Zolara Beauty Studio`,
+    ];
+    return parts.join("
+");
   },
 
   // Appointment reminder (day before)
