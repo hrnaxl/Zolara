@@ -253,12 +253,13 @@ const Clients = () => {
   const findDuplicates = async () => {
     const { data: allClients } = await supabase.from("clients").select("*").order("name");
     if (!allClients) return;
+    // Normalize every phone to +233XXXXXXXXX and group by that canonical form
     const phoneMap: Record<string, any[]> = {};
     for (const cl of allClients) {
-      const ph = (cl.phone || "").replace(/\s/g, "").replace(/^\+233/, "0");
-      if (!ph) continue;
-      if (!phoneMap[ph]) phoneMap[ph] = [];
-      phoneMap[ph].push(cl);
+      const canonical = normalizePhone(cl.phone);
+      if (!canonical) continue;
+      if (!phoneMap[canonical]) phoneMap[canonical] = [];
+      phoneMap[canonical].push(cl);
     }
     const groups = Object.values(phoneMap).filter(g => g.length > 1);
     setDuplicateGroups(groups);
@@ -491,7 +492,7 @@ const Clients = () => {
                 {duplicateGroups.map((group, i) => (
                   <div key={i} style={{border:"1px solid #E5DDD3",borderRadius:"10px",overflow:"hidden"}}>
                     <div style={{background:"#FBF6EE",padding:"10px 14px",borderBottom:"1px solid #E5DDD3"}}>
-                      <p style={{margin:0,fontSize:"12px",fontWeight:700}}>📱 {(group[0].phone||"").replace(/^\+233/,"0")}</p>
+                      <p style={{margin:0,fontSize:"12px",fontWeight:700}}>📱 {normalizePhone(group[0].phone) || group[0].phone}</p>
                     </div>
                     {group.map((cl: any) => (
                       <div key={cl.id} style={{padding:"10px 14px",borderBottom:"1px solid #F5F0E8",display:"flex",justifyContent:"space-between",fontSize:"12px"}}>
