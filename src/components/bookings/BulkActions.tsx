@@ -116,7 +116,7 @@ export const BulkActions = ({
 
       {/* Cancel Dialog */}
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Cancel {selectedCount} Booking{selectedCount > 1 ? "s" : ""}</DialogTitle>
           </DialogHeader>
@@ -165,7 +165,7 @@ export const BulkActions = ({
 
       {/* Assign Staff Dialog */}
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Assign Staff to {selectedCount} Booking{selectedCount > 1 ? "s" : ""}</DialogTitle>
           </DialogHeader>

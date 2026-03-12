@@ -544,7 +544,7 @@ const Services = () => {
             <DialogTrigger asChild>
               <Button variant="outline">Manage Categories</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md grid gap-4 p-6">
               <DialogHeader><DialogTitle>Manage Categories</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 {getCategories().map(cat => (
@@ -578,7 +578,7 @@ const Services = () => {
                 <Plus className="w-4 h-4 mr-2" /> Add Service
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md grid gap-4 p-6">
               <DialogHeader><DialogTitle>{!editingServiceId ? "Add New Service" : "Update Service"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -677,7 +677,7 @@ const Services = () => {
 
       {/* Delete dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md grid gap-4 p-6">
           <DialogHeader><DialogTitle>Delete Service</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground mb-4">This will permanently delete the service and all its variants and add-ons.</p>
           <div className="flex justify-end gap-2">
@@ -689,7 +689,7 @@ const Services = () => {
 
       {/* Reorder */}
       <Dialog open={reorderOpen} onOpenChange={setReorderOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md grid gap-4 p-6">
           <DialogHeader><DialogTitle>Reorder Services</DialogTitle></DialogHeader>
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="services">
@@ -719,7 +719,7 @@ const Services = () => {
 
       {/* VARIANTS DIALOG */}
       <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Add Variant &mdash; {activeServiceForVariants?.name}</DialogTitle>
           </DialogHeader>
@@ -771,7 +771,7 @@ const Services = () => {
 
       {/* ADD-ONS DIALOG */}
       <Dialog open={addonDialogOpen} onOpenChange={setAddonDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Add Add-on &mdash; {activeServiceForAddons?.name}</DialogTitle>
           </DialogHeader>

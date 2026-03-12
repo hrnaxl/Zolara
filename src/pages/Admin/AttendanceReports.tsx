@@ -484,7 +484,7 @@ export default function Attendance() {
 
         {/* Profile Dialog */}
         <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-3xl grid gap-4 p-6">
             <DialogHeader>
               <DialogTitle>{profileStaff?.name || 'Staff Profile'}</DialogTitle>
             </DialogHeader>

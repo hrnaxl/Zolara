@@ -63,7 +63,7 @@ export const CancelBookingDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md grid gap-4 p-6">
         <DialogHeader>
           <DialogTitle>Cancel Booking</DialogTitle>
         </DialogHeader>

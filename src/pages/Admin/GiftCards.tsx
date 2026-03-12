@@ -678,7 +678,7 @@ const GiftCards = () => {
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>
               {confirmAction === "void" && "Confirm Void"}

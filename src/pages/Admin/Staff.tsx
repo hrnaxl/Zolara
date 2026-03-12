@@ -408,7 +408,7 @@ const Staff = () => {
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md grid gap-4 p-6">
             <DialogHeader>
               <DialogTitle>
                 {editingMemberId ? "Edit Member" : "Add New Member"}
@@ -524,7 +524,7 @@ const Staff = () => {
         </Dialog>
 
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md grid gap-4 p-6">
             <DialogHeader>
               <DialogTitle>Delete staff</DialogTitle>
             </DialogHeader>
@@ -678,7 +678,7 @@ const Staff = () => {
 
       {/* Staff Profile Dialog */}
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>
               {selectedStaff ? selectedStaff.name : "Staff Profile"}
@@ -865,7 +865,7 @@ const Staff = () => {
       </Dialog>
       {/* Assign Services Dialog */}
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Assign Services to {selectedStaff?.name}</DialogTitle>
           </DialogHeader>
@@ -909,7 +909,7 @@ const Staff = () => {
 
       {/* Schedule / Off-days Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Schedule & Off days for {selectedStaff?.name}</DialogTitle>
           </DialogHeader>

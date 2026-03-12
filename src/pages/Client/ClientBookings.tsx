@@ -247,7 +247,7 @@ const ClientBookings = () => {
           <DialogTrigger asChild>
             <Button className="whitespace-nowrap">Request New Booking</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md grid gap-4 p-6">
             <DialogHeader>
               <DialogTitle>Request Booking</DialogTitle>
             </DialogHeader>
@@ -539,7 +539,7 @@ const ClientBookings = () => {
 
       {/* Reschedule Dialog */}
       <Dialog open={rescheduleDialog} onOpenChange={setRescheduleDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Reschedule Booking</DialogTitle>
           </DialogHeader>

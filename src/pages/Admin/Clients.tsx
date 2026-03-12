@@ -354,7 +354,7 @@ const Clients = () => {
               Add Client
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md grid gap-4 p-6">
             <DialogHeader>
               <DialogTitle>
                 {!editingClientId ? "Add New Client" : "Update Client Details"}
@@ -423,7 +423,7 @@ const Clients = () => {
           </DialogContent>
         </Dialog>
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="max-w-sm">
+          <DialogContent className="max-w-sm grid gap-4 p-6">
             <DialogHeader>
               <DialogTitle>Delete client</DialogTitle>
             </DialogHeader>
@@ -775,7 +775,7 @@ const Clients = () => {
 
           {/* Profile Dialog */}
           <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl grid gap-4 p-6">
               <DialogHeader>
                 <DialogTitle>
                   {selectedClient ? selectedClient.name : "Client Profile"}

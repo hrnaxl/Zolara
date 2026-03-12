@@ -879,7 +879,7 @@ const SalesRevenue = () => {
       </div>
       {/* Payment detail dialog */}
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg grid gap-4 p-6">
           <DialogHeader>
             <DialogTitle>Payment Details</DialogTitle>
           </DialogHeader>

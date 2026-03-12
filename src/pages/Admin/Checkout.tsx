@@ -1181,7 +1181,7 @@ const Checkout = () => {
                                     Edit
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-md">
+                                <DialogContent className="max-w-md grid gap-4 p-6">
                                   <DialogHeader>
                                     <DialogTitle>
                                       Update Bank Details
@@ -1299,7 +1299,7 @@ const Checkout = () => {
                                 Add
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-md">
+                            <DialogContent className="max-w-md grid gap-4 p-6">
                               <DialogHeader>
                                 <DialogTitle>Update Bank Details</DialogTitle>
                               </DialogHeader>
