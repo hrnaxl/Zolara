@@ -84,13 +84,26 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (booking) {
+      const depositGhs = verifyData.data.amount / 100; // convert pesewas to GHS
+
       await supabase.from("bookings").update({
         deposit_paid: true,
-        deposit_amount: verifyData.data.amount / 100, // convert pesewas back to GHS
+        deposit_amount: depositGhs,
         payment_ref: paymentRef,
         payment_status: "paid",
         status: "confirmed",
       } as any).eq("id", booking.id);
+
+      // Insert sales record so dashboard deposit card includes this payment
+      await supabase.from("sales").insert({
+        booking_id: booking.id,
+        amount: depositGhs,
+        payment_method: "deposit",
+        status: "completed",
+        client_name: booking.client_name || null,
+        service_name: booking.service_name || null,
+        notes: `Paystack deposit — ref: ${paymentRef}`,
+      }).catch((e: any) => console.error("Sales insert error:", e));
 
       return new Response(JSON.stringify({ received: true, action: "deposit_paid" }), { headers: cors });
     }

@@ -1,91 +1,69 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState } from "react";
 
-interface Props {
-  closedDates: string[];
-  onClosedDatesChange: (dates: string[]) => void;
-}
+const WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E", G_D = "#8B6914", G = "#C8A97E", CREAM = "#FAFAF8";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif" };
+
+interface Props { closedDates: string[]; onClosedDatesChange: (dates: string[]) => void; }
 
 export function TemporaryClosuresSection({ closedDates, onClosedDatesChange }: Props) {
   const [newDate, setNewDate] = useState("");
   const [newLabel, setNewLabel] = useState("");
 
-  // closedDates stores "YYYY-MM-DD" or "YYYY-MM-DD|Label"
-  const parsed = closedDates.map(d => {
-    const [date, ...rest] = d.split("|");
-    return { date, label: rest.join("|") || "" };
-  });
+  const parsed = closedDates.map(d => { const [date, ...rest] = d.split("|"); return { date, label: rest.join("|") || "" }; });
+  const today = new Date().toISOString().slice(0, 10);
 
   const addDate = () => {
     if (!newDate) return;
     const entry = newLabel.trim() ? `${newDate}|${newLabel.trim()}` : newDate;
-    if (!closedDates.some(d => d.startsWith(newDate))) {
-      onClosedDatesChange([...closedDates, entry].sort());
-    }
-    setNewDate("");
-    setNewLabel("");
+    if (!closedDates.some(d => d.startsWith(newDate))) onClosedDatesChange([...closedDates, entry].sort());
+    setNewDate(""); setNewLabel("");
   };
-
-  const removeDate = (dateStr: string) => {
-    onClosedDatesChange(closedDates.filter(d => !d.startsWith(dateStr)));
-  };
-
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <Card className="p-6 space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold">Temporary Closures</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Mark specific dates as closed — public booking page and landing page will show "CLOSED" on these days.
-        </p>
+    <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
+      <div style={{ background: "linear-gradient(135deg,rgba(200,169,126,0.1),rgba(200,169,126,0.04))", padding: "14px 20px", borderBottom: `1px solid ${BORDER}` }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: TXT, margin: "0 0 2px" }}>Temporary Closures</h2>
+        <p style={{ fontSize: "11px", color: TXT_SOFT, margin: 0 }}>Mark specific dates as closed. Booking page will show CLOSED on these days.</p>
       </div>
-
-      <div className="flex gap-3 flex-wrap items-end">
-        <div className="space-y-1">
-          <Label>Date</Label>
-          <Input type="date" value={newDate} min={today}
-            onChange={e => setNewDate(e.target.value)} className="w-44" />
+      <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div>
+            <p style={{ fontSize: "10px", fontWeight: 700, color: TXT_SOFT, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Date</p>
+            <input type="date" value={newDate} min={today} onChange={e => setNewDate(e.target.value)} style={{ ...inp, width: "160px" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: "180px" }}>
+            <p style={{ fontSize: "10px", fontWeight: 700, color: TXT_SOFT, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Reason (optional)</p>
+            <input placeholder="e.g. Public holiday, Staff training" value={newLabel} onChange={e => setNewLabel(e.target.value)} onKeyDown={e => e.key === "Enter" && addDate()} style={{ ...inp, width: "100%" }} />
+          </div>
+          <button onClick={addDate} disabled={!newDate} style={{ padding: "9px 18px", borderRadius: "10px", background: newDate ? G_D : "#E5E0D8", color: WHITE, border: "none", fontSize: "12px", fontWeight: 600, cursor: newDate ? "pointer" : "not-allowed", fontFamily: "Montserrat,sans-serif", whiteSpace: "nowrap" }}>
+            + Add Closure
+          </button>
         </div>
-        <div className="space-y-1 flex-1 min-w-[160px]">
-          <Label>Reason (optional)</Label>
-          <Input placeholder="e.g. Public holiday, Staff training"
-            value={newLabel} onChange={e => setNewLabel(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && addDate()} />
-        </div>
-        <Button onClick={addDate} disabled={!newDate} variant="outline">
-          + Add Closure
-        </Button>
-      </div>
 
-      {parsed.length > 0 ? (
-        <div className="space-y-2">
-          {parsed.map(({ date, label }) => {
-            const isPast = date < today;
-            return (
-              <div key={date} className="flex items-center justify-between rounded-lg border px-4 py-2.5"
-                style={{ opacity: isPast ? 0.5 : 1, background: isPast ? "#F9F9F9" : "#FFF8F0" }}>
-                <div className="flex items-center gap-3">
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>
-                    {new Date(date + "T12:00:00").toLocaleDateString("en-GH", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
-                  </span>
-                  {label && <span style={{ fontSize: 12, color: "#78716C" }}>— {label}</span>}
-                  {isPast && <span style={{ fontSize: 10, color: "#A8A29E", fontWeight: 600, letterSpacing: "0.1em" }}>PAST</span>}
+        {parsed.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {parsed.map(({ date, label }) => {
+              const isPast = date < today;
+              return (
+                <div key={date} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderRadius: "12px", border: `1px solid ${isPast ? BORDER : "#F0E4CC"}`, background: isPast ? CREAM : "#FBF6EE", opacity: isPast ? 0.65 : 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>
+                      {new Date(date + "T12:00:00").toLocaleDateString("en-GH", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                    {label && <span style={{ fontSize: "12px", color: TXT_MID }}>— {label}</span>}
+                    {isPast && <span style={{ fontSize: "10px", color: TXT_SOFT, fontWeight: 700, letterSpacing: "0.1em" }}>PAST</span>}
+                  </div>
+                  <button onClick={() => onClosedDatesChange(closedDates.filter(d => !d.startsWith(date)))}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#EF4444", fontSize: "16px", lineHeight: 1 }}>✕</button>
                 </div>
-                <button onClick={() => removeDate(date)}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#EF4444", fontSize: 16, lineHeight: 1 }}>
-                  ✕
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground italic">No temporary closures scheduled.</p>
-      )}
-    </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <p style={{ fontSize: "12px", color: TXT_SOFT, fontStyle: "italic", margin: 0 }}>No temporary closures scheduled.</p>
+        )}
+      </div>
+    </div>
   );
 }

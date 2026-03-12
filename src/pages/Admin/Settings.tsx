@@ -83,6 +83,17 @@ export default function Settings() {
     link.rel = "stylesheet";
     link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap";
     document.head.appendChild(link);
+    const style = document.createElement("style");
+    style.id = "zolara-settings-overrides";
+    style.textContent = `
+      .zolara-settings [class*="Card"],[class*="card"] { border-color: #EDEBE5 !important; border-radius: 16px !important; }
+      .zolara-settings h2,.zolara-settings h3,.zolara-settings [class*="CardTitle"] { font-family: 'Cormorant Garamond',serif !important; color: #1C160E !important; }
+      .zolara-settings label,[class*="Label"] { font-size: 11px !important; font-weight: 600 !important; color: #78716C !important; font-family: Montserrat,sans-serif !important; }
+      .zolara-settings input,.zolara-settings select,.zolara-settings textarea { font-family: Montserrat,sans-serif !important; font-size: 13px !important; border-color: #EDEBE5 !important; border-radius: 10px !important; }
+      .zolara-settings button { font-family: Montserrat,sans-serif !important; }
+    `;
+    document.head.appendChild(style);
+    return () => { document.getElementById("zolara-settings-overrides")?.remove(); };
   }, []);
 
   useEffect(() => {
@@ -230,7 +241,7 @@ export default function Settings() {
   }
 
   return (
-    <div style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
+    <div className="zolara-settings" style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
       <div style={{maxWidth:"900px",margin:"0 auto"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"32px",flexWrap:"wrap",gap:"12px"}}>
           <div>

@@ -1,40 +1,26 @@
-import { Card } from "@/components/ui/card";
+import React from "react";
 import { Switch } from "@/components/ui/switch";
 
-interface PaymentMethod {
-  id: string;
-  name: string;
-  enabled: boolean;
-}
+const WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_SOFT = "#A8A29E", CREAM = "#FAFAF8";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
 
-interface PaymentMethodsProps {
-  paymentMethods: PaymentMethod[];
-  onPaymentMethodToggle: (id: string, enabled: boolean) => void;
-}
+interface PaymentMethod { id: string; name: string; enabled: boolean; }
+interface Props { paymentMethods: PaymentMethod[]; onPaymentMethodToggle: (id: string, enabled: boolean) => void; }
 
-export function PaymentMethodsSection({
-  paymentMethods,
-  onPaymentMethodToggle,
-}: PaymentMethodsProps) {
+export function PaymentMethodsSection({ paymentMethods, onPaymentMethodToggle }: Props) {
   return (
-    <Card className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">Payment Methods</h2>
-      <div className="space-y-3">
-        {paymentMethods.map((method) => (
-          <div
-            key={method.id}
-            className="flex items-center justify-between p-3 rounded-md border"
-          >
-            <span className="font-medium">{method.name}</span>
-            <Switch
-              checked={method.enabled}
-              onCheckedChange={(checked) =>
-                onPaymentMethodToggle(method.id, checked)
-              }
-            />
+    <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
+      <div style={{ background: "linear-gradient(135deg,rgba(200,169,126,0.1),rgba(200,169,126,0.04))", padding: "14px 20px", borderBottom: `1px solid ${BORDER}` }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: TXT, margin: 0 }}>Payment Methods</h2>
+      </div>
+      <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+        {paymentMethods.map(m => (
+          <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: "12px", background: m.enabled ? "#FBF6EE" : CREAM, border: `1px solid ${m.enabled ? "#F0E4CC" : BORDER}`, transition: "all 0.15s" }}>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{m.name}</span>
+            <Switch checked={m.enabled} onCheckedChange={checked => onPaymentMethodToggle(m.id, checked)} />
           </div>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }

@@ -1,113 +1,63 @@
-import { useRef } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useRef } from "react";
 import { toast } from "sonner";
 import { Download, Upload, AlertTriangle } from "lucide-react";
 
-interface BackupRestoreProps {
-  settings: any;
-  onRestore: (settings: any) => void;
-}
+const WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_SOFT = "#A8A29E", G_D = "#8B6914", G = "#C8A97E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+const btn = (gold = false): React.CSSProperties => ({
+  display: "inline-flex", alignItems: "center", gap: "8px", padding: "9px 18px", borderRadius: "10px",
+  background: gold ? G_D : WHITE, color: gold ? WHITE : G_D, border: gold ? "none" : `1.5px solid ${G}`,
+  fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "Montserrat,sans-serif",
+});
 
-export function BackupRestoreSection({
-  settings,
-  onRestore,
-}: BackupRestoreProps) {
+interface Props { settings: any; onRestore: (s: any) => void; }
+
+export function BackupRestoreSection({ settings, onRestore }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const exportSettings = () => {
     try {
-      const backup = {
-        version: "1.0",
-        exportedAt: new Date().toISOString(),
-        settings: settings,
-      };
-
-      const blob = new Blob([JSON.stringify(backup, null, 2)], {
-        type: "application/json",
-      });
+      const blob = new Blob([JSON.stringify({ version: "1.0", exportedAt: new Date().toISOString(), settings }, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `settings_backup_${
-        new Date().toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      a.href = url; a.download = `settings_backup_${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
       toast.success("Settings backup downloaded!");
-    } catch (error) {
-      console.error("Backup error:", error);
-      toast.error("Failed to create backup");
-    }
+    } catch { toast.error("Failed to create backup"); }
   };
 
-  const importSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const importSettings = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = ev => {
       try {
-        const content = e.target?.result as string;
-        const backup = JSON.parse(content);
-
-        if (!backup.settings || !backup.version) {
-          throw new Error("Invalid backup file format");
-        }
-
+        const backup = JSON.parse(ev.target?.result as string);
+        if (!backup.settings || !backup.version) throw new Error("Invalid backup");
         onRestore(backup.settings);
-        toast.success("Settings restored! Click 'Save Settings' to apply.");
-      } catch (error) {
-        console.error("Restore error:", error);
-        toast.error("Invalid backup file");
-      }
+        toast.success("Settings restored! Click Save to apply.");
+      } catch { toast.error("Invalid backup file"); }
     };
     reader.readAsText(file);
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
-    <Card className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">Backup & Restore</h2>
-      <p className="text-sm text-muted-foreground">
-        Save your settings configuration to a JSON file or restore from a
-        previous backup.
-      </p>
-
-      <div className="flex items-center gap-3 p-3 rounded-md bg-amber-500/10 border border-amber-200 text-amber-700">
-        <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-        <p className="text-sm">
-          Restoring settings will overwrite your current configuration. Make
-          sure to save a backup first.
-        </p>
+    <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
+      <div style={{ background: "linear-gradient(135deg,rgba(200,169,126,0.1),rgba(200,169,126,0.04))", padding: "14px 20px", borderBottom: `1px solid ${BORDER}` }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: TXT, margin: 0 }}>Backup & Restore</h2>
       </div>
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button onClick={exportSettings} variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Download Backup
-        </Button>
-
-        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-          <Upload className="w-4 h-4 mr-2" />
-          Restore from Backup
-        </Button>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={importSettings}
-          className="hidden"
-        />
+      <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+        <p style={{ fontSize: "12px", color: TXT_SOFT, margin: 0 }}>Save your configuration to a JSON file or restore from a previous backup.</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", borderRadius: "10px", background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+          <AlertTriangle style={{ width: "16px", height: "16px", color: "#D97706", flexShrink: 0 }} />
+          <p style={{ fontSize: "12px", color: "#92400E", margin: 0 }}>Restoring will overwrite your current configuration. Save a backup first.</p>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={exportSettings} style={btn(false)}><Download style={{ width: "14px", height: "14px" }} />Download Backup</button>
+          <button onClick={() => fileInputRef.current?.click()} style={btn(true)}><Upload style={{ width: "14px", height: "14px" }} />Restore from Backup</button>
+          <input ref={fileInputRef} type="file" accept=".json" onChange={importSettings} style={{ display: "none" }} />
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }

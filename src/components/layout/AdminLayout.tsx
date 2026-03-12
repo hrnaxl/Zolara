@@ -321,9 +321,9 @@ const AdminDashboard = () => {
         // deposits collected this period
         // Deposits: from sales table (online Paystack) + from bookings.deposit_paid=true (in-store)
         supabase.from("sales").select("amount").eq("payment_method", "deposit").eq("status", "completed").gte("created_at", periodStartTs).lte("created_at", periodEndTs),
-        supabase.from("bookings").select("deposit_amount").eq("deposit_paid", true).eq("payment_status", "paid").gte("preferred_date", periodStart).lte("preferred_date", periodEnd),
+        supabase.from("bookings").select("deposit_amount").eq("deposit_paid", true).gte("preferred_date", periodStart).lte("preferred_date", periodEnd),
         // promo savings this period
-        supabase.from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).gt("promo_discount", 0) as any,
+        (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
 
       // Calculate stats
@@ -562,8 +562,8 @@ const AdminDashboard = () => {
       const salesDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.amount || 0), 0) || 0;
       const bookingDepositsTotal = (bookingsDepositRes as any).data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
       // Avoid double-counting: if booking.payment_status="paid" the webhook already wrote to sales
-      // Use only sales table total (most accurate); bookingsDepositRes is a fallback for in-person
-      const periodDeposits = salesDeposits > 0 ? salesDeposits : bookingDepositsTotal;
+      // Sum both: Paystack deposits (sales table) + in-person deposits (bookings with payment_status null)
+      const periodDeposits = salesDeposits + bookingDepositsTotal;
       const depositCount = (depositsRes.data?.length || 0) || ((bookingsDepositRes as any).data?.length || 0);
 
       // Promo savings breakdown

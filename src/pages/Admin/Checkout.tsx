@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -233,13 +233,32 @@ const Checkout = () => {
         if (data.staff?.id) {
           setSelectedStaff(data.staff?.id);
         }
-        // Use booking.price (the actual total including variant) — services.price is 0 for variant-based services
         const price = Number((data as any).price || (data.services && data.services?.price) || 0);
         setOriginalPrice(price);
-        // Subtract deposit already paid
-        const depositAlreadyPaid = data.deposit_paid ? (Number((data as any).deposit_amount) || 50) : 0;
-        setDepositPaid(!!data.deposit_paid);  // sync toggle with actual DB value
-        setAmount(String(Math.max(0, price - depositAlreadyPaid).toFixed(2)));
+
+        // Auto-verify deposit with Paystack if not yet marked paid
+        // (handles case where webhook didn't fire)
+        let depositAlreadyPaid = (data as any).deposit_paid;
+        if (!depositAlreadyPaid && (data as any).booking_ref) {
+          try {
+            const res = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+                body: JSON.stringify({ booking_id: bookingId }),
+              }
+            );
+            const vd = await res.json();
+            if (vd.status === "verified" || vd.status === "already_paid") {
+              depositAlreadyPaid = true;
+            }
+          } catch { /* ignore — fallback to manual toggle */ }
+        }
+
+        const depositAmt = depositAlreadyPaid ? (Number((data as any).deposit_amount) || 50) : 0;
+        setDepositPaid(!!depositAlreadyPaid);
+        setAmount(String(Math.max(0, price - depositAmt).toFixed(2)));
       }
     } catch (error) {
       console.error("Error fetching booking:", error);
@@ -798,640 +817,103 @@ const Checkout = () => {
 
   const checkoutDisabled = processing || !selectedStaff;
 
+
+  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+  const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" };
+  const lbl: React.CSSProperties = { fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: "6px" };
+  const card: React.CSSProperties = { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW };
+  const cardHdr: React.CSSProperties = { background: `linear-gradient(135deg,rgba(200,169,126,0.1),rgba(200,169,126,0.04))`, padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "10px" };
+  const row = (label: string, value: any, bold = false) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <span style={{ fontSize: "12px", color: bold ? TXT : TXT_MID, fontWeight: bold ? 700 : 400 }}>{label}</span>
+      <span style={{ fontSize: "13px", fontWeight: bold ? 700 : 600, color: bold ? G_D : TXT }}>{value}</span>
+    </div>
+  );
+
+  const statusColor = (s: string) => {
+    if (s === "confirmed") return { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" };
+    if (s === "pending") return { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" };
+    if (s === "completed") return { bg: "#FAFAF8", color: TXT_MID, border: BORDER };
+    return { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" };
+  };
+  const sc = statusColor(booking.status);
+
   return (
-    <div style={{ background:"#FAFAF8", minHeight:"100vh", padding:"clamp(14px,3vw,32px) clamp(12px,3vw,24px)" }}>
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+      <div style={{ maxWidth: "960px", margin: "0 auto" }}>
+
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
+          <button onClick={() => navigate(-1)} style={{ width: "36px", height: "36px", borderRadius: "10px", border: `1px solid ${BORDER}`, background: WHITE, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+            <ArrowLeft style={{ width: "16px", height: "16px", color: TXT_MID }} />
+          </button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Checkout</h1>
-            <p className="z-subtitle">
-              Complete the service and record payment
-            </p>
+            <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.16em", color: G, textTransform: "uppercase", margin: "0 0 2px" }}>Payment</p>
+            <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(26px,4vw,38px)", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1 }}>Checkout</h1>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Booking Details Card */}
-          <Card className="overflow-hidden">
-            <div style={{ background: "linear-gradient(135deg,rgba(200,169,126,0.12),rgba(200,169,126,0.04))", padding: "16px 20px", borderBottom: "1px solid #EDEBE5" }}>
-              <CardTitle style={{ display: "flex", alignItems: "center", gap: "8px", fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", color: "#1C160E" }}>
-                <Sparkles style={{ width: "18px", height: "18px", color: "#C8A97E" }} />
-                Booking Details
-              </CardTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+
+          {/* LEFT — Booking Details */}
+          <div style={card}>
+            <div style={cardHdr}>
+              <Sparkles style={{ width: "16px", height: "16px", color: G }} />
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "19px", fontWeight: 700, color: TXT }}>Booking Details</span>
             </div>
-            <CardContent className="p-6 space-y-6">
+            <div style={{ padding: "20px" }}>
+
               {/* Service */}
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Service
-                </Label>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="font-semibold text-lg">
-                    {booking.service_name}
-                  </p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                    <Badge variant="secondary">
-                      {booking.services?.category || ""}
-                    </Badge>
-                    <span>{booking.services?.duration_minutes || ""} mins</span>
-                  </div>
+              <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", marginBottom: "14px", border: `1px solid ${BORDER}` }}>
+                <p style={{ fontSize: "15px", fontWeight: 700, color: TXT, margin: "0 0 6px" }}>{booking.service_name}</p>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  {booking.services?.category && <span style={{ fontSize: "10px", padding: "2px 9px", borderRadius: "12px", background: "#FBF6EE", color: G_D, fontWeight: 600, border: `1px solid #F0E4CC` }}>{booking.services.category}</span>}
+                  {booking.services?.duration_minutes && <span style={{ fontSize: "11px", color: TXT_SOFT }}>{booking.services.duration_minutes} mins</span>}
                 </div>
               </div>
 
               {/* Client */}
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Client
-                </Label>
-                <div className="p-4 bg-muted/50 rounded-lg flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{booking.client_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {booking.clients?.phone || booking.client_phone || ""}
-                    </p>
-                  </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "12px", background: CREAM, marginBottom: "14px", border: `1px solid ${BORDER}` }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#FBF6EE", border: `1px solid ${G}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <User style={{ width: "18px", height: "18px", color: G_D }} />
+                </div>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 700, color: TXT, margin: "0 0 2px" }}>{booking.client_name}</p>
+                  <p style={{ fontSize: "11px", color: TXT_SOFT, margin: 0 }}>{booking.clients?.phone || booking.client_phone || ""}</p>
                 </div>
               </div>
 
               {/* Date & Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Date
-                  </Label>
-                  <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">
-                      {format(new Date(booking.preferred_date), "PPP")}
-                    </span>
-                  </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" }}>
+                <div style={{ padding: "10px 14px", borderRadius: "10px", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Calendar style={{ width: "14px", height: "14px", color: G }} />
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{format(new Date(booking.preferred_date), "PP")}</span>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Time
-                  </Label>
-                  <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium">
-                      {booking.preferred_time}
-                    </span>
-                  </div>
+                <div style={{ padding: "10px 14px", borderRadius: "10px", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Clock style={{ width: "14px", height: "14px", color: G }} />
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{booking.preferred_time}</span>
                 </div>
               </div>
 
               {/* Status */}
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Status
-                </Label>
-                <Badge
-                  variant="outline"
-                  className={`
-                    ${
-                      booking.status === "pending" &&
-                      "border-blue-500 text-blue-600 bg-blue-50"
-                    }
-                    ${
-                      booking.status === "confirmed" &&
-                      "border-green-500 text-green-600 bg-green-50"
-                    }
-                    ${
-                      booking.status === "completed" &&
-                      "border-gray-500 text-gray-600 bg-cream"
-                    }
-                  `}
-                >
-                  {booking.status.charAt(0).toUpperCase() +
-                    booking.status.slice(1)}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Checkout Form Card */}
-          <Card className="overflow-hidden">
-            <div style={{ background: "linear-gradient(135deg,rgba(200,169,126,0.12),rgba(200,169,126,0.04))", padding: "16px 20px", borderBottom: "1px solid #EDEBE5" }}>
-              <CardTitle style={{ display: "flex", alignItems: "center", gap: "8px", fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", color: "#1C160E" }}>
-                <Receipt style={{ width: "18px", height: "18px", color: "#C8A97E" }} />
-                Complete Checkout
-              </CardTitle>
-              <CardDescription style={{ marginTop: "4px", fontSize: "12px" }}>
-                Confirm payment and mark service as completed
-              </CardDescription>
-            </div>
-            <CardContent className="p-6 space-y-6">
-              {/* Assign Staff */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-primary" />
-                  Assign Staff Member *
-                </Label>
-                <Select value={selectedStaff} onValueChange={setSelectedStaff}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select staff member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {staff.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        <div className="flex flex-col">
-                          <span>{member.name}{absentStaffIds.has(member.id) ? " ⚠️ Absent" : ""}</span>
-                          {member.specialization && (
-                            <span className="text-xs text-muted-foreground">
-                              {member.specialization}
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={lbl as any}>Booking Status</span>
+                <span style={{ padding: "3px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
+                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                </span>
               </div>
 
-              {/* Payment Method */}
-              <div className="space-y-3">
-                <Label>Payment Method</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { id: "cash", name: "Cash", icon: Banknote },
-                    { id: "mobile_money", name: "Mobile Money", icon: Smartphone },
-                    { id: "card", name: "Card", icon: CreditCard },
-                    { id: "bank_transfer", name: "Bank Transfer", icon: Building },
-                  ].map((m) => {
-                      const icon = m.icon;
-                      const label = m.name;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() =>
-                            setPaymentMethod(m.id as PaymentMethod)
-                          }
-                          className={`
-                          p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2
-                          ${
-                            paymentMethod === m.id
-                              ? "border-[#C8A97E] bg-[#FBF6EE] text-[#8B6914]"
-                              : "border-muted hover:border-muted-foreground/50"
-                          }
-                        `}
-                        >
-                          {icon
-                            ? (() => {
-                                const Icon = icon as any;
-                                return <Icon className="w-6 h-6" />;
-                              })()
-                            : null}
-                          <span className="text-sm font-medium">{label}</span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Amount (editable) */}
-              <div className="space-y-2">
-                <Label>Amount (GH₵)</Label>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-
-              {/* Price breakdown when booking present */}
-              {booking && (
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>
-                    Original price: GH₵{" "}
-                    {Number(
-                      originalPrice || booking.services?.price || 0
-                    ).toFixed(2)}
-                  </p>
-                  {appliedPromo ? (
-                    <p className="text-green-600 text-sm">Promo ({appliedPromo.code}): -GH₵{promoDiscount.toFixed(2)}</p>
-                  ) : null}
-                  {redeemedCard ? (
-                    <p className="text-green-600 text-sm">Gift card: -GH₵{redeemedCard.value.toFixed(2)}</p>
-                  ) : null}
-                  <p className="font-medium">
-                    Balance Due: GH₵{" "}
-                    {(() => {
-                      const base = Number(originalPrice) || 0;
-                      const giftValue = redeemedCard?.value ?? 0;
-                      const dep = depositPaid ? depositAmount : 0;
-                      return Math.max(0, base - promoDiscount - giftValue - dep).toFixed(2);
-                    })()}
-                  </p>
-                </div>
-              )}
-
-              {/* Redeem Gift Card */}
-              <div className="space-y-2">
-                <Label>Redeem Gift Card</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter gift card code"
-                    value={giftCode}
-                    onChange={(e) => setGiftCode(e.target.value)}
-                  />
-                  <Button
-                    onClick={handleRedeemGiftCard}
-                    disabled={redeeming || !giftCode || !selectedStaff}
-                  >
-                    {redeeming ? "Redeeming..." : "Redeem"}
-                  </Button>
-                </div>
-                {redeemedCard && (
-                  <p className="text-sm text-green-600">
-                    Applied GH₵ {redeemedCard.value.toFixed(2)} (Card:{" "}
-                    <span className="font-mono">{redeemedCard.id}</span>)
-                  </p>
-                )}
-              </div>
-
-              {/* Promo Code */}
-              <div className="space-y-2">
-                <Label>Promo Code</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter promo code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    disabled={!!appliedPromo}
-                  />
-                  {appliedPromo ? (
-                    <Button variant="outline" onClick={() => {
-                      setAppliedPromo(null);
-                      setPromoDiscount(0);
-                      setPromoCode("");
-                      setAmount(String(Math.max(0, originalPrice - (redeemedCard?.value ?? 0)).toFixed(2)));
-                    }}>Remove</Button>
-                  ) : (
-                    <Button onClick={handleApplyPromo} disabled={validatingPromo || !promoCode}>
-                      {validatingPromo ? "Checking..." : "Apply"}
-                    </Button>
-                  )}
-                </div>
-                {appliedPromo && (
-                  <p className="text-sm text-green-600">
-                    ✓ {appliedPromo.code}: GH₵{promoDiscount.toFixed(2)} off
-                    {appliedPromo.discount_type === "percentage" ? ` (${appliedPromo.discount_value}%)` : ""}
-                  </p>
-                )}
-              </div>
-
-              {/* Bank transfer options */}
-              {paymentMethod === "bank_transfer" && (
-                <div className="space-y-2 bg-muted p-3 rounded">
-                  <Label>Bank Transfer Options</Label>
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="transfer_mode"
-                        checked={usePaystackForTransfer}
-                        onChange={() => setUsePaystackForTransfer(true)}
-                      />
-                      <span>Use Paystack transfer</span>
-                    </label>
-
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="transfer_mode"
-                        checked={!usePaystackForTransfer}
-                        onChange={() => setUsePaystackForTransfer(false)}
-                      />
-                      <span>Manual bank transfer</span>
-                    </label>
-                  </div>
-
-                  {!usePaystackForTransfer && (
-                    <div className="bg-background border p-3 rounded-md text-sm space-y-2">
-                      {paymentInfo.bank_name ? (
-                        <>
-                          <div className="flex justify-between items-start gap-4">
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 flex-1">
-                              <div>
-                                <p className="font-medium">Bank</p>
-                                <p className="text-sm">
-                                  {paymentInfo.bank_name}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Account Name</p>
-                                <p className="text-sm">
-                                  {paymentInfo.account_name}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Account No</p>
-                                <p className="text-sm">
-                                  {paymentInfo.account_number}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex-shrink-0">
-                              <Dialog
-                                open={showBankEditModal}
-                                onOpenChange={setShowBankEditModal}
-                              >
-                                <DialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowBankEditModal(true);
-                                    }}
-                                  >
-                                    Edit
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-md grid gap-4 p-6">
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      Update Bank Details
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-3 mt-2">
-                                    <div>
-                                      <Label>Bank Name</Label>
-                                      <Input
-                                        value={paymentForm.bank_name}
-                                        onChange={(e) =>
-                                          setPaymentForm({
-                                            ...paymentForm,
-                                            bank_name: e.target.value,
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label>Account Name</Label>
-                                      <Input
-                                        value={paymentForm.account_name}
-                                        onChange={(e) =>
-                                          setPaymentForm({
-                                            ...paymentForm,
-                                            account_name: e.target.value,
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label>Account Number</Label>
-                                      <Input
-                                        value={paymentForm.account_number}
-                                        onChange={(e) =>
-                                          setPaymentForm({
-                                            ...paymentForm,
-                                            account_number: e.target.value,
-                                          })
-                                        }
-                                      />
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                      <Button
-                                        variant="outline"
-                                        onClick={() =>
-                                          setShowBankEditModal(false)
-                                        }
-                                      >
-                                        Cancel
-                                      </Button>
-                                      <Button
-                                        onClick={async () => {
-                                          // save
-                                          try {
-                                            //@ts-ignore
-                                            const { error } = await supabase.from("payment_settings").upsert({
-                                                id: paymentInfo.id || 1,
-                                                bank_name:
-                                                  paymentForm.bank_name,
-                                                account_name:
-                                                  paymentForm.account_name,
-                                                account_number:
-                                                  paymentForm.account_number,
-                                              });
-                                            if (error) throw error;
-                                            setPaymentInfo({
-                                              ...paymentInfo,
-                                              ...paymentForm,
-                                            });
-                                            toast.success(
-                                              "Bank details updated"
-                                            );
-                                            setShowBankEditModal(false);
-                                          } catch (err: any) {
-                                            toast.error(
-                                              err.message ||
-                                                "Failed to save bank details"
-                                            );
-                                          }
-                                        }}
-                                      >
-                                        Save
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            A pending payment record will be created; confirm
-                            when transfer completes.
-                          </p>
-                        </>
-                      ) : (
-                        <div className="flex justify-between items-center">
-                          <p className="text-sm text-gray-500">
-                            No bank details available. Ask admin to configure
-                            bank settings.
-                          </p>
-                          <Dialog
-                            open={showBankEditModal}
-                            onOpenChange={setShowBankEditModal}
-                          >
-                            <DialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowBankEditModal(true);
-                                }}
-                              >
-                                Add
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md grid gap-4 p-6">
-                              <DialogHeader>
-                                <DialogTitle>Update Bank Details</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-3 mt-2">
-                                <div>
-                                  <Label>Bank Name</Label>
-                                  <Input
-                                    value={paymentForm.bank_name}
-                                    onChange={(e) =>
-                                      setPaymentForm({
-                                        ...paymentForm,
-                                        bank_name: e.target.value,
-                                      })
-                                    }
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Account Name</Label>
-                                  <Input
-                                    value={paymentForm.account_name}
-                                    onChange={(e) =>
-                                      setPaymentForm({
-                                        ...paymentForm,
-                                        account_name: e.target.value,
-                                      })
-                                    }
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Account Number</Label>
-                                  <Input
-                                    value={paymentForm.account_number}
-                                    onChange={(e) =>
-                                      setPaymentForm({
-                                        ...paymentForm,
-                                        account_number: e.target.value,
-                                      })
-                                    }
-                                  />
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setShowBankEditModal(false)}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    onClick={async () => {
-                                      try {
-                                        //@ts-ignore
-                                        const { error } = await supabase.from("payment_settings").upsert({
-                                            id: paymentInfo.id || 1,
-                                            bank_name: paymentForm.bank_name,
-                                            account_name:
-                                              paymentForm.account_name,
-                                            account_number:
-                                              paymentForm.account_number,
-                                          });
-                                        if (error) throw error;
-                                        setPaymentInfo({
-                                          ...paymentInfo,
-                                          ...paymentForm,
-                                        });
-                                        toast.success("Bank details added");
-                                        setShowBankEditModal(false);
-                                      } catch (err: any) {
-                                        toast.error(
-                                          err.message ||
-                                            "Failed to save bank details"
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    Save
-                                  </Button>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label>Additional Notes (Optional)</Label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any notes about this checkout..."
-                  className="min-h-[80px]"
-                />
-              </div>
-
-              {/* Deposit Tracking */}
-              <div className="p-4 rounded-lg border space-y-3" style={{background: "rgba(184,150,110,0.06)", borderColor: "rgba(184,150,110,0.25)"}}>
-                <p className="text-xs font-semibold tracking-wider uppercase" style={{color:"#B8966E"}}>Deposit Tracking</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${depositPaid ? "bg-green-500" : "bg-amber-500"}`} />
-                    <span className="text-sm">GHS {depositAmount} deposit</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${depositPaid ? "z-badge z-badge-green" : "bg-amber-100 text-amber-700"}`}>
-                      {depositPaid ? "PAID" : "UNPAID"}
-                    </span>
-                    <button
-                      onClick={() => setDepositPaid(d => !d)}
-                      className="text-xs underline"
-                      style={{color:"#B8966E", background:"none", border:"none", cursor:"pointer"}}
-                    >{depositPaid ? "Mark Unpaid" : "Mark Paid"}</button>
-                  </div>
-                </div>
-                {!depositPaid && (
-                  <p className="text-xs text-muted-foreground">Balance due at checkout includes full service amount as deposit was not collected.</p>
-                )}
-                {depositPaid && (
-                  <p className="text-xs text-green-600">Deposit collected. Balance due: GH₵ {Math.max(0, (Number(booking?.services?.price) || 0) - depositAmount).toFixed(2)}</p>
-                )}
-              </div>
-
-              {/* Price Summary */}
-              <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="z-subtitle">Service Price</span>
-                  <span>GH₵ {Number(originalPrice || booking?.services?.price || 0).toFixed(2)}</span>
-                </div>
-                {appliedPromo && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Promo ({appliedPromo.code}){appliedPromo.discount_type === "percentage" ? ` (${appliedPromo.discount_value}%)` : ""}</span>
-                    <span>- GH₵ {promoDiscount.toFixed(2)}</span>
-                  </div>
-                )}
-                {redeemedCard && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Gift Card</span>
-                    <span>- GH₵ {redeemedCard.value.toFixed(2)}</span>
-                  </div>
-                )}
-                {depositPaid && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Deposit Paid (50%)</span>
-                    <span>- GH₵ {depositAmount.toFixed(2)}</span>
-                  </div>
-                )}
-                {!depositPaid && (
-                  <div className="flex justify-between text-sm text-amber-600">
-                    <span>50% Deposit</span>
-                    <span>GH₵ {depositAmount.toFixed(2)} unpaid</span>
-                  </div>
-                )}
-                <div className="border-t pt-3 flex justify-between text-lg">
-                  <span className="font-semibold">Balance Due</span>
-                  <span className="font-bold text-primary">
+              {/* Pricing Summary */}
+              <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${BORDER}` }}>
+                {row("Service Price", `GH₵ ${Number(originalPrice || booking?.services?.price || 0).toFixed(2)}`)}
+                {appliedPromo && row(`Promo (${appliedPromo.code})`, `- GH₵ ${promoDiscount.toFixed(2)}`)}
+                {redeemedCard && row("Gift Card", `- GH₵ ${redeemedCard.value.toFixed(2)}`)}
+                {depositPaid && row(`Deposit Paid`, `- GH₵ ${depositAmount.toFixed(2)}`)}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "10px", marginTop: "6px" }}>
+                  <span style={{ fontSize: "14px", fontWeight: 700, color: TXT }}>Balance Due</span>
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "26px", fontWeight: 700, color: G_D }}>
                     GH₵ {(() => {
                       const base = Number(originalPrice || booking?.services?.price || 0);
                       const dep = depositPaid ? depositAmount : 0;
@@ -1440,45 +922,166 @@ const Checkout = () => {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* RIGHT — Checkout Form */}
+          <div style={card}>
+            <div style={cardHdr}>
+              <Receipt style={{ width: "16px", height: "16px", color: G }} />
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "19px", fontWeight: 700, color: TXT }}>Complete Checkout</span>
+            </div>
+            <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "18px" }}>
+
+              {/* Assign Staff */}
+              <div>
+                <label style={lbl}>Assign Staff Member *</label>
+                <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                  <SelectTrigger style={{ border: `1.5px solid ${BORDER}`, borderRadius: "10px", fontSize: "13px" }}>
+                    <SelectValue placeholder="Select staff member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staff.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name}{absentStaffIds.has(member.id) ? " ⚠️ Absent" : ""}
+                        {member.specialization ? ` — ${member.specialization}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <label style={lbl}>Payment Method</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  {[
+                    { id: "cash", name: "Cash", icon: Banknote },
+                    { id: "mobile_money", name: "Mobile Money", icon: Smartphone },
+                    { id: "card", name: "Card", icon: CreditCard },
+                    { id: "bank_transfer", name: "Bank Transfer", icon: Building },
+                  ].map((m) => {
+                    const Icon = m.icon as any;
+                    const active = paymentMethod === m.id;
+                    return (
+                      <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id as PaymentMethod)}
+                        style={{ padding: "12px 8px", borderRadius: "10px", border: `2px solid ${active ? G : BORDER}`, background: active ? "#FBF6EE" : WHITE, color: active ? G_D : TXT_MID, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", transition: "all 0.15s", fontFamily: "Montserrat,sans-serif" }}>
+                        <Icon style={{ width: "20px", height: "20px" }} />
+                        <span style={{ fontSize: "11px", fontWeight: 600 }}>{m.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label style={lbl}>Amount (GH₵)</label>
+                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={inp} />
+              </div>
+
+              {/* Deposit Tracking */}
+              <div style={{ background: depositPaid ? "#F0FDF4" : "#FFFBEB", border: `1px solid ${depositPaid ? "#BBF7D0" : "#FDE68A"}`, borderRadius: "12px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <p style={{ fontSize: "11px", fontWeight: 700, color: depositPaid ? "#16A34A" : "#D97706", margin: "0 0 2px", letterSpacing: "0.08em", textTransform: "uppercase" }}>Deposit — GH₵ {depositAmount}</p>
+                    <p style={{ fontSize: "12px", color: TXT_MID, margin: 0 }}>{depositPaid ? "Collected. Balance reduced." : "Not collected. Full price due."}</p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: depositPaid ? "#DCFCE7" : "#FEF9C3", color: depositPaid ? "#16A34A" : "#CA8A04" }}>
+                      {depositPaid ? "PAID" : "UNPAID"}
+                    </span>
+                    <button onClick={() => setDepositPaid(d => !d)} style={{ fontSize: "11px", fontWeight: 600, color: G_D, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                      {depositPaid ? "Mark Unpaid" : "Mark Paid"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gift Card */}
+              <div>
+                <label style={lbl}>Redeem Gift Card</label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input placeholder="Gift card code" value={giftCode} onChange={e => setGiftCode(e.target.value)} style={{ ...inp, flex: 1 }} />
+                  <button onClick={handleRedeemGiftCard} disabled={redeeming || !giftCode || !selectedStaff}
+                    style={{ padding: "9px 16px", borderRadius: "10px", background: redeeming ? "#F0E4CC" : G_D, color: WHITE, border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    {redeeming ? "..." : "Redeem"}
+                  </button>
+                </div>
+                {redeemedCard && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>✓ GH₵ {redeemedCard.value.toFixed(2)} off</p>}
+              </div>
+
+              {/* Promo Code */}
+              <div>
+                <label style={lbl}>Promo Code</label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input placeholder="Enter promo code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} disabled={!!appliedPromo} style={{ ...inp, flex: 1 }} />
+                  {appliedPromo ? (
+                    <button onClick={() => { setAppliedPromo(null); setPromoDiscount(0); setPromoCode(""); setAmount(String(Math.max(0, originalPrice - (redeemedCard?.value ?? 0)).toFixed(2))); }}
+                      style={{ padding: "9px 14px", borderRadius: "10px", background: WHITE, color: "#DC2626", border: "1px solid #FECACA", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                      Remove
+                    </button>
+                  ) : (
+                    <button onClick={handleApplyPromo} disabled={validatingPromo || !promoCode}
+                      style={{ padding: "9px 16px", borderRadius: "10px", background: G_D, color: WHITE, border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                      {validatingPromo ? "..." : "Apply"}
+                    </button>
+                  )}
+                </div>
+                {appliedPromo && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>✓ {appliedPromo.code}: GH₵{promoDiscount.toFixed(2)} off{appliedPromo.discount_type === "percentage" ? ` (${appliedPromo.discount_value}%)` : ""}</p>}
+              </div>
+
+              {/* Bank Transfer Options */}
+              {paymentMethod === "bank_transfer" && (
+                <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${BORDER}` }}>
+                  <label style={lbl}>Transfer Mode</label>
+                  <div style={{ display: "flex", gap: "16px", marginBottom: "12px" }}>
+                    {[{ v: true, l: "Paystack Transfer" }, { v: false, l: "Manual Transfer" }].map(opt => (
+                      <label key={String(opt.v)} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", cursor: "pointer" }}>
+                        <input type="radio" name="transfer_mode" checked={usePaystackForTransfer === opt.v} onChange={() => setUsePaystackForTransfer(opt.v)} />
+                        {opt.l}
+                      </label>
+                    ))}
+                  </div>
+                  {!usePaystackForTransfer && paymentInfo.bank_name && (
+                    <div style={{ fontSize: "12px", color: TXT_MID }}>
+                      <p style={{ margin: "0 0 2px" }}><strong>Bank:</strong> {paymentInfo.bank_name}</p>
+                      <p style={{ margin: "0 0 2px" }}><strong>Account:</strong> {paymentInfo.account_name}</p>
+                      <p style={{ margin: 0 }}><strong>Number:</strong> {paymentInfo.account_number}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Notes */}
+              <div>
+                <label style={lbl}>Notes (Optional)</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any notes about this checkout..." rows={2}
+                  style={{ ...inp, resize: "vertical" as any }} />
+              </div>
 
               {/* Checkout Button */}
-              <Button
-                onClick={handleCheckout}
-                disabled={checkoutDisabled}
-                style={{
-                  width: "100%",
-                  paddingTop: "1.5rem",
-                  paddingBottom: "1.5rem",
-                  fontSize: "1.125rem",
-                  fontWeight: 600,
-                  background: checkoutDisabled
-                    ? "linear-gradient(90deg,#86efac,#34d399)"
-                    : "linear-gradient(90deg,#10b981,#059669)",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "0.375rem",
-                  cursor: checkoutDisabled ? "not-allowed" : "pointer",
-                }}
-              >
+              <button onClick={handleCheckout} disabled={checkoutDisabled}
+                style={{ width: "100%", padding: "14px", borderRadius: "12px", background: checkoutDisabled ? "#E5E0D8" : `linear-gradient(135deg,${G},${G_D})`, color: checkoutDisabled ? TXT_SOFT : WHITE, border: "none", fontSize: "14px", fontWeight: 700, cursor: checkoutDisabled ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "Montserrat,sans-serif", letterSpacing: "0.02em" }}>
                 {processing ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Processing...
+                    <div style={{ width: "16px", height: "16px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: WHITE, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    Processing…
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-5 h-5 mr-2" />
-                    Complete Checkout - GH₵{" "}
-                    {(() => {
+                    <CheckCircle2 style={{ width: "18px", height: "18px" }} />
+                    Complete Checkout — GH₵ {(() => {
                       const base = Number(originalPrice || booking?.services?.price || 0);
                       const dep = depositPaid ? depositAmount : 0;
                       return Math.max(0, base - promoDiscount - (redeemedCard?.value ?? 0) - dep).toFixed(2);
                     })()}
                   </>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+
+            </div>
+          </div>
         </div>
       </div>
     </div>

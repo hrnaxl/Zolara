@@ -108,6 +108,21 @@ export default function PublicBooking() {
     }
   }, []);
 
+  const verifyDepositWithPaystack = async (bookingId: string, bookingRef: string) => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+          body: JSON.stringify({ booking_id: bookingId }),
+        }
+      );
+      const data = await res.json();
+      return data.status === "verified" || data.status === "already_paid";
+    } catch { return false; }
+  };
+
   const pollDepositStatus = async (bookingId: string, attempt: number) => {
     try {
       const { data: bk } = await supabase
@@ -125,10 +140,11 @@ export default function PublicBooking() {
         return;
       }
 
-      if (attempt < 12) {
+      if (attempt < 8) {
         setTimeout(() => pollDepositStatus(bookingId, attempt + 1), 2000);
       } else {
-        // Webhook may arrive shortly; show confirmation anyway
+        // Webhook may not have fired yet — call verify-deposit as fallback
+        const verified = await verifyDepositWithPaystack(bookingId, bk?.booking_ref || "");
         setBookingRef(bk?.booking_ref || bookingId.slice(0, 10).toUpperCase());
         setBookedService(bk?.service_name || "");
         setBookedDate(bk?.preferred_date || "");
@@ -136,7 +152,7 @@ export default function PublicBooking() {
         setStep("done");
       }
     } catch {
-      if (attempt < 12) {
+      if (attempt < 8) {
         setTimeout(() => pollDepositStatus(bookingId, attempt + 1), 2000);
       } else {
         setStep("failed");
@@ -251,7 +267,6 @@ export default function PublicBooking() {
       }
 
       const cleanPhone = phone.replace(/\s/g,"");
-      const clientId = await findOrCreateClient({ name, phone: cleanPhone, email: email || null });
       const bRef = `ZB${Date.now().toString(36).toUpperCase()}`;
       const notesFull = [
         notes,
@@ -259,6 +274,7 @@ export default function PublicBooking() {
         promoApplied ? `Promo: ${promoApplied.code}` : "",
       ].filter(Boolean).join("\n");
 
+      // Insert booking FIRST — create client only after booking succeeds
       const { data: newBooking, error: bookingError } = await supabase
         .from("bookings")
         .insert({
@@ -272,12 +288,22 @@ export default function PublicBooking() {
           preferred_date: preferredDate, preferred_time: normalizedTime,
           price: total, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false,
           notes: notesFull, status: "pending",
-          booking_ref: bRef, client_id: clientId || null,
+          booking_ref: bRef, client_id: null,
         } as any)
         .select("id")
         .single();
 
       if (bookingError) throw bookingError;
+
+      // Booking succeeded — now safe to create/find client and link it
+      try {
+        const clientId = await findOrCreateClient({ name, phone: cleanPhone, email: email || null });
+        if (clientId) {
+          await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", newBooking.id);
+        }
+      } catch (clientErr) {
+        console.warn("Client creation failed (booking saved):", clientErr);
+      }
 
       const returnUrl = `${window.location.origin}/book?booking_id=${newBooking.id}`;
 
