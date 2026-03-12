@@ -168,18 +168,28 @@ const Clients = () => {
       const from = (pageNumber - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data, count, error } = await supabase
-        .from("clients")
-        .select("*, bookings(id, preferred_date, price, status, service_name)", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(from, to);
+      // Fetch clients and bookings separately — no FK relationship defined in DB
+      const [{ data, count, error }, { data: allBookings }] = await Promise.all([
+        supabase.from("clients").select("*", { count: "exact" })
+          .order("created_at", { ascending: false }).range(from, to),
+        supabase.from("bookings")
+          .select("id, client_id, preferred_date, price, status, service_name"),
+      ]);
 
       if (error) throw error;
 
-      // Compute real visit count from actual bookings (exclude cancelled/no_show)
+      // Group bookings by client_id
+      const bookingsByClient: Record<string, any[]> = {};
+      for (const bk of (allBookings || [])) {
+        if (!bk.client_id) continue;
+        if (!bookingsByClient[bk.client_id]) bookingsByClient[bk.client_id] = [];
+        bookingsByClient[bk.client_id].push(bk);
+      }
+
+      // Attach bookings and compute real visit count (exclude cancelled/no_show)
       const enriched = (data || []).map((cl: any) => {
-        const bks = cl.bookings || [];
-        const validBookings = bks.filter((b: any) => !["cancelled","no_show"].includes(b.status));
+        const bks = bookingsByClient[cl.id] || [];
+        const validBookings = bks.filter((b: any) => !["cancelled", "no_show"].includes(b.status));
         return { ...cl, bookings: bks, total_visits: validBookings.length };
       });
 
