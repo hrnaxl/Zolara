@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
-import { voidGiftCard, expireGiftCard, deleteGiftCard } from "@/lib/useGiftCards";
+import { voidGiftCard, expireGiftCard, deleteGiftCard, markGiftCardSold, resendGiftCardEmail } from "@/lib/useGiftCards";
 import * as XLSX from "xlsx";
 
 // ─── Design tokens ─────────────────────────────────────────────
@@ -147,13 +147,14 @@ export default function GiftCards() {
         const res = await deleteGiftCard(confirmCard.id);
         if (res.error) throw res.error;
         toast.success("Card deleted");
-      } else if (confirmAct === "sold" || confirmAct === "resend") {
-        const { data, error: fnErr } = await supabase.functions.invoke("admin-gift-card-action", {
-          body: { id: confirmCard.id, action: confirmAct },
-        });
-        if (fnErr) throw fnErr;
-        if (data?.error) throw new Error(data.error);
-        toast.success(confirmAct === "sold" ? "Card marked as sold/issued" : "Email re-queued — will send within 5 minutes");
+      } else if (confirmAct === "sold") {
+        const res = await markGiftCardSold(confirmCard.id);
+        if (res.error) throw res.error;
+        toast.success("Card marked as sold/issued");
+      } else if (confirmAct === "resend") {
+        const res = await resendGiftCardEmail(confirmCard.id);
+        if (res.error) throw res.error;
+        toast.success("Email re-queued — will send within 5 minutes");
       }
       setConfirmCard(null); setConfirmAct(null);
       await load();

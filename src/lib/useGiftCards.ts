@@ -259,3 +259,23 @@ export function useGiftCards(initialOpts: GiftCardFetchOptions = {}) {
 }
 
 export default useGiftCards;
+
+export async function markGiftCardSold(id: string) {
+  try {
+    const { data, error } = await (supabase as any).rpc("rpc_mark_gift_card_sold", { p_id: id });
+    if (error) throw error;
+    return { success: data?.[0]?.success ?? true, error: null };
+  } catch (error: any) {
+    return { success: false, error };
+  }
+}
+
+export async function resendGiftCardEmail(id: string) {
+  try {
+    const { data, error } = await (supabase as any).rpc("rpc_resend_gift_card_email", { p_id: id });
+    if (error) throw error;
+    return { success: data?.[0]?.success ?? true, error: null };
+  } catch (error: any) {
+    return { success: false, error };
+  }
+}
