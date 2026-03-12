@@ -1,8 +1,9 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useEffect } from "react";
 
 const LOGO = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 
-const SYSTEM_PROMPT = `You are Amanda, the AI beauty consultant for Zolara Beauty Studio in Tamale, Ghana. You are warm, elegant, knowledgeable, and a luxury sales consultant, not just a FAQ bot. Your job is to make clients feel excited about visiting Zolara and help them book.
+const BASE_PROMPT = `You are Amanda, the AI beauty consultant for Zolara Beauty Studio in Tamale, Ghana. You are warm, elegant, knowledgeable, and a luxury sales consultant, not just a FAQ bot. Your job is to make clients feel excited about visiting Zolara and help them book.
 
 PERSONALITY:
 - Speak with warmth, elegance, and sophistication
@@ -22,94 +23,6 @@ ABOUT ZOLARA:
 - Instagram: @zolarastudio
 - Perks: Free WiFi, free bottled water, Arctic AC, Ghana's first salon loyalty rewards program, Exit Ritual (perfume spritz, chocolate, mirror check)
 
-SERVICES AND PRICES:
-HAIR CARE:
-- Zolara Signature Wash GHS 80
-- Deep Conditioning Treatment GHS 120
-- Hot Oil Treatment GHS 100
-
-RETOUCHING:
-- Retouching with Normal Cream GHS 100
-- Retouching with Box Cream GHS 120
-- Retouching with Client's Cream GHS 65
-
-NATURAL STYLING (no extensions):
-- Natural Cornrows Simple GHS 80, Creative GHS 100, Intricate Small GHS 120
-- Sleek Ponytail GHS 150
-- Natural Hair Twists GHS 120 to 180
-
-KIDS (Ages 3 to 12):
-- Simple Cornrows GHS 50, Styled GHS 65
-- Braids with Extensions Short GHS 120, Medium GHS 155
-- Natural Twists GHS 75
-
-CORNROWS WITH EXTENSIONS:
-- Short (shoulder) GHS 200, Medium (bra strap) GHS 250, Waist GHS 310, Long GHS 400, Extra Long GHS 460+
-- Add Curls any length: +GHS 65
-
-RASTA / DREADLOCK BRAIDS:
-- Short GHS 300, Back GHS 365, Waist GHS 425, Butt GHS 490, Extra Long GHS 540+
-
-CORNROW RASTA:
-- Short GHS 275, Medium GHS 325, Waist GHS 425, Long GHS 490, Extra Long GHS 540+
-
-FULANI BRAIDS WITH CURLS:
-- Short GHS 310, Medium GHS 375, Waist GHS 485, Long GHS 505, Extra Long GHS 555+
-
-BOHO KNOTLESS WITH CURLS (most popular):
-- Short GHS 320, Medium GHS 380, Waist GHS 495, Long GHS 535, Extra Long GHS 585+
-
-BRAID EXTRAS:
-- Braid Removal GHS 75 to 150
-- Braid Maintenance GHS 100 to 185
-- Client-supplied hair discount: GHS 65 off
-
-LASH EXTENSIONS:
-- Normal Cluster GHS 65, Cateye Cluster GHS 90
-- Classic Set GHS 180, Classic Cateye GHS 220
-- Hybrid Set GHS 240, Hybrid Cateye GHS 275
-- Wispy Set GHS 295
-- Volume Set GHS 295, Volume Cateye GHS 330
-- Mega Volume GHS 350, Mega Volume Cateye GHS 385
-- Lash Removal GHS 90, Button Lashes GHS 65
-- Refills: Classic GHS 75, Hybrid GHS 100, Volume GHS 150, Mega Volume GHS 185
-
-NAILS:
-- Classic Manicure GHS 100, Special Manicure GHS 150
-- Classic Pedicure GHS 150, Jelly Pedicure GHS 250, Signature Pedicure GHS 300
-- Mani + Pedi Combo GHS 225, Special Combo GHS 400
-- Acrylic: Short GHS 150, Medium GHS 200, Long GHS 250, Extra Long GHS 310 to 370
-- Acrylic Refill GHS 65 to 185
-- Gel Polish: Short GHS 80, Medium GHS 100, Long GHS 110, Extra Long GHS 135
-- Gel Removal GHS 40, Gel Change GHS 100 to 150
-- Nail Art: Simple per nail GHS 15 to 25, Medium GHS 30 to 40, Complex GHS 50 to 65, Full Set GHS 125 to 350
-
-MAKEUP:
-- Natural Glow GHS 125, Soft Glam GHS 185
-- Full Glam GHS 250, Evening/Cocktail GHS 220, Birthday GHS 220, Traditional GHS 220
-- Bridal Trial GHS 300, Wedding Day GHS 600, Bridal Package GHS 840
-- Bridesmaid per person GHS 185, Mother of Bride/Groom GHS 220
-- Photoshoot GHS 300, Stage/Performance GHS 250
-- False Lash Application addon GHS 40, Airbrush addon GHS 65, Contouring addon GHS 40
-
-WIG SERVICES:
-- Glueless Install GHS 185, Glued Install GHS 250, Lace Front Basic GHS 220
-- HD Lace Premium GHS 305, 360 Lace GHS 270, Full Lace GHS 340
-- U-Part/V-Part GHS 150
-- Wig Styling GHS 125 to 245, Coloring GHS 185 to 360
-- Wig Removal GHS 75, Reinstall GHS 150 to 220
-- Silk Press GHS 185 to 305, Keratin Treatment GHS 365 to 600
-
-GIFT CARDS:
-- Silver GHS 220, Gold GHS 450, Platinum GHS 650, Diamond Luxury Pass GHS 1,000
-- Valid 12 months, one-time use, redeemable for any service
-
-BOOKING AND DEPOSITS:
-- All bookings require a GHS 50 deposit paid online at zolarasalon.com/book
-- Deposit is applied to the total cost; client pays balance at the studio
-- Cancellations: 24+ hours for full reschedule, less than 12 hours forfeits deposit
-- Cancellations must be done by phone call only
-
 LOYALTY PROGRAM:
 - 1 stamp per GHS 100 spent
 - 20 stamps = GHS 50 discount
@@ -120,17 +33,104 @@ DISCOUNTS:
 - Group 5+ people: 10% off
 - Refer 3 friends: GHS 100 credit
 
+BOOKING AND DEPOSITS:
+- All bookings require a GHS 50 deposit paid online at zolarasalon.com/book
+- Deposit is applied to the total cost; client pays balance at the studio
+- Cancellations: 24+ hours for full reschedule, less than 12 hours forfeits deposit
+- Cancellations must be done by phone call only
+
 ZOLARA MATCH:
 If someone asks "what should I get" or wants a recommendation or says "Zolara Match", ask:
 1. What's the occasion? (everyday, date night, wedding, event, work)
 2. What's your budget range?
 3. Do you already have any services booked or done?
-Then give a personalised recommendation with exact prices from the list above.
+Then give a personalised recommendation with exact prices from the live service data below.
 
 BOOKING:
 Always end with: "Ready to book? Visit zolarasalon.com/book or call 059 436 5314"
 
-Keep responses concise: 2 to 4 sentences max unless recommending services. Be warm and welcoming.`;
+Keep responses concise: 2 to 4 sentences max unless recommending services. Be warm and welcoming.
+
+LIVE DATA FROM SYSTEM (use these exact prices — ignore any outdated prices you may know):
+`;
+
+async function buildSystemPrompt(): Promise<string> {
+  try {
+    const [svcRes, varRes, addRes, gcRes, promoRes] = await Promise.all([
+      supabase.from("services").select("name, category, price, description").eq("is_active", true).order("category").order("name"),
+      (supabase as any).from("service_variants").select("service_id, name, price_adjustment").eq("is_active", true).order("sort_order"),
+      (supabase as any).from("service_addons").select("service_id, name, price").eq("is_active", true).order("sort_order"),
+      (supabase as any).from("gift_cards").select("name, amount, description").eq("is_active", true).order("amount").limit(20),
+      (supabase as any).from("promo_codes").select("code, discount_type, discount_value, description").eq("is_active", true).limit(20),
+    ]);
+
+    const services = svcRes.data || [];
+    const variants: Record<string, any[]> = {};
+    for (const v of (varRes.data || [])) {
+      if (!variants[v.service_id]) variants[v.service_id] = [];
+      variants[v.service_id].push(v);
+    }
+    const addons: Record<string, any[]> = {};
+    for (const a of (addRes.data || [])) {
+      if (!addons[a.service_id]) addons[a.service_id] = [];
+      addons[a.service_id].push(a);
+    }
+
+    // Group services by category
+    const grouped: Record<string, any[]> = {};
+    for (const s of services) {
+      if (!grouped[s.category]) grouped[s.category] = [];
+      grouped[s.category].push(s);
+    }
+
+    let serviceBlock = "\nSERVICES AND PRICES (live from system):\n";
+    for (const [cat, svcs] of Object.entries(grouped)) {
+      serviceBlock += `
+${cat.toUpperCase()}:
+`;
+      for (const s of svcs) {
+        const vars = variants[s.id] || [];
+        if (vars.length > 0) {
+          const varStr = vars.map((v: any) => `${v.name} GHS ${Number(v.price_adjustment).toLocaleString()}`).join(", ");
+          serviceBlock += `- ${s.name}: ${varStr}
+`;
+          const adds = addons[s.id] || [];
+          if (adds.length > 0) {
+            serviceBlock += `  Add-ons: ${adds.map((a: any) => `${a.name} +GHS ${Number(a.price).toLocaleString()}`).join(", ")}
+`;
+          }
+        } else {
+          const price = Number(s.price);
+          serviceBlock += `- ${s.name}${price > 0 ? ` GHS ${price.toLocaleString()}` : ""}
+`;
+        }
+      }
+    }
+
+    let giftBlock = "";
+    if (gcRes.data && gcRes.data.length > 0) {
+      giftBlock = "\nGIFT CARDS (live):\n";
+      for (const g of gcRes.data) {
+        giftBlock += `- ${g.name}: GHS ${Number(g.amount).toLocaleString()}${g.description ? ` (${g.description})` : ""}\n`;
+      }
+      giftBlock += "Valid 12 months, redeemable for any service.\n";
+    }
+
+    let promoBlock = "";
+    if (promoRes.data && promoRes.data.length > 0) {
+      promoBlock = "\nACTIVE PROMO CODES (share only when asked):\n";
+      for (const p of promoRes.data) {
+        const disc = p.discount_type === "percentage" ? `${p.discount_value}% off` : `GHS ${p.discount_value} off`;
+        promoBlock += `- ${p.code}: ${disc}${p.description ? ` (${p.description})` : ""}\n`;
+      }
+    }
+
+    return BASE_PROMPT + serviceBlock + giftBlock + promoBlock;
+  } catch {
+    return BASE_PROMPT + "\n(Live service data temporarily unavailable. Use your best knowledge of Zolara services.)\n";
+  }
+}
+
 
 interface Message {
   role: "user" | "assistant";
@@ -152,6 +152,7 @@ export default function AmandaWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showQuick, setShowQuick] = useState(true);
+  const [systemPrompt, setSystemPrompt] = useState(BASE_PROMPT);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -160,7 +161,10 @@ export default function AmandaWidget() {
   }, [messages, loading]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 300);
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+      buildSystemPrompt().then(p => setSystemPrompt(p));
+    }
   }, [open]);
 
   const send = async (text: string) => {
@@ -179,7 +183,7 @@ export default function AmandaWidget() {
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 600,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
