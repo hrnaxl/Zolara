@@ -73,7 +73,7 @@ export default function LandingPage() {
     const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     // Check manual closure for today
     const closedDates: string[] = salonSettings?.closed_dates || [];
-    if (closedDates.includes(localDate)) return false;
+    if (closedDates.some((d: string) => d === localDate || d.startsWith(localDate + "|"))) return false;
     // Closed on Sundays
     if (now.getDay() === 0) return false;
     // Check hours

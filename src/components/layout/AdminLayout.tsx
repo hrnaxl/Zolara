@@ -869,7 +869,7 @@ const AdminDashboard = () => {
             {stats.depositCount} booking{stats.depositCount !== 1 ? "s" : ""} with deposit paid
           </div>
           <div style={{ marginTop:"12px", fontSize:"10px", color:"rgba(200,169,126,0.6)", fontStyle:"italic" }}>
-            Not included in revenue — these are advance payments already counted at checkout.
+            Added to revenue when the service is completed at checkout.
           </div>
         </div>
 
