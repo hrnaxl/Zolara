@@ -72,6 +72,13 @@ const Stat = ({ label, value }: { label: string; value: () => string }) => {
   );
 };
 
+// Helper — returns true if a date string falls within [start, end]
+const bookingInRange = (dateStr: string | null | undefined, start: Date, end: Date): boolean => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr + "T00:00:00");
+  return d >= start && d <= end;
+};
+
 const Clients = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [filteredClients, setFilteredClients] = useState<any[]>([]);
