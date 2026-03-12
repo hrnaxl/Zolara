@@ -936,12 +936,11 @@ const Bookings = () => {
               <Plus className="w-4 h-4 mr-2" /> New Booking
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg p-0 overflow-hidden" style={{maxHeight:"92vh"}}>
-            <div style={{padding:"20px 24px 12px",borderBottom:"1px solid #F0EAE2",flexShrink:0}}>
+          <DialogContent className="max-w-lg" style={{padding:0,display:"block",maxHeight:"90vh",overflow:"hidden"}}>
+            <div style={{padding:"20px 24px 14px",borderBottom:"1px solid #F0EAE2"}}>
               <h2 style={{fontSize:"18px",fontWeight:700,margin:0}}>{editingBookingId ? "Update Booking" : "Create New Booking"}</h2>
             </div>
-
-            <div style={{overflowY:"auto",overflowX:"hidden",height:"calc(92vh - 70px)",padding:"16px 24px 24px"}}>
+            <div style={{height:"calc(90vh - 65px)",overflowY:"scroll",overflowX:"hidden",WebkitOverflowScrolling:"touch" as any,padding:"16px 24px 32px"}}>
               <form onSubmit={(e) => handleSubmit(e)} style={{display:"flex",flexDirection:"column",gap:"16px"}}>
 
               {/* ── CLIENT ── */}
