@@ -201,6 +201,10 @@ export default function LandingPage() {
           style={{ marginTop: "28px", fontFamily: "'Montserrat',sans-serif", display: "block", textAlign: "center", padding: "16px", background: `linear-gradient(135deg, #8B6914, ${gold})`, color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: "11px", letterSpacing: "0.14em", borderRadius: "2px" }}>
           BOOK AN APPOINTMENT
         </Link>
+        <Link to="/app/auth" onClick={() => setMobileMenuOpen(false)}
+          style={{ marginTop: "16px", fontFamily: "'Montserrat',sans-serif", display: "block", textAlign: "center", padding: "14px", background: "rgba(200,169,126,0.08)", color: "rgba(200,169,126,0.7)", textDecoration: "none", fontWeight: 700, fontSize: "11px", letterSpacing: "0.14em", borderRadius: "2px", border: "1px solid rgba(200,169,126,0.2)" }}>
+          STAFF LOGIN
+        </Link>
         <div style={{ marginTop: "auto", paddingTop: "28px" }}>
           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", marginBottom: "5px" }}>059 436 5314</p>
           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)" }}>020 884 8707</p>

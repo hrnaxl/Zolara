@@ -922,6 +922,26 @@ const Bookings = () => {
 
   return (
     <div className="z-page">
+      <style>{`
+        .booking-dialog {
+          max-height: 90vh;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
+        @media (max-width: 640px) {
+          [data-radix-dialog-content].booking-dialog {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            border-radius: 0 !important;
+            transform: none !important;
+            translate: none !important;
+          }
+        }
+      `}</style>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Bookings</h1>
@@ -940,7 +960,7 @@ const Bookings = () => {
               <Plus className="w-4 h-4 mr-2" /> New Booking
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg" style={{maxHeight:"88vh",overflowY:"auto",overflowX:"hidden",padding:"0"}}>
+          <DialogContent className="booking-dialog" style={{padding:"0"}}>
             <div style={{position:"sticky",top:0,background:"#fff",zIndex:10,padding:"20px 24px 14px",borderBottom:"1px solid #F0EAE2"}}>
               <h2 style={{fontSize:"18px",fontWeight:700,margin:0}}>{editingBookingId ? "Update Booking" : "Create New Booking"}</h2>
             </div>
