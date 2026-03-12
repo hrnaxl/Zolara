@@ -560,24 +560,23 @@ const Checkout = () => {
         if (bookingError) throw bookingError;
 
         // @ts-ignore
+        // amount = balance collected now + deposit already held = full service revenue
+        const totalRevenue = paymentAmount + dep;
         const { error: paymentError } = await supabase.from("sales").insert({
           booking_id: booking.id,
-          amount: paymentAmount,
+          amount: totalRevenue,
           payment_method: paymentMethod,
           status: "completed",
           client_name: booking.client_name || null,
           service_name: booking.service_name || null,
           client_id: booking.clients?.id || null,
           staff_id: selectedStaff || null,
-          notes: notes || `${capitalizedPaymentMethod} payment recorded at checkout`,
+          notes: [notes || `${capitalizedPaymentMethod} payment recorded at checkout`, dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
           promo_code: appliedPromo?.code || null,
           promo_discount: promoDiscount > 0 ? promoDiscount : null,
         });
 
         if (paymentError) throw paymentError;
-
-        // NOTE: deposit was already recorded in sales by paystack-webhook on payment.
-        // No duplicate insert needed here — it's already in revenue.
 
         // Update local UI state
         setPaymentMethod(paymentMethod);
@@ -631,13 +630,13 @@ const Checkout = () => {
       if (paymentMethod === "bank_transfer" && !usePaystackForTransfer) {
         const { error: paymentError } = await supabase.from("sales").insert({
           booking_id: booking.id,
-          amount: paymentAmount,
+          amount: paymentAmount + dep,
           payment_method: "bank_transfer",
           status: "pending",
           client_name: booking.client_name || null,
           service_name: booking.service_name || null,
           client_id: booking.clients?.id || null,
-          notes: notes || "Manual bank transfer (pending)",
+          notes: [notes || "Manual bank transfer (pending)", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
           promo_code: appliedPromo?.code || null,
           promo_discount: promoDiscount > 0 ? promoDiscount : null,
         });
@@ -661,13 +660,13 @@ const Checkout = () => {
       // bank_transfer via Paystack (usePaystackForTransfer=true) → just record as pending
       const { error: btErr } = await supabase.from("sales").insert({
         booking_id: booking.id,
-        amount: paymentAmount,
+        amount: paymentAmount + dep,
         payment_method: "bank_transfer",
         status: "pending",
         client_name: booking.client_name || null,
         service_name: booking.service_name || null,
         client_id: booking.clients?.id || null,
-        notes: notes || "Bank transfer — awaiting confirmation",
+        notes: [notes || "Bank transfer — awaiting confirmation", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
         promo_code: appliedPromo?.code || null,
         promo_discount: promoDiscount > 0 ? promoDiscount : null,
       });

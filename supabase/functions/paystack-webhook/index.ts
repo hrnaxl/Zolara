@@ -167,16 +167,8 @@ Deno.serve(async (req) => {
         console.error("Client link error:", clientErr);
       }
 
-      // Insert sales record for deposit
-      await supabase.from("sales").insert({
-        booking_id: newBooking.id,
-        amount: depositGhs,
-        payment_method: "deposit",
-        status: "completed",
-        client_name: meta.client_name || null,
-        service_name: meta.service_name || null,
-        notes: `Paystack deposit — ref: ${paymentRef}`,
-      }).catch((e: any) => console.error("Sales insert error:", e));
+      // NO sales record on deposit — revenue is recorded at checkout only.
+      // Deposit is money in hand (liability) until service completes.
 
       // Send confirmation SMS
       try {

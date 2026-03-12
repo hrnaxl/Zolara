@@ -317,9 +317,9 @@ const AdminDashboard = () => {
         supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("created_at", startOfThisMonth).lte("created_at", endOfThisMonth),
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
-        // deposits collected this period
-        // Deposits: from sales table (online Paystack) + from bookings.deposit_paid=true (in-store)
-        supabase.from("sales").select("amount, count:id").eq("payment_method", "deposit").eq("status", "completed").gte("created_at", periodStartTs).lte("created_at", periodEndTs),
+        // deposits in hand: confirmed bookings with deposit paid, not yet checked out
+        // These are collected but not yet revenue — shown as "pending revenue" on dashboard
+        supabase.from("bookings" as any).select("deposit_amount").eq("deposit_paid", true).in("status", ["confirmed", "pending"]),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
@@ -556,9 +556,9 @@ const AdminDashboard = () => {
         lowBookingThreshold: 3,
       });
 
-      // Deposits collected — combine sales table (Paystack) + bookings with deposit_paid=true
-      // Deposits collected — single source of truth: sales table (webhook writes here on Paystack confirm)
-      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.amount || 0), 0) || 0;
+      // Deposits in hand: confirmed bookings with deposit paid, not yet checked out
+      // This is money collected but not yet earned revenue — useful operational view
+      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
       const depositCount = depositsRes.data?.length || 0;
 
       // Promo savings breakdown
@@ -861,17 +861,17 @@ const AdminDashboard = () => {
         {/* DEPOSITS CARD */}
         <div className="zc-flat au" style={{ animationDelay:"0.36s", padding:"24px" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
-            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>DEPOSITS COLLECTED · {filterLabel}</span>
+            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>DEPOSITS IN HAND</span>
             <span style={{ fontSize:"16px" }}>🔒</span>
           </div>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2vw,30px)", fontWeight:700, color: TXT, marginBottom:"6px" }}>
             GHS {stats.periodDeposits.toLocaleString("en", { minimumFractionDigits:2 })}
           </div>
           <div style={{ fontSize:"11px", color: TXT_SOFT }}>
-            {stats.depositCount} booking{stats.depositCount !== 1 ? "s" : ""} with deposit paid
+            {stats.depositCount} confirmed booking{stats.depositCount !== 1 ? "s" : ""} awaiting checkout
           </div>
           <div style={{ marginTop:"12px", fontSize:"10px", color:"rgba(200,169,126,0.6)", fontStyle:"italic" }}>
-            Included in revenue. Balance collected at checkout.
+            Not counted as revenue yet. Added to revenue at checkout.
           </div>
         </div>
 
