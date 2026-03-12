@@ -170,14 +170,21 @@ const Clients = () => {
 
       const { data, count, error } = await supabase
         .from("clients")
-        .select("*", { count: "exact" })
+        .select("*, bookings(id, preferred_date, price, status, service_name)", { count: "exact" })
         .order("created_at", { ascending: false })
         .range(from, to);
 
       if (error) throw error;
 
-      setClients(data || []);
-      setFilteredClients(data || []);
+      // Compute real visit count from actual bookings (exclude cancelled/no_show)
+      const enriched = (data || []).map((cl: any) => {
+        const bks = cl.bookings || [];
+        const validBookings = bks.filter((b: any) => !["cancelled","no_show"].includes(b.status));
+        return { ...cl, bookings: bks, total_visits: validBookings.length };
+      });
+
+      setClients(enriched);
+      setFilteredClients(enriched);
       setTotalClients(count || 0);
     } catch (error) {
       console.error("Error fetching clients:", error);
