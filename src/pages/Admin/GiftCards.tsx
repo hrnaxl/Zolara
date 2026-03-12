@@ -1,718 +1,554 @@
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
-import {
-  fetchGiftCards,
-  importGiftCards,
-  checkExistingGiftCards,
-  voidGiftCard,
-  expireGiftCard,
-  deleteGiftCard,
-} from "@/lib/useGiftCards";
-import type { GiftCard } from "@/lib/useGiftCards";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { GiftCardItem } from "@/components/giftcards/GiftCardItem";
-import { EditGiftCardDialog } from "@/components/giftcards/EditGiftCardDialog";
-import { Search, Download, Upload, Plus, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useSettings } from "@/context/SettingsContext";
+import { toast } from "sonner";
+import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
+import * as XLSX from "xlsx";
 
-const CODE_REGEX = /^ZLR-(\d{4})-(SLV|GLD|PLT|DMD)-B(\d{2})-([A-Z0-9]{6})$/;
+// ─── Design tokens ─────────────────────────────────────────────
+const G      = "#C8A97E";
+const G_D    = "#8B6914";
+const CREAM  = "#F8F3EE";
+const DARK   = "#1C160E";
+const BORDER = "rgba(200,169,126,0.18)";
+const SHADOW = "0 2px 12px rgba(0,0,0,0.06)";
+const TXT    = "#1C160E";
+const TXT_M  = "#6B5C45";
+const TXT_S  = "#9C8878";
+const WHITE  = "#FFFFFF";
 
-type PreviewRow = {
-  final_code: string;
-  tier?: string | null;
-  year?: number | null;
-  batch?: string | null;
-  card_value?: number | null;
-  expire_at?: string | null;
-  allowed_service_ids?: string[] | null;
-  allowed_service_categories?: string[] | null;
-  note?: string | null;
-  _valid?: boolean;
-  _message?: string | null;
+const TIER_GRAD: Record<string, string> = {
+  Silver:   "linear-gradient(135deg,#b0b0b0,#e8e8e8,#909090)",
+  Gold:     "linear-gradient(135deg,#B8975A,#F5D98A,#8C6A30)",
+  Platinum: "linear-gradient(135deg,#4B5563,#9CA3AF,#374151)",
+  Diamond:  "linear-gradient(135deg,#312E81,#818CF8,#1E1B4B)",
+  SLV:      "linear-gradient(135deg,#b0b0b0,#e8e8e8,#909090)",
+  GLD:      "linear-gradient(135deg,#B8975A,#F5D98A,#8C6A30)",
+  PLT:      "linear-gradient(135deg,#4B5563,#9CA3AF,#374151)",
+  DMD:      "linear-gradient(135deg,#312E81,#818CF8,#1E1B4B)",
 };
 
-const GiftCards = () => {
+const TIER_ACCENT: Record<string, string> = {
+  Silver: "#9CA3AF", SLV: "#9CA3AF",
+  Gold: "#B8975A",   GLD: "#B8975A",
+  Platinum: "#6B7280", PLT: "#6B7280",
+  Diamond: "#6366F1", DMD: "#6366F1",
+};
+
+const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
+  pending_payment: { bg: "#FEF9C3", color: "#854D0E", label: "Awaiting Payment" },
+  pending_send:    { bg: "#DBEAFE", color: "#1D4ED8", label: "Sending Email…"   },
+  active:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
+  unused:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
+  available:       { bg: "#DCFCE7", color: "#166534", label: "Available"        },
+  redeemed:        { bg: "#F3F4F6", color: "#374151", label: "Redeemed"         },
+  expired:         { bg: "#FEF3C7", color: "#92400E", label: "Expired"          },
+  void:            { bg: "#FEE2E2", color: "#991B1B", label: "Void"             },
+};
+
+type Tab = "all" | "digital" | "physical";
+
+export default function GiftCards() {
   const { userRole, roleReady } = useSettings();
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
-  const [importing, setImporting] = useState(false);
+  const isOwner = roleReady && userRole === "owner";
 
-  const [list, setList] = useState<GiftCard[]>([]);
-  const [loadingList, setLoadingList] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [tierFilter, setTierFilter] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  // ─── State ───────────────────────────────────────────────────
+  const [cards, setCards]           = useState<any[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [tab, setTab]               = useState<Tab>("all");
+  const [statusFilter, setStatus]   = useState("all");
+  const [search, setSearch]         = useState("");
+  const [expanded, setExpanded]     = useState<string | null>(null);
 
-  // Expanded card tracking
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  // Physical batch generator
+  const [genOpen, setGenOpen]       = useState(false);
+  const [genTier, setGenTier]       = useState<GiftCardTier>("Gold");
+  const [genQty, setGenQty]         = useState(10);
+  const [genBatch, setGenBatch]     = useState("");
+  const [genLoading, setGenLoading] = useState(false);
+  const [newBatch, setNewBatch]     = useState<any[]>([]);
 
-  // Edit dialog
-  const [editCard, setEditCard] = useState<GiftCard | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Confirm actions
+  const [confirmCard, setConfirmCard] = useState<any>(null);
+  const [confirmAct, setConfirmAct]   = useState<"void"|"expire"|"delete"|"sold"|"resend"|null>(null);
+  const [actLoading, setActLoading]   = useState(false);
 
-  const fetchList = async () => {
-    setLoadingList(true);
+  // ─── Fetch ───────────────────────────────────────────────────
+  const load = async () => {
+    setLoading(true);
     try {
-      const res = await fetchGiftCards({
-        limit: 1000,
-        orderBy: { column: "status", ascending: true },
-      });
-      if (res.error) throw res.error;
-      setList(res.data || []);
-    } catch (err: any) {
-      console.error(err);
+      const { data, error } = await (supabase as any)
+        .from("gift_cards")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      setCards(data || []);
+    } catch (e: any) {
       toast.error("Failed to load gift cards");
     } finally {
-      setLoadingList(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchList();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  const handleFile = async (file?: File) => {
-    if (!file) return;
-    setFileName(file.name);
+  // ─── Helpers ─────────────────────────────────────────────────
+  const getCode  = (c: any) => c.code || c.final_code || "—";
+  const getValue = (c: any) => Number(c.amount || c.card_value || c.balance || 0);
+  const getExp   = (c: any) => c.expires_at || c.expire_at;
+  const isDigit  = (c: any) => c.card_type === "digital" || c.delivery_type === "email" || (!c.card_type && !c.is_admin_generated);
+  const isPhys   = (c: any) => c.card_type === "physical" || c.delivery_type === "physical" || c.is_admin_generated;
 
-    if (file.name.toLowerCase().endsWith(".csv")) {
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      if (lines.length === 0) {
-        toast.error("Empty CSV file");
-        return;
-      }
-      const header = lines[0].split(",").map((h) => h.trim());
-      const raw = lines.slice(1).map((line) => {
-        const cols = line.split(",");
-        const obj: any = {};
-        header.forEach((h, i) => {
-          obj[h] = cols[i] ? cols[i].trim() : "";
-        });
-        return obj;
-      });
-      mapRawToPreview(raw);
-      return;
-    }
+  // ─── Stats ───────────────────────────────────────────────────
+  const totalActive    = cards.filter(c => ["active","unused","available"].includes(c.status)).length;
+  const totalPendingEmail = cards.filter(c => c.status === "pending_send").length;
+  const thisMonth      = cards.filter(c => {
+    const d = new Date(c.created_at);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && ["active","unused","available","redeemed"].includes(c.status) && c.payment_status === "paid";
+  });
+  const monthRevenue   = thisMonth.reduce((s, c) => s + getValue(c), 0);
+  const totalRedeemed  = cards.filter(c => c.status === "redeemed").length;
 
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheet = workbook.SheetNames[0];
-      const sheetData = XLSX.utils.sheet_to_json<Record<string, any>>(
-        workbook.Sheets[sheet],
-        { defval: null }
+  // ─── Filter ──────────────────────────────────────────────────
+  const filtered = cards.filter(c => {
+    if (tab === "digital" && !isDigit(c)) return false;
+    if (tab === "physical" && !isPhys(c)) return false;
+    if (statusFilter !== "all" && c.status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        (getCode(c) || "").toLowerCase().includes(q) ||
+        (c.buyer_name || "").toLowerCase().includes(q) ||
+        (c.recipient_name || "").toLowerCase().includes(q) ||
+        (c.recipient_email || "").toLowerCase().includes(q) ||
+        (c.serial_number || "").toLowerCase().includes(q)
       );
-      mapRawToPreview(sheetData as any[]);
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Failed to parse file");
+    }
+    return true;
+  });
+
+  // ─── Actions ─────────────────────────────────────────────────
+  const doAction = async () => {
+    if (!confirmCard || !confirmAct) return;
+    setActLoading(true);
+    try {
+      if (confirmAct === "void") {
+        await (supabase as any).from("gift_cards").update({ status: "void" }).eq("id", confirmCard.id);
+        toast.success("Card voided");
+      } else if (confirmAct === "expire") {
+        await (supabase as any).from("gift_cards").update({ status: "expired" }).eq("id", confirmCard.id);
+        toast.success("Card marked expired");
+      } else if (confirmAct === "delete") {
+        await (supabase as any).from("gift_cards").delete().eq("id", confirmCard.id);
+        toast.success("Card deleted");
+      } else if (confirmAct === "sold") {
+        await (supabase as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", confirmCard.id);
+        toast.success("Card marked as sold/issued");
+      } else if (confirmAct === "resend") {
+        // Re-trigger email by setting back to pending_send
+        await (supabase as any).from("gift_cards").update({ status: "pending_send" }).eq("id", confirmCard.id);
+        toast.success("Email re-queued — will send within 5 minutes");
+      }
+      setConfirmCard(null); setConfirmAct(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Action failed");
+    } finally {
+      setActLoading(false);
     }
   };
 
-  // Generator state
-  const [genCount, setGenCount] = useState<number>(10);
-  const [genTier, setGenTier] = useState<string>("SLV");
-  const [genYear, setGenYear] = useState<number>(new Date().getFullYear());
-  const [genBatch, setGenBatch] = useState<string>("01");
-  const [genValue, setGenValue] = useState<number>(50);
-  const [showGenerator, setShowGenerator] = useState(false);
-
-  const randomSuffix = (len = 6) => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let out = "";
-    for (let i = 0; i < len; i++)
-      out += chars[Math.floor(Math.random() * chars.length)];
-    return out;
-  };
-
-  const makeCode = (year: number, tier: string, batch: string) => {
-    const yy = String(year).padStart(4, "0");
-    const b = String(batch).replace(/^B?/i, "").padStart(2, "0");
-    return `ZLR-${yy}-${tier}-B${b}-${randomSuffix(6)}`;
-  };
-
-  const generateCodes = async (count?: number) => {
-    const n = count ?? genCount ?? 10;
-    const generated: PreviewRow[] = [];
-    const seen = new Set<string>();
-    while (generated.length < n) {
-      const code = makeCode(genYear, genTier, genBatch).toUpperCase();
-      if (seen.has(code)) continue;
-      seen.add(code);
-      generated.push({
-        final_code: code,
+  // ─── Generate Physical Batch ─────────────────────────────────
+  const handleGenerate = async () => {
+    if (!genBatch.trim()) { toast.error("Enter a batch ID"); return; }
+    if (genQty < 1 || genQty > 200) { toast.error("Quantity must be 1–200"); return; }
+    setGenLoading(true);
+    try {
+      const { cards: generated, error } = await generatePhysicalBatch({
         tier: genTier,
-        year: genYear,
-        batch: genBatch,
-        card_value: genValue,
-        expire_at: null,
-        allowed_service_ids: null,
-        allowed_service_categories: null,
-        note: "(generated)",
-        _valid: CODE_REGEX.test(code),
-        _message: CODE_REGEX.test(code) ? "generated" : "invalid",
+        quantity: genQty,
+        batchId: genBatch.trim().toUpperCase(),
+        adminUserId: "admin",
       });
-    }
-
-    try {
-      const codes = generated.map((r) => (r as any).code || r.final_code);
-      const { data: existing, error: existingErr } =
-        await checkExistingGiftCards(codes);
-      if (existingErr) throw existingErr;
-      const existingSet = new Set(existing || []);
-      const marked: PreviewRow[] = generated.map((r) => ({
-        ...r,
-        _valid: !existingSet.has((r as any).code || r.final_code),
-        _message: existingSet.has((r as any).code || r.final_code) ? "collision" : r._message,
-      }));
-      setPreviewRows([...marked, ...previewRows]);
-      toast.success(`Generated ${generated.length} codes`);
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Failed to check collisions");
-      setPreviewRows(generated.concat(previewRows));
-    }
-  };
-
-  const commitGenerated = async () => {
-    const rowsToImport = previewRows.filter(
-      (r) =>
-        r._message === "generated" || (r._valid && r.note === "(generated)")
-    );
-    if (rowsToImport.length === 0) {
-      toast.error("No generated rows to commit");
-      return;
-    }
-    setImporting(true);
-    try {
-      const toImport = rowsToImport.map((r) => ({
-        final_code: (r as any).code || r.final_code,
-        tier: r.tier,
-        year: r.year,
-        batch: r.batch,
-        card_value: r.card_value,
-        expire_at: r.expire_at,
-        allowed_service_ids: r.allowed_service_ids,
-        allowed_service_categories: r.allowed_service_categories,
-        note: r.note,
-      }));
-      const res = await importGiftCards(toImport);
-      if (res.error) throw res.error;
-      toast.success(`Committed ${toImport.length} generated codes`);
-      setPreviewRows((prev) =>
-        prev.filter((r) => !toImport.find((t) => t.final_code === (r as any).code || r.final_code))
-      );
-      await fetchList();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to commit generated codes");
+      if (error) throw new Error(error);
+      setNewBatch(generated);
+      toast.success(`${generated.length} physical cards generated`);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Generation failed");
     } finally {
-      setImporting(false);
+      setGenLoading(false);
     }
   };
 
-  const mapRawToPreview = (raw: Record<string, any>[]) => {
-    const rows: PreviewRow[] = raw.map((r) => {
-      const final_code = (
-        (r as any).code || r.final_code ||
-        r.code ||
-        r["Final Code"] ||
-        r["Code"] ||
-        ""
-      )
-        .toString()
-        .trim()
-        .toUpperCase();
-      const card_value = r.card_value ?? r.value ?? r["Card Value"] ?? 0;
-      const tier = r.tier ?? r.Tier ?? null;
-      const year = r.year ? Number(r.year) : new Date().getFullYear();
-      const batch = r.batch ?? r.Batch ?? null;
-      const expire_at = r.expire_at ?? r.Expires ?? null;
-      const allowed_service_ids = Array.isArray(r.allowed_service_ids)
-        ? r.allowed_service_ids
-        : null;
-      const allowed_service_categories = Array.isArray(
-        r.allowed_service_categories
-      )
-        ? r.allowed_service_categories
-        : null;
-      const note = r.note ?? r.Note ?? null;
-
-      const valid = CODE_REGEX.test(final_code) && !isNaN(Number(card_value));
-      const message = valid
-        ? "ok"
-        : !CODE_REGEX.test(final_code)
-        ? "invalid_code"
-        : "invalid_value";
-
-      return {
-        final_code,
-        tier,
-        year,
-        batch,
-        card_value: Number(card_value || 0),
-        expire_at: expire_at || null,
-        allowed_service_ids,
-        allowed_service_categories,
-        note,
-        _valid: valid,
-        _message: message,
-      } as PreviewRow;
-    });
-
-    setPreviewRows(rows);
-  };
-
-  const handleImport = async () => {
-    const toImport = previewRows
-      .filter((r) => r._valid)
-      .map((r) => ({
-        final_code: (r as any).code || r.final_code,
-        tier: r.tier,
-        year: r.year,
-        batch: r.batch,
-        card_value: r.card_value,
-        expire_at: r.expire_at,
-        allowed_service_ids: r.allowed_service_ids,
-        allowed_service_categories: r.allowed_service_categories,
-        note: r.note,
-      }));
-
-    if (toImport.length === 0) {
-      toast.error("No valid rows to import");
-      return;
-    }
-
-    setImporting(true);
-    try {
-      const res = await importGiftCards(toImport);
-      if (res.error) throw res.error;
-      setPreviewRows([]);
-      toast.success("Import finished");
-      await fetchList();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Import failed");
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  // Confirmation dialog
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<
-    "void" | "expire" | "delete" | null
-  >(null);
-  const [confirmTarget, setConfirmTarget] = useState<{
-    id: string;
-    code?: string;
-  } | null>(null);
-
-  const openConfirm = (
-    action: "void" | "expire" | "delete",
-    id: string,
-    code?: string
-  ) => {
-    setConfirmAction(action);
-    setConfirmTarget({ id, code });
-    setConfirmOpen(true);
-  };
-
-  const handleConfirm = async () => {
-    if (!confirmAction || !confirmTarget) return;
-    setConfirmOpen(false);
-    const { id, code } = confirmTarget;
-    try {
-      if (confirmAction === "void") {
-        const res = await voidGiftCard(id);
-        if (res.error) throw res.error;
-        toast.success(`Voided ${code ?? id}`);
-      }
-      if (confirmAction === "expire") {
-        const res = await expireGiftCard(id);
-        if (res.error) throw res.error;
-        toast.success(`Expired ${code ?? id}`);
-      }
-      if (confirmAction === "delete") {
-        const res = await deleteGiftCard(id);
-        if (res.error) throw res.error;
-        toast.success(`Deleted ${code ?? id}`);
-      }
-      await fetchList();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Action failed");
-    } finally {
-      setConfirmAction(null);
-      setConfirmTarget(null);
-    }
-  };
-
-  const exportList = () => {
-    const data = filteredList;
-    const ws = XLSX.utils.json_to_sheet(data || []);
+  const exportBatch = () => {
+    const rows = newBatch.map(c => ({
+      "Serial Number": c.serial_number,
+      "Code": c.code || c.final_code,
+      "Tier": c.tier,
+      "Value (GHS)": getValue(c),
+      "Batch": c.batch_id,
+      "Status": c.status,
+      "Expires": getExp(c) ? new Date(getExp(c)).toLocaleDateString() : "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "gift_cards");
-    XLSX.writeFile(
-      wb,
-      `gift_cards_export_${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
+    XLSX.utils.book_append_sheet(wb, ws, "Physical Cards");
+    XLSX.writeFile(wb, `zolara_physical_${genBatch}_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
-  const openEdit = (card: GiftCard) => {
-    setEditCard(card);
-    setEditOpen(true);
+  const copyCode = (code: string) => {
+    navigator.clipboard?.writeText(code).catch(() => {});
+    toast.success("Code copied");
   };
 
-  // Filtered list
-  const filteredList = list
-    .filter((r) => (statusFilter === "all" ? true : r.status === statusFilter))
-    .filter((r) => (tierFilter ? r.tier === tierFilter : true))
-    .filter((r) => {
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      return (r as any).code || r.final_code.toLowerCase().includes(q);
-    });
-
+  // ─── Render ──────────────────────────────────────────────────
   return (
-    <div className="z-page">
-      <div className="flex items-center justify-between">
+    <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif", padding: "28px 24px" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        .gc-card { background:${WHITE}; border:1px solid ${BORDER}; border-radius:14px; padding:18px 20px; transition:box-shadow 0.2s; }
+        .gc-card:hover { box-shadow:0 6px 24px rgba(0,0,0,0.08); }
+        .gc-tab { padding:8px 20px; border-radius:24px; cursor:pointer; font-size:11px; font-weight:600; letter-spacing:0.1em; transition:all 0.15s; border:none; }
+        .gc-tab.active { background:${DARK}; color:${WHITE}; }
+        .gc-tab.inactive { background:transparent; color:${TXT_M}; }
+        .gc-tab.inactive:hover { background:rgba(200,169,126,0.12); color:${TXT}; }
+        .gc-btn { padding:9px 18px; border-radius:8px; font-size:11px; font-weight:600; letter-spacing:0.08em; cursor:pointer; border:none; transition:all 0.15s; }
+        .gc-btn-gold { background:${DARK}; color:${WHITE}; }
+        .gc-btn-gold:hover { background:#2C2416; }
+        .gc-btn-outline { background:transparent; color:${TXT_M}; border:1px solid ${BORDER}; }
+        .gc-btn-outline:hover { border-color:${G}; color:${TXT}; }
+        .gc-btn-danger { background:#FEE2E2; color:#991B1B; }
+        .gc-btn-danger:hover { background:#FECACA; }
+        .gc-input { border:1px solid ${BORDER}; border-radius:8px; padding:9px 12px; font-size:12px; width:100%; background:${WHITE}; color:${TXT}; outline:none; font-family:'Montserrat',sans-serif; }
+        .gc-input:focus { border-color:${G}; }
+        select.gc-input option { background:${WHITE}; }
+        .gc-tier-badge { padding:3px 9px; border-radius:12px; font-size:9px; font-weight:700; letter-spacing:0.12em; color:${WHITE}; }
+        .gc-status-badge { padding:3px 9px; border-radius:12px; font-size:9px; font-weight:600; letter-spacing:0.06em; }
+        .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center; }
+        .modal { background:${WHITE}; border-radius:20px; padding:32px; width:min(560px,94vw); max-height:90vh; overflow-y:auto; }
+      `}</style>
+
+      {/* ── Header ──────────────────────────────────────────── */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"24px", flexWrap:"wrap", gap:"12px" }}>
         <div>
-          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Gift Cards</h1>
-          <p className="z-subtitle">Manage and import gift cards</p>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(26px,3vw,34px)", fontWeight:600, color:TXT, margin:0 }}>Gift Cards</h1>
+          <p style={{ fontSize:"11px", color:TXT_S, letterSpacing:"0.1em", marginTop:"4px" }}>DIGITAL & PHYSICAL CARD MANAGEMENT</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchList} disabled={loadingList}>
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${loadingList ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
-          {roleReady && userRole === "owner" && (
-            <Button variant="outline" onClick={exportList}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+        <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+          <button className="gc-btn gc-btn-outline" onClick={load} disabled={loading}>
+            {loading ? "↻" : "↻"} Refresh
+          </button>
+          {isOwner && (
+            <button className="gc-btn gc-btn-gold" onClick={() => { setNewBatch([]); setGenOpen(true); }}>
+              + New Physical Batch
+            </button>
           )}
         </div>
       </div>
 
-      {/* Import Section */}
-      {roleReady && userRole === "owner" && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Import / Generate
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowGenerator(!showGenerator)}
-              >
-                {showGenerator ? "Hide Generator" : "Show Generator"}
-              </Button>
+      {/* ── Stats row ───────────────────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"24px" }}>
+        {[
+          { label:"ACTIVE CARDS", val: totalActive, sub:"Ready to use", icon:"🎁" },
+          { label:"SOLD THIS MONTH", val:`GHS ${monthRevenue.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${thisMonth.length} cards`, icon:"💳" },
+          { label:"REDEEMED ALL TIME", val: totalRedeemed, sub:"Fully used", icon:"✓" },
+          { label:"PENDING EMAIL", val: totalPendingEmail, sub: totalPendingEmail > 0 ? "Will send within 5 min" : "All sent", icon:"📧" },
+        ].map((s, i) => (
+          <div key={i} className="gc-card" style={{ padding:"20px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"10px" }}>
+              <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.15em", color:TXT_S }}>{s.label}</span>
+              <span style={{ fontSize:"18px" }}>{s.icon}</span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Upload file (CSV / XLSX)</Label>
-                <Input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={(e) => handleFile(e.target.files?.[0])}
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <Button
-                  onClick={handleImport}
-                  disabled={
-                    importing ||
-                    previewRows.filter((r) => r._valid).length === 0
-                  }
-                >
-                  {importing
-                    ? "Importing..."
-                    : `Import ${
-                        previewRows.filter((r) => r._valid).length
-                      } valid rows`}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setPreviewRows([]);
-                    setFileName(null);
-                  }}
-                >
-                  Clear
-                </Button>
-              </div>
-            </div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"28px", fontWeight:600, color:TXT, lineHeight:1 }}>{s.val}</div>
+            <div style={{ fontSize:"10px", color: i === 3 && totalPendingEmail > 0 ? "#1D4ED8" : TXT_S, marginTop:"6px" }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
 
-            {showGenerator && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-3">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Generate Codes
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div>
-                    <Label className="text-xs">Count</Label>
-                    <Input
-                      type="number"
-                      value={genCount}
-                      min={1}
-                      onChange={(e) => setGenCount(Number(e.target.value))}
-                    />
+      {/* ── Tab + Filters ───────────────────────────────────── */}
+      <div className="gc-card" style={{ marginBottom:"16px", padding:"16px 20px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"24px", flexWrap:"wrap" }}>
+          {/* Tabs */}
+          <div style={{ display:"flex", gap:"4px", padding:"4px", background:"#F3EDE4", borderRadius:"28px" }}>
+            {(["all","digital","physical"] as Tab[]).map(t => (
+              <button key={t} className={`gc-tab ${tab===t?"active":"inactive"}`} onClick={() => setTab(t)}>
+                {t === "all" ? "All Cards" : t === "digital" ? "📧 Digital" : "🃏 Physical"}
+              </button>
+            ))}
+          </div>
+
+          {/* Status filter */}
+          <select className="gc-input" style={{ width:"160px" }} value={statusFilter} onChange={e => setStatus(e.target.value)}>
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="unused">Unused</option>
+            <option value="available">Available</option>
+            <option value="pending_send">Pending Email</option>
+            <option value="pending_payment">Awaiting Payment</option>
+            <option value="redeemed">Redeemed</option>
+            <option value="expired">Expired</option>
+            <option value="void">Void</option>
+          </select>
+
+          {/* Search */}
+          <div style={{ position:"relative", flex:1, minWidth:"200px" }}>
+            <span style={{ position:"absolute", left:"11px", top:"50%", transform:"translateY(-50%)", color:TXT_S, fontSize:"13px" }}>🔍</span>
+            <input className="gc-input" style={{ paddingLeft:"32px" }} placeholder="Search code, buyer, recipient…"
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+
+          <span style={{ fontSize:"11px", color:TXT_S, whiteSpace:"nowrap" }}>{filtered.length} card{filtered.length !== 1 ? "s" : ""}</span>
+        </div>
+      </div>
+
+      {/* ── Card List ───────────────────────────────────────── */}
+      {loading ? (
+        <div style={{ textAlign:"center", padding:"60px", color:TXT_S }}>Loading gift cards…</div>
+      ) : filtered.length === 0 ? (
+        <div className="gc-card" style={{ textAlign:"center", padding:"60px 24px" }}>
+          <div style={{ fontSize:"40px", marginBottom:"12px" }}>🎁</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", color:TXT, marginBottom:"6px" }}>No cards found</div>
+          <div style={{ fontSize:"12px", color:TXT_S }}>Try adjusting your filters or generate a physical batch</div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+          {filtered.map(card => {
+            const code     = getCode(card);
+            const value    = getValue(card);
+            const tier     = card.tier || "Gold";
+            const status   = card.status || "active";
+            const ss       = STATUS_STYLE[status] || { bg:"#F3F4F6", color:"#374151", label: status };
+            const exp      = getExp(card);
+            const isExpanded = expanded === card.id;
+            const digital  = isDigit(card);
+
+            return (
+              <div key={card.id} className="gc-card" style={{ padding:0, overflow:"hidden" }}>
+                {/* Tier accent strip */}
+                <div style={{ height:"3px", background: TIER_GRAD[tier] || TIER_GRAD.Gold }} />
+
+                <div style={{ padding:"16px 20px" }}>
+                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"12px", flexWrap:"wrap" }}>
+                    {/* Left: code + badges */}
+                    <div style={{ flex:1, minWidth:"200px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"8px", flexWrap:"wrap", marginBottom:"6px" }}>
+                        <span style={{ fontFamily:"monospace", fontSize:"15px", fontWeight:700, color:TXT, letterSpacing:"0.05em" }}>{code}</span>
+                        <button onClick={() => copyCode(code)} style={{ fontSize:"10px", padding:"2px 7px", borderRadius:"6px", border:`1px solid ${BORDER}`, background:"#F8F3EE", color:TXT_S, cursor:"pointer" }}>
+                          Copy
+                        </button>
+                        {/* Tier badge */}
+                        <span className="gc-tier-badge" style={{ background: TIER_ACCENT[tier] || G }}>{tier}</span>
+                        {/* Status badge */}
+                        <span className="gc-status-badge" style={{ background:ss.bg, color:ss.color }}>{ss.label}</span>
+                        {/* Type badge */}
+                        <span style={{ fontSize:"9px", color:TXT_S, letterSpacing:"0.08em" }}>{digital ? "📧 Digital" : "🃏 Physical"}</span>
+                      </div>
+
+                      <div style={{ display:"flex", alignItems:"center", gap:"16px", flexWrap:"wrap" }}>
+                        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color:TXT }}>GHS {value.toLocaleString()}</span>
+                        {exp && <span style={{ fontSize:"10px", color: new Date(exp) < new Date() ? "#991B1B" : TXT_S }}>Expires {new Date(exp).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}</span>}
+                        {card.serial_number && <span style={{ fontSize:"10px", color:TXT_S, fontFamily:"monospace" }}>S/N: {card.serial_number}</span>}
+                        {card.batch_id && <span style={{ fontSize:"10px", color:TXT_S }}>Batch: {card.batch_id}</span>}
+                      </div>
+
+                      {/* Digital: buyer → recipient */}
+                      {digital && (card.buyer_name || card.recipient_name) && (
+                        <div style={{ marginTop:"6px", fontSize:"11px", color:TXT_M }}>
+                          {card.buyer_name && <span>From: <strong>{card.buyer_name}</strong></span>}
+                          {card.recipient_name && <span style={{ marginLeft:"12px" }}>To: <strong>{card.recipient_name}</strong>{card.recipient_email ? ` (${card.recipient_email})` : ""}</span>}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: actions */}
+                    <div style={{ display:"flex", gap:"6px", alignItems:"center", flexShrink:0 }}>
+                      {/* Resend email — only for digital pending_send or active with recipient_email */}
+                      {isOwner && digital && (status === "pending_send" || (status !== "redeemed" && status !== "void" && card.recipient_email)) && (
+                        <button className="gc-btn" style={{ background:"#DBEAFE", color:"#1D4ED8", fontSize:"10px", padding:"6px 12px" }}
+                          onClick={() => { setConfirmCard(card); setConfirmAct("resend"); }}>
+                          {status === "pending_send" ? "📧 Resend" : "📧 Resend Code"}
+                        </button>
+                      )}
+                      {/* Mark as sold — physical available cards */}
+                      {isOwner && !digital && status === "available" && (
+                        <button className="gc-btn" style={{ background:"#DCFCE7", color:"#166534", fontSize:"10px", padding:"6px 12px" }}
+                          onClick={() => { setConfirmCard(card); setConfirmAct("sold"); }}>
+                          ✓ Mark Sold
+                        </button>
+                      )}
+                      {/* Expand */}
+                      <button className="gc-btn gc-btn-outline" style={{ padding:"6px 10px", fontSize:"12px" }}
+                        onClick={() => setExpanded(isExpanded ? null : card.id)}>
+                        {isExpanded ? "▲" : "▼"}
+                      </button>
+                      {/* Void / Expire / Delete */}
+                      {isOwner && status !== "void" && status !== "redeemed" && (
+                        <button className="gc-btn gc-btn-danger" style={{ padding:"6px 12px", fontSize:"10px" }}
+                          onClick={() => { setConfirmCard(card); setConfirmAct("void"); }}>
+                          Void
+                        </button>
+                      )}
+                      {isOwner && (
+                        <button className="gc-btn" style={{ background:"#FEE2E2", color:"#991B1B", padding:"6px 10px", fontSize:"12px" }}
+                          onClick={() => { setConfirmCard(card); setConfirmAct("delete"); }}>
+                          🗑
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div style={{ marginTop:"14px", paddingTop:"14px", borderTop:`1px solid ${BORDER}` }}>
+                      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:"10px" }}>
+                        {[
+                          { l:"Card ID",       v:card.id?.slice(0,8)+"…" },
+                          { l:"Card Type",     v:card.card_type || (digital?"digital":"physical") },
+                          { l:"Payment Status",v:card.payment_status || "—" },
+                          { l:"Payment Ref",   v:card.payment_ref || "—" },
+                          { l:"Created",       v:card.created_at ? new Date(card.created_at).toLocaleDateString("en-GB") : "—" },
+                          { l:"Redeemed At",   v:card.redeemed_at ? new Date(card.redeemed_at).toLocaleDateString("en-GB") : "—" },
+                          { l:"Redeemed By",   v:card.redeemed_by_client || "—" },
+                          { l:"Message",       v:card.message || "—" },
+                          { l:"Buyer Phone",   v:card.buyer_phone || "—" },
+                        ].map(f => (
+                          <div key={f.l}>
+                            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.1em", color:TXT_S, marginBottom:"2px" }}>{f.l}</div>
+                            <div style={{ fontSize:"11px", color:TXT, wordBreak:"break-all" }}>{f.v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Generate Physical Batch Modal ───────────────────── */}
+      {genOpen && (
+        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) { setGenOpen(false); setNewBatch([]); }}}>
+          <div className="modal">
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"26px", fontWeight:600, color:TXT, margin:"0 0 6px" }}>Generate Physical Cards</h2>
+            <p style={{ fontSize:"11px", color:TXT_S, marginBottom:"24px", letterSpacing:"0.06em" }}>Cards are saved to the database as "Available" and can be handed to clients in person.</p>
+
+            {newBatch.length > 0 ? (
+              <>
+                <div style={{ background:"#DCFCE7", borderRadius:"10px", padding:"14px 18px", marginBottom:"20px", display:"flex", alignItems:"center", gap:"10px" }}>
+                  <span style={{ fontSize:"22px" }}>✓</span>
                   <div>
-                    <Label className="text-xs">Tier</Label>
-                    <select
-                      value={genTier}
-                      onChange={(e) => setGenTier(e.target.value)}
-                      className="w-full rounded border px-2 py-2 bg-background"
-                    >
-                      <option value="SLV">SLV</option>
-                      <option value="GLD">GLD</option>
-                      <option value="PLT">PLT</option>
-                      <option value="DMD">DMD</option>
+                    <div style={{ fontSize:"13px", fontWeight:700, color:"#166534" }}>{newBatch.length} cards generated successfully</div>
+                    <div style={{ fontSize:"11px", color:"#166534" }}>Batch {genBatch} · {genTier} · GHS {GIFT_CARD_TIERS[genTier].value} each</div>
+                  </div>
+                </div>
+                <div style={{ border:`1px solid ${BORDER}`, borderRadius:"10px", overflow:"hidden", marginBottom:"20px" }}>
+                  <div style={{ padding:"10px 16px", background:"#F8F3EE", fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_S }}>GENERATED CARDS</div>
+                  <div style={{ maxHeight:"220px", overflowY:"auto" }}>
+                    {newBatch.map((c, i) => (
+                      <div key={i} style={{ padding:"10px 16px", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <span style={{ fontFamily:"monospace", fontSize:"12px", color:TXT }}>{c.code || c.final_code}</span>
+                        <span style={{ fontSize:"10px", color:TXT_S }}>{c.serial_number}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:"10px" }}>
+                  <button className="gc-btn gc-btn-gold" style={{ flex:1 }} onClick={exportBatch}>📥 Download as Excel</button>
+                  <button className="gc-btn gc-btn-outline" onClick={() => { setGenOpen(false); setNewBatch([]); }}>Close</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"20px" }}>
+                  <div>
+                    <label style={{ fontSize:"10px", fontWeight:600, letterSpacing:"0.1em", color:TXT_S, display:"block", marginBottom:"6px" }}>TIER</label>
+                    <select className="gc-input" value={genTier} onChange={e => setGenTier(e.target.value as GiftCardTier)}>
+                      {Object.entries(GIFT_CARD_TIERS).map(([k, v]) => (
+                        <option key={k} value={k}>{v.label} — GHS {v.value}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <Label className="text-xs">Year</Label>
-                    <Input
-                      type="number"
-                      value={genYear}
-                      onChange={(e) => setGenYear(Number(e.target.value))}
-                    />
+                    <label style={{ fontSize:"10px", fontWeight:600, letterSpacing:"0.1em", color:TXT_S, display:"block", marginBottom:"6px" }}>QUANTITY</label>
+                    <input className="gc-input" type="number" min={1} max={200} value={genQty} onChange={e => setGenQty(Number(e.target.value))} />
                   </div>
-                  <div>
-                    <Label className="text-xs">Batch</Label>
-                    <Input
-                      value={genBatch}
-                      onChange={(e) => setGenBatch(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Value</Label>
-                    <Input
-                      type="number"
-                      value={genValue}
-                      onChange={(e) => setGenValue(Number(e.target.value))}
-                    />
+                  <div style={{ gridColumn:"1/-1" }}>
+                    <label style={{ fontSize:"10px", fontWeight:600, letterSpacing:"0.1em", color:TXT_S, display:"block", marginBottom:"6px" }}>BATCH ID</label>
+                    <input className="gc-input" placeholder="e.g. MARCH-2026-01" value={genBatch} onChange={e => setGenBatch(e.target.value)} />
+                    <div style={{ fontSize:"10px", color:TXT_S, marginTop:"4px" }}>Use a unique ID to group this set of cards for tracking.</div>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => void generateCodes()}>
-                    Generate
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => void commitGenerated()}
-                    disabled={importing}
-                  >
-                    Commit to DB
-                  </Button>
-                </div>
-              </div>
-            )}
 
-            {previewRows.length > 0 && (
-              <div className="border rounded-lg overflow-hidden">
-                <div className="bg-muted px-3 py-2 text-sm font-medium">
-                  Preview: {fileName || `${previewRows.length} rows`}
+                {/* Preview */}
+                <div style={{ background:"#F8F3EE", borderRadius:"10px", padding:"14px 18px", marginBottom:"20px" }}>
+                  <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_S, marginBottom:"8px" }}>SUMMARY</div>
+                  <div style={{ display:"flex", gap:"24px", flexWrap:"wrap" }}>
+                    {[
+                      { l:"Tier",     v: GIFT_CARD_TIERS[genTier]?.label || genTier },
+                      { l:"Qty",      v: genQty },
+                      { l:"Value ea", v:`GHS ${GIFT_CARD_TIERS[genTier]?.value || "?"}` },
+                      { l:"Total",    v:`GHS ${((GIFT_CARD_TIERS[genTier]?.value||0)*genQty).toLocaleString()}` },
+                    ].map(f => (
+                      <div key={f.l}>
+                        <div style={{ fontSize:"9px", color:TXT_S }}>{f.l}</div>
+                        <div style={{ fontSize:"15px", fontWeight:600, color:TXT, fontFamily:"'Cormorant Garamond',serif" }}>{f.v}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="overflow-auto max-h-48">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="p-2 text-left">Code</th>
-                        <th className="p-2 text-left">Value</th>
-                        <th className="p-2 text-left">Tier</th>
-                        <th className="p-2 text-left">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previewRows.slice(0, 20).map((r, idx) => (
-                        <tr
-                          key={idx}
-                          className={`border-t ${
-                            r._valid ? "" : "bg-destructive/10"
-                          }`}
-                        >
-                          <td className="p-2 font-mono text-xs">
-                            {(r as any).code || r.final_code}
-                          </td>
-                          <td className="p-2">
-                            GH₵{Number((r as any).amount || r.card_value || 0).toFixed(0)}
-                          </td>
-                          <td className="p-2">{r.tier}</td>
-                          <td className="p-2 text-xs text-muted-foreground">
-                            {r._message}
-                          </td>
-                        </tr>
-                      ))}
-                      {previewRows.length > 20 && (
-                        <tr className="border-t">
-                          <td
-                            colSpan={4}
-                            className="p-2 text-center text-muted-foreground"
-                          >
-                            ... and {previewRows.length - 20} more rows
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+
+                <div style={{ display:"flex", gap:"10px" }}>
+                  <button className="gc-btn gc-btn-gold" style={{ flex:1 }} onClick={handleGenerate} disabled={genLoading}>
+                    {genLoading ? "Generating…" : `Generate ${genQty} Cards`}
+                  </button>
+                  <button className="gc-btn gc-btn-outline" onClick={() => setGenOpen(false)}>Cancel</button>
                 </div>
-              </div>
+              </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Manage Cards */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Gift Cards ({filteredList.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 mb-4">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+      {/* ── Confirm Action Modal ─────────────────────────────── */}
+      {confirmCard && confirmAct && (
+        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) { setConfirmCard(null); setConfirmAct(null); }}}>
+          <div className="modal" style={{ maxWidth:"400px" }}>
+            <div style={{ fontSize:"36px", textAlign:"center", marginBottom:"12px" }}>
+              {confirmAct === "void" ? "⛔" : confirmAct === "delete" ? "🗑️" : confirmAct === "sold" ? "✅" : confirmAct === "resend" ? "📧" : "⏰"}
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded border px-3 py-2 bg-background"
-            >
-              <option value="all">All Status</option>
-              <option value="unused">Unused</option>
-              <option value="redeemed">Redeemed</option>
-              <option value="expired">Expired</option>
-              <option value="void">Void</option>
-            </select>
-            <select
-              value={tierFilter}
-              onChange={(e) => setTierFilter(e.target.value)}
-              className="rounded border px-3 py-2 bg-background"
-            >
-              <option value="">All Tiers</option>
-              <option value="SLV">SLV</option>
-              <option value="GLD">GLD</option>
-              <option value="PLT">PLT</option>
-              <option value="DMD">DMD</option>
-            </select>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setStatusFilter("all");
-                setTierFilter("");
-                setSearchQuery("");
-              }}
-            >
-              Reset
-            </Button>
+            <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", textAlign:"center", color:TXT, marginBottom:"8px" }}>
+              {confirmAct === "void"   && "Void this card?"}
+              {confirmAct === "delete" && "Delete this card?"}
+              {confirmAct === "sold"   && "Mark as issued?"}
+              {confirmAct === "resend" && "Resend email?"}
+              {confirmAct === "expire" && "Mark as expired?"}
+            </h3>
+            <p style={{ fontSize:"12px", color:TXT_M, textAlign:"center", marginBottom:"24px", lineHeight:1.6 }}>
+              {confirmAct === "void"   && `${getCode(confirmCard)} will be permanently voided and cannot be used.`}
+              {confirmAct === "delete" && `${getCode(confirmCard)} will be permanently deleted. This cannot be undone.`}
+              {confirmAct === "sold"   && `${getCode(confirmCard)} will be marked as sold/issued and set to Active. Do this when you physically hand the card to a client.`}
+              {confirmAct === "resend" && `The gift card code will be re-emailed to ${confirmCard.recipient_email || "the recipient"}. This will happen within 5 minutes.`}
+              {confirmAct === "expire" && `${getCode(confirmCard)} will be marked as expired.`}
+            </p>
+            <div style={{ display:"flex", gap:"10px" }}>
+              <button className="gc-btn gc-btn-outline" style={{ flex:1 }} onClick={() => { setConfirmCard(null); setConfirmAct(null); }}>Cancel</button>
+              <button
+                className={`gc-btn ${confirmAct === "delete" || confirmAct === "void" ? "gc-btn-danger" : "gc-btn-gold"}`}
+                style={{ flex:1 }}
+                onClick={() => void doAction()}
+                disabled={actLoading}
+              >
+                {actLoading ? "…" : "Confirm"}
+              </button>
+            </div>
           </div>
-
-          {/* List */}
-          <div className="space-y-3">
-            {loadingList && (
-              <div className="text-center py-8 text-muted-foreground">
-                Loading gift cards...
-              </div>
-            )}
-            {!loadingList && filteredList.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No gift cards found
-              </div>
-            )}
-            {filteredList.map((card) => (
-              <GiftCardItem
-                userRole={userRole}
-                key={card.id}
-                card={card}
-                expanded={expandedCardId === card.id}
-                onToggle={() => setExpandedCardId(expandedCardId === card.id ? null : card.id)}
-                onEdit={!roleReady || userRole === null || userRole === "receptionist" ? undefined : openEdit}
-                onAction={!roleReady || userRole === null || userRole === "receptionist" ? undefined : openConfirm}
-                readOnly={!roleReady || userRole === null || userRole === "receptionist"}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Edit Dialog */}
-      <EditGiftCardDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        giftCard={editCard}
-        onUpdated={fetchList}
-      />
-
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="max-w-md grid gap-4 p-6">
-          <DialogHeader>
-            <DialogTitle>
-              {confirmAction === "void" && "Confirm Void"}
-              {confirmAction === "expire" && "Confirm Expire"}
-              {confirmAction === "delete" && "Confirm Delete"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction === "void" &&
-                `Are you sure you want to void ${confirmTarget?.code}? This cannot be undone.`}
-              {confirmAction === "expire" &&
-                `Mark ${confirmTarget?.code} as expired?`}
-              {confirmAction === "delete" &&
-                `Permanently delete ${confirmTarget?.code}? This action is irreversible.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant={
-                confirmAction === "delete" || confirmAction === "void"
-                  ? "destructive"
-                  : "default"
-              }
-              onClick={() => void handleConfirm()}
-            >
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
-};
-
-export default GiftCards;
+}
