@@ -1,3 +1,4 @@
+// DEPRECATED: Replaced by Paystack. Do not deploy.
 // ================================================================
 // HUBTEL WEBHOOK — receives payment confirmations
 // Handles: gift card purchases + booking deposits

@@ -1,3 +1,4 @@
+// DEPRECATED: Replaced by Paystack. Do not deploy.
 const CLIENT_ID = Deno.env.get("HUBTEL_CLIENT_ID") || "D0jDmnq";
 const CLIENT_SECRET = Deno.env.get("HUBTEL_CLIENT_SECRET") || "b55d6377fd6b459fbb07fb1492d36ccf";
 const MERCHANT_ACCOUNT = Deno.env.get("HUBTEL_MERCHANT_ACCOUNT") || "3746502";

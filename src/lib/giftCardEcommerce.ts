@@ -83,7 +83,7 @@ export async function createDigitalPurchase(opts: {
   }
 }
 
-// Mark gift card as paid and queue the email (called by Hubtel webhook or manual confirm)
+// Mark gift card as paid and queue the email (called by Paystack webhook or manual confirm)
 export async function markGiftCardPaid(giftCardId: string, paymentRef: string): Promise<{ error: string | null }> {
   try {
     const { error } = await (supabase as any)

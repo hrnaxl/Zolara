@@ -4,7 +4,7 @@ interface PaymentMethodChartProps {
 }
 
 const METHOD_LABELS: Record<string, string> = {
-  cash: "Cash", momo: "Mobile Money", card: "Card / Hubtel",
+  cash: "Cash", momo: "Mobile Money", card: "Card / Paystack",
   bank_transfer: "Bank Transfer", gift_card: "Gift Card",
   mtn: "MTN MoMo", vodafone: "Vodafone Cash", airteltigo: "AirtelTigo",
 };

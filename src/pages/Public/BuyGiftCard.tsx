@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
-import { initiateCheckout, isHubtelConfigured } from "@/lib/hubtel";
+import { initiatePaystackPayment } from "@/lib/paystack";
 import { toast } from "sonner";
 
 const G = "#B8975A";
@@ -58,27 +58,18 @@ export default function BuyGiftCard() {
         });
         if (error) throw new Error(error);
 
-        if (isHubtelConfigured()) {
-          const { checkoutUrl, error: hubtelErr } = await initiateCheckout({
-            amount: GIFT_CARD_TIERS[selectedTier].value,
-            description: `Zolara ${selectedTier} Gift Card for ${form.recipientName}`,
-            clientReference: id!,
-            callbackUrl: "https://vwvrhbyfytmqsywfdhvd.supabase.co/functions/v1/hubtel-webhook",
-            returnUrl: `${window.location.origin}/gift-card/success`,
-            cancellationUrl: `${window.location.origin}/buy-gift-card`,
-            customerName: form.buyerName,
-            customerEmail: form.buyerEmail,
-            customerPhone: form.buyerPhone,
-          });
-          if (hubtelErr) throw new Error(`Hubtel error: ${hubtelErr}`);
-          if (checkoutUrl) { window.location.href = checkoutUrl; return; }
-          throw new Error("No checkout URL returned.");
-        }
-
-        // Hubtel not configured yet — show pending message
-        setStep("done");
+        const { authorizationUrl, error: psErr } = await initiatePaystackPayment({
+          amount: GIFT_CARD_TIERS[selectedTier].value,
+          email: form.buyerEmail || "noemail@zolara.com",
+          reference: id!,
+          metadata: { tier: selectedTier, recipientName: form.recipientName, buyerName: form.buyerName },
+          callbackUrl: `${window.location.origin}/gift-card/success`,
+        });
+        if (psErr) throw new Error(psErr);
+        if (authorizationUrl) { window.location.href = authorizationUrl; return; }
+        throw new Error("No checkout URL returned.");
       } else {
-        // Physical card — record the order then go through Hubtel for payment
+        // Physical card — record the order then process via Paystack
         const { id, error } = await createDigitalPurchase({
           tier: selectedTier,
           buyerName: form.buyerName,
@@ -90,24 +81,16 @@ export default function BuyGiftCard() {
         });
         if (error) throw new Error(error);
 
-        if (isHubtelConfigured()) {
-          const { checkoutUrl, error: hubtelErr } = await initiateCheckout({
-            amount: GIFT_CARD_TIERS[selectedTier].value,
-            description: `Zolara ${selectedTier} Gift Card (Physical Pickup)`,
-            clientReference: id!,
-            callbackUrl: "https://vwvrhbyfytmqsywfdhvd.supabase.co/functions/v1/hubtel-webhook",
-            returnUrl: `${window.location.origin}/gift-card/success`,
-            cancellationUrl: `${window.location.origin}/buy-gift-card`,
-            customerName: form.buyerName,
-            customerEmail: form.buyerEmail,
-            customerPhone: form.buyerPhone,
-          });
-          if (hubtelErr) throw new Error(`Hubtel error: ${hubtelErr}`);
-          if (checkoutUrl) { window.location.href = checkoutUrl; return; }
-          throw new Error("No checkout URL returned.");
-        }
-
-        setStep("done");
+        const { authorizationUrl: pUrl, error: psErr2 } = await initiatePaystackPayment({
+          amount: GIFT_CARD_TIERS[selectedTier].value,
+          email: form.buyerEmail || "noemail@zolara.com",
+          reference: id!,
+          metadata: { tier: selectedTier, type: "physical", buyerName: form.buyerName },
+          callbackUrl: `${window.location.origin}/gift-card/success`,
+        });
+        if (psErr2) throw new Error(psErr2);
+        if (pUrl) { window.location.href = pUrl; return; }
+        throw new Error("No checkout URL returned.");
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
@@ -331,10 +314,10 @@ export default function BuyGiftCard() {
                 fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {loading ? "Processing..." : `Pay GH₵ ${tierConfig.value.toLocaleString()} via Hubtel`}
+              {loading ? "Processing..." : `Pay GH₵ ${tierConfig.value.toLocaleString()} via Paystack`}
             </button>
             <p style={{ textAlign: "center", fontSize: 11, color: TXT_MID, marginTop: 10 }}>
-              Secured by Hubtel. MoMo, Card, and Bank Transfer accepted.
+              Secured by Paystack. Card, Mobile Money, and Bank Transfer accepted.
             </p>
           </div>
         )}

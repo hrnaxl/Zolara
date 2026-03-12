@@ -1,0 +1,104 @@
+// Paystack webhook handler — replaces hubtel-webhook
+// Verifies payment and updates gift_cards or bookings
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts";
+
+const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  try {
+    const body = await req.text();
+    
+    // Verify Paystack signature
+    const signature = req.headers.get("x-paystack-signature");
+    if (signature) {
+      const hash = createHmac("sha512", PAYSTACK_SECRET).update(body).digest("hex");
+      if (hash !== signature) {
+        return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: cors });
+      }
+    }
+
+    const event = JSON.parse(body);
+    if (event.event !== "charge.success") {
+      return new Response(JSON.stringify({ received: true, action: "none" }), { headers: cors });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const reference = event.data?.reference;
+    const paymentRef = reference;
+
+    if (!reference) {
+      return new Response(JSON.stringify({ error: "Missing reference" }), { status: 400, headers: cors });
+    }
+
+    // Verify with Paystack API
+    const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { "Authorization": `Bearer ${PAYSTACK_SECRET}` },
+    });
+    const verifyData = await verifyRes.json();
+    if (!verifyData.status || verifyData.data?.status !== "success") {
+      return new Response(JSON.stringify({ received: true, action: "unverified" }), { headers: cors });
+    }
+
+    // 1. Check gift_cards (reference = gift card id)
+    const { data: giftCard } = await supabase
+      .from("gift_cards")
+      .select("id, card_type, tier, recipient_email, recipient_name, amount, buyer_name")
+      .eq("id", reference)
+      .eq("payment_status", "pending")
+      .maybeSingle();
+
+    if (giftCard) {
+      await supabase.from("gift_cards").update({
+        payment_ref: paymentRef,
+        payment_status: "paid",
+        status: giftCard.card_type === "digital" ? "pending_send" : "unused",
+      }).eq("id", giftCard.id);
+
+      // Log to online_purchases
+      await supabase.from("online_purchases").insert({
+        purchase_type: "gift_card",
+        amount: giftCard.amount,
+        payment_ref: paymentRef,
+        payment_status: "paid",
+        buyer_name: giftCard.buyer_name,
+        metadata: { gift_card_id: giftCard.id },
+        paid_at: new Date().toISOString(),
+      }).select().maybeSingle().catch(() => null);
+
+      return new Response(JSON.stringify({ received: true, action: "gift_card_paid" }), { headers: cors });
+    }
+
+    // 2. Check bookings (reference = booking_ref)
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("id, booking_ref, client_phone, client_name, service_name, preferred_date, preferred_time")
+      .eq("booking_ref", reference)
+      .maybeSingle();
+
+    if (booking) {
+      await supabase.from("bookings").update({
+        deposit_paid: true,
+        deposit_amount: verifyData.data.amount / 100, // convert pesewas back to GHS
+        payment_ref: paymentRef,
+        payment_status: "paid",
+        status: "confirmed",
+      } as any).eq("id", booking.id);
+
+      return new Response(JSON.stringify({ received: true, action: "deposit_paid" }), { headers: cors });
+    }
+
+    return new Response(JSON.stringify({ received: true, action: "unknown_reference" }), { headers: cors });
+
+  } catch (err: any) {
+    console.error("Paystack webhook error:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: cors });
+  }
+});

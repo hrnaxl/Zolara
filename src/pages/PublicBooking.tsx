@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
-import { initiateCheckout } from "@/lib/hubtel";
+import { initiatePaystackPayment } from "@/lib/paystack";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
@@ -99,7 +99,7 @@ export default function PublicBooking() {
     }).catch(() => setLoading(false));
   }, []);
 
-  // Handle Hubtel return URL: /book?booking_id=xxx
+  // Handle Paystack return URL: /book?booking_id=xxx
   useEffect(() => {
     const bid = searchParams.get("booking_id");
     if (bid) {
@@ -274,24 +274,19 @@ export default function PublicBooking() {
       if (bookingError) throw bookingError;
 
       const returnUrl = `${window.location.origin}/book?booking_id=${newBooking.id}`;
-      const callbackUrl = `https://vwvrhbyfytmqsywfdhvd.supabase.co/functions/v1/hubtel-webhook`;
 
-      const { checkoutUrl, error: hubtelError } = await initiateCheckout({
+      const { authorizationUrl, error: psError } = await initiatePaystackPayment({
         amount: (settings as any)?.deposit_amount ?? 50,
-        description: `Zolara Booking Deposit - ${selectedService?.name || "Beauty Service"}`,
-        clientReference: bRef,
-        callbackUrl,
-        returnUrl,
-        cancellationUrl: `${window.location.origin}/book`,
-        customerName: name,
-        customerPhone: cleanPhone,
-        customerEmail: email || undefined,
+        email: email || `${cleanPhone}@zolara.com`,
+        reference: bRef,
+        metadata: { booking_id: newBooking.id, service: selectedService?.name || "", customer_name: name, phone: cleanPhone },
+        callbackUrl: returnUrl,
       });
 
-      if (hubtelError) throw new Error(hubtelError);
-      if (!checkoutUrl) throw new Error("Could not generate payment link. Please try again.");
+      if (psError) throw new Error(psError);
+      if (!authorizationUrl) throw new Error("Could not generate payment link. Please try again.");
 
-      window.location.href = checkoutUrl;
+      window.location.href = authorizationUrl;
     } catch (err: any) {
       console.error("Deposit error:", err);
       toast.error(err.message || "Something went wrong. Please try again.");
@@ -318,7 +313,7 @@ export default function PublicBooking() {
       <div style={{ textAlign: "center" }}>
         <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
         <h2 style={{ fontSize: "28px", fontWeight: 500, color: DARK, marginBottom: "8px" }}>Preparing your payment...</h2>
-        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", color: TXT_MID }}>You'll be redirected to Hubtel's secure checkout page.</p>
+        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", color: TXT_MID }}>You'll be redirected to Paystack's secure checkout page.</p>
       </div>
     </div>
   );
@@ -471,7 +466,7 @@ export default function PublicBooking() {
           <div style={{ marginBottom: "32px" }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", letterSpacing: "0.26em", color: GOLD_DARK, fontWeight: 700, marginBottom: "8px" }}>BOOK YOUR APPOINTMENT</p>
             <h1 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 500, color: DARK, lineHeight: 1.15, marginBottom: "8px" }}>Reserve Your <em>Zolara</em> Experience</h1>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13.5px", color: TXT_MID, lineHeight: 1.75 }}>Fill in your details below. A GHS 50 deposit via Hubtel is required to confirm your booking.</p>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13.5px", color: TXT_MID, lineHeight: 1.75 }}>Fill in your details below. A GHS 50 deposit via Paystack is required to confirm your booking.</p>
           </div>
 
           {/* Personal Details */}
@@ -749,7 +744,7 @@ export default function PublicBooking() {
 
             <div style={{ background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "16px 18px", marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.65)", fontWeight: 500 }}>Pay now (Hubtel deposit)</span>
+                <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: "rgba(245,239,230,0.65)", fontWeight: 500 }}>Pay now (Paystack deposit)</span>
                 <span style={{ fontSize: "22px", fontWeight: 700, color: GOLD }}>GHS 50</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -767,7 +762,7 @@ export default function PublicBooking() {
               PAY GHS 50 DEPOSIT TO BOOK
             </button>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", textAlign: "center", marginTop: "12px" }}>
-              Secured by Hubtel. Your card details are never stored by us.
+              Secured by Paystack. Card, MoMo, and Bank Transfer accepted.
             </p>
           </div>
         </div>

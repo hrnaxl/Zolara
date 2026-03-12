@@ -109,7 +109,7 @@ export default function EnhancedBookingForm() {
     || [{ id: "cash", name: "Cash" }, { id: "mobile_money", name: "Mobile Money" }];
 
   const PAYMENT_LABELS: Record<string,string> = {
-    cash: "Cash", mobile_money: "Mobile Money", card: "Card / Hubtel",
+    cash: "Cash", mobile_money: "Mobile Money", card: "Card / Paystack",
     bank_transfer: "Bank Transfer", gift_card: "Gift Card",
   };
   const PAYMENT_ICONS: Record<string,string> = {
