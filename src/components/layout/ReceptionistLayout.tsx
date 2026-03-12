@@ -14,6 +14,7 @@ const ReceptionistDashboard = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [pendingItems, setPendingItems] = useState<any[]>([]);
   const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
+  const [bellOpen, setBellOpen] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -166,10 +167,39 @@ const ReceptionistDashboard = () => {
           </p>
         </div>
 
-        <button onClick={fetchData}
-          style={{ width: "38px", height: "38px", borderRadius: "50%", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, fontSize: "16px" }}>
-          ↻
-        </button>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button onClick={fetchData}
+            style={{ width: "38px", height: "38px", borderRadius: "50%", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, fontSize: "16px" }}>
+            ↻
+          </button>
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setBellOpen(o => !o)}
+              style={{ width: "38px", height: "38px", borderRadius: "50%", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px" }}>🔔</button>
+            {stats.pending > 0 && (
+              <div style={{ position: "absolute", top: "-2px", right: "-2px", minWidth: "16px", height: "16px", borderRadius: "8px", background: "#EF4444", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
+                <span style={{ fontSize: "8px", fontWeight: 700, color: "#fff" }}>{stats.pending}</span>
+              </div>
+            )}
+            {bellOpen && (
+              <div style={{ position: "fixed", top: "70px", right: "36px", width: "300px", background: WHITE, borderRadius: "16px", boxShadow: "0 8px 40px rgba(0,0,0,0.14)", border: `1px solid ${BORDER}`, zIndex: 99999, overflow: "hidden" }}>
+                <div style={{ padding: "14px 18px", borderBottom: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 700, fontSize: "13px" }}>Notifications</span>
+                  <span onClick={() => setBellOpen(false)} style={{ cursor: "pointer", color: TXT_SOFT }}>✕</span>
+                </div>
+                <div style={{ maxHeight: "340px", overflowY: "auto" }}>
+                  {pendingItems.length > 0 ? pendingItems.map((b: any, i: number) => (
+                    <div key={i} style={{ padding: "13px 18px", borderBottom: `1px solid ${BORDER}`, display: "flex", gap: "10px" }}>
+                      <span style={{ fontSize: "16px" }}>⚠️</span>
+                      <span style={{ fontSize: "12px", lineHeight: 1.5 }}>{b.name} — {b.service} needs attention</span>
+                    </div>
+                  )) : (
+                    <div style={{ padding: "28px 18px", textAlign: "center", color: TXT_SOFT, fontSize: "12px" }}>All clear. No pending bookings.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── KPI ROW ──────────────────────────────────────── */}

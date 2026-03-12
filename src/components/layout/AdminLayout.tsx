@@ -749,7 +749,7 @@ const AdminDashboard = () => {
               </div>
             )}
             {bellOpen && (
-              <div style={{ position:"fixed", top:"70px", right:"36px", width:"300px", background: WHITE, borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.14)", border:`1px solid ${BORDER}`, zIndex:9999, overflow:"hidden" }}>
+              <div style={{ position:"fixed", top:"70px", right:"36px", width:"300px", background: WHITE, borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.14)", border:`1px solid ${BORDER}`, zIndex:99999, overflow:"hidden" }}>
                 <div style={{ padding:"14px 18px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontWeight:700, fontSize:"13px" }}>Notifications</span>
                   <span onClick={() => setBellOpen(false)} style={{ cursor:"pointer", color: TXT_SOFT }}>✕</span>
