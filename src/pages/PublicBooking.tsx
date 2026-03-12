@@ -78,14 +78,25 @@ export default function PublicBooking() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // allVariantsMap: serviceId -> variants[] (for price range display in picker)
+  const [allVariantsMap, setAllVariantsMap] = useState<Record<string, any[]>>({});
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [serviceSearch, setServiceSearch] = useState("");
+
   useEffect(() => {
-    supabase
-      .from("services")
-      .select("id, name, category, price, duration_minutes, is_active")
-      .eq("is_active", true)
-      .order("category").order("name")
-      .then(({ data }) => { setServices(data || []); setLoading(false); })
-      .catch(() => setLoading(false));
+    Promise.all([
+      supabase.from("services").select("id, name, category, price, duration_minutes, is_active, description").eq("is_active", true).order("category").order("name"),
+      (supabase as any).from("service_variants").select("service_id, price_adjustment, name").eq("is_active", true),
+    ]).then(([{ data: svcs }, { data: allVars }]) => {
+      setServices(svcs || []);
+      const vm: Record<string, any[]> = {};
+      for (const v of (allVars || [])) {
+        if (!vm[v.service_id]) vm[v.service_id] = [];
+        vm[v.service_id].push(v);
+      }
+      setAllVariantsMap(vm);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   // Handle Hubtel return URL: /book?booking_id=xxx
@@ -152,6 +163,26 @@ export default function PublicBooking() {
     acc[cat].push(s);
     return acc;
   }, {} as Record<string, any[]>);
+
+  // Helper: get display price range for a service
+  const getPriceDisplay = (svc: any) => {
+    const base = Number(svc.price);
+    const vars = allVariantsMap[svc.id] || [];
+    if (vars.length === 0) return `GHS ${base.toLocaleString()}`;
+    const prices = vars.map(v => base + Number(v.price_adjustment));
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return min === max ? `GHS ${min.toLocaleString()}` : `GHS ${min.toLocaleString()} – ${max.toLocaleString()}`;
+  };
+
+  const allCategories = ["all", ...Object.keys(grouped)];
+  const isPackage = (cat: string) => cat.toLowerCase().includes("package") || cat.toLowerCase().includes("promo") || cat.toLowerCase().includes("student") || cat.toLowerCase().includes("kids") || cat.toLowerCase().includes("special") || cat.toLowerCase().includes("deal");
+  const packageCats = Object.keys(grouped).filter(isPackage);
+  const filteredServices = services.filter(s => {
+    const matchCat = activeCategory === "all" || s.category === activeCategory;
+    const matchSearch = !serviceSearch || s.name.toLowerCase().includes(serviceSearch.toLowerCase()) || (s.description || "").toLowerCase().includes(serviceSearch.toLowerCase());
+    return matchCat && matchSearch;
+  });
 
   const basePrice = Number(selectedService?.price || 0);
   const variantAdj = selectedVariant ? Number(selectedVariant.price_adjustment) : 0;
@@ -467,29 +498,74 @@ export default function PublicBooking() {
           </div>
 
           {/* Service */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>SELECT A SERVICE</p>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: "24px 28px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "16px" }}>SELECT A SERVICE</p>
             {loading ? (
               <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
                 <Loader2 size={24} style={{ color: GOLD, animation: "spin 0.8s linear infinite" }} />
               </div>
-            ) : (
-              <div style={{ position: "relative" }}>
-                <select className="svc-select" value={serviceId} onChange={e => setServiceId(e.target.value)} style={{ ...inp, paddingRight: "44px" }}>
-                  <option value="">Choose a service...</option>
-                  {Object.entries(grouped).map(([cat, svcs]) => (
-                    <optgroup key={cat} label={cat}>
-                      {(svcs as any[]).map((s: any) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} · GHS {Number(s.price).toLocaleString()} ({s.duration_minutes} min)
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <ChevronDown size={16} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", color: TXT_SOFT, pointerEvents: "none" }} />
+            ) : (<>
+              {/* Packages banner — only shown if package categories exist */}
+              {packageCats.length > 0 && (
+                <div style={{ background: "linear-gradient(135deg, #1C160E 0%, #2D2318 100%)", borderRadius: "10px", padding: "16px 18px", marginBottom: "16px", border: `1px solid ${GOLD}40` }}>
+                  <p style={{ color: GOLD, fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.18em", margin: "0 0 8px" }}>✦ PACKAGES & DEALS</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {packageCats.map(cat => (
+                      (grouped[cat] || []).map((svc: any) => (
+                        <button key={svc.id} onClick={() => { setServiceId(svc.id); setActiveCategory(cat); }}
+                          style={{ background: serviceId === svc.id ? GOLD : "rgba(200,169,126,0.12)", border: `1.5px solid ${serviceId === svc.id ? GOLD : "rgba(200,169,126,0.3)"}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 700, color: serviceId === svc.id ? DARK : GOLD, margin: 0 }}>{svc.name}</p>
+                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: serviceId === svc.id ? "rgba(28,22,14,0.7)" : "rgba(200,169,126,0.7)", margin: "2px 0 0" }}>{getPriceDisplay(svc)}</p>
+                        </button>
+                      ))
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Search */}
+              <div style={{ position: "relative", marginBottom: "14px" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TXT_SOFT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "12px", top: "13px", pointerEvents: "none" }}>
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input value={serviceSearch} onChange={e => setServiceSearch(e.target.value)} placeholder="Search services…" style={{ ...inp, paddingLeft: "36px", fontSize: "13px", padding: "11px 16px 11px 36px" }} />
               </div>
-            )}
+
+              {/* Category tabs */}
+              {!serviceSearch && (
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "14px" }}>
+                  {allCategories.filter(c => !isPackage(c)).map(cat => (
+                    <button key={cat} onClick={() => setActiveCategory(cat)}
+                      style={{ background: activeCategory === cat ? GOLD_DARK : "white", color: activeCategory === cat ? "white" : TXT_MID, border: `1.5px solid ${activeCategory === cat ? GOLD_DARK : BORDER}`, borderRadius: "20px", padding: "5px 14px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+                      {cat === "all" ? "All" : cat} {cat !== "all" && <span style={{ opacity: 0.6, fontSize: "10px" }}>({(grouped[cat] || []).length})</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Service cards grid */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "320px", overflowY: "auto", paddingRight: "4px" }}>
+                {filteredServices.filter(s => !isPackage(s.category)).length === 0 && (
+                  <p style={{ textAlign: "center", color: TXT_SOFT, fontSize: "13px", padding: "24px 0" }}>No services found.</p>
+                )}
+                {filteredServices.filter(s => !isPackage(s.category)).map((svc: any) => {
+                  const active = serviceId === svc.id;
+                  return (
+                    <button key={svc.id} onClick={() => setServiceId(svc.id)}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{svc.name}</p>
+                        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{svc.duration_minutes} min{svc.description ? ` · ${svc.description.slice(0, 50)}${svc.description.length > 50 ? "…" : ""}` : ""}</p>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: active ? GOLD_DARK : TXT_MID, whiteSpace: "nowrap" }}>{getPriceDisplay(svc)}</span>
+                        {active && <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: GOLD, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "11px", fontWeight: 700 }}>✓</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>)}
             {selectedService && (
               <div style={{ marginTop: "14px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "14px 18px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: selectedService.description ? "10px" : "0" }}>
