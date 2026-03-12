@@ -75,6 +75,9 @@ const Stat = ({ label, value }: { label: string; value: () => string }) => {
 const Clients = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [filteredClients, setFilteredClients] = useState<any[]>([]);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
+  const [merging, setMerging] = useState(false);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -247,6 +250,50 @@ const Clients = () => {
     setSearchResults(null);
   };
 
+  const findDuplicates = async () => {
+    const { data: allClients } = await supabase.from("clients").select("*").order("name");
+    if (!allClients) return;
+    const phoneMap: Record<string, any[]> = {};
+    for (const cl of allClients) {
+      const ph = (cl.phone || "").replace(/\s/g, "").replace(/^\+233/, "0");
+      if (!ph) continue;
+      if (!phoneMap[ph]) phoneMap[ph] = [];
+      phoneMap[ph].push(cl);
+    }
+    const groups = Object.values(phoneMap).filter(g => g.length > 1);
+    setDuplicateGroups(groups);
+    setMergeDialogOpen(true);
+  };
+
+  const mergeGroup = async (group: any[]) => {
+    setMerging(true);
+    try {
+      // Keep the client with most visits / oldest record as primary
+      const primary = group.reduce((best, cl) => ((cl.total_visits||0) >= (best.total_visits||0)) ? cl : best, group[0]);
+      const secondary = group.filter(cl => cl.id !== primary.id);
+      const aliases = secondary.map(cl => cl.name).filter(Boolean);
+      const mergedNotes = [primary.notes, ...secondary.map(cl => cl.notes)].filter(Boolean).join(" | ");
+      const mergedPoints = group.reduce((s, cl) => s + (cl.loyalty_points||0), 0);
+      const mergedVisits = group.reduce((s, cl) => s + (cl.total_visits||0), 0);
+      const mergedSpent = group.reduce((s, cl) => s + (cl.total_spent||0), 0);
+      const aliasNote = aliases.length > 0 ? `[Also known as: ${aliases.join(", ")}]` : "";
+      // Update primary
+      await supabase.from("clients").update({
+        loyalty_points: mergedPoints, total_visits: mergedVisits, total_spent: mergedSpent,
+        notes: [aliasNote, mergedNotes].filter(Boolean).join(" "),
+      }).eq("id", primary.id);
+      // Reassign all bookings from secondary to primary
+      for (const sec of secondary) {
+        await supabase.from("bookings").update({ client_id: primary.id, client_name: primary.name }).eq("client_id", sec.id);
+        await supabase.from("clients").delete().eq("id", sec.id);
+      }
+      toast.success(`Merged ${group.length} records into ${primary.name}`);
+      setDuplicateGroups(prev => prev.filter(g => g[0].phone !== group[0].phone));
+      fetchClients();
+    } catch (e: any) { toast.error(e.message || "Merge failed"); }
+    finally { setMerging(false); }
+  };
+
     const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -347,7 +394,11 @@ const Clients = () => {
           <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Clients</h1>
           <p className="z-subtitle">Manage your clients</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+          <Button variant="outline" onClick={findDuplicates} style={{fontSize:"12px"}}>
+            🔀 Merge Duplicates
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
@@ -422,6 +473,48 @@ const Clients = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
+
+        {/* Merge Duplicates Dialog */}
+        <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+          <DialogContent className="max-w-lg" style={{maxHeight:"80vh",overflowY:"auto"}}>
+            <DialogHeader>
+              <DialogTitle>Merge Duplicate Clients</DialogTitle>
+            </DialogHeader>
+            {duplicateGroups.length === 0 ? (
+              <div style={{textAlign:"center",padding:"32px",color:"#A8A29E",fontSize:"13px"}}>
+                ✅ No duplicates found. All clients have unique phone numbers.
+              </div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+                <p style={{fontSize:"12px",color:"#78716C"}}>{duplicateGroups.length} group(s) with matching phone numbers found.</p>
+                {duplicateGroups.map((group, i) => (
+                  <div key={i} style={{border:"1px solid #E5DDD3",borderRadius:"10px",overflow:"hidden"}}>
+                    <div style={{background:"#FBF6EE",padding:"10px 14px",borderBottom:"1px solid #E5DDD3"}}>
+                      <p style={{margin:0,fontSize:"12px",fontWeight:700}}>📱 {(group[0].phone||"").replace(/^\+233/,"0")}</p>
+                    </div>
+                    {group.map((cl: any) => (
+                      <div key={cl.id} style={{padding:"10px 14px",borderBottom:"1px solid #F5F0E8",display:"flex",justifyContent:"space-between",fontSize:"12px"}}>
+                        <div>
+                          <p style={{margin:0,fontWeight:600}}>{cl.name}</p>
+                          <p style={{margin:0,color:"#A8A29E"}}>{cl.email||"—"} · {cl.total_visits||0} visits · GHS {(cl.total_spent||0).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{padding:"10px 14px",background:"#F9FAFB"}}>
+                      <button onClick={()=>mergeGroup(group)} disabled={merging}
+                        style={{padding:"8px 16px",background:"#C8A97E",color:"white",border:"none",borderRadius:"6px",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>
+                        {merging?"Merging…":"Merge into one client"}
+                      </button>
+                      <span style={{fontSize:"11px",color:"#A8A29E",marginLeft:"10px"}}>Keeps the record with most visits. Combines points, visits &amp; spent.</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent className="max-w-sm grid gap-4 p-6">
             <DialogHeader>
