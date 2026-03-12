@@ -532,6 +532,8 @@ const Checkout = () => {
           client_id: booking.clients?.id || null,
           staff_id: selectedStaff || null,
           notes: notes || `${capitalizedPaymentMethod} payment recorded at checkout`,
+          promo_code: appliedPromo?.code || null,
+          promo_discount: promoDiscount > 0 ? promoDiscount : null,
         });
 
         if (paymentError) throw paymentError;
@@ -585,6 +587,8 @@ const Checkout = () => {
           service_name: booking.service_name || null,
           client_id: booking.clients?.id || null,
           notes: notes || "Manual bank transfer (pending)",
+          promo_code: appliedPromo?.code || null,
+          promo_discount: promoDiscount > 0 ? promoDiscount : null,
         });
 
         if (paymentError) throw paymentError;

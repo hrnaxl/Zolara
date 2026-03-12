@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Calendar,
@@ -75,6 +76,10 @@ const AdminDashboard = () => {
     weeklyRevenueChange: 0,
     topServiceRevenue: 0,
     topServiceGrowth: 0,
+    periodDeposits: 0,
+    depositCount: 0,
+    periodPromoSavings: 0,
+    promoBreakdown: [] as { code: string; savings: number; count: number }[],
   });
 
   const [revenueData, setRevenueData] = useState<
@@ -154,6 +159,10 @@ const AdminDashboard = () => {
       const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0).toISOString();
       const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999).toISOString();
 
+      // Timestamp versions of period for sales table (uses created_at not preferred_date)
+      const periodStartTs = new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), dateRange.start.getDate(), 0, 0, 0).toISOString();
+      const periodEndTs = new Date(dateRange.end.getFullYear(), dateRange.end.getMonth(), dateRange.end.getDate(), 23, 59, 59, 999).toISOString();
+
       // Fetch all data in parallel
       const [
         todayBookingsRes,
@@ -181,6 +190,8 @@ const AdminDashboard = () => {
         lastWeekRevenueRes,
         thisMonthSalesByServiceRes,
         previousMonthServiceBookingsRes,
+        depositsRes,
+        promoSavingsRes,
       ] = await Promise.all([
         supabase
           .from("bookings")
@@ -306,6 +317,10 @@ const AdminDashboard = () => {
         supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("created_at", startOfThisMonth).lte("created_at", endOfThisMonth),
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
+        // deposits collected this period
+        supabase.from("bookings").select("deposit_amount, deposit_paid").gte("preferred_date", periodStart).lte("preferred_date", periodEnd).eq("deposit_paid", true),
+        // promo savings this period
+        (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
 
       // Calculate stats
@@ -540,6 +555,21 @@ const AdminDashboard = () => {
         lowBookingThreshold: 3,
       });
 
+      // Deposits collected
+      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
+      const depositCount = depositsRes.data?.length || 0;
+
+      // Promo savings breakdown
+      const promoMap: Record<string, { savings: number; count: number }> = {};
+      (promoSavingsRes.data || []).forEach((s: any) => {
+        if (!s.promo_code || !s.promo_discount) return;
+        if (!promoMap[s.promo_code]) promoMap[s.promo_code] = { savings: 0, count: 0 };
+        promoMap[s.promo_code].savings += Number(s.promo_discount);
+        promoMap[s.promo_code].count += 1;
+      });
+      const promoBreakdown = Object.entries(promoMap).map(([code, v]) => ({ code, ...v })).sort((a, b) => b.savings - a.savings);
+      const periodPromoSavings = promoBreakdown.reduce((s, p) => s + p.savings, 0);
+
       setStats({
         todayBookings: todayBookingsRes.data?.length || 0,
         periodBookings: periodBookingsRes.data?.length || 0,
@@ -562,6 +592,10 @@ const AdminDashboard = () => {
         weeklyRevenueChange: Number(weeklyRevenueChange.toFixed(1)),
         topServiceRevenue,
         topServiceGrowth: Number(topServiceGrowth.toFixed(1)),
+        periodDeposits,
+        depositCount,
+        periodPromoSavings,
+        promoBreakdown,
       });
 
       setRevenueData(revenueChartData);
@@ -748,8 +782,8 @@ const AdminDashboard = () => {
                 <span style={{ fontSize:"8px", fontWeight:700, color:"#fff" }}>{stats.pendingRequests + alerts.length}</span>
               </div>
             )}
-            {bellOpen && (
-              <div style={{ position:"fixed", top:"70px", right:"36px", width:"300px", background: WHITE, borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.14)", border:`1px solid ${BORDER}`, zIndex:99999, overflow:"hidden" }}>
+            {bellOpen && createPortal(
+              <div style={{ position:"fixed", top:"70px", right:"36px", width:"300px", background: WHITE, borderRadius:"16px", boxShadow:"0 8px 40px rgba(0,0,0,0.14)", border:`1px solid ${BORDER}`, zIndex:999999, overflow:"hidden" }}>
                 <div style={{ padding:"14px 18px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <span style={{ fontWeight:700, fontSize:"13px" }}>Notifications</span>
                   <span onClick={() => setBellOpen(false)} style={{ cursor:"pointer", color: TXT_SOFT }}>✕</span>
@@ -766,7 +800,7 @@ const AdminDashboard = () => {
                   )}
                 </div>
               </div>
-            )}
+            , document.body)}
           </div>
         </div>
       </div>
@@ -817,6 +851,53 @@ const AdminDashboard = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── DEPOSITS + PROMO SAVINGS ──────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-2">
+
+        {/* DEPOSITS CARD */}
+        <div className="zc-flat au" style={{ animationDelay:"0.36s", padding:"24px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
+            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>DEPOSITS COLLECTED · {filterLabel}</span>
+            <span style={{ fontSize:"16px" }}>🔒</span>
+          </div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2vw,30px)", fontWeight:700, color: TXT, marginBottom:"6px" }}>
+            GHS {stats.periodDeposits.toLocaleString("en", { minimumFractionDigits:2 })}
+          </div>
+          <div style={{ fontSize:"11px", color: TXT_SOFT }}>
+            {stats.depositCount} booking{stats.depositCount !== 1 ? "s" : ""} with deposit paid
+          </div>
+          <div style={{ marginTop:"12px", fontSize:"10px", color:"rgba(200,169,126,0.6)", fontStyle:"italic" }}>
+            Not included in revenue — these are advance payments already counted at checkout.
+          </div>
+        </div>
+
+        {/* PROMO SAVINGS CARD */}
+        <div className="zc-flat au" style={{ animationDelay:"0.39s", padding:"24px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
+            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>PROMO SAVINGS GIVEN · {filterLabel}</span>
+            <span style={{ fontSize:"16px" }}>🎟️</span>
+          </div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2vw,30px)", fontWeight:700, color: TXT, marginBottom:"6px" }}>
+            GHS {stats.periodPromoSavings.toLocaleString("en", { minimumFractionDigits:2 })}
+          </div>
+          {stats.promoBreakdown.length === 0 ? (
+            <div style={{ fontSize:"11px", color: TXT_SOFT }}>No promo codes used this period.</div>
+          ) : (
+            <div style={{ marginTop:"8px", display:"flex", flexDirection:"column", gap:"6px" }}>
+              {stats.promoBreakdown.map((p) => (
+                <div key={p.code} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 10px", borderRadius:"8px", background: G_LIGHT }}>
+                  <div>
+                    <span style={{ fontSize:"11px", fontWeight:700, color: G, fontFamily:"monospace" }}>{p.code}</span>
+                    <span style={{ fontSize:"10px", color: TXT_SOFT, marginLeft:"8px" }}>{p.count} use{p.count !== 1 ? "s" : ""}</span>
+                  </div>
+                  <span style={{ fontSize:"12px", fontWeight:700, color: TXT }}>− GHS {p.savings.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── TOP SERVICE BANNER ────────────────────────────── */}
