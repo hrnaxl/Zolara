@@ -109,7 +109,7 @@ const Checkout = () => {
   const [depositPaid, setDepositPaid] = useState(false);
   const [amount, setAmount] = useState<string>("");
   const [originalPrice, setOriginalPrice] = useState<number>(0);
-  const depositAmount = 50;
+  const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
   const [giftCode, setGiftCode] = useState<string>("");
   const [redeeming, setRedeeming] = useState<boolean>(false);
   const [redeemedCard, setRedeemedCard] = useState<{
@@ -554,7 +554,8 @@ const Checkout = () => {
             const isBirthdayMonth = clientDob
               ? new Date(clientDob).getMonth() === new Date().getMonth()
               : false;
-            const stampsEarned = Math.floor(fullBookingPrice / 100) * (isBirthdayMonth ? 2 : 1);
+            const stampPerGhs = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
+            const stampsEarned = Math.floor(fullBookingPrice / stampPerGhs) * (isBirthdayMonth ? 2 : 1);
             const newStamps = currentStamps + stampsEarned;
             await supabase.from("clients" as any).update({
               loyalty_points: newStamps,

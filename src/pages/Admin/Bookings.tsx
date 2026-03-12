@@ -630,7 +630,7 @@ const Bookings = () => {
         toast.success("Booking updated");
       } else {
         const ref = `ZB${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,5).toUpperCase()}`;
-        const { error } = await supabase.from("bookings").insert([{ ...bookingPayload, booking_ref: ref, deposit_amount: 50, deposit_paid: false }] as any);
+        const { error } = await supabase.from("bookings").insert([{ ...bookingPayload, booking_ref: ref, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false }] as any);
         if (error) throw error;
         toast.success(cartData.length > 1 ? `Booking created — ${cartData.length} services` : "Booking created");
       }

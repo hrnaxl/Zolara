@@ -26,6 +26,11 @@ interface Settings {
   business_phone: string;
   business_email: string;
   business_address: string;
+  deposit_amount: number;
+  loyalty_stamp_per_ghs: number;
+  loyalty_stamps_for_reward: number;
+  loyalty_reward_discount: number;
+  closed_dates: string[];
 }
 
 const defaultSettings: Settings = {
@@ -46,6 +51,11 @@ const defaultSettings: Settings = {
   business_phone: "",
   business_email: "",
   business_address: "",
+  deposit_amount: 50,
+  loyalty_stamp_per_ghs: 100,
+  loyalty_stamps_for_reward: 20,
+  loyalty_reward_discount: 50,
+  closed_dates: [],
 };
 
 type UserRole = string | null;

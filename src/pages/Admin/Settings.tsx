@@ -7,13 +7,13 @@ import { BusinessInfoSection } from "@/components/settings/BusinessInfoSection";
 import { OperatingHoursSection } from "@/components/settings/OperatingHoursSection";
 import { DraggableListSection } from "@/components/settings/DraggableListSection";
 import { PaymentMethodsSection } from "@/components/settings/PaymentMethodsSection";
-import { PermissionLevelsSection } from "@/components/settings/PermissionLevelsSection";
 import { DataManagementSection } from "@/components/settings/DataManagementSection";
 import { BackupRestoreSection } from "@/components/settings/BackupRestoreSection";
 import { Loader2 } from "lucide-react";
 import { GallerySettingsSection } from "@/components/settings/GalllerySection";
 import { ReviewsSettingsSection } from "@/components/settings/ReviewsManagement";
 import { TemporaryClosuresSection } from "@/components/settings/TemporaryClosuresSection";
+import { BusinessRulesSection } from "@/components/settings/BusinessRulesSection";
 
 interface PaymentMethod {
   id: string;
@@ -36,6 +36,10 @@ interface Settings {
   business_address: string;
   payment_methods: PaymentMethod[];
   closed_dates?: string[];
+  deposit_amount?: number;
+  loyalty_stamp_per_ghs?: number;
+  loyalty_stamps_for_reward?: number;
+  loyalty_reward_discount?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -61,6 +65,10 @@ const defaultSettings: Settings = {
   business_address: "",
   payment_methods: [],
   closed_dates: [],
+  deposit_amount: 50,
+  loyalty_stamp_per_ghs: 100,
+  loyalty_stamps_for_reward: 20,
+  loyalty_reward_discount: 50,
 };
 
 export default function Settings() {
@@ -150,6 +158,10 @@ export default function Settings() {
         payment_methods: settings.payment_methods,
         gallery_images: (settings as any).gallery_images ?? [],
         closed_dates: settings.closed_dates ?? [],
+        deposit_amount: settings.deposit_amount ?? 50,
+        loyalty_stamp_per_ghs: settings.loyalty_stamp_per_ghs ?? 100,
+        loyalty_stamps_for_reward: settings.loyalty_stamps_for_reward ?? 20,
+        loyalty_reward_discount: settings.loyalty_reward_discount ?? 50,
       };
 
       // Always fetch the real row id first, then update
@@ -259,6 +271,18 @@ export default function Settings() {
           onClosedDatesChange={(dates) => setSettings(prev => ({ ...prev, closed_dates: dates }))}
         />
 
+        {/* Deposit + Loyalty business rules */}
+        <BusinessRulesSection
+          depositAmount={settings.deposit_amount ?? 50}
+          loyaltyStampPerGhs={settings.loyalty_stamp_per_ghs ?? 100}
+          loyaltyStampsForReward={settings.loyalty_stamps_for_reward ?? 20}
+          loyaltyRewardDiscount={settings.loyalty_reward_discount ?? 50}
+          onDepositChange={(v) => setSettings(prev => ({ ...prev, deposit_amount: v }))}
+          onStampPerGhsChange={(v) => setSettings(prev => ({ ...prev, loyalty_stamp_per_ghs: v }))}
+          onStampsForRewardChange={(v) => setSettings(prev => ({ ...prev, loyalty_stamps_for_reward: v }))}
+          onRewardDiscountChange={(v) => setSettings(prev => ({ ...prev, loyalty_reward_discount: v }))}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <DraggableListSection
             title="Staff Roles"
@@ -279,7 +303,6 @@ export default function Settings() {
           />
         </div>
 
-        <PermissionLevelsSection />
 
         <PaymentMethodsSection
           paymentMethods={settings.payment_methods}

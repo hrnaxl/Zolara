@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSettings } from "@/context/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Gift, Award, Search, Plus, Minus, RefreshCw, Crown, Calendar, Phone } from "lucide-react";
 import { toast } from "sonner";
@@ -30,10 +31,11 @@ interface Client {
 }
 
 const STAMPS_PER_REWARD = 20;
-const REWARD_DISCOUNT = 50;
+// REWARD_DISCOUNT now comes from settings
 const STAMP_EARN_RATE = 100; // GHS per stamp
 
 export default function Loyalty() {
+  const { settings } = useSettings();
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -132,7 +134,7 @@ export default function Loyalty() {
           </div>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 600, color: G.charcoal, fontFamily: "Playfair Display, serif" }}>Loyalty Program</h1>
-            <p style={{ fontSize: 13, color: G.warmGrey }}>1 stamp per GHS 100 spent. 20 stamps = GHS 50 discount</p>
+            <p style={{ fontSize: 13, color: G.warmGrey }}>{`1 stamp per GHS ${(settings as any)?.loyalty_stamp_per_ghs ?? 100} spent. ${(settings as any)?.loyalty_stamps_for_reward ?? 20} stamps = GHS ${(settings as any)?.loyalty_reward_discount ?? 50} discount`}</p>
           </div>
         </div>
       </div>

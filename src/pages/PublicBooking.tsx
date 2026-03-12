@@ -228,6 +228,14 @@ export default function PublicBooking() {
       const normalizedTime = normalizeTimeTo24(preferredTime);
       const day = new Date(`${preferredDate}T00:00:00`).getDay();
       if (day === 0) { toast.error("We are closed on Sundays."); setStep("form"); return; }
+      // Check manual closed dates from settings
+      const closedDates: string[] = (settings as any)?.closed_dates || [];
+      if (closedDates.some((d: string) => d.split("|")[0] === preferredDate)) {
+        const entry = closedDates.find((d: string) => d.startsWith(preferredDate));
+        const reason = entry?.includes("|") ? entry.split("|")[1] : "special closure";
+        toast.error(`We are closed on this date (${reason}). Please choose another day.`);
+        setStep("form"); return;
+      }
       const openTime = (settings as any)?.open_time || "08:30";
       const closeTime = (settings as any)?.close_time || "21:00";
       if (!isTimeWithinRange(normalizedTime, openTime, closeTime)) {
@@ -255,7 +263,7 @@ export default function PublicBooking() {
             ? addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price }))
             : [],
           preferred_date: preferredDate, preferred_time: normalizedTime,
-          price: total, deposit_amount: 50, deposit_paid: false,
+          price: total, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false,
           notes: notesFull, status: "awaiting_deposit",
           booking_ref: bRef, client_id: clientId || null,
           payment_ref: bRef,
@@ -269,7 +277,7 @@ export default function PublicBooking() {
       const callbackUrl = `https://vwvrhbyfytmqsywfdhvd.supabase.co/functions/v1/hubtel-webhook`;
 
       const { checkoutUrl, error: hubtelError } = await initiateCheckout({
-        amount: 50,
+        amount: (settings as any)?.deposit_amount ?? 50,
         description: `Zolara Booking Deposit - ${selectedService?.name || "Beauty Service"}`,
         clientReference: bRef,
         callbackUrl,
