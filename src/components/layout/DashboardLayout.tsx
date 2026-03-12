@@ -230,6 +230,8 @@ const DashboardLayout = () => {
         .sidebar-scroll::-webkit-scrollbar-thumb { background:rgba(201,168,76,0.35); border-radius:4px; }
         .sidebar-scroll::-webkit-scrollbar-thumb:hover { background:rgba(201,168,76,0.6); }
         .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:40; backdrop-filter:blur(2px); }
+        .z-page { padding: clamp(12px, 3vw, 28px) clamp(12px, 3vw, 28px); }
+        @media(max-width:640px){ .z-title{font-size:22px!important} table{font-size:12px} }
       `}</style>
 
       {/* Mobile overlay */}
@@ -351,7 +353,25 @@ const DashboardLayout = () => {
 
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="lg:ml-[240px]" style={{ minHeight: "100vh" }}>
-        <main style={{ background: CREAM, minHeight: "100vh" }}>
+        {/* Mobile top bar — only visible on small screens */}
+        <div className="lg:hidden" style={{
+          position: "sticky", top: 0, zIndex: 30,
+          background: NAVY, height: 56, display: "flex", alignItems: "center",
+          justifyContent: "space-between", padding: "0 16px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+        }}>
+          <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: WHITE, padding: 4 }}>
+            <Menu size={22} />
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", border: `1.5px solid ${GOLD}` }}>
+              <img src={settings.logo_url || "/logo.png"} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="Zolara" />
+            </div>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: WHITE }}>Zolara</span>
+          </div>
+          <div style={{ width: 30 }} />
+        </div>
+        <main style={{ background: CREAM, minHeight: "100vh", overflowX: "hidden" }}>
           <Outlet />
         </main>
       </div>

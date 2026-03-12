@@ -1,154 +1,118 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Clock, Trash } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { z } from "zod";
-
-const serviceSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
-  category: z
-    .string()
-    .trim()
-    .min(1, "Category is required")
-    .max(50, "Category too long"),
-  price: z
-    .number()
-    .positive("Price must be positive")
-    .max(1000000, "Price too high"),
-  duration_minutes: z
-    .number()
-    .int()
-    .positive("Duration must be positive")
-    .max(1440, "Duration cannot exceed 24 hours"),
-  description: z
-    .string()
-    .max(500, "Description too long")
-    .optional()
-    .or(z.literal("")),
-});
 
 const ViewServices = () => {
   const [services, setServices] = useState<any[]>([]);
+  const [variants, setVariants] = useState<Record<string, any[]>>({});
+  const [addons, setAddons] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
-  const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    price: "",
-    duration_minutes: "",
-    description: "",
-  });
 
   useEffect(() => {
-    fetchServices();
+    const load = async () => {
+      try {
+        const [svcRes, varRes, addRes] = await Promise.all([
+          supabase.from("services").select("*").eq("is_active", true).order("category").order("name"),
+          (supabase as any).from("service_variants").select("*").eq("is_active", true).order("sort_order"),
+          (supabase as any).from("service_addons").select("*").eq("is_active", true).order("sort_order"),
+        ]);
+        if (svcRes.data) setServices(svcRes.data);
+        if (varRes.data) {
+          const vm: Record<string, any[]> = {};
+          for (const v of varRes.data) { if (!vm[v.service_id]) vm[v.service_id] = []; vm[v.service_id].push(v); }
+          setVariants(vm);
+        }
+        if (addRes.data) {
+          const am: Record<string, any[]> = {};
+          for (const a of addRes.data) { if (!am[a.service_id]) am[a.service_id] = []; am[a.service_id].push(a); }
+          setAddons(am);
+        }
+      } catch { toast.error("Failed to load services"); }
+      finally { setLoading(false); }
+    };
+    load();
   }, []);
 
-  const fetchServices = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .eq("is_active", true) // only fetch active services
-        .order("order", { ascending: true }) // order by the 'order' field
-        // .order("name", { ascending: true }); // secondary ordering by name
+  if (loading) return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "60px" }}>
+      <div style={{ width: 32, height: 32, border: "3px solid #C8A97E", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
-      if (error) throw error;
-      setServices(data || []);
-    } catch (error: any) {
-      console.error("Error fetching services:", error);
-      toast.error("Failed to load services");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+  const grouped: Record<string, any[]> = {};
+  for (const s of services) {
+    if (!grouped[s.category]) grouped[s.category] = [];
+    grouped[s.category].push(s);
   }
 
-  const groupedServices = services.reduce((acc: any, service) => {
-    if (!acc[service.category]) {
-      acc[service.category] = [];
-    }
-    acc[service.category].push(service);
-    return acc;
-  }, {});
+  const GOLD = "#C8A97E";
+  const DARK = "#1C160E";
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Services</h1>
-          <p className="text-muted-foreground">View Zolara services</p>
-        </div>
+    <div style={{ padding: "24px 20px", maxWidth: 1100, margin: "0 auto", fontFamily: "'Montserrat', sans-serif" }}>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: DARK, margin: 0 }}>Services</h1>
+        <p style={{ fontSize: 12, color: "#A8A29E", margin: "4px 0 0" }}>All active Zolara services — view only</p>
       </div>
 
-      {Object.entries(groupedServices).map(
-        ([category, categoryServices]: [string, any]) => (
-          <div key={category} className="space-y-4">
-            <h2 className="text-xl font-semibold">{category}</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {categoryServices.map((service: any) => (
-                <Card
-                  key={service.id}
-                  className="hover:shadow-lg transition-shadow rounded-xl border border-gray-200 dark:border-gray-700"
-                >
-                  <CardHeader className="flex flex-col gap-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg font-semibold">
-                        {service.name}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={service.is_active ? "default" : "secondary"}
-                        >
-                          {service.is_active ? "Active" : "Inactive"}
-                        </Badge>
+      {Object.entries(grouped).map(([cat, svcs]) => (
+        <div key={cat} style={{ marginBottom: 36 }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: DARK, marginBottom: 14, paddingBottom: 8, borderBottom: `2px solid ${GOLD}`, display: "inline-block" }}>{cat}</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            {svcs.map(svc => {
+              const svcVariants = variants[svc.id] || [];
+              const svcAddons = addons[svc.id] || [];
+              const prices = svcVariants.map(v => Number(v.price_adjustment));
+              const priceLabel = svcVariants.length === 0
+                ? (Number(svc.price) > 0 ? `GHS ${Number(svc.price).toLocaleString()}` : "—")
+                : prices.length === 1 ? `GHS ${prices[0].toLocaleString()}`
+                : `GHS ${Math.min(...prices).toLocaleString()} – ${Math.max(...prices).toLocaleString()}`;
+
+              return (
+                <div key={svc.id} style={{ background: "#fff", border: "1px solid #EDE8E0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  {/* Header */}
+                  <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #F5EFE6", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: DARK }}>{svc.name}</p>
+                      <p style={{ margin: "3px 0 0", fontSize: 11, color: "#A8A29E" }}>{svc.duration_minutes} min</p>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#8B6914", whiteSpace: "nowrap", marginLeft: 8 }}>{priceLabel}</span>
+                  </div>
+
+                  {/* Variants */}
+                  {svcVariants.length > 0 && (
+                    <div style={{ padding: "10px 16px", borderBottom: svcAddons.length > 0 ? "1px solid #F5EFE6" : "none" }}>
+                      <p style={{ margin: "0 0 8px", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase" }}>Sizes / Lengths</p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {svcVariants.map(v => (
+                          <span key={v.id} style={{ padding: "4px 10px", borderRadius: 20, background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.35)", fontSize: 11, fontWeight: 600, color: "#8B6914" }}>
+                            {v.name} · GHS {Number(v.price_adjustment).toLocaleString()}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    {/* <p className="text-2xl font-bold text-primary">
-                      GH₵{service.price.toLocaleString()}
-                    </p> */}
-                  </CardHeader>
+                  )}
 
-                  <CardContent className="space-y-2">
-                    {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="w-4 h-4" />
-                      <span>{service.duration_minutes} minutes</span>
-                    </div> */}
-                    {service.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {service.description}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  {/* Add-ons */}
+                  {svcAddons.length > 0 && (
+                    <div style={{ padding: "10px 16px" }}>
+                      <p style={{ margin: "0 0 8px", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: "#7C3AED", textTransform: "uppercase" }}>Add-ons</p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {svcAddons.map(a => (
+                          <span key={a.id} style={{ padding: "4px 10px", borderRadius: 20, background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.25)", fontSize: 11, fontWeight: 600, color: "#7C3AED" }}>
+                            {a.name} +GHS {Number(a.price).toLocaleString()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )
-      )}
+        </div>
+      ))}
     </div>
   );
 };
