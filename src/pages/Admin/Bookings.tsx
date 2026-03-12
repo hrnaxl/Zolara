@@ -87,6 +87,7 @@ const Bookings = () => {
   // client search query for the client selector (debounced)
   const [clientSearchQuery, setClientSearchQuery] = useState<string>("");
   const [staff, setStaff] = useState<any[]>([]);
+  const [absentStaffIds, setAbsentStaffIds] = useState<Set<string>>(new Set());
   const [services, setServices] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -321,6 +322,10 @@ const Bookings = () => {
 
       if (clientsRes.data) setClients(clientsRes.data);
       if (staffRes.data) setStaff(staffRes.data);
+      // Load today's absent staff
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: attData } = await supabase.from("attendance").select("staff_id, status").eq("date", today);
+      setAbsentStaffIds(new Set((attData || []).filter((a: any) => a.status === "absent").map((a: any) => a.staff_id)));
       if (servicesRes.data) setServices(servicesRes.data);
       if (variantsRes.data) {
         const vm: Record<string, any[]> = {};
@@ -1184,7 +1189,7 @@ const Bookings = () => {
                   <SelectTrigger><SelectValue placeholder="Assign staff (optional)" /></SelectTrigger>
                   <SelectContent>
                     {staff.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      <SelectItem key={s.id} value={s.id}>{s.name}{absentStaffIds.has(s.id) ? " ⚠️ Absent" : ""}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

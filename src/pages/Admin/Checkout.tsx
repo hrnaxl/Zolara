@@ -100,6 +100,7 @@ const Checkout = () => {
   const [processing, setProcessing] = useState(false);
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [absentStaffIds, setAbsentStaffIds] = useState<Set<string>>(new Set());
   const [selectedStaff, setSelectedStaff] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [notes, setNotes] = useState("");
@@ -248,6 +249,19 @@ const Checkout = () => {
 
       if (error) throw error;
       setStaff(data || []);
+
+      // Load today's attendance to flag absent staff
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: attData } = await supabase
+        .from("attendance")
+        .select("staff_id, status")
+        .eq("date", today);
+      const absentIds = new Set<string>(
+        (attData || [])
+          .filter((a: any) => a.status === "absent")
+          .map((a: any) => a.staff_id)
+      );
+      setAbsentStaffIds(absentIds);
     } catch (error) {
       console.error("Error fetching staff:", error);
     }
@@ -388,6 +402,12 @@ const Checkout = () => {
     if (!selectedStaff) {
       toast.error("Please assign a staff member to this service");
       return;
+    }
+
+    if (absentStaffIds.has(selectedStaff)) {
+      const staffName = staff.find(s => s.id === selectedStaff)?.name || "This staff member";
+      const proceed = window.confirm(`⚠️ ${staffName} is marked absent today. Proceed anyway?`);
+      if (!proceed) return;
     }
 
     if (!amount || isNaN(parseFloat(amount))) {
@@ -982,7 +1002,7 @@ const Checkout = () => {
                     {staff.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         <div className="flex flex-col">
-                          <span>{member.name}</span>
+                          <span>{member.name}{absentStaffIds.has(member.id) ? " ⚠️ Absent" : ""}</span>
                           {member.specialization && (
                             <span className="text-xs text-muted-foreground">
                               {member.specialization}
