@@ -99,12 +99,12 @@ const Bookings = () => {
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
 
-  // Variant / addon state for booking form
-  const [bookingVariants, setBookingVariants] = useState<any[]>([]);
-  const [bookingAddons, setBookingAddons] = useState<any[]>([]);
-  const [selectedVariantId, setSelectedVariantId] = useState("");
-  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  // Multi-service cart: [{serviceId, variantId, addonIds, variantsMap, addonsMap}]
+  const [serviceCart, setServiceCart] = useState<Array<{serviceId:string,variantId:string,addonIds:string[],variants:any[],addons:any[]}>>([]);
+  const [svcSearch, setSvcSearch] = useState("");
+  const [svcCat, setSvcCat] = useState("all");
   const [allVariantsMap, setAllVariantsMap] = useState<Record<string, any[]>>({});
+  const [allAddonsMap, setAllAddonsMap] = useState<Record<string, any[]>>({});
 
   // New state for enhanced features
   const [activeFilter, setActiveFilter] = useState<BookingFilter>("all");
@@ -330,6 +330,16 @@ const Bookings = () => {
         }
         setAllVariantsMap(vm);
       }
+      // Also preload addons map for price display
+      const addonsRes = await (supabase as any).from("service_addons").select("service_id, id, name, price").eq("is_active", true);
+      if (addonsRes.data) {
+        const am: Record<string, any[]> = {};
+        for (const a of addonsRes.data) {
+          if (!am[a.service_id]) am[a.service_id] = [];
+          am[a.service_id].push(a);
+        }
+        setAllAddonsMap(am);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -338,16 +348,32 @@ const Bookings = () => {
     }
   };
 
-  // Load variants + addons when service selected in booking form
-  useEffect(() => {
-    setBookingVariants([]); setBookingAddons([]); setSelectedVariantId(""); setSelectedAddonIds([]);
-    const svcId = formData.service_id;
-    if (!svcId) return;
-    (supabase as any).from("service_variants").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order")
-      .then(({ data }: any) => setBookingVariants(data || []));
-    (supabase as any).from("service_addons").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order")
-      .then(({ data }: any) => setBookingAddons(data || []));
-  }, [formData.service_id]);
+  // Load variants+addons for a service and add it to the cart
+  const addServiceToCart = async (svcId: string) => {
+    if (serviceCart.some(c => c.serviceId === svcId)) return; // already added
+    const [{ data: vars }, { data: adds }] = await Promise.all([
+      (supabase as any).from("service_variants").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order"),
+      (supabase as any).from("service_addons").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order"),
+    ]);
+    setServiceCart(prev => [...prev, { serviceId: svcId, variantId: "", addonIds: [], variants: vars||[], addons: adds||[] }]);
+    setSvcSearch(""); // clear search after adding
+  };
+
+  const removeServiceFromCart = (svcId: string) => {
+    setServiceCart(prev => prev.filter(c => c.serviceId !== svcId));
+  };
+
+  const setCartVariant = (svcId: string, variantId: string) => {
+    setServiceCart(prev => prev.map(c => c.serviceId === svcId ? { ...c, variantId } : c));
+  };
+
+  const toggleCartAddon = (svcId: string, addonId: string) => {
+    setServiceCart(prev => prev.map(c => {
+      if (c.serviceId !== svcId) return c;
+      const has = c.addonIds.includes(addonId);
+      return { ...c, addonIds: has ? c.addonIds.filter(id => id !== addonId) : [...c.addonIds, addonId] };
+    }));
+  };
 
   // Filter bookings based on active filter
   // Debounced client search: update filteredClients when the debounced query changes
@@ -536,67 +562,68 @@ const Bookings = () => {
         resolvedClientEmail = c?.email || "";
       }
 
-      // Denormalize client and service info for easy display
-      const selectedService = services.find((s: any) => s.id === validated.service_id);
+      if (serviceCart.length === 0) { toast.error("Add at least one service"); setCreating(false); return; }
+      for (const item of serviceCart) {
+        if (item.variants.length > 0 && !item.variantId) {
+          const svc = services.find(s => s.id === item.serviceId);
+          toast.error(`Please select a size/length for: ${svc?.name}`); setCreating(false); return;
+        }
+      }
+
       const selectedStaffMember = staff.find((s: any) => s.id === validated.staff_id);
-      const selectedVariant = bookingVariants.find(v => v.id === selectedVariantId);
-      const chosenAddons = bookingAddons.filter(a => selectedAddonIds.includes(a.id));
 
-      // Price: base from variant price_adjustment (the actual price) or service price, + addons
-      const basePrice = selectedVariant
-        ? Number(selectedVariant.price_adjustment)
-        : Number(selectedService?.price || 0);
-      const addonTotal = chosenAddons.reduce((sum: number, a: any) => sum + Number(a.price), 0);
-      const totalPrice = basePrice + addonTotal;
+      // Prevent scheduling on Sundays
+      const dayOfWeek = new Date(validated.preferred_date).getUTCDay();
+      if (dayOfWeek === 0) throw new Error("Bookings cannot be scheduled on Sundays.");
 
-      const serviceName = selectedVariant
-        ? `${selectedService?.name} (${selectedVariant.name})`
-        : selectedService?.name || null;
-
-      const bookingData = {
-        client_id: resolvedClientId,
-        service_id: validated.service_id,
-        staff_id: validated.staff_id || null,
-        client_name: resolvedClientName || null,
-        client_phone: resolvedClientPhone || null,
-        client_email: resolvedClientEmail || null,
-        service_name: serviceName,
-        staff_name: selectedStaffMember?.name || null,
-        price: totalPrice || null,
-        duration_minutes: selectedService?.duration_minutes || null,
-        preferred_date: validated.preferred_date,
-        preferred_time: validated.preferred_time,
-        status: validated.status || "pending",
-        notes: validated.notes || null,
-        variant_id: selectedVariant?.id || null,
-        variant_name: selectedVariant?.name || null,
-        selected_addons: chosenAddons.length > 0 ? chosenAddons.map((a: any) => ({ id: a.id, name: a.name, price: a.price })) : [],
-      };
-
-      if (editingBookingId) {
-        const { data, error } = await supabase
-          .from("bookings")
-          .update(bookingData)
-          .eq("id", editingBookingId)
-          .select();
-
+      if (editingBookingId && serviceCart.length === 1) {
+        // Single service edit — update in place
+        const item = serviceCart[0];
+        const svc = services.find((s: any) => s.id === item.serviceId);
+        const variant = item.variants.find(v => v.id === item.variantId);
+        const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
+        const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price || 0);
+        const totalPrice = basePrice + chosenAddons.reduce((s:number,a:any)=>s+Number(a.price),0);
+        const { error } = await supabase.from("bookings").update({
+          client_id: resolvedClientId, service_id: item.serviceId,
+          staff_id: validated.staff_id || null,
+          client_name: resolvedClientName || null, client_phone: resolvedClientPhone || null, client_email: resolvedClientEmail || null,
+          service_name: variant ? `${svc?.name} (${variant.name})` : svc?.name || null,
+          staff_name: selectedStaffMember?.name || null, price: totalPrice || null,
+          duration_minutes: svc?.duration_minutes || null,
+          preferred_date: validated.preferred_date, preferred_time: validated.preferred_time,
+          status: validated.status || "pending", notes: validated.notes || null,
+          variant_id: variant?.id || null, variant_name: variant?.name || null,
+          selected_addons: chosenAddons.map((a:any) => ({ id: a.id, name: a.name, price: a.price })),
+        } as any).eq("id", editingBookingId);
         if (error) throw error;
-
         toast.success("Booking updated successfully");
       } else {
-        // Prevent scheduling on Sundays
-        try {
-          const d = new Date(bookingData.preferred_date);
-          if (d.getUTCDay && d.getUTCDay() === 0) {
-            throw new Error("Bookings cannot be scheduled on Sundays.");
-          }
-        } catch (err) {
-          throw err;
-        }
-
-        const { error } = await supabase.from("bookings").insert([bookingData]);
+        // Insert one booking per service in cart
+        const rows = serviceCart.map(item => {
+          const svc = services.find((s: any) => s.id === item.serviceId);
+          const variant = item.variants.find(v => v.id === item.variantId);
+          const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
+          const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price || 0);
+          const totalPrice = basePrice + chosenAddons.reduce((s:number,a:any)=>s+Number(a.price),0);
+          return {
+            client_id: resolvedClientId, service_id: item.serviceId,
+            staff_id: validated.staff_id || null,
+            client_name: resolvedClientName || null, client_phone: resolvedClientPhone || null, client_email: resolvedClientEmail || null,
+            service_name: variant ? `${svc?.name} (${variant.name})` : svc?.name || null,
+            staff_name: selectedStaffMember?.name || null, price: totalPrice || null,
+            duration_minutes: svc?.duration_minutes || null,
+            preferred_date: validated.preferred_date, preferred_time: validated.preferred_time,
+            status: validated.status || "pending", notes: validated.notes || null,
+            booking_ref: `ZB${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,5).toUpperCase()}`,
+            deposit_amount: 50, deposit_paid: false,
+            variant_id: variant?.id || null, variant_name: variant?.name || null,
+            selected_addons: chosenAddons.map((a:any) => ({ id: a.id, name: a.name, price: a.price })),
+          };
+        });
+        const { error } = await supabase.from("bookings").insert(rows as any);
         if (error) throw error;
-        toast.success("Booking created successfully");
+        toast.success(serviceCart.length > 1 ? `${serviceCart.length} bookings created` : "Booking created successfully");
       }
 
       setDialogOpen(false);
@@ -619,8 +646,7 @@ const Bookings = () => {
     setFormData({ client_id: "", staff_id: "", service_id: "", preferred_date: "", preferred_time: "", status: "pending", notes: "" });
     setClientMode("search");
     setNewClientName(""); setNewClientPhone(""); setNewClientEmail("");
-    setBookingVariants([]); setBookingAddons([]);
-    setSelectedVariantId(""); setSelectedAddonIds([]);
+    setServiceCart([]); setSvcSearch(""); setSvcCat("all");
   };
 
   const handleDelete = async () => {
@@ -910,25 +936,23 @@ const Bookings = () => {
               <Plus className="w-4 h-4 mr-2" /> New Booking
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md flex flex-col" style={{maxHeight:"90vh",overflow:"hidden"}}>
-            <DialogHeader className="shrink-0">
-              <DialogTitle>
-                {editingBookingId ? "Update Booking" : "Create New Booking"}
-              </DialogTitle>
-            </DialogHeader>
+          <DialogContent className="max-w-lg" style={{maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden",padding:"24px 24px 0"}}>
+            <div style={{flexShrink:0,marginBottom:"16px"}}>
+              <h2 style={{fontSize:"18px",fontWeight:700,margin:0}}>{editingBookingId ? "Update Booking" : "Create New Booking"}</h2>
+            </div>
 
-            <form onSubmit={(e) => handleSubmit(e)} className="space-y-4 flex-1 overflow-y-auto pr-2 pb-4">
+            <div style={{overflowY:"auto", flex:1, padding:"0 4px 16px"}}>
+              <form onSubmit={(e) => handleSubmit(e)} style={{display:"flex",flexDirection:"column",gap:"16px"}}>
 
               {/* ── CLIENT ── */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <Label>Client</Label>
-                  <button type="button" onClick={() => { setClientMode(clientMode === "search" ? "new" : "search"); }}
-                    className="text-xs text-amber-700 font-semibold underline underline-offset-2">
+                  <button type="button" onClick={() => setClientMode(clientMode === "search" ? "new" : "search")}
+                    style={{fontSize:"12px",color:"#8B6914",fontWeight:700,textDecoration:"underline",background:"none",border:"none",cursor:"pointer"}}>
                     {clientMode === "search" ? "+ New client" : "← Existing client"}
                   </button>
                 </div>
-
                 {clientMode === "search" ? (
                   <Select value={formData.client_id || ""} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
                     <SelectTrigger><SelectValue placeholder="Search client…" /></SelectTrigger>
@@ -950,111 +974,165 @@ const Bookings = () => {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                    <p className="text-xs text-amber-700 font-semibold mb-1">NEW CLIENT</p>
+                  <div style={{borderRadius:"8px",border:"1px solid #FCD34D",background:"#FFFBEB",padding:"12px",display:"flex",flexDirection:"column",gap:"8px"}}>
+                    <p style={{fontSize:"10px",fontWeight:700,color:"#92400E",margin:0,letterSpacing:"0.1em"}}>NEW CLIENT</p>
                     <Input placeholder="Full name *" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
                     <Input placeholder="Phone * (e.g. 0594365314)" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
                     <Input placeholder="Email (optional)" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} />
-                    <p className="text-xs text-muted-foreground">If this phone already exists in the system, we'll match the existing client automatically.</p>
+                    <p style={{fontSize:"11px",color:"#6B7280",margin:0}}>Existing phone will match automatically.</p>
                   </div>
                 )}
               </div>
 
-              {/* ── SERVICE ── */}
-              <div className="space-y-2">
-                <Label>Service</Label>
-                <div className="space-y-1">
-                  <input type="text" placeholder="Search services…" value={clientSearchQuery.startsWith("svc:") ? clientSearchQuery.slice(4) : ""}
-                    onChange={e => setClientSearchQuery("svc:" + e.target.value)}
-                    className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-amber-300" />
+              {/* ── SERVICES (multi-select with cart) ── */}
+              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                <Label>Services <span style={{fontSize:"11px",fontWeight:400,color:"#A8A29E"}}>(select one or more)</span></Label>
+
+                {/* Category tabs */}
+                <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+                  {["all", ...Array.from(new Set(services.map(s=>s.category).filter(Boolean)))].map(cat => (
+                    <button key={cat} type="button" onClick={()=>setSvcCat(cat)}
+                      style={{padding:"3px 12px",borderRadius:"20px",fontSize:"11px",fontWeight:600,cursor:"pointer",border:"1.5px solid",
+                        borderColor: svcCat===cat ? "#8B6914" : "#E5DDD3",
+                        background: svcCat===cat ? "#8B6914" : "white",
+                        color: svcCat===cat ? "white" : "#78716C"}}>
+                      {cat==="all"?"All":cat}
+                    </button>
+                  ))}
                 </div>
-                <div className="max-h-44 overflow-y-auto rounded-lg border divide-y">
+
+                {/* Search */}
+                <input value={svcSearch} onChange={e=>setSvcSearch(e.target.value)}
+                  placeholder="Search services…"
+                  style={{border:"1.5px solid #E5DDD3",borderRadius:"8px",padding:"8px 12px",fontSize:"13px",outline:"none",width:"100%"}} />
+
+                {/* Service list */}
+                <div style={{maxHeight:"180px",overflowY:"auto",border:"1px solid #E5DDD3",borderRadius:"8px",display:"flex",flexDirection:"column"}}>
                   {services
-                    .filter(s => !clientSearchQuery.startsWith("svc:") || s.name.toLowerCase().includes(clientSearchQuery.slice(4).toLowerCase()))
-                    .map((s) => {
-                      const vars = allVariantsMap[s.id] || [];
-                      const prices = vars.map(v => Number(v.price_adjustment));
-                      const priceLabel = vars.length === 0
-                        ? (Number(s.price) > 0 ? `GHS ${Number(s.price).toLocaleString()}` : "")
-                        : prices.length === 1 ? `GHS ${prices[0].toLocaleString()}`
+                    .filter(s => (svcCat==="all" || s.category===svcCat) && (!svcSearch || s.name.toLowerCase().includes(svcSearch.toLowerCase())))
+                    .map(s => {
+                      const vars = allVariantsMap[s.id]||[];
+                      const prices = vars.map(v=>Number(v.price_adjustment));
+                      const priceLabel = vars.length===0
+                        ? (Number(s.price)>0?`GHS ${Number(s.price).toLocaleString()}`:"")
+                        : prices.length===1?`GHS ${prices[0].toLocaleString()}`
                         : `GHS ${Math.min(...prices).toLocaleString()} – ${Math.max(...prices).toLocaleString()}`;
-                      const active = formData.service_id === s.id;
+                      const inCart = serviceCart.some(c=>c.serviceId===s.id);
                       return (
                         <button key={s.id} type="button"
-                          onClick={() => { setFormData({ ...formData, service_id: s.id }); if (clientSearchQuery.startsWith("svc:")) setClientSearchQuery(""); }}
-                          className={`w-full text-left px-3 py-2.5 flex justify-between items-center transition-colors ${active ? "bg-amber-50 border-l-2 border-amber-500" : "hover:bg-gray-50"}`}>
+                          onClick={() => inCart ? removeServiceFromCart(s.id) : addServiceToCart(s.id)}
+                          style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",textAlign:"left",
+                            borderBottom:"1px solid #F0EAE2",background:inCart?"#FBF6EE":"white",
+                            borderLeft: inCart?"3px solid #C8A97E":"3px solid transparent",
+                            cursor:"pointer",transition:"all 0.1s"}}>
                           <div>
-                            <p className="text-sm font-semibold">{s.name}</p>
-                            <p className="text-xs text-muted-foreground">{s.category} · {s.duration_minutes} min</p>
+                            <p style={{fontSize:"13px",fontWeight:600,color:"#1C160E",margin:0}}>{s.name}</p>
+                            <p style={{fontSize:"11px",color:"#A8A29E",margin:"2px 0 0"}}>{s.category} · {s.duration_minutes}min</p>
                           </div>
-                          <span className="text-xs font-bold text-amber-700 shrink-0 ml-2">{priceLabel}</span>
+                          <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
+                            <span style={{fontSize:"12px",fontWeight:700,color:"#8B6914"}}>{priceLabel}</span>
+                            <span style={{width:"18px",height:"18px",borderRadius:"50%",border:`2px solid ${inCart?"#C8A97E":"#D1C5B8"}`,
+                              background:inCart?"#C8A97E":"white",display:"flex",alignItems:"center",justifyContent:"center",
+                              fontSize:"10px",color:"white",fontWeight:700,flexShrink:0}}>
+                              {inCart?"✓":""}
+                            </span>
+                          </div>
                         </button>
                       );
                     })}
                 </div>
               </div>
 
-              {/* ── VARIANTS ── */}
-              {bookingVariants.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Size / Length <span className="text-red-500">*</span></Label>
-                  <div className="flex flex-wrap gap-2">
-                    {bookingVariants.map(v => (
-                      <button key={v.id} type="button" onClick={() => setSelectedVariantId(v.id)}
-                        className={`rounded-lg px-3 py-2 text-xs font-bold border transition-all ${selectedVariantId === v.id ? "bg-amber-700 text-white border-amber-700" : "bg-white border-gray-200 text-gray-700 hover:border-amber-400"}`}>
-                        {v.name}
-                        <span className={`block text-xs mt-0.5 ${selectedVariantId === v.id ? "text-amber-200" : "text-amber-700"}`}>GHS {Number(v.price_adjustment).toLocaleString()}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* ── CART: variants + addons per selected service ── */}
+              {serviceCart.map(item => {
+                const svc = services.find(s=>s.id===item.serviceId);
+                if (!svc) return null;
+                return (
+                  <div key={item.serviceId} style={{border:"1.5px solid #E5DDD3",borderRadius:"10px",overflow:"hidden"}}>
+                    {/* Cart item header */}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:"#FBF6EE",borderBottom:"1px solid #F0EAE2"}}>
+                      <p style={{margin:0,fontSize:"13px",fontWeight:700,color:"#1C160E"}}>{svc.name}</p>
+                      <button type="button" onClick={()=>removeServiceFromCart(item.serviceId)}
+                        style={{background:"none",border:"none",cursor:"pointer",color:"#A8A29E",fontSize:"16px",lineHeight:1}}>✕</button>
+                    </div>
 
-              {/* ── ADD-ONS ── */}
-              {bookingAddons.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Add-ons <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
-                  <div className="space-y-1.5">
-                    {bookingAddons.map(a => {
-                      const checked = selectedAddonIds.includes(a.id);
-                      return (
-                        <button key={a.id} type="button" onClick={() => setSelectedAddonIds(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])}
-                          className={`w-full flex justify-between items-center rounded-lg border px-3 py-2 text-sm transition-all ${checked ? "bg-purple-50 border-purple-400" : "bg-white border-gray-200 hover:border-purple-300"}`}>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${checked ? "bg-purple-600 border-purple-600" : "border-gray-300"}`}>
-                              {checked && <span className="text-white text-xs">✓</span>}
-                            </div>
-                            <span className={`font-medium ${checked ? "text-purple-900" : ""}`}>{a.name}</span>
-                            {a.description && <span className="text-xs text-muted-foreground">— {a.description}</span>}
-                          </div>
-                          <span className={`font-bold text-xs shrink-0 ml-2 ${checked ? "text-purple-700" : "text-muted-foreground"}`}>+GHS {Number(a.price).toLocaleString()}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                    {/* Variants */}
+                    {item.variants.length > 0 && (
+                      <div style={{padding:"10px 14px",borderBottom: item.addons.length>0?"1px solid #F0EAE2":"none"}}>
+                        <p style={{fontSize:"10px",fontWeight:700,letterSpacing:"0.12em",color:"#8B6914",margin:"0 0 8px",textTransform:"uppercase"}}>
+                          Size / Length <span style={{color:"#EF4444"}}>*</span>
+                        </p>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+                          {item.variants.map(v=>(
+                            <button key={v.id} type="button" onClick={()=>setCartVariant(item.serviceId, v.id)}
+                              style={{padding:"6px 12px",borderRadius:"8px",border:"1.5px solid",cursor:"pointer",transition:"all 0.1s",
+                                borderColor:item.variantId===v.id?"#8B6914":"#E5DDD3",
+                                background:item.variantId===v.id?"#8B6914":"white",
+                                color:item.variantId===v.id?"white":"#1C160E"}}>
+                              <span style={{fontSize:"12px",fontWeight:600,display:"block"}}>{v.name}</span>
+                              <span style={{fontSize:"11px",fontWeight:700,display:"block",color:item.variantId===v.id?"rgba(255,255,255,0.8)":"#8B6914"}}>GHS {Number(v.price_adjustment).toLocaleString()}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-              {/* ── PRICE PREVIEW ── */}
-              {formData.service_id && (bookingVariants.length === 0 || selectedVariantId) && (
-                <div className="rounded-lg bg-gray-50 border px-4 py-3 flex justify-between items-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">TOTAL</p>
-                    {selectedAddonIds.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {bookingVariants.length > 0 ? `GHS ${Number(bookingVariants.find(v=>v.id===selectedVariantId)?.price_adjustment||0).toLocaleString()}` : `GHS ${Number(services.find(s=>s.id===formData.service_id)?.price||0).toLocaleString()}`}
-                        {bookingAddons.filter(a=>selectedAddonIds.includes(a.id)).map(a=>(
-                          <span key={a.id}> + {a.name} GHS {Number(a.price).toLocaleString()}</span>
-                        ))}
-                      </p>
+                    {/* Add-ons */}
+                    {item.addons.length > 0 && (
+                      <div style={{padding:"10px 14px"}}>
+                        <p style={{fontSize:"10px",fontWeight:700,letterSpacing:"0.12em",color:"#7C3AED",margin:"0 0 8px",textTransform:"uppercase"}}>Add-ons (optional)</p>
+                        <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                          {item.addons.map(a=>{
+                            const checked=item.addonIds.includes(a.id);
+                            return (
+                              <button key={a.id} type="button" onClick={()=>toggleCartAddon(item.serviceId, a.id)}
+                                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",
+                                  borderRadius:"8px",border:"1.5px solid",cursor:"pointer",transition:"all 0.1s",textAlign:"left",
+                                  borderColor:checked?"#A78BFA":"#E5DDD3",background:checked?"#F5F3FF":"white"}}>
+                                <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                                  <div style={{width:"15px",height:"15px",borderRadius:"4px",border:`2px solid ${checked?"#7C3AED":"#D1C5B8"}`,
+                                    background:checked?"#7C3AED":"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                    {checked&&<span style={{color:"white",fontSize:"9px",fontWeight:700}}>✓</span>}
+                                  </div>
+                                  <span style={{fontSize:"12px",fontWeight:600,color:"#1C160E"}}>{a.name}</span>
+                                </div>
+                                <span style={{fontSize:"12px",fontWeight:700,color:checked?"#7C3AED":"#A8A29E",marginLeft:"8px",flexShrink:0}}>+GHS {Number(a.price).toLocaleString()}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <span className="text-xl font-bold text-amber-700">
-                    GHS {(
-                      (selectedVariantId ? Number(bookingVariants.find(v=>v.id===selectedVariantId)?.price_adjustment||0) : Number(services.find(s=>s.id===formData.service_id)?.price||0))
-                      + bookingAddons.filter(a=>selectedAddonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0)
-                    ).toLocaleString()}
-                  </span>
+                );
+              })}
+
+              {/* ── PRICE TOTAL ── */}
+              {serviceCart.length > 0 && (
+                <div style={{background:"#F9FAFB",border:"1px solid #E5DDD3",borderRadius:"10px",padding:"12px 16px"}}>
+                  {serviceCart.map(item=>{
+                    const svc=services.find(s=>s.id===item.serviceId);
+                    const variant=item.variants.find(v=>v.id===item.variantId);
+                    const base=variant?Number(variant.price_adjustment):Number(svc?.price||0);
+                    const adds=item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0);
+                    if (!svc) return null;
+                    return (
+                      <div key={item.serviceId} style={{display:"flex",justifyContent:"space-between",fontSize:"12px",marginBottom:"4px"}}>
+                        <span style={{color:"#78716C"}}>{svc.name}{variant?` · ${variant.name}`:""}</span>
+                        <span style={{fontWeight:600,color:"#1C160E"}}>GHS {(base+adds).toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{borderTop:"1px solid #E5DDD3",marginTop:"8px",paddingTop:"8px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:"12px",fontWeight:700,color:"#78716C",letterSpacing:"0.1em"}}>TOTAL</span>
+                    <span style={{fontSize:"20px",fontWeight:700,color:"#8B6914"}}>GHS {serviceCart.reduce((total,item)=>{
+                      const svc=services.find(s=>s.id===item.serviceId);
+                      const variant=item.variants.find(v=>v.id===item.variantId);
+                      const base=variant?Number(variant.price_adjustment):Number(svc?.price||0);
+                      const adds=item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0);
+                      return total+base+adds;
+                    },0).toLocaleString()}</span>
+                  </div>
                 </div>
               )}
 
@@ -1072,7 +1150,7 @@ const Bookings = () => {
               </div>
 
               {/* ── DATE & TIME ── */}
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
                 <div>
                   <Label>Date</Label>
                   <Input type="date" value={formData.preferred_date || ""}
@@ -1084,7 +1162,7 @@ const Bookings = () => {
                     <SelectTrigger className="w-full"><SelectValue placeholder="Select time" /></SelectTrigger>
                     <SelectContent>
                       {availableTimes.length === 0 ? (
-                        <SelectItem value="">No available times</SelectItem>
+                        <SelectItem value="">No times available</SelectItem>
                       ) : (
                         availableTimes.map((t) => (
                           <SelectItem key={t} value={t}>
@@ -1105,9 +1183,10 @@ const Bookings = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={creating}>
-                {editingBookingId ? "Update Booking" : "Create Booking"}
+                {creating ? "Creating…" : editingBookingId ? "Update Booking" : `Create Booking${serviceCart.length > 1 ? ` (${serviceCart.length} services)` : ""}`}
               </Button>
             </form>
+            </div>
           </DialogContent>
         </Dialog>
 
