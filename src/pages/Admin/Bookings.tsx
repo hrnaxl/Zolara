@@ -33,6 +33,7 @@ import {
   formatTo12Hour,
 } from "@/lib/time";
 import { getOffDays, getWorkingHours } from "@/lib/staff";
+import { sendSMS, SMS } from "@/lib/sms";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { CollapsibleSearchBar } from "@/components/SearchBar";
@@ -322,7 +323,10 @@ const Bookings = () => {
       ]);
 
       if (clientsRes.data) setClients(clientsRes.data);
-      if (staffRes.data) setStaff(staffRes.data);
+      if (staffRes.data) {
+        const assignableRoles = ["staff", "admin", "owner"];
+        setStaff(staffRes.data.filter((s: any) => !s.role || assignableRoles.includes(s.role)));
+      }
       // Load today's absent staff
       const today = new Date().toISOString().slice(0, 10);
       const { data: attData } = await supabase.from("attendance").select("staff_id, status").eq("date", today);
@@ -633,6 +637,17 @@ const Bookings = () => {
         const { error } = await supabase.from("bookings").insert([{ ...bookingPayload, booking_ref: ref, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false }] as any);
         if (error) throw error;
         toast.success(cartData.length > 1 ? `Booking created — ${cartData.length} services` : "Booking created");
+        // SMS notification to client
+        if (bookingPayload.client_phone) {
+          const dateLabel = bookingPayload.preferred_date ? new Date(bookingPayload.preferred_date + "T12:00:00").toLocaleDateString("en-GH", { weekday: "short", day: "numeric", month: "long" }) : bookingPayload.preferred_date;
+          sendSMS(bookingPayload.client_phone, SMS.bookingReceived(
+            bookingPayload.client_name || "Valued Client",
+            bookingPayload.service_name || cartData.map((s: any) => s.service_name).join(", ") || "service",
+            dateLabel || "",
+            bookingPayload.preferred_time || "",
+            ref,
+          )).catch(console.error);
+        }
       }
 
       setDialogOpen(false);
@@ -753,6 +768,20 @@ const Bookings = () => {
 
       if (error) throw error;
 
+      if (newStatus === "confirmed") {
+        const bk = bookings.find(b => b.id === bookingId);
+        if (bk?.client_phone) {
+          const dateLabel = bk.preferred_date ? new Date(bk.preferred_date + "T12:00:00").toLocaleDateString("en-GH", { weekday: "short", day: "numeric", month: "long" }) : bk.preferred_date;
+          sendSMS(bk.client_phone, SMS.bookingConfirmed(
+            bk.client_name || "Valued Client",
+            bk.service_name || "service",
+            dateLabel || "",
+            bk.preferred_time || "",
+            bk.staff_name || "our stylist",
+            bk.booking_ref || bookingId.slice(0,8).toUpperCase(),
+          )).catch(console.error);
+        }
+      }
       toast.success("Booking status updated");
       fetchBookings();
       fetchAllBookings();

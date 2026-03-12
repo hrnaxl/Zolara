@@ -318,7 +318,7 @@ const AdminDashboard = () => {
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
         // deposits collected this period
-        supabase.from("bookings").select("deposit_amount, deposit_paid, updated_at").gte("updated_at", periodStart).lte("updated_at", periodEnd + "T23:59:59").eq("deposit_paid", true),
+        supabase.from("sales").select("amount").eq("payment_method", "deposit").eq("status", "completed").gte("created_at", periodStartTs).lte("created_at", periodEndTs),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
@@ -556,7 +556,7 @@ const AdminDashboard = () => {
       });
 
       // Deposits collected
-      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
+      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.amount || 0), 0) || 0;
       const depositCount = depositsRes.data?.length || 0;
 
       // Promo savings breakdown

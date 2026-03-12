@@ -490,6 +490,7 @@ const Staff = () => {
                   <SelectContent>
                       <SelectItem value="staff">Staff</SelectItem>
                       <SelectItem value="receptionist">Receptionist</SelectItem>
+                      <SelectItem value="cleaner">Cleaner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

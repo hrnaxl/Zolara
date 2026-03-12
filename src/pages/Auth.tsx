@@ -32,6 +32,7 @@ export default function Auth() {
     if (role === "owner" || role === "admin") navigate("/app/admin/dashboard", { replace: true });
     else if (role === "receptionist")         navigate("/app/receptionist/dashboard", { replace: true });
     else if (role === "staff")                navigate("/app/staff/dashboard", { replace: true });
+    else if (role === "cleaner")               navigate("/app/cleaner/dashboard", { replace: true });
     else                                      navigate("/app/client/dashboard", { replace: true });
   };
 

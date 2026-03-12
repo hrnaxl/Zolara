@@ -8,7 +8,7 @@ export type Json =
 
 export type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
 export type PaymentMethod = 'cash' | 'mobile_money' | 'bank_transfer' | 'gift_card'
-export type AppRole = 'owner' | 'admin' | 'receptionist' | 'staff' | 'client'
+export type AppRole = 'owner' | 'admin' | 'receptionist' | 'staff' | 'cleaner' | 'client'
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "13.0.5" }
@@ -200,7 +200,7 @@ export type Database = {
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "admin", "receptionist", "staff", "client"],
+      app_role: ["owner", "admin", "receptionist", "staff", "cleaner", "client"],
       booking_status: ["pending", "confirmed", "in_progress", "completed", "cancelled", "no_show"],
       payment_method: ["cash", "mobile_money", "bank_transfer", "gift_card"],
     },

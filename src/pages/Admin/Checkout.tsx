@@ -586,10 +586,15 @@ const Checkout = () => {
               total_visits: currentVisits + 1,
             }).eq("id", clientId);
             if (clientPhone) {
-              await sendSMS(clientPhone, SMS.checkoutThankYou(
+              const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
+              const rewardGhs = Number((settings as any)?.loyalty_reward_discount ?? 50);
+              await sendSMS(clientPhone, SMS.checkoutComplete(
                 booking.client_name || "Valued Client",
                 booking.service_name || "service",
-                newStamps
+                fullBookingPrice.toFixed(0),
+                newStamps,
+                stampsForReward,
+                rewardGhs,
               ));
             }
           }

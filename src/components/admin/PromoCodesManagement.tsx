@@ -7,7 +7,7 @@ export default function PromoCodesManagement() {
   const { userRole, roleReady } = useSettings();
   // Block editing until role is confirmed from DB — prevents flash of edit buttons
   // Only allow editing when role is confirmed AND is explicitly an edit-capable role
-  const canEdit = roleReady && userRole !== null && userRole !== "receptionist";
+  const canEdit = roleReady && userRole !== null && userRole !== "receptionist" && userRole !== "cleaner" && userRole !== "staff";
 
   const [codes, setCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

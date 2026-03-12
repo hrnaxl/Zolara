@@ -7,7 +7,7 @@ const ReceptionistDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [stats, setStats] = useState({
-    todayTotal: 0, checkedIn: 0, pending: 0,
+    todayTotal: 0, checkedIn: 0, pending: 0, staffClockedIn: 0,
     completed: 0, totalClients: 0, todayRevenue: 0,
   });
   const [bookingStatusData, setBookingStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
@@ -63,10 +63,18 @@ const ReceptionistDashboard = () => {
 
       const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0);
       const checkedIn = bookings.filter((b: any) => b.status === "confirmed").length;
+      // Staff clocked in today
+      const todayDateStr = new Date().toISOString().slice(0, 10);
+      const { count: staffClockedIn } = await supabase
+        .from("attendance")
+        .select("id", { count: "exact", head: true })
+        .eq("date", todayDateStr)
+        .is("check_out", null)
+        .not("check_in", "is", null);
       const completed = bookings.filter((b: any) => b.status === "completed").length;
       const pending   = bookings.filter((b: any) => b.status === "pending").length;
 
-      setStats({ todayTotal: bookings.length, checkedIn, pending, completed, totalClients: clientCount || 0, todayRevenue });
+      setStats({ todayTotal: bookings.length, checkedIn, pending, completed, totalClients: clientCount || 0, todayRevenue, staffClockedIn: staffClockedIn || 0 });
 
       setBookingStatusData([
         { name: "Pending",   value: pending,   color: "#C9A84C" },
@@ -206,7 +214,7 @@ const ReceptionistDashboard = () => {
       <div className="admin-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "14px" }}>
         {[
           { label: "TODAY'S BOOKINGS", val: String(stats.todayTotal),   color: "#4A90D9", bg: "#EFF6FF" },
-          { label: "CHECKED IN",       val: String(stats.checkedIn),    color: "#16A34A", bg: "#F0FDF4" },
+          { label: "STAFF CLOCKED IN",  val: String(stats.staffClockedIn), color: "#16A34A", bg: "#F0FDF4" },
           { label: "PENDING",          val: String(stats.pending),      color: G,         bg: G_LIGHT   },
           { label: "COMPLETED",        val: String(stats.completed),    color: "#7C3AED", bg: "#F5F3FF" },
         ].map((c, i) => (

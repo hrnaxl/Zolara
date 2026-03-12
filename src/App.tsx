@@ -13,6 +13,7 @@ import PublicBooking from "./pages/PublicBooking";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import AdminLayout from "./components/layout/AdminLayout";
 import StaffLayout from "./components/layout/StaffLayout";
+import CleanerLayout from "./components/layout/CleanerLayout";
 import ReceptionistLayout from "./components/layout/ReceptionistLayout";
 import ClientLayout from "./components/layout/ClientLayout";
 
@@ -126,6 +127,15 @@ const App = () => (
               <Route path="/app/staff/bookings" element={<StaffBookings />} />
               <Route path="/app/staff/services" element={<ViewServices />} />
               <Route path="/app/staff/attendance" element={<MyAttendance />} />
+            </Route>
+          </Route>
+
+          {/* CLEANER - Read-only: promo codes + services */}
+          <Route element={<ProtectedRoute allowedRoles={["cleaner"]} />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/app/cleaner/dashboard" element={<CleanerLayout />} />
+              <Route path="/app/cleaner/promo-codes" element={<PromoCodesPage />} />
+              <Route path="/app/cleaner/services" element={<ViewServices />} />
             </Route>
           </Route>
 
