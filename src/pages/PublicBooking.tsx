@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+// Use browser crypto for client-side UUID — avoids needing SELECT after INSERT (RLS blocks anon select)
+const genId = () => crypto.randomUUID();
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode } from "@/lib/promoCodes";
@@ -304,11 +306,15 @@ export default function PublicBooking() {
         promoApplied ? `Promo: ${promoApplied.code}` : "",
       ].filter(Boolean).join("\n");
 
-      // INSERT BOOKING FIRST into DB as "pending"
-      // This guarantees the booking is always recorded regardless of webhook/Paystack issues
-      const { data: newBooking, error: bookingError } = await supabase
+      // Generate booking ID client-side — avoids needing SELECT after INSERT
+      // (anon has no SELECT policy on bookings — chaining .select() after .insert() would fail silently)
+      const bookingId = genId();
+
+      // INSERT BOOKING into DB as "pending" BEFORE redirecting to Paystack
+      const { error: bookingError } = await supabase
         .from("bookings")
         .insert({
+          id: bookingId,
           client_name: name,
           client_email: email || null,
           client_phone: cleanPhone,
@@ -329,26 +335,24 @@ export default function PublicBooking() {
           booking_ref: bRef,
           client_id: null,
           duration_minutes: 0,
-        } as any)
-        .select("id")
-        .single();
+        } as any);
 
       if (bookingError) throw bookingError;
 
       // Link client in background (non-blocking)
       findOrCreateClient({ name, phone: cleanPhone, email: email || null })
         .then(clientId => {
-          if (clientId) supabase.from("bookings").update({ client_id: clientId } as any).eq("id", newBooking.id);
+          if (clientId) supabase.from("bookings").update({ client_id: clientId } as any).eq("id", bookingId);
         })
         .catch(() => null);
 
-      const returnUrl = `${window.location.origin}/book?booking_id=${newBooking.id}&ref=${bRef}`;
+      const returnUrl = `${window.location.origin}/book?booking_id=${bookingId}&ref=${bRef}`;
 
       const { authorizationUrl, error: psError } = await initiatePaystackPayment({
         amount: (settings as any)?.deposit_amount ?? 50,
         email: email || `${cleanPhone}@zolara.com`,
         reference: bRef,
-        metadata: { booking_id: newBooking.id, booking_ref: bRef, service: selectedService?.name || "", customer_name: name, phone: cleanPhone },
+        metadata: { booking_id: bookingId, booking_ref: bRef, service: selectedService?.name || "", customer_name: name, phone: cleanPhone },
         callbackUrl: returnUrl,
       });
 
