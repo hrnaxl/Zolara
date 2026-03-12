@@ -232,6 +232,7 @@ const DashboardLayout = () => {
         .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:40; backdrop-filter:blur(2px); }
         .z-page { padding: clamp(12px, 3vw, 28px) clamp(12px, 3vw, 28px); }
         @media(max-width:640px){ .z-title{font-size:22px!important} table{font-size:12px} }
+        @media(max-width:1023px){ .mobile-topbar{ display:block !important; } }
       `}</style>
 
       {/* Mobile overlay */}
@@ -353,8 +354,9 @@ const DashboardLayout = () => {
 
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="lg:ml-[240px]" style={{ minHeight: "100vh" }}>
-        {/* Mobile top bar — only visible on small screens */}
-        <div className="lg:hidden" style={{
+        {/* Mobile top bar — only visible on phones, hidden on lg+ */}
+        <div style={{display:"none"}} className="mobile-topbar">
+        <div style={{
           position: "sticky", top: 0, zIndex: 30,
           background: NAVY, height: 56, display: "flex", alignItems: "center",
           justifyContent: "space-between", padding: "0 16px",
@@ -370,6 +372,7 @@ const DashboardLayout = () => {
             <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: WHITE }}>Zolara</span>
           </div>
           <div style={{ width: 30 }} />
+        </div>
         </div>
         <main style={{ background: CREAM, minHeight: "100vh", overflowX: "hidden" }}>
           <Outlet />
