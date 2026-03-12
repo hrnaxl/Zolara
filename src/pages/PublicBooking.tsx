@@ -105,40 +105,25 @@ export default function PublicBooking() {
     }).catch(() => setLoading(false));
   }, []);
 
-  // Handle Paystack return URL: /book?booking_id=xxx
+  // Handle Paystack return URL: /book?ref=xxx
   useEffect(() => {
-    const bid = searchParams.get("booking_id");
-    if (bid) {
+    const ref = searchParams.get("ref");
+    if (ref) {
       setStep("verifying");
-      pollDepositStatus(bid, 0);
+      pollByRef(ref, 0);
     }
   }, []);
 
-  const verifyDepositWithPaystack = async (bookingId: string, bookingRef: string) => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-          body: JSON.stringify({ booking_id: bookingId }),
-        }
-      );
-      const data = await res.json();
-      return data.status === "verified" || data.status === "already_paid";
-    } catch { return false; }
-  };
-
-  const pollDepositStatus = async (bookingId: string, attempt: number) => {
+  const pollByRef = async (ref: string, attempt: number) => {
     try {
       const { data: bk } = await supabase
         .from("bookings")
         .select("id, booking_ref, service_name, preferred_date, preferred_time, deposit_paid, status")
-        .eq("id", bookingId)
-        .single();
+        .eq("booking_ref", ref)
+        .maybeSingle();
 
-      if (bk?.deposit_paid || bk?.status === "confirmed") {
-        setBookingRef(bk.booking_ref || bookingId.slice(0, 10).toUpperCase());
+      if (bk && (bk.deposit_paid || bk.status === "confirmed")) {
+        setBookingRef(bk.booking_ref || ref);
         setBookedService(bk.service_name || "");
         setBookedDate(bk.preferred_date || "");
         setBookedTime(bk.preferred_time || "");
@@ -146,20 +131,16 @@ export default function PublicBooking() {
         return;
       }
 
-      if (attempt < 8) {
-        setTimeout(() => pollDepositStatus(bookingId, attempt + 1), 2000);
+      if (attempt < 12) {
+        setTimeout(() => pollByRef(ref, attempt + 1), 2500);
       } else {
-        // Webhook may not have fired yet — call verify-deposit as fallback
-        const verified = await verifyDepositWithPaystack(bookingId, bk?.booking_ref || "");
-        setBookingRef(bk?.booking_ref || bookingId.slice(0, 10).toUpperCase());
-        setBookedService(bk?.service_name || "");
-        setBookedDate(bk?.preferred_date || "");
-        setBookedTime(bk?.preferred_time || "");
+        // Webhook may still be processing — show done anyway, booking is created async
+        setBookingRef(ref);
         setStep("done");
       }
     } catch {
-      if (attempt < 8) {
-        setTimeout(() => pollDepositStatus(bookingId, attempt + 1), 2000);
+      if (attempt < 12) {
+        setTimeout(() => pollByRef(ref, attempt + 1), 2500);
       } else {
         setStep("failed");
       }
@@ -280,44 +261,34 @@ export default function PublicBooking() {
         promoApplied ? `Promo: ${promoApplied.code}` : "",
       ].filter(Boolean).join("\n");
 
-      // Insert booking FIRST — create client only after booking succeeds
-      const { data: newBooking, error: bookingError } = await supabase
-        .from("bookings")
-        .insert({
-          client_name: name, client_email: email || null, client_phone: cleanPhone,
-          service_id: serviceId, service_name: selectedService?.name || null,
-          variant_id: selectedVariantId || null,
-          variant_name: selectedVariant?.name || null,
-          selected_addons: selectedAddons.length > 0
-            ? addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price }))
-            : [],
-          preferred_date: preferredDate, preferred_time: normalizedTime,
-          price: total, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false,
-          notes: notesFull, status: "pending",
-          booking_ref: bRef, client_id: null,
-        } as any)
-        .select("id")
-        .single();
-
-      if (bookingError) throw bookingError;
-
-      // Booking succeeded — now safe to create/find client and link it
-      try {
-        const clientId = await findOrCreateClient({ name, phone: cleanPhone, email: email || null });
-        if (clientId) {
-          await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", newBooking.id);
-        }
-      } catch (clientErr) {
-        console.warn("Client creation failed (booking saved):", clientErr);
-      }
-
-      const returnUrl = `${window.location.origin}/book?booking_id=${newBooking.id}`;
+      // NO DB insert here — booking is created by the Paystack webhook after payment confirms.
+      // All booking data travels as Paystack metadata.
+      const returnUrl = `${window.location.origin}/book?ref=${bRef}`;
 
       const { authorizationUrl, error: psError } = await initiatePaystackPayment({
         amount: (settings as any)?.deposit_amount ?? 50,
         email: email || `${cleanPhone}@zolara.com`,
         reference: bRef,
-        metadata: { booking_id: newBooking.id, service: selectedService?.name || "", customer_name: name, phone: cleanPhone },
+        metadata: {
+          booking_ref: bRef,
+          client_name: name,
+          client_phone: cleanPhone,
+          client_email: email || null,
+          service_id: serviceId,
+          service_name: selectedService?.name || null,
+          variant_id: selectedVariantId || null,
+          variant_name: selectedVariant?.name || null,
+          selected_addons: selectedAddons.length > 0
+            ? JSON.stringify(addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price })))
+            : "[]",
+          preferred_date: preferredDate,
+          preferred_time: normalizedTime,
+          price: total,
+          deposit_amount: (settings as any)?.deposit_amount ?? 50,
+          notes: notesFull,
+          promo_code: promoApplied?.code || null,
+          promo_discount: promoDiscount > 0 ? promoDiscount : null,
+        },
         callbackUrl: returnUrl,
       });
 

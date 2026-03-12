@@ -24,12 +24,14 @@ Deno.serve(async (req) => {
     // Find bookings that:
     // - Were scheduled for yesterday
     // - Are still "confirmed" (not completed, not cancelled)
-    // - Had deposit paid (they actually committed and showed intent)
+    // - deposit_paid = false: if they paid a deposit, admin handles it manually
+    //   (they may have arrived late by arrangement — auto-flagging would be wrong)
     const { data: noShows, error } = await supabase
       .from("bookings")
       .select("id, client_name, client_phone, service_name, preferred_date, preferred_time")
       .eq("preferred_date", yesterdayStr)
-      .in("status", ["confirmed", "in_progress"]);
+      .in("status", ["confirmed", "in_progress"])
+      .eq("deposit_paid", false);
 
     if (error) throw error;
     if (!noShows || noShows.length === 0) {
