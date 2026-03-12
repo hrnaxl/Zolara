@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       await supabase.from("gift_cards").update({
         payment_ref: paymentRef,
         payment_status: "paid",
-        status: giftCard.card_type === "digital" ? "pending_send" : "available",
+        status: giftCard.card_type === "digital" ? "pending_send" : "unused",
       }).eq("id", giftCard.id);
 
       // For digital cards, schedule the email via a queue (10 min delay handled by cron)

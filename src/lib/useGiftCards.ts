@@ -257,7 +257,7 @@ export async function markGiftCardSold(id: string) {
   try {
     const { error } = await (supabaseAdmin as any)
       .from("gift_cards")
-      .update({ status: "active", payment_status: "paid" })
+      .update({ status: "unused", payment_status: "paid" })
       .eq("id", id);
     if (error) throw error;
     return { success: true, error: null };

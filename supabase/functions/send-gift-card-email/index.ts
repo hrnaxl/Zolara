@@ -95,7 +95,7 @@ Deno.serve(async (_req) => {
     const { data: cards, error } = await supabase
       .from("gift_cards")
       .select("*")
-      .eq("status", "pending_send")
+      .in("status", ["pending_send", "unused"]).eq("payment_status", "paid")
       .eq("payment_status", "paid")
       .eq("card_type", "digital")
       .lt("updated_at", tenMinAgo)

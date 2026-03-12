@@ -38,14 +38,16 @@ const TIER_ACCENT: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  pending_payment: { bg: "#FEF9C3", color: "#854D0E", label: "Awaiting Payment" },
-  pending_send:    { bg: "#DBEAFE", color: "#1D4ED8", label: "Sending Email…"   },
-  active:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
+  // Core enum values
   unused:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
-  available:       { bg: "#DCFCE7", color: "#166534", label: "Available"        },
   redeemed:        { bg: "#F3F4F6", color: "#374151", label: "Redeemed"         },
   expired:         { bg: "#FEF3C7", color: "#92400E", label: "Expired"          },
   void:            { bg: "#FEE2E2", color: "#991B1B", label: "Void"             },
+  // Extended statuses (after ALTER TABLE status TYPE text)
+  pending_payment: { bg: "#FEF9C3", color: "#854D0E", label: "Awaiting Payment" },
+  pending_send:    { bg: "#DBEAFE", color: "#1D4ED8", label: "Sending Email…"   },
+  active:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
+  available:       { bg: "#DCFCE7", color: "#166534", label: "Available"        },
 };
 
 type Tab = "all" | "digital" | "physical";
@@ -108,7 +110,7 @@ export default function GiftCards() {
 
   // ─── Stats ───────────────────────────────────────────────────
   const totalActive    = cards.filter(c => ["active","unused","available"].includes(c.status)).length;
-  const totalPendingEmail = cards.filter(c => c.status === "pending_send").length;
+  const totalPendingEmail = cards.filter(c => c.status === "pending_send" || (c.status === "unused" && c.payment_status === "paid" && isDigit(c) && !c.redeemed_at)).length;
   const thisMonth      = cards.filter(c => {
     const d = new Date(c.created_at);
     const now = new Date();
@@ -384,7 +386,7 @@ export default function GiftCards() {
                         </button>
                       )}
                       {/* Mark as sold — physical available cards */}
-                      {isOwner && !digital && status === "available" && (
+                      {isOwner && !digital && (status === "unused" || status === "available") && card.payment_status !== "paid" && (
                         <button className="gc-btn" style={{ background:"#DCFCE7", color:"#166534", fontSize:"10px", padding:"6px 12px" }}
                           onClick={() => { setConfirmCard(card); setConfirmAct("sold"); }}>
                           ✓ Mark Sold

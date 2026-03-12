@@ -68,7 +68,7 @@ export async function createDigitalPurchase(opts: {
         recipient_email: opts.recipientEmail,
         purchaser_email: opts.buyerEmail,
         message: opts.message || null,
-        status: "pending_payment",
+        status: "unused",
         payment_status: "pending",
         is_admin_generated: false,
         expires_at: expiresAt.toISOString(),
@@ -138,7 +138,7 @@ export async function generatePhysicalBatch(opts: {
       tier: opts.tier,
       card_type: "physical",
       delivery_type: "physical",
-      status: "available",
+      status: "unused",
       payment_status: "pending",
       batch_id: opts.batchId,
       is_admin_generated: true,
@@ -175,7 +175,7 @@ export async function redeemGiftCardAtCheckout(opts: {
       .from("gift_cards")
       .select("*")
       .eq("code", opts.code.trim().toUpperCase())
-      .eq("status", "active")
+      .eq("status", "unused")
       .eq("payment_status", "paid")
       .maybeSingle();
 
