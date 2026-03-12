@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
-import { initiatePaystackPayment } from "@/lib/paystack";
+import { openPaystackPopup } from "@/lib/payment";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
@@ -108,89 +108,6 @@ export default function PublicBooking() {
     }).catch(() => setLoading(false));
   }, []);
 
-  // Handle Paystack return URL
-  // Paystack appends ?trxref=ZBxxx&reference=ZBxxx to whatever callbackUrl we set
-  // Read our booking_id from the URL if present, otherwise fall back to Paystack's reference param
-  useEffect(() => {
-    const bookingId = searchParams.get("booking_id");
-    const ref = searchParams.get("ref") || searchParams.get("reference") || searchParams.get("trxref");
-    if (ref && ref.startsWith("ZB")) {
-      setStep("verifying");
-      confirmAndPoll(bookingId, ref, 0);
-    }
-  }, []);
-
-  const confirmAndPoll = async (bookingId: string | null, ref: string, attempt: number) => {
-    try {
-      // Resolve booking ID from ref if not available
-      let resolvedId = bookingId;
-      if (!resolvedId) {
-        const { data: found } = await supabase
-          .from("bookings")
-          .select("id")
-          .eq("booking_ref", ref)
-          .maybeSingle();
-        resolvedId = found?.id || null;
-      }
-
-      if (!resolvedId) {
-        // Booking not in DB yet — retry
-        if (attempt < 8) {
-          setTimeout(() => confirmAndPoll(null, ref, attempt + 1), 1500);
-        } else {
-          setStep("failed");
-        }
-        return;
-      }
-
-      // Mark deposit confirmed — Paystack only redirects here on successful payment
-      if (attempt === 0) {
-        await supabase.from("bookings").update({
-          deposit_paid: true,
-          payment_ref: ref,
-          payment_status: "paid",
-          status: "confirmed",
-        } as any).eq("id", resolvedId).eq("deposit_paid", false);
-      }
-
-      const { data: bk } = await supabase
-        .from("bookings")
-        .select("id, booking_ref, service_name, preferred_date, preferred_time, deposit_paid, status")
-        .eq("id", resolvedId)
-        .single();
-
-      if (bk) {
-        setBookingRef(bk.booking_ref || ref);
-        setBookedService(bk.service_name || "");
-        setBookedDate(bk.preferred_date || "");
-        setBookedTime(bk.preferred_time || "");
-        setStep("done");
-
-        // Call verify-deposit in background to get exact amount from Paystack
-        fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-            body: JSON.stringify({ booking_id: resolvedId, reference: ref }),
-          }
-        ).catch(() => null);
-        return;
-      }
-
-      if (attempt < 5) {
-        setTimeout(() => confirmAndPoll(resolvedId, ref, attempt + 1), 1500);
-      } else {
-        setStep("failed");
-      }
-    } catch {
-      if (attempt < 5) {
-        setTimeout(() => confirmAndPoll(bookingId, ref, attempt + 1), 1500);
-      } else {
-        setStep("failed");
-      }
-    }
-  };
 
   const selectedService = services.find(s => s.id === serviceId);
 
@@ -278,39 +195,35 @@ export default function PublicBooking() {
       document.getElementById("booking-form-top")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
-    setStep("redirecting");
     try {
       const normalizedTime = normalizeTimeTo24(preferredTime);
       const day = new Date(`${preferredDate}T00:00:00`).getDay();
-      if (day === 0) { toast.error("We are closed on Sundays."); setStep("form"); return; }
-      // Check manual closed dates from settings
+      if (day === 0) { toast.error("We are closed on Sundays."); return; }
       const closedDates: string[] = (settings as any)?.closed_dates || [];
       if (closedDates.some((d: string) => d.split("|")[0] === preferredDate)) {
         const entry = closedDates.find((d: string) => d.startsWith(preferredDate));
         const reason = entry?.includes("|") ? entry.split("|")[1] : "special closure";
         toast.error(`We are closed on this date (${reason}). Please choose another day.`);
-        setStep("form"); return;
+        return;
       }
       const openTime = (settings as any)?.open_time || "08:30";
       const closeTime = (settings as any)?.close_time || "21:00";
       if (!isTimeWithinRange(normalizedTime, openTime, closeTime)) {
         toast.error(`Please pick a time between ${openTime} and ${closeTime}`);
-        setStep("form"); return;
+        return;
       }
 
       const cleanPhone = phone.replace(/\s/g,"");
       const bRef = `ZB${Date.now().toString(36).toUpperCase()}`;
+      const bookingId = genId();
+      const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
       const notesFull = [
         notes,
         `Balance payment preference: ${PAYMENT_LABELS[paymentPref] || paymentPref}`,
         promoApplied ? `Promo: ${promoApplied.code}` : "",
       ].filter(Boolean).join("\n");
 
-      // Generate booking ID client-side — avoids needing SELECT after INSERT
-      // (anon has no SELECT policy on bookings — chaining .select() after .insert() would fail silently)
-      const bookingId = genId();
-
-      // INSERT BOOKING into DB as "pending" BEFORE redirecting to Paystack
+      // 1. Insert booking as pending BEFORE opening payment popup
       const { error: bookingError } = await supabase
         .from("bookings")
         .insert({
@@ -328,7 +241,7 @@ export default function PublicBooking() {
           preferred_date: preferredDate,
           preferred_time: normalizedTime,
           price: total,
-          deposit_amount: (settings as any)?.deposit_amount ?? 50,
+          deposit_amount: depositAmount,
           deposit_paid: false,
           notes: notesFull,
           status: "pending",
@@ -339,27 +252,42 @@ export default function PublicBooking() {
 
       if (bookingError) throw bookingError;
 
-      // Link client in background (non-blocking)
+      // Link client in background
       findOrCreateClient({ name, phone: cleanPhone, email: email || null })
         .then(clientId => {
           if (clientId) supabase.from("bookings").update({ client_id: clientId } as any).eq("id", bookingId);
         })
         .catch(() => null);
 
-      const returnUrl = `${window.location.origin}/book?booking_id=${bookingId}&ref=${bRef}`;
-
-      const { authorizationUrl, error: psError } = await initiatePaystackPayment({
-        amount: (settings as any)?.deposit_amount ?? 50,
+      // 2. Open Paystack popup — inline, no redirect, no edge function, no secret key
+      await openPaystackPopup({
+        amount: depositAmount,
         email: email || `${cleanPhone}@zolara.com`,
         reference: bRef,
         metadata: { booking_id: bookingId, booking_ref: bRef, service: selectedService?.name || "", customer_name: name, phone: cleanPhone },
-        callbackUrl: returnUrl,
+        onSuccess: async (ref) => {
+          // Payment confirmed — mark booking confirmed directly
+          setStep("verifying");
+          await supabase.from("bookings").update({
+            deposit_paid: true,
+            payment_ref: ref,
+            payment_status: "paid",
+            status: "confirmed",
+          } as any).eq("id", bookingId);
+
+          setBookingRef(bRef);
+          setBookedService(selectedService?.name || "");
+          setBookedDate(preferredDate);
+          setBookedTime(normalizedTime);
+          setStep("done");
+        },
+        onClose: () => {
+          // User closed popup without paying — keep booking as pending, go back to form
+          setStep("form");
+          toast.error("Payment was not completed. Your slot is not confirmed yet.");
+        },
       });
 
-      if (psError) throw new Error(psError);
-      if (!authorizationUrl) throw new Error("Could not generate payment link. Please try again.");
-
-      window.location.href = authorizationUrl;
     } catch (err: any) {
       console.error("Deposit error:", err);
       toast.error(err.message || "Something went wrong. Please try again.");
