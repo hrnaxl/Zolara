@@ -75,7 +75,6 @@ const ViewServices = () => {
                   <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #F5EFE6", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: DARK }}>{svc.name}</p>
-                      <p style={{ margin: "3px 0 0", fontSize: 11, color: "#A8A29E" }}>{svc.duration_minutes} min</p>
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "#8B6914", whiteSpace: "nowrap", marginLeft: 8 }}>{priceLabel}</span>
                   </div>

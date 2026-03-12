@@ -23,7 +23,6 @@ const serviceSchema = z.object({
   name: z.string().trim().min(1).max(100),
   category: z.string().trim().min(1).max(50),
   price: z.number().min(0).max(1000000),
-  duration_minutes: z.number().int().positive().max(1440),
   description: z.string().max(500).optional().or(z.literal("")),
   order: z.number().int().optional(),
 });
@@ -45,7 +44,7 @@ const Services = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: "", category: "", price: "", duration_minutes: "", description: "", specialization: "",
+    name: "", category: "", price: "", description: "", specialization: "",
   });
   const [reorderServices, setReorderServices] = useState<any[]>([]);
 
@@ -58,21 +57,21 @@ const Services = () => {
 
   // Inline pill editing (on card, not dialog)
   const [editingPillVariantId, setEditingPillVariantId] = useState<string | null>(null);
-  const [pillVariantForm, setPillVariantForm] = useState({ name: "", price_adjustment: "", duration_adjustment: "" });
+  const [pillVariantForm, setPillVariantForm] = useState({ name: "", price_adjustment: "" });
   const [editingPillAddonId, setEditingPillAddonId] = useState<string | null>(null);
-  const [pillAddonForm, setPillAddonForm] = useState({ name: "", price: "", duration_adjustment: "" });
+  const [pillAddonForm, setPillAddonForm] = useState({ name: "", price: "" });
 
   // Variant inline editing
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [activeServiceForVariants, setActiveServiceForVariants] = useState<any>(null);
-  const [variantForm, setVariantForm] = useState({ name: "", price_adjustment: "", duration_adjustment: "" });
+  const [variantForm, setVariantForm] = useState({ name: "", price_adjustment: "" });
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [savingVariant, setSavingVariant] = useState(false);
 
   // Addon inline editing
   const [addonDialogOpen, setAddonDialogOpen] = useState(false);
   const [activeServiceForAddons, setActiveServiceForAddons] = useState<any>(null);
-  const [addonForm, setAddonForm] = useState({ name: "", description: "", price: "", duration_adjustment: "" });
+  const [addonForm, setAddonForm] = useState({ name: "", description: "", price: "" });
   const [editingAddonId, setEditingAddonId] = useState<string | null>(null);
   const [savingAddon, setSavingAddon] = useState(false);
 
@@ -153,7 +152,7 @@ const Services = () => {
   // ── Variants ──────────────────────────────────────────────────
   const openVariants = async (svc: any) => {
     setActiveServiceForVariants(svc);
-    setVariantForm({ name: "", price_adjustment: "", duration_adjustment: "" });
+    setVariantForm({ name: "", price_adjustment: "" });
     setEditingVariantId(null);
     setVariantDialogOpen(true);
   };
@@ -166,7 +165,6 @@ const Services = () => {
         service_id: activeServiceForVariants.id,
         name: variantForm.name.trim(),
         price_adjustment: parseFloat(variantForm.price_adjustment || "0"),
-        duration_adjustment: parseInt(variantForm.duration_adjustment || "0"),
         sort_order: editingVariantId ? undefined : (variantsMap[activeServiceForVariants.id] || []).length,
         is_active: true,
       };
@@ -179,7 +177,7 @@ const Services = () => {
         if (error) throw error;
         toast.success("Variant added");
       }
-      setVariantForm({ name: "", price_adjustment: "", duration_adjustment: "" });
+      setVariantForm({ name: "", price_adjustment: "" });
       setEditingVariantId(null);
       await refreshVariants(activeServiceForVariants.id);
     } catch (err: any) { toast.error(err.message || "Failed to save variant"); }
@@ -198,7 +196,6 @@ const Services = () => {
     await (supabase as any).from("service_variants").update({
       name: pillVariantForm.name.trim(),
       price_adjustment: parseFloat(pillVariantForm.price_adjustment || "0"),
-      duration_adjustment: parseInt(pillVariantForm.duration_adjustment || "0"),
     }).eq("id", variantId);
     setEditingPillVariantId(null);
     await refreshVariants(serviceId);
@@ -210,7 +207,6 @@ const Services = () => {
     await (supabase as any).from("service_addons").update({
       name: pillAddonForm.name.trim(),
       price: parseFloat(pillAddonForm.price || "0"),
-      duration_adjustment: parseInt(pillAddonForm.duration_adjustment || "0"),
     }).eq("id", addonId);
     setEditingPillAddonId(null);
     await refreshAddons(serviceId);
@@ -225,7 +221,7 @@ const Services = () => {
   // ── Add-ons ───────────────────────────────────────────────────
   const openAddons = async (svc: any) => {
     setActiveServiceForAddons(svc);
-    setAddonForm({ name: "", description: "", price: "", duration_adjustment: "" });
+    setAddonForm({ name: "", description: "", price: "" });
     setEditingAddonId(null);
     setAddonDialogOpen(true);
   };
@@ -239,7 +235,6 @@ const Services = () => {
         name: addonForm.name.trim(),
         description: addonForm.description.trim() || null,
         price: parseFloat(addonForm.price || "0"),
-        duration_adjustment: parseInt(addonForm.duration_adjustment || "0"),
         sort_order: editingAddonId ? undefined : (addonsMap[activeServiceForAddons.id] || []).length,
         is_active: true,
       };
@@ -252,7 +247,7 @@ const Services = () => {
         if (error) throw error;
         toast.success("Add-on added");
       }
-      setAddonForm({ name: "", description: "", price: "", duration_adjustment: "" });
+      setAddonForm({ name: "", description: "", price: "" });
       setEditingAddonId(null);
       await refreshAddons(activeServiceForAddons.id);
     } catch (err: any) { toast.error(err.message || "Failed to save add-on"); }
@@ -278,7 +273,6 @@ const Services = () => {
       const validated = serviceSchema.parse({
         name: formData.name, category: formData.category,
         price: formData.price ? parseFloat(formData.price) : 0,
-        duration_minutes: parseInt(formData.duration_minutes),
         description: formData.description,
       });
       const { specialization: _u, order: _o, ...serviceData } = validated as any;
@@ -293,7 +287,7 @@ const Services = () => {
       }
       setDialogOpen(false);
       setEditingServiceId(null);
-      setFormData({ name: "", category: "", price: "", duration_minutes: "", description: "", specialization: "" });
+      setFormData({ name: "", category: "", price: "", description: "", specialization: "" });
       fetchAll();
       try { catalog.refreshCatalog(); } catch {}
     } catch (error: any) {
@@ -383,7 +377,6 @@ const Services = () => {
               />
             </div>
             {service.description && <p style={{ fontSize: "12px", color: "#78716C", margin: 0, lineHeight: 1.5 }}>{service.description}</p>}
-            <p style={{ fontSize: "11px", color: "#A8A29E", margin: "4px 0 0" }}>{service.duration_minutes} min base</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
             {variants.length === 0 && basePrice > 0 && (
@@ -402,7 +395,7 @@ const Services = () => {
               </span>;
             })()}
             <Button size="sm" variant="outline" className="px-2 h-7 text-xs"
-              onClick={() => { setFormData({ name: service.name, category: service.category, price: service.price.toString(), duration_minutes: service.duration_minutes.toString(), description: service.description || "", specialization: "" }); setEditingServiceId(service.id); setDialogOpen(true); }}>
+              onClick={() => { setFormData({ name: service.name, category: service.category, price: service.price.toString(), description: service.description || "", specialization: "" }); setEditingServiceId(service.id); setDialogOpen(true); }}>
               <Pencil className="w-3 h-3" />
             </Button>
             <Button size="sm" variant="destructive" className="px-2 h-7"
@@ -441,7 +434,7 @@ const Services = () => {
                       placeholder="Name" style={{ border: "1px solid #E5DDD3", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "90px", outline: "none" }} />
                     <input value={pillVariantForm.price_adjustment} onChange={e => setPillVariantForm(p => ({ ...p, price_adjustment: e.target.value }))}
                       type="number" placeholder="GHS" style={{ border: "1px solid #E5DDD3", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "64px", outline: "none" }} />
-                    <input value={pillVariantForm.duration_adjustment} onChange={e => setPillVariantForm(p => ({ ...p, duration_adjustment: e.target.value }))}
+                    <input value={pillVariantForm.duration_adjustment} onChange={e => setPillVariantForm(p => ({ ...p }))}
                       type="number" placeholder="+min" style={{ border: "1px solid #E5DDD3", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "52px", outline: "none" }} />
                     <button onClick={() => savePillVariant(service.id, v.id)}
                       style={{ background: GOLD_DARK, border: "none", borderRadius: "5px", padding: "2px 7px", cursor: "pointer", color: "white", fontSize: "11px", fontWeight: 700 }}>✓</button>
@@ -452,8 +445,7 @@ const Services = () => {
                   <div key={v.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#FBF7F3", border: "1px solid #E5DDD3", borderRadius: "20px", padding: "3px 10px", fontSize: "12px" }}>
                     <span style={{ fontWeight: 600, color: "#1C160E" }}>{v.name}</span>
                     <span style={{ color: GOLD_DARK, fontWeight: 700 }}>&nbsp;GH&#8373;{Number(v.price_adjustment).toLocaleString()}</span>
-                    {v.duration_adjustment !== 0 && <span style={{ color: "#A8A29E", fontSize: "10px" }}>&nbsp;+{v.duration_adjustment}min</span>}
-                    <button onClick={() => { setEditingPillVariantId(v.id); setPillVariantForm({ name: v.name, price_adjustment: String(v.price_adjustment), duration_adjustment: String(v.duration_adjustment) }); }}
+                    <button onClick={() => { setEditingPillVariantId(v.id); setPillVariantForm({ name: v.name, price_adjustment: String(v.price_adjustment) }); }}
                       style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 3px", color: "#C8A97E", display: "flex" }}>
                       <Pencil style={{ width: "10px", height: "10px" }} />
                     </button>
@@ -506,7 +498,7 @@ const Services = () => {
                   <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: "20px", padding: "3px 10px", fontSize: "12px" }}>
                     <span style={{ fontWeight: 600, color: "#1C160E" }}>{a.name}</span>
                     <span style={{ color: "#7C3AED", fontWeight: 700 }}>+GH&#8373;{Number(a.price).toLocaleString()}</span>
-                    <button onClick={() => { setEditingPillAddonId(a.id); setPillAddonForm({ name: a.name, price: String(a.price), duration_adjustment: String(a.duration_adjustment || 0) }); }}
+                    <button onClick={() => { setEditingPillAddonId(a.id); setPillAddonForm({ name: a.name, price: String(a.price) }); }}
                       style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 3px", color: "#A78BFA", display: "flex" }}>
                       <Pencil style={{ width: "10px", height: "10px" }} />
                     </button>
@@ -580,7 +572,7 @@ const Services = () => {
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setFormData({ name: "", category: "", price: "", duration_minutes: "", description: "", specialization: "" }); setEditingServiceId(null); }}>
+              <Button onClick={() => { setFormData({ name: "", category: "", price: "", description: "", specialization: "" }); setEditingServiceId(null); }}>
                 <Plus className="w-4 h-4 mr-2" /> Add Service
               </Button>
             </DialogTrigger>
@@ -605,11 +597,6 @@ const Services = () => {
                   ) : (
                     <Input placeholder="Hair, Nails, Makeup, etc." value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} required />
                   )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Duration (min) *</Label>
-                  <Input type="number" placeholder="e.g. 180" value={formData.duration_minutes} onChange={e => setFormData({ ...formData, duration_minutes: e.target.value })} required />
-                  <p className="text-xs text-muted-foreground">Base duration. Each variant can add extra minutes.</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
@@ -643,7 +630,7 @@ const Services = () => {
               <div className="flex justify-between items-center w-full">
                 <h2 className="text-xl font-semibold">{category}</h2>
                 <Button size="sm" variant="outline" onClick={() => {
-                  setFormData({ name: "", category, price: "", duration_minutes: "", description: "", specialization: "" });
+                  setFormData({ name: "", category, price: "", description: "", specialization: "" });
                   setEditingServiceId(null);
                   setDialogOpen(true);
                 }} disabled={isReadOnly} style={{display:isReadOnly?"none":undefined}}>Add Item</Button>
@@ -665,7 +652,7 @@ const Services = () => {
             <div className="flex justify-between items-center w-full">
               <h2 className="text-xl font-semibold">{category}</h2>
               <Button size="sm" variant="outline" onClick={() => {
-                setFormData({ name: "", category, price: "", duration_minutes: "", description: "", specialization: "" });
+                setFormData({ name: "", category, price: "", description: "", specialization: "" });
                 setEditingServiceId(null);
                 setDialogOpen(true);
               }} disabled={isReadOnly} style={{display:isReadOnly?"none":undefined}}>Add Item</Button>
@@ -744,10 +731,6 @@ const Services = () => {
                   </p>
                 )}
               </div>
-              <div>
-                <Label className="text-xs">Duration Add (min)</Label>
-                <Input type="number" value={variantForm.duration_adjustment} onChange={e => setVariantForm({ ...variantForm, duration_adjustment: e.target.value })} placeholder="e.g. 0, 30, 60" />
-              </div>
             </div>
             <Button disabled={savingVariant || !variantForm.name.trim()} onClick={saveVariant} className="w-full">
               <Plus className="w-4 h-4 mr-2" /> Add Variant
@@ -791,10 +774,6 @@ const Services = () => {
               <div>
                 <Label className="text-xs">Price (GHS) *</Label>
                 <Input type="number" value={addonForm.price} onChange={e => setAddonForm({ ...addonForm, price: e.target.value })} placeholder="e.g. 30, 65" />
-              </div>
-              <div>
-                <Label className="text-xs">Duration Add (min)</Label>
-                <Input type="number" value={addonForm.duration_adjustment} onChange={e => setAddonForm({ ...addonForm, duration_adjustment: e.target.value })} placeholder="e.g. 15, 30" />
               </div>
             </div>
             <Button disabled={savingAddon || !addonForm.name.trim()} onClick={saveAddon} className="w-full">

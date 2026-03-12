@@ -319,7 +319,7 @@ const Bookings = () => {
         supabase.from("clients").select("id, name, email, phone").order("name"),
         supabase.from("staff").select("*"),
         supabase.from("services").select("*").eq("is_active", true).order("category").order("name"),
-        (supabase as any).from("service_variants").select("service_id, id, name, price_adjustment, duration_adjustment").eq("is_active", true).order("sort_order"),
+        (supabase as any).from("service_variants").select("service_id, id, name, price_adjustment").eq("is_active", true).order("sort_order"),
       ]);
 
       if (clientsRes.data) setClients(clientsRes.data);
@@ -605,12 +605,10 @@ const Bookings = () => {
           variant_name: variant?.name || null,
           addons: chosenAddons.map((a: any) => ({ id: a.id, name: a.name, price: Number(a.price) })),
           price: basePrice + addonTotal,
-          duration_minutes: svc?.duration_minutes || 0,
         };
       });
 
       const totalPrice = cartData.reduce((s, i) => s + i.price, 0);
-      const totalDuration = cartData.reduce((s, i) => s + i.duration_minutes, 0);
       const serviceNameSummary = cartData.map(i => i.variant_name ? `${i.service_name} (${i.variant_name})` : i.service_name).join(", ");
       // Use first service for legacy single-service columns (for display compat)
       const first = cartData[0];
@@ -625,7 +623,6 @@ const Bookings = () => {
         service_name: serviceNameSummary,
         staff_name: selectedStaffMember?.name || null,
         price: totalPrice || null,
-        duration_minutes: totalDuration || null,
         preferred_date: validated.preferred_date,
         preferred_time: validated.preferred_time,
         status: validated.status || "pending",
@@ -1136,7 +1133,7 @@ const Bookings = () => {
                             cursor:"pointer",transition:"all 0.1s"}}>
                           <div>
                             <p style={{fontSize:"13px",fontWeight:600,color:"#1C160E",margin:0}}>{s.name}</p>
-                            <p style={{fontSize:"11px",color:"#A8A29E",margin:"2px 0 0"}}>{s.category} · {s.duration_minutes}min</p>
+                            <p style={{fontSize:"11px",color:"#A8A29E",margin:"2px 0 0"}}>{s.category}</p>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
                             <span style={{fontSize:"12px",fontWeight:700,color:"#8B6914"}}>{priceLabel}</span>

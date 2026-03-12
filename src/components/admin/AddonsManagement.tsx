@@ -8,7 +8,7 @@ export default function AddonsManagement() {
   const [addons, setAddons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", duration_minutes: "15", category: "general" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", category: "general" });
 
   const load = async () => {
     try { setAddons(await getAddons()); } catch { toast.error("Failed to load add-ons"); } finally { setLoading(false); }
@@ -19,9 +19,9 @@ export default function AddonsManagement() {
   const handleSubmit = async () => {
     if (!form.name || !form.price) { toast.error("Name and price required"); return; }
     try {
-      await createAddon({ ...form, price: parseFloat(form.price), duration_minutes: parseInt(form.duration_minutes) });
+      await createAddon({ ...form, price: parseFloat(form.price) });
       toast.success("Add-on created");
-      setForm({ name: "", description: "", price: "", duration_minutes: "15", category: "general" });
+      setForm({ name: "", description: "", price: "", category: "general" });
       setShowForm(false);
       load();
     } catch { toast.error("Failed to create"); }
@@ -53,7 +53,6 @@ export default function AddonsManagement() {
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Name *</label><input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
             <div><label className="text-sm font-medium">Price (GHS) *</label><input type="number" value={form.price} onChange={e => setForm(f => ({...f, price: e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
-            <div><label className="text-sm font-medium">Duration (mins)</label><input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({...f, duration_minutes: e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
             <div><label className="text-sm font-medium">Category</label>
               <select value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
                 {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
@@ -74,7 +73,7 @@ export default function AddonsManagement() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-semibold">{a.name}</p>
-                <p className="text-xs text-muted-foreground">{a.category} · {a.duration_minutes} min</p>
+                <p className="text-xs text-muted-foreground">{a.category}</p>
               </div>
               <p className="font-bold text-primary">GHS {a.price}</p>
             </div>

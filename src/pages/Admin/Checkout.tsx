@@ -75,7 +75,6 @@ interface BookingData {
     id: string;
     name: string;
     price: number;
-    duration_minutes: number;
     category: string;
   };
   staff: {
@@ -874,7 +873,6 @@ const Checkout = () => {
                 <p style={{ fontSize: "15px", fontWeight: 700, color: TXT, margin: "0 0 6px" }}>{booking.service_name}</p>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   {booking.services?.category && <span style={{ fontSize: "10px", padding: "2px 9px", borderRadius: "12px", background: "#FBF6EE", color: G_D, fontWeight: 600, border: `1px solid #F0E4CC` }}>{booking.services.category}</span>}
-                  {booking.services?.duration_minutes && <span style={{ fontSize: "11px", color: TXT_SOFT }}>{booking.services.duration_minutes} mins</span>}
                 </div>
               </div>
 

@@ -85,7 +85,7 @@ export default function PublicBooking() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from("services").select("id, name, category, price, duration_minutes, is_active, description").eq("is_active", true).order("category").order("name"),
+      supabase.from("services").select("id, name, category, price, is_active, description").eq("is_active", true).order("category").order("name"),
       (supabase as any).from("service_variants").select("service_id, price_adjustment, name").eq("is_active", true),
     ]).then(([{ data: svcs }, { data: allVars }]) => {
       setServices(svcs || []);
@@ -566,7 +566,7 @@ export default function PublicBooking() {
                       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{svc.name}</p>
-                        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{svc.duration_minutes} min{svc.description ? ` · ${svc.description.slice(0, 50)}${svc.description.length > 50 ? "…" : ""}` : ""}</p>
+                        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{svc.description ? svc.description.slice(0, 60) + (svc.description.length > 60 ? "…" : "") : ""}</p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                         <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: active ? GOLD_DARK : TXT_MID, whiteSpace: "nowrap" }}>{getPriceDisplay(svc)}</span>
@@ -582,7 +582,6 @@ export default function PublicBooking() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: selectedService.description ? "10px" : "0" }}>
                   <div>
                     <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, marginBottom: "2px" }}>{selectedService.name}</p>
-                    <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT }}>{selectedService.duration_minutes} minutes</p>
                   </div>
                   <p style={{ fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {total.toLocaleString()}</p>
                 </div>

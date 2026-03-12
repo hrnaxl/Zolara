@@ -90,7 +90,7 @@ const Reports = () => {
   const generateReport = async () => {
     setLoading(true);
     try {
-      // include transaction_reference and service price/duration when available
+      // include transaction_reference and service price when available
       let query = supabase
         .from("sales")
         .select(
@@ -107,7 +107,7 @@ const Reports = () => {
           preferred_time,
           status,
           rating,
-          services:service_id (id, name, category, price, duration_minutes),
+          services:service_id (id, name, category, price),
           staff:staff_id (id, name),
           clients:client_id (id, name)
         )
@@ -174,11 +174,8 @@ const Reports = () => {
         if (!acc[name]) acc[name] = { count: 0, revenue: 0, avgPrice: 0, avgDuration: 0 };
 
         acc[name].count += 1;
-        acc[name].revenue += Number(row.amount);
-        // collect price/duration if available
-        if (serviceRel?.price) acc[name].avgPrice = (acc[name].avgPrice + Number(serviceRel.price)) || Number(serviceRel.price);
-        if (serviceRel?.duration_minutes) acc[name].avgDuration = (acc[name].avgDuration + Number(serviceRel.duration_minutes)) || Number(serviceRel.duration_minutes);
-        return acc;
+        acc[name].revenue += Number(row.amount);        // collect price if available
+        if (serviceRel?.price) acc[name].avgPrice = (acc[name].avgPrice + Number(serviceRel.price)) || Number(serviceRel.price);        return acc;
       }, {});
 
       // finalize avg price/duration for services
