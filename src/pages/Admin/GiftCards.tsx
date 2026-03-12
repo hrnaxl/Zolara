@@ -38,16 +38,16 @@ const TIER_ACCENT: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  // Core enum values
-  unused:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
-  redeemed:        { bg: "#F3F4F6", color: "#374151", label: "Redeemed"         },
-  expired:         { bg: "#FEF3C7", color: "#92400E", label: "Expired"          },
-  void:            { bg: "#FEE2E2", color: "#991B1B", label: "Void"             },
-  // Extended statuses (after ALTER TABLE status TYPE text)
   pending_payment: { bg: "#FEF9C3", color: "#854D0E", label: "Awaiting Payment" },
   pending_send:    { bg: "#DBEAFE", color: "#1D4ED8", label: "Sending Email…"   },
   active:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
   available:       { bg: "#DCFCE7", color: "#166534", label: "Available"        },
+  unused:          { bg: "#DCFCE7", color: "#166534", label: "Active"           },
+  redeemed:        { bg: "#F3F4F6", color: "#374151", label: "Redeemed"         },
+  // payment_status-derived display states
+  voided:          { bg: "#FEE2E2", color: "#991B1B", label: "Void"             },
+  expired:         { bg: "#FEF3C7", color: "#92400E", label: "Expired"          },
+  void:            { bg: "#FEE2E2", color: "#991B1B", label: "Void"             },
 };
 
 type Tab = "all" | "digital" | "physical";
@@ -109,7 +109,7 @@ export default function GiftCards() {
   const isPhys   = (c: any) => c.card_type === "physical" || c.delivery_type === "physical" || c.is_admin_generated;
 
   // ─── Stats ───────────────────────────────────────────────────
-  const totalActive    = cards.filter(c => ["active","unused","available"].includes(c.status)).length;
+  const totalActive    = cards.filter(c => ["active","unused","available"].includes(c.status) && c.payment_status !== "voided" && c.payment_status !== "expired").length;
   const totalPendingEmail = cards.filter(c => c.status === "pending_send" || (c.status === "unused" && c.payment_status === "paid" && isDigit(c) && !c.redeemed_at)).length;
   const thisMonth      = cards.filter(c => {
     const d = new Date(c.created_at);
@@ -332,7 +332,10 @@ export default function GiftCards() {
             const code     = getCode(card);
             const value    = getValue(card);
             const tier     = card.tier || "Gold";
-            const status   = card.status || "active";
+            // payment_status overrides for voided/expired (avoids DB enum constraint)
+            const status = card.payment_status === "voided" ? "voided"
+                         : card.payment_status === "expired" ? "expired"
+                         : card.status || "active";
             const ss       = STATUS_STYLE[status] || { bg:"#F3F4F6", color:"#374151", label: status };
             const exp      = getExp(card);
             const isExpanded = expanded === card.id;

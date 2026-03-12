@@ -305,7 +305,11 @@ const Checkout = () => {
         setRedeeming(false);
         return;
       }
-      if (card.status !== "active" && card.status !== "available") {
+      if (card.payment_status === "voided" || card.payment_status === "expired") {
+        toast.error(`Gift card has been voided or expired.`);
+        return;
+      }
+      if (card.status !== "active" && card.status !== "available" && card.status !== "unused") {
         toast.error(`Gift card is not available (status: ${card.status}).`);
         setRedeeming(false);
         return;

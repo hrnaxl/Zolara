@@ -149,7 +149,7 @@ export async function voidGiftCard(id: string) {
   try {
     const { error } = await (supabaseAdmin as any)
       .from("gift_cards")
-      .update({ status: "void" })
+      .update({ payment_status: "voided", note: "Voided by admin" })
       .eq("id", id);
     if (error) throw error;
     return { success: true, error: null };
@@ -162,7 +162,7 @@ export async function expireGiftCard(id: string) {
   try {
     const { error } = await (supabaseAdmin as any)
       .from("gift_cards")
-      .update({ status: "expired" })
+      .update({ payment_status: "expired", expires_at: new Date().toISOString() })
       .eq("id", id);
     if (error) throw error;
     return { success: true, error: null };
@@ -257,7 +257,7 @@ export async function markGiftCardSold(id: string) {
   try {
     const { error } = await (supabaseAdmin as any)
       .from("gift_cards")
-      .update({ status: "unused", payment_status: "paid" })
+      .update({ payment_status: "paid" })
       .eq("id", id);
     if (error) throw error;
     return { success: true, error: null };
