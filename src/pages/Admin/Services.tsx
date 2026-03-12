@@ -615,7 +615,7 @@ const Services = () => {
                   <Label>Description</Label>
                   <Textarea placeholder="Short description shown to clients" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>
-                <Button type="submit" className="w-full">{!editingServiceId ? "Add Service" disabled={isReadOnly} style={{opacity: isReadOnly ? 0.4 : 1}} : "Update Service"}</Button>
+                <Button type="submit" className="w-full" disabled={isReadOnly} style={{opacity: isReadOnly ? 0.4 : 1}}>{!editingServiceId ? "Add Service" : "Update Service"}</Button>
               </form>
             </DialogContent>
           </Dialog>
