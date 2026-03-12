@@ -56,6 +56,12 @@ const Services = () => {
   const [editingCatValue, setEditingCatValue] = useState("");
   const [savingCats, setSavingCats] = useState(false);
 
+  // Inline pill editing (on card, not dialog)
+  const [editingPillVariantId, setEditingPillVariantId] = useState<string | null>(null);
+  const [pillVariantForm, setPillVariantForm] = useState({ name: "", price_adjustment: "", duration_adjustment: "" });
+  const [editingPillAddonId, setEditingPillAddonId] = useState<string | null>(null);
+  const [pillAddonForm, setPillAddonForm] = useState({ name: "", price: "", duration_adjustment: "" });
+
   // Variant inline editing
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [activeServiceForVariants, setActiveServiceForVariants] = useState<any>(null);
@@ -186,6 +192,30 @@ const Services = () => {
     toast.success("Variant removed");
   };
 
+  const savePillVariant = async (serviceId: string, variantId: string) => {
+    if (!pillVariantForm.name.trim()) return;
+    await (supabase as any).from("service_variants").update({
+      name: pillVariantForm.name.trim(),
+      price_adjustment: parseFloat(pillVariantForm.price_adjustment || "0"),
+      duration_adjustment: parseInt(pillVariantForm.duration_adjustment || "0"),
+    }).eq("id", variantId);
+    setEditingPillVariantId(null);
+    await refreshVariants(serviceId);
+    toast.success("Variant updated");
+  };
+
+  const savePillAddon = async (serviceId: string, addonId: string) => {
+    if (!pillAddonForm.name.trim()) return;
+    await (supabase as any).from("service_addons").update({
+      name: pillAddonForm.name.trim(),
+      price: parseFloat(pillAddonForm.price || "0"),
+      duration_adjustment: parseInt(pillAddonForm.duration_adjustment || "0"),
+    }).eq("id", addonId);
+    setEditingPillAddonId(null);
+    await refreshAddons(serviceId);
+    toast.success("Add-on updated");
+  };
+
   const refreshVariants = async (serviceId: string) => {
     const { data } = await (supabase as any).from("service_variants").select("*").eq("service_id", serviceId).order("sort_order");
     setVariantsMap(prev => ({ ...prev, [serviceId]: data || [] }));
@@ -246,7 +276,8 @@ const Services = () => {
     try {
       const validated = serviceSchema.parse({
         name: formData.name, category: formData.category,
-        price: parseFloat(formData.price), duration_minutes: parseInt(formData.duration_minutes),
+        price: formData.price ? parseFloat(formData.price) : 0,
+        duration_minutes: parseInt(formData.duration_minutes),
         description: formData.description,
       });
       const { specialization: _u, order: _o, ...serviceData } = validated as any;
@@ -354,18 +385,21 @@ const Services = () => {
             <p style={{ fontSize: "11px", color: "#A8A29E", margin: "4px 0 0" }}>{service.duration_minutes} min base</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-            {variants.length === 0 && (
+            {variants.length === 0 && basePrice > 0 && (
               <span style={{ fontSize: "14px", fontWeight: 700, color: GOLD_DARK }}>
                 GH&#8373;{basePrice.toLocaleString()}
               </span>
             )}
-            {variants.length > 0 && (
-              <span style={{ fontSize: "13px", fontWeight: 700, color: GOLD_DARK }}>
-                GH&#8373;{Math.min(...variants.map(v => basePrice + v.price_adjustment)).toLocaleString()}
-                {" "}&ndash;{" "}
-                GH&#8373;{Math.max(...variants.map(v => basePrice + v.price_adjustment)).toLocaleString()}
-              </span>
+            {variants.length === 0 && basePrice === 0 && (
+              <span style={{ fontSize: "11px", fontStyle: "italic", color: "#A8A29E" }}>Add variants</span>
             )}
+            {variants.length > 0 && (() => {
+              const prices = variants.map(v => Number(v.price_adjustment));
+              const mn = Math.min(...prices); const mx = Math.max(...prices);
+              return <span style={{ fontSize: "13px", fontWeight: 700, color: GOLD_DARK }}>
+                {mn === mx ? `GH₳${mn.toLocaleString()}` : `GH₳${mn.toLocaleString()} – ${mx.toLocaleString()}`}
+              </span>;
+            })()}
             <Button size="sm" variant="outline" className="px-2 h-7 text-xs"
               onClick={() => { setFormData({ name: service.name, category: service.category, price: service.price.toString(), duration_minutes: service.duration_minutes.toString(), description: service.description || "", specialization: "" }); setEditingServiceId(service.id); setDialogOpen(true); }}>
               <Pencil className="w-3 h-3" />
@@ -400,21 +434,34 @@ const Services = () => {
           {variants.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               {variants.map((v: any) => (
-                <div key={v.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#FBF7F3", border: "1px solid #E5DDD3", borderRadius: "20px", padding: "3px 10px 3px 10px", fontSize: "12px" }}>
-                  <span style={{ fontWeight: 600, color: "#1C160E" }}>{v.name}</span>
-                  <span style={{ color: GOLD_DARK, fontWeight: 700 }}>
-                    &nbsp;GH&#8373;{(Number(service.price) + Number(v.price_adjustment)).toLocaleString()}
-                  </span>
-                  {v.duration_adjustment !== 0 && (
-                    <span style={{ color: "#A8A29E", fontSize: "10px" }}>
-                      &nbsp;+{v.duration_adjustment}min
-                    </span>
-                  )}
-                  <button onClick={() => deleteVariant(service.id, v.id)}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 2px", display: "flex", alignItems: "center", color: "#A8A29E" }}>
-                    <X style={{ width: "11px", height: "11px" }} />
-                  </button>
-                </div>
+                editingPillVariantId === v.id ? (
+                  <div key={v.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#FFF8EE", border: "1.5px solid " + GOLD_DARK, borderRadius: "10px", padding: "4px 8px", flexWrap: "wrap" }}>
+                    <input autoFocus value={pillVariantForm.name} onChange={e => setPillVariantForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Name" style={{ border: "1px solid #E5DDD3", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "90px", outline: "none" }} />
+                    <input value={pillVariantForm.price_adjustment} onChange={e => setPillVariantForm(p => ({ ...p, price_adjustment: e.target.value }))}
+                      type="number" placeholder="GHS" style={{ border: "1px solid #E5DDD3", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "64px", outline: "none" }} />
+                    <input value={pillVariantForm.duration_adjustment} onChange={e => setPillVariantForm(p => ({ ...p, duration_adjustment: e.target.value }))}
+                      type="number" placeholder="+min" style={{ border: "1px solid #E5DDD3", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "52px", outline: "none" }} />
+                    <button onClick={() => savePillVariant(service.id, v.id)}
+                      style={{ background: GOLD_DARK, border: "none", borderRadius: "5px", padding: "2px 7px", cursor: "pointer", color: "white", fontSize: "11px", fontWeight: 700 }}>✓</button>
+                    <button onClick={() => setEditingPillVariantId(null)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#A8A29E", fontSize: "13px", lineHeight: 1 }}>✕</button>
+                  </div>
+                ) : (
+                  <div key={v.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#FBF7F3", border: "1px solid #E5DDD3", borderRadius: "20px", padding: "3px 10px", fontSize: "12px" }}>
+                    <span style={{ fontWeight: 600, color: "#1C160E" }}>{v.name}</span>
+                    <span style={{ color: GOLD_DARK, fontWeight: 700 }}>&nbsp;GH&#8373;{Number(v.price_adjustment).toLocaleString()}</span>
+                    {v.duration_adjustment !== 0 && <span style={{ color: "#A8A29E", fontSize: "10px" }}>&nbsp;+{v.duration_adjustment}min</span>}
+                    <button onClick={() => { setEditingPillVariantId(v.id); setPillVariantForm({ name: v.name, price_adjustment: String(v.price_adjustment), duration_adjustment: String(v.duration_adjustment) }); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 3px", color: "#C8A97E", display: "flex" }}>
+                      <Pencil style={{ width: "10px", height: "10px" }} />
+                    </button>
+                    <button onClick={() => deleteVariant(service.id, v.id)}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: "0", display: "flex", alignItems: "center", color: "#A8A29E" }}>
+                      <X style={{ width: "11px", height: "11px" }} />
+                    </button>
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -443,14 +490,31 @@ const Services = () => {
           {addons.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               {addons.map((a: any) => (
-                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: "20px", padding: "3px 10px", fontSize: "12px" }}>
-                  <span style={{ fontWeight: 600, color: "#1C160E" }}>{a.name}</span>
-                  <span style={{ color: "#7C3AED", fontWeight: 700 }}>+GH&#8373;{Number(a.price).toLocaleString()}</span>
-                  <button onClick={() => deleteAddon(service.id, a.id)}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 2px", display: "flex", alignItems: "center", color: "#A8A29E" }}>
-                    <X style={{ width: "11px", height: "11px" }} />
-                  </button>
-                </div>
+                editingPillAddonId === a.id ? (
+                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#F5F3FF", border: "1.5px solid #7C3AED", borderRadius: "10px", padding: "4px 8px", flexWrap: "wrap" }}>
+                    <input autoFocus value={pillAddonForm.name} onChange={e => setPillAddonForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Name" style={{ border: "1px solid #DDD6FE", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "90px", outline: "none" }} />
+                    <input value={pillAddonForm.price} onChange={e => setPillAddonForm(p => ({ ...p, price: e.target.value }))}
+                      type="number" placeholder="GHS" style={{ border: "1px solid #DDD6FE", borderRadius: "6px", padding: "2px 6px", fontSize: "11px", width: "64px", outline: "none" }} />
+                    <button onClick={() => savePillAddon(service.id, a.id)}
+                      style={{ background: "#7C3AED", border: "none", borderRadius: "5px", padding: "2px 7px", cursor: "pointer", color: "white", fontSize: "11px", fontWeight: 700 }}>✓</button>
+                    <button onClick={() => setEditingPillAddonId(null)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#A8A29E", fontSize: "13px", lineHeight: 1 }}>✕</button>
+                  </div>
+                ) : (
+                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "4px", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: "20px", padding: "3px 10px", fontSize: "12px" }}>
+                    <span style={{ fontWeight: 600, color: "#1C160E" }}>{a.name}</span>
+                    <span style={{ color: "#7C3AED", fontWeight: 700 }}>+GH&#8373;{Number(a.price).toLocaleString()}</span>
+                    <button onClick={() => { setEditingPillAddonId(a.id); setPillAddonForm({ name: a.name, price: String(a.price), duration_adjustment: String(a.duration_adjustment || 0) }); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 0 3px", color: "#A78BFA", display: "flex" }}>
+                      <Pencil style={{ width: "10px", height: "10px" }} />
+                    </button>
+                    <button onClick={() => deleteAddon(service.id, a.id)}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: "0", display: "flex", alignItems: "center", color: "#A8A29E" }}>
+                      <X style={{ width: "11px", height: "11px" }} />
+                    </button>
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -536,16 +600,10 @@ const Services = () => {
                     <Input placeholder="Hair, Nails, Makeup, etc." value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} required />
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Base Price (GH&#8373;) *</Label>
-                    <Input type="number" placeholder="e.g. 250" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
-                    <p className="text-xs text-muted-foreground">Set this to your lowest price. Variants can increase it.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Duration (min) *</Label>
-                    <Input type="number" placeholder="e.g. 180" value={formData.duration_minutes} onChange={e => setFormData({ ...formData, duration_minutes: e.target.value })} required />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Duration (min) *</Label>
+                  <Input type="number" placeholder="e.g. 180" value={formData.duration_minutes} onChange={e => setFormData({ ...formData, duration_minutes: e.target.value })} required />
+                  <p className="text-xs text-muted-foreground">Base duration. Each variant can add extra minutes.</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
