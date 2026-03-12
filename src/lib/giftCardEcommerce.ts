@@ -66,7 +66,6 @@ export async function createDigitalPurchase(opts: {
         buyer_phone: opts.buyerPhone,
         recipient_name: opts.recipientName,
         recipient_email: opts.recipientEmail,
-        purchaser_email: opts.buyerEmail,
         message: opts.message || null,
         status: "unused",
         payment_status: "pending",
@@ -90,8 +89,7 @@ export async function markGiftCardPaid(giftCardId: string, paymentRef: string): 
       .from("gift_cards")
       .update({
         payment_ref: paymentRef,
-        payment_status: "paid",
-        status: "pending_send", // triggers email edge function
+        payment_status: "pending_send", // triggers email cron (status stays "unused" until sent)
       })
       .eq("id", giftCardId);
 

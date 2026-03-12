@@ -228,6 +228,7 @@ const Checkout = () => {
         setOriginalPrice(price);
         // Subtract deposit already paid
         const depositAlreadyPaid = data.deposit_paid ? (Number((data as any).deposit_amount) || 50) : 0;
+        setDepositPaid(!!data.deposit_paid);  // sync toggle with actual DB value
         setAmount(String(Math.max(0, price - depositAlreadyPaid).toFixed(2)));
       }
     } catch (error) {
