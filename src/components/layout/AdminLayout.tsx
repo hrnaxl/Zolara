@@ -317,9 +317,8 @@ const AdminDashboard = () => {
         supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("created_at", startOfThisMonth).lte("created_at", endOfThisMonth),
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
-        // deposits in hand: confirmed bookings with deposit paid, not yet checked out
-        // These are collected but not yet revenue — shown as "pending revenue" on dashboard
-        supabase.from("bookings" as any).select("deposit_amount").eq("deposit_paid", true).in("status", ["confirmed", "pending"]),
+        // deposits in hand: bookings where deposit was paid but not yet checked out (no sales record)
+        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).not("status", "in", '("cancelled")'),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
