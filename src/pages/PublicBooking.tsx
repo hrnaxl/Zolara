@@ -287,7 +287,7 @@ export default function PublicBooking() {
           deposit_amount: (settings as any)?.deposit_amount ?? 50,
           notes: notesFull,
           promo_code: promoApplied?.code || null,
-          promo_discount: promoDiscount > 0 ? promoDiscount : null,
+          promo_discount: discount > 0 ? discount : null,
         },
         callbackUrl: returnUrl,
       });
