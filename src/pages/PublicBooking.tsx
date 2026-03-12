@@ -62,6 +62,10 @@ export default function PublicBooking() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [serviceId, setServiceId] = useState("");
+  const [variants, setVariants] = useState<any[]>([]);
+  const [addons, setAddons] = useState<any[]>([]);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [preferredDate, setDate] = useState("");
   const [preferredTime, setTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -130,6 +134,18 @@ export default function PublicBooking() {
   };
 
   const selectedService = services.find(s => s.id === serviceId);
+
+  // Fetch variants + addons whenever service changes
+  useEffect(() => {
+    setVariants([]); setAddons([]); setSelectedVariantId(""); setSelectedAddons([]);
+    if (!serviceId) return;
+    (supabase as any).from("service_variants").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order")
+      .then(({ data }: any) => setVariants(data || []));
+    (supabase as any).from("service_addons").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order")
+      .then(({ data }: any) => setAddons(data || []));
+  }, [serviceId]);
+
+  const selectedVariant = variants.find(v => v.id === selectedVariantId);
   const grouped = services.reduce((acc, s) => {
     const cat = s.category || "Other";
     if (!acc[cat]) acc[cat] = [];
@@ -138,12 +154,15 @@ export default function PublicBooking() {
   }, {} as Record<string, any[]>);
 
   const basePrice = Number(selectedService?.price || 0);
+  const variantAdj = selectedVariant ? Number(selectedVariant.price_adjustment) : 0;
+  const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
+  const subtotal = basePrice + variantAdj + addonTotal;
   const discount = promoApplied
     ? promoApplied.discount_type === "percentage"
-      ? (basePrice * promoApplied.discount_value) / 100
+      ? (subtotal * promoApplied.discount_value) / 100
       : promoApplied.discount_value
     : 0;
-  const total = Math.max(0, basePrice - discount);
+  const total = Math.max(0, subtotal - discount);
 
   const enabledPayments = (settings as any)?.payment_methods?.filter((m: any) => m.enabled)
     || [{ id: "mobile_money", name: "Mobile Money" }, { id: "cash", name: "Cash" }];
@@ -153,6 +172,7 @@ export default function PublicBooking() {
     if (!name.trim() || name.trim().length < 2) e.name = "Enter your full name";
     if (!phone.trim() || phone.replace(/\s/g,"").length < 10) e.phone = "Enter a valid phone number";
     if (!serviceId) e.service = "Please select a service";
+    if (serviceId && variants.length > 0 && !selectedVariantId) e.variant = "Please select a size or length";
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
     setErrors(e);
@@ -199,6 +219,11 @@ export default function PublicBooking() {
         .insert({
           client_name: name, client_email: email || null, client_phone: cleanPhone,
           service_id: serviceId, service_name: selectedService?.name || null,
+          variant_id: selectedVariantId || null,
+          variant_name: selectedVariant?.name || null,
+          selected_addons: selectedAddons.length > 0
+            ? addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price }))
+            : [],
           preferred_date: preferredDate, preferred_time: normalizedTime,
           price: total, deposit_amount: 50, deposit_paid: false,
           notes: notesFull, status: "awaiting_deposit",
@@ -472,11 +497,67 @@ export default function PublicBooking() {
                     <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, marginBottom: "2px" }}>{selectedService.name}</p>
                     <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT }}>{selectedService.duration_minutes} minutes</p>
                   </div>
-                  <p style={{ fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {Number(selectedService.price).toLocaleString()}</p>
+                  <p style={{ fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {total.toLocaleString()}</p>
                 </div>
                 {selectedService.description && (
                   <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, lineHeight: 1.5, paddingTop: "10px", borderTop: "1px solid rgba(200,169,126,0.2)" }}>{selectedService.description}</p>
                 )}
+              </div>
+            )}
+
+            {/* Variants */}
+            {variants.length > 0 && (
+              <div style={{ marginTop: "16px" }}>
+                <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: GOLD_DARK, marginBottom: "10px" }}>
+                  SIZE / LENGTH <span style={{ color: "#C0392B", marginLeft: "2px" }}>*</span>
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {variants.map((v: any) => {
+                    const vPrice = Number(selectedService?.price || 0) + Number(v.price_adjustment);
+                    const active = selectedVariantId === v.id;
+                    return (
+                      <button key={v.id} onClick={() => setSelectedVariantId(v.id)}
+                        style={{ background: active ? GOLD_DARK : "white", color: active ? "white" : DARK, border: `1.5px solid ${active ? GOLD_DARK : BORDER}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 600, transition: "all 0.15s" }}>
+                        {v.name}
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: 700, color: active ? "rgba(255,255,255,0.85)" : GOLD_DARK, marginTop: "2px" }}>
+                          GHS {vPrice.toLocaleString()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {errors.variant && <p className="err" style={{ marginTop: "6px" }}>{errors.variant}</p>}
+              </div>
+            )}
+
+            {/* Add-ons */}
+            {addons.length > 0 && (
+              <div style={{ marginTop: "16px" }}>
+                <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#7C3AED", marginBottom: "10px" }}>
+                  ADD-ONS <span style={{ fontWeight: 400, color: TXT_SOFT }}>(optional)</span>
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {addons.map((a: any) => {
+                    const checked = selectedAddons.includes(a.id);
+                    return (
+                      <label key={a.id} onClick={() => setSelectedAddons(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: checked ? "#F5F3FF" : "white", border: `1.5px solid ${checked ? "#A78BFA" : BORDER}`, borderRadius: "8px", padding: "10px 14px", cursor: "pointer", transition: "all 0.15s" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <div style={{ width: "16px", height: "16px", borderRadius: "4px", border: `2px solid ${checked ? "#7C3AED" : "#D1C5B8"}`, background: checked ? "#7C3AED" : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {checked && <span style={{ color: "white", fontSize: "10px", fontWeight: 700 }}>✓</span>}
+                          </div>
+                          <div>
+                            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, margin: 0 }}>{a.name}</p>
+                            {a.description && <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: 0 }}>{a.description}</p>}
+                          </div>
+                        </div>
+                        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap", marginLeft: "12px" }}>
+                          +GHS {Number(a.price).toLocaleString()}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {errors.service && <p className="err">{errors.service}</p>}
@@ -556,13 +637,19 @@ export default function PublicBooking() {
               {[
                 { label: "Name", value: name || "..." },
                 { label: "Phone", value: phone || "..." },
-                { label: "Service", value: selectedService?.name || "Not selected" },
+                { label: "Service", value: selectedService ? `${selectedService.name}${selectedVariant ? ` · ${selectedVariant.name}` : ""}` : "Not selected" },
                 { label: "Date", value: preferredDate || "..." },
                 { label: "Time", value: preferredTime || "..." },
               ].map(row => (
                 <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>{row.label}</span>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#F5EFE6" }}>{row.value}</span>
+                </div>
+              ))}
+              {addons.filter(a => selectedAddons.includes(a.id)).map(a => (
+                <div key={a.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
+                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em" }}>+ {a.name}</span>
+                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#C4B5FD" }}>+GHS {Number(a.price).toLocaleString()}</span>
                 </div>
               ))}
               {discount > 0 && (
