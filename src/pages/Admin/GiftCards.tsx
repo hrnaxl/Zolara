@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
+import { voidGiftCard, expireGiftCard, deleteGiftCard } from "@/lib/useGiftCards";
 import * as XLSX from "xlsx";
 
 // ─── Design tokens ─────────────────────────────────────────────
@@ -135,21 +136,24 @@ export default function GiftCards() {
     setActLoading(true);
     try {
       if (confirmAct === "void") {
-        await (supabase as any).from("gift_cards").update({ status: "void" }).eq("id", confirmCard.id);
+        const res = await voidGiftCard(confirmCard.id);
+        if (res.error) throw res.error;
         toast.success("Card voided");
       } else if (confirmAct === "expire") {
-        await (supabase as any).from("gift_cards").update({ status: "expired" }).eq("id", confirmCard.id);
+        const res = await expireGiftCard(confirmCard.id);
+        if (res.error) throw res.error;
         toast.success("Card marked expired");
       } else if (confirmAct === "delete") {
-        await (supabase as any).from("gift_cards").delete().eq("id", confirmCard.id);
+        const res = await deleteGiftCard(confirmCard.id);
+        if (res.error) throw res.error;
         toast.success("Card deleted");
-      } else if (confirmAct === "sold") {
-        await (supabase as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", confirmCard.id);
-        toast.success("Card marked as sold/issued");
-      } else if (confirmAct === "resend") {
-        // Re-trigger email by setting back to pending_send
-        await (supabase as any).from("gift_cards").update({ status: "pending_send" }).eq("id", confirmCard.id);
-        toast.success("Email re-queued — will send within 5 minutes");
+      } else if (confirmAct === "sold" || confirmAct === "resend") {
+        const { data, error: fnErr } = await supabase.functions.invoke("admin-gift-card-action", {
+          body: { id: confirmCard.id, action: confirmAct },
+        });
+        if (fnErr) throw fnErr;
+        if (data?.error) throw new Error(data.error);
+        toast.success(confirmAct === "sold" ? "Card marked as sold/issued" : "Email re-queued — will send within 5 minutes");
       }
       setConfirmCard(null); setConfirmAct(null);
       await load();
