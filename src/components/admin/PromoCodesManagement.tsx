@@ -3,40 +3,31 @@ import { getPromoCodes, createPromoCode, updatePromoCode, deletePromoCode } from
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 
+const G="#C8A97E",G_D="#8B6914",W="#FFFFFF",CREAM="#FAFAF8",BORDER="#EDEBE5",TXT="#1C160E",TXT_MID="#78716C",TXT_SOFT="#A8A29E";
+const SHADOW="0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+const card: React.CSSProperties={background:W,border:`1px solid ${BORDER}`,borderRadius:"16px",padding:"24px",boxShadow:SHADOW};
+const inp: React.CSSProperties={width:"100%",border:`1.5px solid ${BORDER}`,borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:TXT,outline:"none",background:W,fontFamily:"Montserrat,sans-serif"};
+
 export default function PromoCodesManagement() {
   const { userRole, roleReady } = useSettings();
-  // Block editing until role is confirmed from DB — prevents flash of edit buttons
-  // Only allow editing when role is confirmed AND is explicitly an edit-capable role
-  const canEdit = roleReady && userRole !== null && userRole !== "receptionist" && userRole !== "cleaner" && userRole !== "staff";
-
+  const canEdit = roleReady && userRole !== null && !["receptionist","cleaner","staff"].includes(userRole||"");
   const [codes, setCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    code: "", description: "", discount_type: "percentage" as "percentage"|"fixed_amount",
-    discount_value: "", minimum_amount: "", max_uses: "", expires_at: "",
-  });
+  const [form, setForm] = useState({ code:"", description:"", discount_type:"percentage" as "percentage"|"fixed_amount", discount_value:"", minimum_amount:"", max_uses:"", expires_at:"" });
 
   const load = async () => {
     try { setCodes(await getPromoCodes()); } catch { toast.error("Failed to load promo codes"); } finally { setLoading(false); }
   };
-
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async () => {
     if (!canEdit) return;
     if (!form.code || !form.discount_value) { toast.error("Code and discount value required"); return; }
     try {
-      await createPromoCode({
-        code: form.code, description: form.description,
-        discount_type: form.discount_type, discount_value: parseFloat(form.discount_value),
-        minimum_amount: form.minimum_amount ? parseFloat(form.minimum_amount) : 0,
-        max_uses: form.max_uses ? parseInt(form.max_uses) : undefined,
-        expires_at: form.expires_at || undefined, is_active: true,
-      });
-      toast.success("Promo code created");
-      setShowForm(false);
-      setForm({ code: "", description: "", discount_type: "percentage", discount_value: "", minimum_amount: "", max_uses: "", expires_at: "" });
+      await createPromoCode({ code:form.code, description:form.description, discount_type:form.discount_type, discount_value:parseFloat(form.discount_value), minimum_amount:form.minimum_amount ? parseFloat(form.minimum_amount) : 0, max_uses:form.max_uses ? parseInt(form.max_uses) : undefined, expires_at:form.expires_at || undefined, is_active:true });
+      toast.success("Promo code created"); setShowForm(false);
+      setForm({ code:"", description:"", discount_type:"percentage", discount_value:"", minimum_amount:"", max_uses:"", expires_at:"" });
       load();
     } catch (e: any) { toast.error(e.message || "Failed to create"); }
   };
@@ -52,88 +43,129 @@ export default function PromoCodesManagement() {
     try { await deletePromoCode(id); toast.success("Deleted"); load(); } catch { toast.error("Failed to delete"); }
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading promo codes...</div>;
+  if (loading) return (
+    <div style={{ display:"flex",justifyContent:"center",alignItems:"center",padding:"60px",fontFamily:"Montserrat,sans-serif" }}>
+      <div style={{ width:"32px",height:"32px",border:`3px solid #F0E4CC`,borderTopColor:G,borderRadius:"50%",animation:"spin 0.8s linear infinite" }}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  const totalActive = codes.filter(c=>c.is_active).length;
+  const totalUses = codes.reduce((s,c)=>s+(c.used_count||0),0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div style={{ background:CREAM,minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif",color:TXT }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}`}</style>
+
+      {/* Header */}
+      <div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"28px",flexWrap:"wrap",gap:"12px" }}>
         <div>
-          <h2 className="text-2xl font-bold">Promo Codes</h2>
-          {!canEdit && (
-            <p className="text-sm text-muted-foreground mt-1">View only — contact the owner to make changes.</p>
-          )}
+          <p style={{ fontSize:"11px",fontWeight:700,letterSpacing:"0.16em",color:G,textTransform:"uppercase",marginBottom:"4px" }}>Promotions</p>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(28px,4vw,42px)",fontWeight:700,color:TXT,margin:0,lineHeight:1 }}>Promo Codes</h1>
+          <p style={{ fontSize:"12px",color:TXT_SOFT,marginTop:"6px" }}>{canEdit ? "Create and manage discount codes" : "View only — contact the owner to make changes"}</p>
         </div>
         {canEdit && (
-          <button onClick={() => setShowForm(!showForm)} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
-            + New Code
+          <button onClick={() => setShowForm(!showForm)} style={{ padding:"10px 20px",borderRadius:"12px",background:G,color:W,border:"none",fontSize:"13px",fontWeight:600,cursor:"pointer" }}>
+            {showForm ? "Cancel" : "+ New Code"}
           </button>
         )}
       </div>
 
+      {/* KPI strip */}
+      <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"14px",marginBottom:"24px" }}>
+        {[
+          { label:"TOTAL CODES", value:codes.length, color:G_D, bg:"#FBF6EE", border:"#F0E4CC" },
+          { label:"ACTIVE", value:totalActive, color:"#16A34A", bg:"#F0FDF4", border:"#BBF7D0" },
+          { label:"TOTAL USES", value:totalUses, color:"#6366F1", bg:"#EEF2FF", border:"#C7D2FE" },
+        ].map(k=>(
+          <div key={k.label} style={{ background:k.bg,border:`1px solid ${k.border}`,borderRadius:"14px",padding:"18px 20px" }}>
+            <p style={{ fontSize:"10px",fontWeight:700,letterSpacing:"0.1em",color:k.color,marginBottom:"6px" }}>{k.label}</p>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"32px",fontWeight:700,color:TXT,margin:0 }}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Create Form */}
       {showForm && canEdit && (
-        <div className="border rounded-xl p-6 bg-muted/30 space-y-4">
-          <h3 className="font-semibold">New Promo Code</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Code *</label><input value={form.code} onChange={e => setForm(f=>({...f,code:e.target.value.toUpperCase()}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm font-mono" placeholder="e.g. SAVE20" /></div>
-            <div><label className="text-sm font-medium">Discount Type</label>
-              <select value={form.discount_type} onChange={e => setForm(f=>({...f,discount_type:e.target.value as any}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
+        <div style={{ ...card, marginBottom:"24px", borderLeft:`3px solid ${G}` }}>
+          <p style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"18px",fontWeight:700,color:TXT,marginBottom:"20px" }}>New Promo Code</p>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"14px",marginBottom:"14px" }}>
+            <div>
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Code *</label>
+              <input value={form.code} onChange={e=>setForm(f=>({...f,code:e.target.value.toUpperCase()}))} style={{ ...inp,fontFamily:"'Courier New',monospace",fontWeight:700,letterSpacing:"0.12em" }} placeholder="e.g. SAVE20" />
+            </div>
+            <div>
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Discount Type</label>
+              <select value={form.discount_type} onChange={e=>setForm(f=>({...f,discount_type:e.target.value as any}))} style={{ ...inp }}>
                 <option value="percentage">Percentage (%)</option>
                 <option value="fixed_amount">Fixed Amount (GHS)</option>
               </select>
             </div>
-            <div><label className="text-sm font-medium">Discount Value *</label><input type="number" value={form.discount_value} onChange={e=>setForm(f=>({...f,discount_value:e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
-            <div><label className="text-sm font-medium">Minimum Purchase (GHS)</label><input type="number" value={form.minimum_amount} onChange={e=>setForm(f=>({...f,minimum_amount:e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
-            <div><label className="text-sm font-medium">Max Uses</label><input type="number" value={form.max_uses} onChange={e=>setForm(f=>({...f,max_uses:e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" placeholder="Leave blank for unlimited" /></div>
-            <div><label className="text-sm font-medium">Expires At</label><input type="date" value={form.expires_at} onChange={e=>setForm(f=>({...f,expires_at:e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
-            <div className="col-span-2"><label className="text-sm font-medium">Description</label><input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
+            <div>
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Discount Value *</label>
+              <input type="number" value={form.discount_value} onChange={e=>setForm(f=>({...f,discount_value:e.target.value}))} style={inp} />
+            </div>
+            <div>
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Minimum Purchase (GHS)</label>
+              <input type="number" value={form.minimum_amount} onChange={e=>setForm(f=>({...f,minimum_amount:e.target.value}))} style={inp} />
+            </div>
+            <div>
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Max Uses</label>
+              <input type="number" value={form.max_uses} onChange={e=>setForm(f=>({...f,max_uses:e.target.value}))} style={inp} placeholder="Unlimited" />
+            </div>
+            <div>
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Expiry Date</label>
+              <input type="date" value={form.expires_at} onChange={e=>setForm(f=>({...f,expires_at:e.target.value}))} style={inp} />
+            </div>
+            <div style={{ gridColumn:"span 2" }}>
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Description</label>
+              <input value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} style={inp} placeholder="Optional description" />
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={handleSubmit} className="bg-primary text-white px-4 py-2 rounded-lg text-sm">Save Code</button>
-            <button onClick={() => setShowForm(false)} className="border px-4 py-2 rounded-lg text-sm">Cancel</button>
+          <div style={{ display:"flex",gap:"10px" }}>
+            <button onClick={handleSubmit} style={{ padding:"10px 24px",borderRadius:"10px",background:G,color:W,border:"none",fontSize:"13px",fontWeight:600,cursor:"pointer" }}>Save Code</button>
+            <button onClick={()=>setShowForm(false)} style={{ padding:"10px 20px",borderRadius:"10px",background:W,color:TXT_MID,border:`1px solid ${BORDER}`,fontSize:"13px",fontWeight:600,cursor:"pointer" }}>Cancel</button>
           </div>
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              {["Code","Type","Value","Min. Purchase","Uses","Expires","Status", ...(canEdit ? ["Actions"] : [])].map(h=>(
-                <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
+      {/* Table */}
+      <div style={card}>
+        {codes.length === 0 ? (
+          <div style={{ textAlign:"center",padding:"60px 0",color:TXT_SOFT }}>
+            <div style={{ fontSize:"40px",marginBottom:"14px" }}>🏷️</div>
+            <p style={{ fontSize:"15px",fontWeight:500,marginBottom:"6px" }}>No promo codes yet</p>
+            {canEdit && <p style={{ fontSize:"12px" }}>Create your first promo code above</p>}
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 80px 110px 110px 90px 90px 80px"+(canEdit?" 110px":""),gap:"10px",padding:"8px 14px",borderBottom:`1px solid ${BORDER}`,marginBottom:"4px" }}>
+              {["Code","Type","Value","Min Purchase","Uses","Expires","Status",...(canEdit?["Actions"]:[])].map(h=>(
+                <span key={h} style={{ fontSize:"9px",fontWeight:700,letterSpacing:"0.1em",color:TXT_SOFT,textTransform:"uppercase" }}>{h}</span>
               ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {codes.map(c=>(
-              <tr key={c.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3 font-mono font-bold">{c.code}</td>
-                <td className="px-4 py-3">{c.discount_type === "percentage" ? "%" : "GHS"}</td>
-                <td className="px-4 py-3 font-semibold text-primary">{c.discount_type === "percentage" ? `${c.discount_value}%` : `GHS ${c.discount_value}`}</td>
-                <td className="px-4 py-3">{c.minimum_amount > 0 ? `GHS ${c.minimum_amount}` : "—"}</td>
-                <td className="px-4 py-3">{c.used_count} {c.max_uses ? `/ ${c.max_uses}` : "/ ∞"}</td>
-                <td className="px-4 py-3">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "Never"}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.is_active ? "z-badge z-badge-green" : "bg-gray-100 text-gray-600"}`}>
-                    {c.is_active ? "Active" : "Inactive"}
-                  </span>
-                </td>
+            </div>
+            {codes.map((c, i) => (
+              <div key={c.id} style={{ display:"grid",gridTemplateColumns:"1fr 80px 110px 110px 90px 90px 80px"+(canEdit?" 110px":""),gap:"10px",padding:"14px",borderRadius:"10px",alignItems:"center",borderBottom:i<codes.length-1?`1px solid ${BORDER}`:"none" }}>
+                <div>
+                  <p style={{ fontFamily:"'Courier New',monospace",fontSize:"13px",fontWeight:700,color:TXT,letterSpacing:"0.1em",margin:0 }}>{c.code}</p>
+                  {c.description && <p style={{ fontSize:"10px",color:TXT_SOFT,margin:"3px 0 0" }}>{c.description}</p>}
+                </div>
+                <span style={{ fontSize:"11px",color:TXT_MID }}>{c.discount_type==="percentage"?"%":"GHS"}</span>
+                <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"16px",fontWeight:700,color:G_D }}>{c.discount_type==="percentage"?`${c.discount_value}%`:`GHS ${c.discount_value}`}</span>
+                <span style={{ fontSize:"12px",color:TXT_MID }}>{c.minimum_amount>0?`GHS ${c.minimum_amount}`:"—"}</span>
+                <span style={{ fontSize:"12px",color:TXT_MID }}>{c.used_count||0}{c.max_uses?` / ${c.max_uses}`:" / ∞"}</span>
+                <span style={{ fontSize:"11px",color:TXT_SOFT }}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-GH",{day:"numeric",month:"short",year:"2-digit"}) : "Never"}</span>
+                <span style={{ display:"inline-block",padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:700,background:c.is_active?"#F0FDF4":"#F5F5F5",color:c.is_active?"#16A34A":"#999" }}>{c.is_active?"Active":"Off"}</span>
                 {canEdit && (
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button onClick={()=>handleToggle(c.id,c.is_active)} className="text-xs border px-2 py-1 rounded hover:bg-muted">
-                        {c.is_active ? "Disable" : "Enable"}
-                      </button>
-                      <button onClick={()=>handleDelete(c.id)} className="text-xs border border-red-200 text-red-600 px-2 py-1 rounded hover:bg-red-50">
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+                  <div style={{ display:"flex",gap:"6px" }}>
+                    <button onClick={()=>handleToggle(c.id,c.is_active)} style={{ padding:"4px 10px",borderRadius:"8px",border:`1px solid ${BORDER}`,background:W,fontSize:"10px",fontWeight:600,cursor:"pointer",color:TXT_MID }}>{c.is_active?"Disable":"Enable"}</button>
+                    <button onClick={()=>handleDelete(c.id)} style={{ padding:"4px 10px",borderRadius:"8px",border:"1px solid #FECACA",background:W,fontSize:"10px",fontWeight:600,cursor:"pointer",color:"#DC2626" }}>Del</button>
+                  </div>
                 )}
-              </tr>
+              </div>
             ))}
-          </tbody>
-        </table>
-        {codes.length === 0 && <div className="text-center py-12 text-muted-foreground">No promo codes yet</div>}
+          </>
+        )}
       </div>
     </div>
   );

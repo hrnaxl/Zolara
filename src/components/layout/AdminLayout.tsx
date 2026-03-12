@@ -191,6 +191,7 @@ const AdminDashboard = () => {
         thisMonthSalesByServiceRes,
         previousMonthServiceBookingsRes,
         depositsRes,
+        bookingsDepositRes,
         promoSavingsRes,
       ] = await Promise.all([
         supabase
@@ -318,9 +319,11 @@ const AdminDashboard = () => {
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
         // deposits collected this period
+        // Deposits: from sales table (online Paystack) + from bookings.deposit_paid=true (in-store)
         supabase.from("sales").select("amount").eq("payment_method", "deposit").eq("status", "completed").gte("created_at", periodStartTs).lte("created_at", periodEndTs),
+        supabase.from("bookings").select("deposit_amount").eq("deposit_paid", true).eq("payment_status", "paid").gte("preferred_date", periodStart).lte("preferred_date", periodEnd),
         // promo savings this period
-        (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
+        supabase.from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).gt("promo_discount", 0) as any,
       ]);
 
       // Calculate stats
@@ -555,9 +558,13 @@ const AdminDashboard = () => {
         lowBookingThreshold: 3,
       });
 
-      // Deposits collected
-      const periodDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.amount || 0), 0) || 0;
-      const depositCount = depositsRes.data?.length || 0;
+      // Deposits collected — combine sales table (Paystack) + bookings with deposit_paid=true
+      const salesDeposits = depositsRes.data?.reduce((s: number, b: any) => s + Number(b.amount || 0), 0) || 0;
+      const bookingDepositsTotal = (bookingsDepositRes as any).data?.reduce((s: number, b: any) => s + Number(b.deposit_amount || 0), 0) || 0;
+      // Avoid double-counting: if booking.payment_status="paid" the webhook already wrote to sales
+      // Use only sales table total (most accurate); bookingsDepositRes is a fallback for in-person
+      const periodDeposits = salesDeposits > 0 ? salesDeposits : bookingDepositsTotal;
+      const depositCount = (depositsRes.data?.length || 0) || ((bookingsDepositRes as any).data?.length || 0);
 
       // Promo savings breakdown
       const promoMap: Record<string, { savings: number; count: number }> = {};

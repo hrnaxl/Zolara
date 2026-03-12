@@ -223,15 +223,20 @@ export default function Settings() {
   }
 
   return (
-    <div className="z-page">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Settings</h1>
-          <Button onClick={updateSettings} disabled={saving}>
+    <div style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
+      <div style={{maxWidth:"900px",margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"32px",flexWrap:"wrap",gap:"12px"}}>
+          <div>
+            <p style={{fontSize:"11px",fontWeight:700,letterSpacing:"0.16em",color:"#C8A97E",textTransform:"uppercase",marginBottom:"4px"}}>Configuration</p>
+            <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(28px,4vw,42px)",fontWeight:700,color:"#1C160E",margin:0,lineHeight:1}}>Settings</h1>
+            <p style={{fontSize:"12px",color:"#A8A29E",marginTop:"6px"}}>Configure your salon preferences and business rules</p>
+          </div>
+          <Button onClick={updateSettings} disabled={saving} style={{background:"#C8A97E",border:"none",borderRadius:"12px",padding:"10px 24px",color:"white",fontWeight:600,fontSize:"13px"}}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Save Settings
           </Button>
         </div>
+        <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
 
         <BusinessInfoSection
           businessName={settings.business_name}
@@ -321,6 +326,7 @@ export default function Settings() {
 
         <ReviewsSettingsSection settingsId={settings.id} />
         <BackupRestoreSection settings={settings} onRestore={handleRestore} />
+        </div>
       </div>
     </div>
   );

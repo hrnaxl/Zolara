@@ -311,7 +311,7 @@ export default function Attendance() {
   };
 
   return (
-    <div className="z-page">
+    <div style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
       <div className="">
         <div className="flex items-center justify-between mb-6">
           <div>

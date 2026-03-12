@@ -304,7 +304,7 @@ const StaffDashboard = () => {
             {todaySchedule.map((appt, i) => {
               const s = statusStyle(appt.status);
               return (
-                <div key={appt.id} className="row-hover" className="staff-row-grid" style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < todaySchedule.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <div key={appt.id} className="staff-row-grid" style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 90px", gap: "12px", padding: "12px", borderRadius: "10px", alignItems: "center", borderBottom: i < todaySchedule.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "16px", fontWeight: 600, color: TXT }}>{appt.time?.slice(0, 5) || "—"}</span>
                   <span style={{ fontSize: "12px", fontWeight: 500, color: TXT }}>{appt.clientName}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{appt.serviceName}</span>

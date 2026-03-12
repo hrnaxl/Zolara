@@ -1,954 +1,269 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useSettings } from "@/context/SettingsContext";
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-} from "date-fns";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { toast } from "sonner";
-import { DollarSign, Calendar } from "lucide-react";
-import { CSVLink } from "react-csv"; // For CSV export
+import { CSVLink } from "react-csv";
 
-const SalesRevenue = () => {
+const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+
+const METHOD_COLORS: Record<string, { bg: string; color: string; label: string }> = {
+  cash:          { bg: "#F0FDF4", color: "#16A34A", label: "Cash" },
+  mobile_money:  { bg: "#EFF6FF", color: "#2563EB", label: "MoMo" },
+  card:          { bg: "#FDF4FF", color: "#9333EA", label: "Card" },
+  bank_transfer: { bg: "#FFF7ED", color: "#EA580C", label: "Bank Transfer" },
+  gift_card:     { bg: "#FFFBEB", color: "#D97706", label: "Gift Card" },
+  deposit:       { bg: "#F0FDF4", color: "#059669", label: "Deposit" },
+};
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  completed: { bg: "#F0FDF4", color: "#16A34A" },
+  pending:   { bg: "#FFFBEB", color: "#D97706" },
+  refunded:  { bg: "#FEF2F2", color: "#DC2626" },
+};
+
+type DateRange = "today" | "week" | "month" | "custom";
+
+export default function SalesRevenue() {
   const [payments, setPayments] = useState<any[]>([]);
-  const [pendingRevenue, setPendingRevenue] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>("month");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [filterMethod, setFilterMethod] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<
-    "all" | "today" | "week" | "month" | "custom"
-  >("month");
-  const [customStart, setCustomStart] = useState<string>("");
-  const [customEnd, setCustomEnd] = useState<string>("");
-  const [exportScope, setExportScope] = useState<"all" | "completed" | "pending">("all");
-  const [exportPaymentType, setExportPaymentType] = useState<"all" | string>("all");
-  const [monthlyNet, setMonthlyNet] = useState<number>(0);
-  const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const { settings } = useSettings();
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [selected, setSelected] = useState<any | null>(null);
 
-  useEffect(() => {
-    fetchPayments();
-    fetchMonthlyNet();
-  }, []);
+  useEffect(() => { fetchPayments(); }, [dateRange, customStart, customEnd]);
 
-  useEffect(() => {
-    // refetch when dateRange changes
-    fetchPayments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange, customStart, customEnd]);
-
-  // Helper: build a human-friendly active range label
-  const activeRangeLabel = () => {
-    if (dateRange === "custom") {
-      if (customStart && customEnd) {
-        try {
-          const s = new Date(customStart);
-          const e = new Date(customEnd);
-          return `Showing sales for ${format(s, "MMM d")}–${format(e, "MMM d, yyyy")}`;
-        } catch (e) {
-          return `Showing sales for ${customStart} – ${customEnd}`;
-        }
-      }
-      return "Showing sales for custom range";
-    }
+  const dateRangeLabel = () => {
     const now = new Date();
-    if (dateRange === "today") return `Showing sales for ${format(now, "PPP")}`;
-    if (dateRange === "week") return `Showing sales for ${format(startOfWeek(now), "MMM d")}–${format(endOfWeek(now), "MMM d, yyyy")}`;
-    if (dateRange === "month") return `Showing sales for ${format(startOfMonth(now), "MMM d")}–${format(endOfMonth(now), "MMM d, yyyy")}`;
-    return "Showing sales for all time";
-  };
-
-  // Fetch monthly net revenue same as dashboard
-  const fetchMonthlyNet = async () => {
-    try {
-      const today = new Date();
-      const start = format(startOfMonth(today), "yyyy-MM-dd");
-      const end = format(endOfMonth(today), "yyyy-MM-dd");
-      const { data, error } = await supabase
-        .from("sales")
-        .select("amount")
-        .gte("created_at", start)
-        .lte("created_at", end);
-      if (error) throw error;
-      const total = (data || []).reduce(
-        (s: number, p: any) => s + Number(p.amount),
-        0
-      );
-      setMonthlyNet(total);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Save the print-friendly HTML as a PDF using html2canvas + jsPDF.
-  // This renders the same HTML used by printReport off-screen, captures it with html2canvas,
-  // then writes images into a multi-page PDF.
-  const saveReportAsPDF = async () => {
-    try {
-      // Build same rows as printReport
-      const rows = filteredPayments.map((p) => ({
-        client: p.client_name || "N/A",
-        service: p.service_name || "N/A",
-        method: p.payment_method || "",
-        amount:
-          typeof p.amount !== "undefined"
-            ? `GH₵${Number(p.amount).toFixed(2)}`
-            : "GH₵0.00",
-        date: p.created_at
-          ? format(new Date(p.created_at), "MMM dd, yyyy")
-          : "",
-        status: p.status || "",
-        notes: p.notes || "",
-      }));
-
-      const now = new Date();
-      const title = `Revenue Summary - ${format(now, "PPP p")}`;
-
-      // Compose the same HTML used by printReport
-      const style = `
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111 }
-          .report-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
-          .report-title { font-size:18px; font-weight:700 }
-          .report-meta { text-align:right; font-size:12px; color:#666 }
-          table { width:100%; border-collapse:collapse; font-size:12px }
-          th, td { border:1px solid #ddd; padding:8px; vertical-align:top }
-          th { background:#1e90ff; color:#fff; font-weight:700 }
-          tfoot td { font-weight:700; }
-          .notes { max-width:320px; word-wrap:break-word }
-        </style>
-      `;
-
-      const header = `
-        <div class="report-header">
-          <div class="report-title">${title}</div>
-          <div class="report-meta">Generated: ${format(now, "PPP p")}</div>
-        </div>
-      `;
-
-      const tableRows = rows
-        .map(
-          (r) => `<tr>
-            <td>${escapeHtml(r.client)}</td>
-            <td>${escapeHtml(r.service)}</td>
-            <td>${escapeHtml(r.method)}</td>
-            <td style="text-align:right">${r.amount}</td>
-            <td>${r.date}</td>
-            <td style="text-align:center">${escapeHtml(r.status)}</td>
-            <td class="notes">${escapeHtml(r.notes)}</td>
-          </tr>`
-        )
-        .join("\n");
-
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${header}<div className="mobile-table-wrap" style={{overflowX:"auto"}}><table><thead><tr><th>Client</th><th>Service</th><th>Method</th><th>Amount</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>${tableRows}</tbody></table></div></body></html>`;
-
-      // Create off-screen container
-      const wrapper = document.createElement("div");
-      wrapper.style.position = "fixed";
-      wrapper.style.left = "-9999px";
-      wrapper.style.top = "0";
-      wrapper.innerHTML = html;
-      document.body.appendChild(wrapper);
-
-      // Load html2canvas if not present
-      if (!(window as any).html2canvas) {
-        await new Promise<void>((resolve, reject) => {
-          const s = document.createElement("script");
-          s.src =
-            "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
-          s.onload = () => resolve();
-          s.onerror = (e) => reject(e);
-          document.head.appendChild(s);
-        });
-      }
-
-      const html2canvas = (window as any).html2canvas;
-      if (!html2canvas) throw new Error("html2canvas failed to load");
-
-      // Render wrapper to canvas (higher scale for better quality)
-      const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL("image/png");
-
-      // Create PDF and split across pages if needed
-      const pdf = new jsPDF({
-        unit: "pt",
-        format: "a4",
-        orientation: "landscape",
-      });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // Calculate image dimensions to fit width
-      const imgProps: any = (pdf as any).getImageProperties(imgData);
-      const imgWidth = pdfWidth - 40; // leave margin
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-      // If imgHeight fits on single page, just add and save
-      if (imgHeight <= pdfHeight - 40) {
-        pdf.addImage(imgData, "PNG", 20, 20, imgWidth, imgHeight);
-      } else {
-        // Need to split canvas into multiple pages
-        const pageCanvas = document.createElement("canvas");
-        const pageCtx = pageCanvas.getContext("2d")!;
-        const scale = canvas.width / imgWidth;
-        const pageHeightPx = (pdfHeight - 40) * scale;
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = pageHeightPx;
-
-        let renderedHeight = 0;
-        while (renderedHeight < canvas.height) {
-          pageCtx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-          pageCtx.drawImage(
-            canvas,
-            0,
-            renderedHeight,
-            canvas.width,
-            pageCanvas.height,
-            0,
-            0,
-            pageCanvas.width,
-            pageCanvas.height
-          );
-          const pageData = pageCanvas.toDataURL("image/png");
-          pdf.addImage(
-            pageData,
-            "PNG",
-            20,
-            20,
-            imgWidth,
-            pageCanvas.height / scale
-          );
-          renderedHeight += pageCanvas.height;
-          if (renderedHeight < canvas.height) pdf.addPage();
-        }
-      }
-
-      const nowStamp = format(new Date(), "yyyyMMdd_HHmmss");
-      pdf.save(`revenue_summary_${nowStamp}.pdf`);
-
-      // cleanup
-      document.body.removeChild(wrapper);
-    } catch (err) {
-      console.error("Save as PDF failed", err);
-      toast.error("Failed to save PDF");
-    }
+    if (dateRange === "today") return format(now, "MMMM d, yyyy");
+    if (dateRange === "week") return `${format(startOfWeek(now), "MMM d")} – ${format(endOfWeek(now), "MMM d, yyyy")}`;
+    if (dateRange === "month") return format(now, "MMMM yyyy");
+    if (customStart && customEnd) return `${customStart} – ${customEnd}`;
+    return "All time";
   };
 
   const fetchPayments = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      let query = supabase
-        .from("sales")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      // apply date filters
-      if (dateRange === "today") {
-        const today = format(new Date(), "yyyy-MM-dd");
-        query = query.gte("created_at", today);
-      } else if (dateRange === "week") {
-        const today = new Date();
-        const start = format(startOfWeek(today), "yyyy-MM-dd");
-        const end = format(endOfWeek(today), "yyyy-MM-dd");
-        query = query.gte("created_at", start).lte("created_at", end);
-      } else if (dateRange === "month") {
-        const today = new Date();
-        const start = format(startOfMonth(today), "yyyy-MM-dd");
-        const end = format(endOfMonth(today), "yyyy-MM-dd");
-        query = query.gte("created_at", start).lte("created_at", end);
-      } else if (dateRange === "custom") {
-        if (customStart) query = query.gte("created_at", customStart);
-        if (customEnd) query = query.lte("created_at", customEnd);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      setPayments(data || []);
-      // compute pending revenue: completed bookings in the same range that lack a completed payment
-      try {
-        let bookingsQuery = supabase
-          .from("bookings")
-          .select("id, price, preferred_date, status, client_name, service_name")
-          .eq("status", "completed");
-
-        if (dateRange === "today") {
-          const today = format(new Date(), "yyyy-MM-dd");
-          bookingsQuery = bookingsQuery.eq("preferred_date", today);
-        } else if (dateRange === "week") {
-          const today = new Date();
-          const start = format(startOfWeek(today), "yyyy-MM-dd");
-          const end = format(endOfWeek(today), "yyyy-MM-dd");
-          bookingsQuery = bookingsQuery.gte("preferred_date", start).lte("preferred_date", end);
-        } else if (dateRange === "month") {
-          const today = new Date();
-          const start = format(startOfMonth(today), "yyyy-MM-dd");
-          const end = format(endOfMonth(today), "yyyy-MM-dd");
-          bookingsQuery = bookingsQuery.gte("preferred_date", start).lte("preferred_date", end);
-        } else if (dateRange === "custom") {
-          if (customStart) bookingsQuery = bookingsQuery.gte("preferred_date", customStart);
-          if (customEnd) bookingsQuery = bookingsQuery.lte("preferred_date", customEnd);
-        }
-
-        const { data: bookingsData, error: bError } = await bookingsQuery;
-        if (!bError) {
-          const pending = (bookingsData || []).reduce((sum: number, b: any) => {
-            const paymentsForBooking: any[] = b.payments || [];
-            const hasCompletedPayment = paymentsForBooking.some((p) => p && p.status === "completed");
-            if (!hasCompletedPayment) {
-              return sum + Number(b.services?.price || 0);
-            }
-            return sum;
-          }, 0);
-          setPendingRevenue(pending);
-        }
-      } catch (err) {
-        console.error("Failed to compute pending revenue", err);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filter by method if selected
-  const filteredPayments = filterMethod
-    ? payments.filter((p) => p.payment_method === filterMethod)
-    : payments;
-
-  // Only treat payments as completed revenue when they are completed AND tied to a completed booking and have a payment_method
-  const completedPayments = filteredPayments.filter(
-    (p) => p.status === "completed" && p.payment_method && p.status === "completed"
-  );
-  const pendingPayments = filteredPayments.filter(
-    (p) => p.status === "pending"
-  );
-
-  // Staff contribution to revenue (top earning staff this period)
-  // Attribute staff revenue only from completed payments tied to completed bookings and having a payment_method
-  const staffContributions = Object.values(
-    completedPayments.reduce((acc: any, p: any) => {
-      const staffName = p.staff_name || "Unassigned";
-      if (!acc[staffName]) acc[staffName] = { name: staffName, revenue: 0 };
-      acc[staffName].revenue += Number(p.amount || 0);
-      return acc;
-    }, {})
-  ).sort((a: any, b: any) => b.revenue - a.revenue);
-
-  // Revenue by service
-  // Revenue by service should also only include completed payments tied to completed bookings
-  const serviceRevenue = Object.values(
-    completedPayments.reduce((acc: any, p: any) => {
-      const svc = p.service_name || "Unassigned";
-      if (!acc[svc]) acc[svc] = { name: svc, revenue: 0 };
-      acc[svc].revenue += Number(p.amount || 0);
-      return acc;
-    }, {})
-  ).sort((a: any, b: any) => b.revenue - a.revenue);
-
-  const openPaymentDialog = (p: any) => {
-    setSelectedPayment(p);
-    setPaymentDialogOpen(true);
-  };
-
-  const updatePaymentStatus = async (id: string, status: string) => {
-    try {
-      const { error } = await supabase
-        .from("sales") //@ts-ignore
-        .update({ status: status })
-        .eq("id", id);
-      if (error) throw error;
-      toast.success("Payment status updated");
-      fetchPayments();
-      fetchMonthlyNet();
-      setPaymentDialogOpen(false);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to update status");
-    }
-  };
-
-  const getPaymentMethodColor = (method: string) => {
-    const colors: any = {
-      cash: "bg-success/10 text-success",
-      momo: "bg-info/10 text-info",
-      card: "bg-primary/10 text-primary",
-      bank_transfer: "bg-accent/10 text-accent",
-      gift_card: "bg-amber-100 text-amber-700",
-    };
-    return colors[method] || "bg-muted text-muted-foreground";
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    const colors: any = {
-      completed: "bg-success/10 text-success",
-      pending: "bg-warning/10 text-warning",
-      refunded: "bg-muted text-muted-foreground",
-      void: "bg-muted text-muted-foreground",
-    };
-    return colors[status] || "bg-muted text-muted-foreground";
-  };
-
-  // Open a print-friendly HTML page (browser print) which gives highest-fidelity output
-  const printReport = () => {
-    try {
-      const rows = filteredPayments.map((p) => ({
-        client: p.client_name || "N/A",
-        service: p.service_name || "N/A",
-        method: p.payment_method || "",
-        amount:
-          typeof p.amount !== "undefined"
-            ? `GH₵${Number(p.amount).toFixed(2)}`
-            : "GH₵0.00",
-        date: p.created_at
-          ? format(new Date(p.created_at), "MMM dd, yyyy")
-          : "",
-        status: p.status || "",
-        notes: p.notes || "",
-      }));
-
-      const completedTotal = rows
-        .filter((r) => r.status === "completed")
-        .reduce((s, r) => s + Number(r.amount.replace(/[^0-9.-]+/g, "")), 0);
-      const pendingTotal = rows
-        .filter((r) => r.status === "pending")
-        .reduce((s, r) => s + Number(r.amount.replace(/[^0-9.-]+/g, "")), 0);
-
+      let q = supabase.from("sales").select("*").order("created_at", { ascending: false });
       const now = new Date();
-      const title = `Revenue Summary - ${format(now, "PPP p")}`;
-      const rangeLabel =
-        dateRange === "custom"
-          ? `${customStart || "N/A"} - ${customEnd || "N/A"}`
-          : dateRange;
-
-      const style = `
-        <style>
-          @page { size: A4 landscape; margin: 20mm }
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111 }
-          .report-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
-          .report-title { font-size:18px; font-weight:700 }
-          .report-meta { text-align:right; font-size:12px; color:#666 }
-          table { width:100%; border-collapse:collapse; font-size:12px }
-          th, td { border:1px solid #ddd; padding:8px; vertical-align:top }
-          th { background:#1e90ff; color:#fff; font-weight:700 }
-          tfoot td { font-weight:700; }
-          .notes { max-width:320px; word-wrap:break-word }
-          @media print { .no-print { display:none } }
-        </style>
-      `;
-
-      const header = `
-        <div class="report-header">
-          <div class="report-title">${title}</div>
-          <div class="report-meta">Date Range: ${rangeLabel}<br/>Generated: ${format(
-        now,
-        "PPP p"
-      )}</div>
-        </div>
-      `;
-
-      const tableRows = rows
-        .map(
-          (r) => `<tr>
-            <td>${escapeHtml(r.client)}</td>
-            <td>${escapeHtml(r.service)}</td>
-            <td>${escapeHtml(r.method)}</td>
-            <td style="text-align:right">${r.amount}</td>
-            <td>${r.date}</td>
-            <td style="text-align:center">${escapeHtml(r.status)}</td>
-            <td class="notes">${escapeHtml(r.notes)}</td>
-          </tr>`
-        )
-        .join("\n");
-
-      const footer = `
-        <tfoot>
-          <tr>
-            <td colspan="3">Totals</td>
-            <td style="text-align:right">GH₵${completedTotal.toFixed(2)}</td>
-            <td></td>
-            <td></td>
-            <td style="text-align:right">Pending: GH₵${pendingTotal.toFixed(
-              2
-            )}</td>
-          </tr>
-        </tfoot>
-      `;
-
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${header}<div className="mobile-table-wrap" style={{overflowX:"auto"}}><table><thead><tr><th>Client</th><th>Service</th><th>Method</th><th>Amount</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>${tableRows}</tbody>${footer}</table></div><div style="margin-top:16px;font-size:12px;color:#444">Total Completed: GH₵${completedTotal.toFixed(
-        2
-      )} &nbsp;&nbsp;|&nbsp;&nbsp; Total Pending: GH₵${pendingTotal.toFixed(
-        2
-      )} &nbsp;&nbsp;|&nbsp;&nbsp; Net: GH₵${(
-        completedTotal - pendingTotal
-      ).toFixed(
-        2
-      )}</div><script>window.onload=function(){setTimeout(()=>{window.print();},300);};</script></body></html>`;
-
-      const w = window.open("", "_blank");
-      if (!w) {
-        toast.error("Unable to open print window (blocked)");
-        return;
+      if (dateRange === "today") {
+        const d = format(now, "yyyy-MM-dd");
+        q = q.gte("created_at", d + "T00:00:00").lte("created_at", d + "T23:59:59");
+      } else if (dateRange === "week") {
+        q = q.gte("created_at", format(startOfWeek(now), "yyyy-MM-dd")).lte("created_at", format(endOfWeek(now), "yyyy-MM-dd") + "T23:59:59");
+      } else if (dateRange === "month") {
+        q = q.gte("created_at", format(startOfMonth(now), "yyyy-MM-dd")).lte("created_at", format(endOfMonth(now), "yyyy-MM-dd") + "T23:59:59");
+      } else if (dateRange === "custom") {
+        if (customStart) q = q.gte("created_at", customStart);
+        if (customEnd) q = q.lte("created_at", customEnd + "T23:59:59");
       }
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-    } catch (err) {
-      console.error("Print report failed", err);
-      toast.error("Failed to open print view");
-    }
+      const { data, error } = await q;
+      if (error) throw error;
+      setPayments(data || []);
+    } catch (e: any) { toast.error(e.message || "Failed to load sales"); }
+    finally { setLoading(false); }
   };
 
-  // small helper to escape HTML
-  const escapeHtml = (s: any) => {
-    if (!s) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase.from("sales").update({ status } as any).eq("id", id);
+      if (error) throw error;
+      toast.success("Updated");
+      fetchPayments();
+      setSelected(null);
+    } catch (e: any) { toast.error(e.message); }
   };
 
-  // Fallback exporter that writes wrapped text lines into the PDF if autoTable isn't available
-  const textFallbackExport = async (doc: any, rows: any[]) => {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 14;
-    const usableWidth = pageWidth - margin * 2;
-    let y = 32;
-    const lineHeight = 7;
+  const filtered = payments
+    .filter(p => !filterMethod || p.payment_method === filterMethod)
+    .filter(p => !filterStatus || p.status === filterStatus);
 
-    const header = [
-      "Client",
-      "Service",
-      "Method",
-      "Amount",
-      "Date",
-      "Status",
-      "Notes",
-    ].join(" | ");
-    doc.setFontSize(11);
-    doc.text(header, margin, y);
-    y += lineHeight;
+  const completed = filtered.filter(p => p.status === "completed");
+  const pending = filtered.filter(p => p.status === "pending");
+  const completedTotal = completed.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const pendingTotal = pending.reduce((s, p) => s + Number(p.amount || 0), 0);
 
-    doc.setFontSize(9);
-    for (const p of rows) {
-      const client = p.client_name || "N/A";
-      const service = p.service_name || "N/A";
-      const method = p.payment_method || "";
-      const amount =
-        typeof p.amount !== "undefined"
-          ? `GHS ${Number(p.amount).toLocaleString()}`
-          : "GHS 0";
-      let dateStr = "N/A";
-      if (p.created_at) {
-        const d = new Date(p.created_at);
-        if (!isNaN(d.getTime())) dateStr = format(d, "MMM dd, yyyy");
-      }
-      const status = p.status || "";
-      const notes = p.notes || "";
+  const byMethod = Object.entries(
+    completed.reduce((acc: any, p) => {
+      const m = p.payment_method || "other";
+      acc[m] = (acc[m] || 0) + Number(p.amount || 0);
+      return acc;
+    }, {})
+  ).sort((a: any, b: any) => (b[1] as number) - (a[1] as number));
 
-      const rowText = [
-        client,
-        service,
-        method,
-        amount,
-        dateStr,
-        status,
-        notes,
-      ].join(" | ");
-      const wrapped = (doc as any).splitTextToSize(rowText, usableWidth);
+  const escHtml = (s: any) => String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-      if (
-        y + wrapped.length * lineHeight >
-        doc.internal.pageSize.getHeight() - 20
-      ) {
-        doc.addPage();
-        y = 20;
-      }
-
-      doc.text(wrapped, margin, y);
-      y += wrapped.length * lineHeight;
-    }
+  const printReport = () => {
+    const rows = filtered.map(p => ({
+      client: p.client_name || "N/A", service: p.service_name || "N/A",
+      method: p.payment_method || "", amount: `GH${Number(p.amount).toFixed(2)}`,
+      date: p.created_at ? format(new Date(p.created_at), "MMM dd, yyyy") : "",
+      status: p.status || "",
+    }));
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Sales Report</title><style>body{font-family:Georgia,serif;color:#111;padding:20px}h1{font-size:20px;margin-bottom:4px}p{color:#666;font-size:13px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #ddd;padding:7px}th{background:#C8A97E;color:#fff}</style></head><body><h1>Zolara — Sales Report</h1><p>${dateRangeLabel()}</p><table><thead><tr><th>Client</th><th>Service</th><th>Method</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${escHtml(r.client)}</td><td>${escHtml(r.service)}</td><td>${escHtml(r.method)}</td><td>${r.amount}</td><td>${r.date}</td><td>${r.status}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="3"><strong>Completed total</strong></td><td><strong>GH${completedTotal.toFixed(2)}</strong></td><td colspan="2"></td></tr></tfoot></table><script>setTimeout(()=>window.print(),300)</script></body></html>`;
+    const w = window.open("","_blank"); w?.document.write(html); w?.document.close();
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  const card: React.CSSProperties = { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "24px", boxShadow: SHADOW };
 
   return (
-    <div className="z-page">
-      <div>
-        <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Sales & Revenue</h1>
-        <p className="z-subtitle">
-          Track salon revenue and payments
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">Note: Redeemed gift cards (payment_method = <code>gift_card</code>) are included in completed revenue totals.</p>
-        <p className="text-sm text-muted-foreground mt-1">{activeRangeLabel()}</p>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}.sr:hover{background:rgba(200,169,126,0.05)!important;cursor:pointer}`}</style>
+
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"28px", flexWrap:"wrap", gap:"12px" }}>
+        <div>
+          <p style={{ fontSize:"11px", fontWeight:700, letterSpacing:"0.16em", color:G, textTransform:"uppercase", marginBottom:"4px" }}>{dateRangeLabel()}</p>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(28px,4vw,42px)", fontWeight:700, color:TXT, margin:0, lineHeight:1 }}>Sales & Revenue</h1>
+          <p style={{ fontSize:"12px", color:TXT_SOFT, marginTop:"6px" }}>Track all payments and earnings</p>
+        </div>
+        <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+          <button onClick={printReport} style={{ padding:"9px 16px", borderRadius:"10px", border:`1px solid ${BORDER}`, background:WHITE, fontSize:"12px", fontWeight:600, cursor:"pointer", color:TXT_MID }}>Print Report</button>
+          <CSVLink data={filtered.map(p=>({ client:p.client_name, service:p.service_name, method:p.payment_method, status:p.status, amount:p.amount, date:p.created_at ? format(new Date(p.created_at),"yyyy-MM-dd") : "" }))} filename={`sales_${dateRange}.csv`} style={{ textDecoration:"none" }}>
+            <button style={{ padding:"9px 16px", borderRadius:"10px", border:`1px solid ${G}`, background:WHITE, fontSize:"12px", fontWeight:600, cursor:"pointer", color:G_D }}>Export CSV</button>
+          </CSVLink>
+        </div>
       </div>
 
-      {/* Filter Buttons */}
-      <div className="flex gap-2 flex-wrap">
-        {/* Date range filter */}
-        <div className="flex items-center gap-2">
-          {[
-            ["today", "Today"],
-            ["week", "This week"],
-            ["month", "This month"],
-            ["all", "All"],
-            ["custom", "Custom"],
-          ].map(([key, label]) => (
-            <Button
-              key={String(key)}
-              variant={dateRange === key ? "default" : "outline"}
-              onClick={() => setDateRange(key as any)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-        {dateRange === "custom" && (
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="px-3 py-2 rounded-md border"
-            />
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="px-3 py-2 rounded-md border"
-            />
-          </div>
-        )}
-        {/* All Payments Button */}
-        <Button
-          key="all"
-          variant={filterMethod === null ? "default" : "outline"}
-          onClick={() => setFilterMethod(null)}
-        >
-          ALL
-        </Button>
-        {/* Payment Method Buttons */}
-        {[
-          "cash",
-          "mobile_money",
-          "card",
-          "bank_transfer",
-          "gift_card",
-        ].map((method) => (
-          <Button
-            key={method}
-            variant={filterMethod === method ? "default" : "outline"}
-            onClick={() => setFilterMethod(filterMethod === method ? null : method)}
-          >
-            {method.toUpperCase()}
-          </Button>
+      {/* Date Range Filters */}
+      <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"20px" }}>
+        {(["today","week","month","custom"] as DateRange[]).map(r => (
+          <button key={r} onClick={() => setDateRange(r)} style={{ padding:"7px 16px", borderRadius:"20px", border:`1.5px solid ${dateRange===r ? G : BORDER}`, background:dateRange===r ? G : WHITE, color:dateRange===r ? WHITE : TXT_MID, fontSize:"12px", fontWeight:600, cursor:"pointer" }}>{r === "week" ? "This Week" : r === "month" ? "This Month" : r.charAt(0).toUpperCase()+r.slice(1)}</button>
         ))}
-        <CSVLink
-          data={
-            filteredPayments
-              .filter((p) => exportScope === "all" || p.status === exportScope)
-              .filter((p) => exportPaymentType === "all" || p.payment_method === exportPaymentType)
-              .map((p) => ({
-                client: p.client_name,
-                service: p.service_name,
-                method: p.payment_method,
-                status: p.status,
-                amount: p.amount,
-                reference: p.transaction_reference || p.reference || p.paystack_ref || p.momo_ref || p.txn_ref || "",
-                date: p.created_at
-                  ? format(new Date(p.created_at), "MMM dd, yyyy")
-                  : "",
-              }))
-          }
-          filename={`revenue_summary_${dateRange}.csv`}
-        >
-          <Button variant="outline">Export CSV</Button>
-        </CSVLink>
-        <div className="flex items-center gap-2">
-          <label className="text-sm">Export:</label>
-          <select value={exportScope} onChange={(e) => setExportScope(e.target.value as any)} className="px-2 py-1 border rounded">
-            <option value="all">All</option>
-            <option value="completed">Completed only</option>
-            <option value="pending">Pending only</option>
-          </select>
-          <select value={exportPaymentType} onChange={(e) => setExportPaymentType(e.target.value as any)} className="px-2 py-1 border rounded">
-            <option value="all">All methods</option>
-            {(settings?.payment_methods?.filter((m) => m.enabled) || []).map((m: any) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-        </div>
-        <Button variant="outline" onClick={saveReportAsPDF} className="ml-2">
-          Export PDF
-        </Button>
-        {/* <Button variant="outline" onClick={printReport} className="ml-2">
-          Print Report
-        </Button> */}
-      </div>
-
-      {/* Completed Revenue */}
-      <Card className="bg-green-50 border border-green-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-700">
-            <DollarSign className="w-5 h-5" />
-            Completed Revenue
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg font-semibold">
-            Total Amount: GH₵
-            {completedPayments
-              .reduce((sum, p) => sum + Number(p.amount), 0)
-              .toLocaleString()}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Net revenue this month: GH₵{monthlyNet.toLocaleString()}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Total Transactions: {completedPayments.length}
-          </p>
-          {/* Top earning staff */}
-          <div className="mt-4">
-            <h4 className="text-sm font-medium">Top earning staff this period</h4>
-            <div className="mt-2 space-y-1">
-              {staffContributions.slice(0, 5).map((s: any) => (
-                <div key={s.name} className="flex justify-between text-sm text-muted-foreground">
-                  <div>{s.name}</div>
-                  <div>GH₵{Number(s.revenue).toLocaleString()}</div>
-                </div>
-              ))}
-              {staffContributions.length === 0 && <div className="text-sm text-muted-foreground">No staff revenue found</div>}
-            </div>
-          </div>
-
-          {/* Revenue by service */}
-          <div className="mt-4">
-            <h4 className="text-sm font-medium">Revenue by Service</h4>
-            <div className="mt-2 space-y-1">
-              {serviceRevenue.slice(0, 8).map((s: any) => (
-                <div key={s.name} className="flex justify-between text-sm text-muted-foreground">
-                  <div>{s.name}</div>
-                  <div>GH₵{Number(s.revenue).toLocaleString()}</div>
-                </div>
-              ))}
-              {serviceRevenue.length === 0 && <div className="text-sm text-muted-foreground">No service revenue</div>}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pending Revenue */}
-      <Card className="bg-yellow-50 border border-yellow-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-yellow-700">
-            <DollarSign className="w-5 h-5" />
-            Pending Revenue
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg font-semibold">
-            Total Amount: GH₵
-            {pendingPayments
-              .reduce((sum, p) => sum + Number(p.amount), 0)
-              .toLocaleString()}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Total Transactions: {pendingPayments.length}
-          </p>
-          <div className="mt-2">
-            <h4 className="text-sm font-medium">Pending Actions</h4>
-            <ul className="text-sm list-disc ml-5 text-muted-foreground">
-              {pendingPayments.slice(0, 5).map((p) => (
-                <li key={p.id}>
-                  {p.client_name} — {p.payment_method} — {
-                    p.status === "pending" ? "Awaiting payment" : p.status === "failed" ? "Payment failed" : "Manual follow up required"
-                  }
-                </li>
-              ))}
-              {pendingPayments.length > 5 && <li>...and {pendingPayments.length - 5} more</li>}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Refunds / Adjustments placeholder */}
-      <Card className="bg-cream border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-gray-700">Refunds & Adjustments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">Refunds and adjustments coming soon</p>
-        </CardContent>
-      </Card>
-
-      {/* Payment List */}
-      <div className="space-y-4 mt-4">
-        {filteredPayments.length > 0 ? (
-          filteredPayments.map((payment) => (
-            <Card
-              key={payment.id}
-              onClick={() => openPaymentDialog(payment)}
-              className="cursor-pointer"
-            >
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">
-                      {payment.bookings?.clients?.name}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {payment.bookings?.services?.name}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">
-                      GH₵{Number(payment.amount).toLocaleString()}
-                    </p>
-                    <div className="flex gap-2 mt-2">
-                      <Badge
-                        className={getPaymentMethodColor(
-                          payment.payment_method
-                        )}
-                      >
-                        {payment.payment_method}
-                      </Badge>
-                      <Badge
-                        className={getPaymentStatusColor(
-                          payment.status
-                        )}
-                      >
-                        {payment.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    {format(
-                      new Date(payment.created_at),
-                      "MMM dd, yyyy 'at' h:mm a"
-                    )}
-                  </span>
-                </div>
-                  {/* Transaction reference */}
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Ref: {payment.transaction_reference || payment.reference || payment.paystack_ref || payment.momo_ref || payment.txn_ref || "N/A"}
-                  </div>
-                {payment.notes && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Note: {payment.notes}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="z-subtitle">No payments recorded yet.</p>
-            </CardContent>
-          </Card>
+        {dateRange === "custom" && (
+          <>
+            <input type="date" value={customStart} onChange={e=>setCustomStart(e.target.value)} style={{ border:`1px solid ${BORDER}`, borderRadius:"8px", padding:"6px 10px", fontSize:"12px", color:TXT }} />
+            <input type="date" value={customEnd} onChange={e=>setCustomEnd(e.target.value)} style={{ border:`1px solid ${BORDER}`, borderRadius:"8px", padding:"6px 10px", fontSize:"12px", color:TXT }} />
+          </>
         )}
       </div>
-      {/* Payment detail dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="max-w-lg grid gap-4 p-6">
-          <DialogHeader>
-            <DialogTitle>Payment Details</DialogTitle>
-          </DialogHeader>
-          {selectedPayment && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold">Client</h3>
-                <p>{selectedPayment.client_name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {"N/A"}
-                </p>
-              </div>
 
-              <div>
-                <h3 className="font-semibold">Service</h3>
-                <p>{selectedPayment.service_name}</p>
-                <p className="text-sm text-muted-foreground">
-                  Duration:{" "}
-                  {"N/A"}{" "}
-                  min
-                </p>
-              </div>
+      {/* KPI Cards */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:"14px", marginBottom:"24px" }}>
+        {[
+          { label:"COMPLETED", value:`GH₵${completedTotal.toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${completed.length} transactions`, color:"#16A34A", bg:"#F0FDF4", border:"#BBF7D0" },
+          { label:"PENDING", value:`GH₵${pendingTotal.toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${pending.length} awaiting`, color:"#D97706", bg:"#FFFBEB", border:"#FDE68A" },
+          { label:"TOTAL RECORDS", value:String(filtered.length), sub:dateRangeLabel(), color:G_D, bg:"#FBF6EE", border:"#F0E4CC" },
+        ].map(k => (
+          <div key={k.label} style={{ background:k.bg, border:`1px solid ${k.border}`, borderRadius:"14px", padding:"20px" }}>
+            <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:k.color, marginBottom:"8px" }}>{k.label}</p>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"28px", fontWeight:700, color:TXT, margin:0 }}>{k.value}</p>
+            <p style={{ fontSize:"11px", color:TXT_SOFT, marginTop:"4px" }}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
 
-              <div>
-                <h3 className="font-semibold">Staff</h3>
-                <p>
-                  {selectedPayment.staff_name || "Unassigned"}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold">Payment</h3>
-                <p>Method: {selectedPayment.payment_method}</p>
-                <p>Amount: GH₵{Number(selectedPayment.amount).toFixed(2)}</p>
-                <p>Status: {selectedPayment.status}</p>
-              </div>
-
-              {selectedPayment.notes && (
-                <div>
-                  <h3 className="font-semibold">Internal Note</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPayment.notes}
-                  </p>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"24px" }}>
+        {/* Revenue by Method */}
+        <div style={card}>
+          <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_SOFT, textTransform:"uppercase", marginBottom:"16px" }}>Revenue by Method</p>
+          {byMethod.length === 0 ? <p style={{ fontSize:"13px", color:TXT_SOFT }}>No completed revenue yet</p> : byMethod.map(([m, v]) => {
+            const mc = METHOD_COLORS[m] || { bg:"#F5F5F5", color:TXT_MID, label:m };
+            const pct = completedTotal > 0 ? ((v as number) / completedTotal) * 100 : 0;
+            return (
+              <div key={m} style={{ marginBottom:"14px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"5px" }}>
+                  <span style={{ padding:"2px 10px", borderRadius:"20px", fontSize:"10px", fontWeight:700, background:mc.bg, color:mc.color }}>{mc.label}</span>
+                  <span style={{ fontSize:"13px", fontWeight:700, color:TXT }}>GH₵{Number(v).toLocaleString()}</span>
                 </div>
-              )}
-
-              <div className="flex justify-end gap-2">
-                {selectedPayment.status !== "completed" && (
-                  <Button
-                    onClick={() =>
-                      updatePaymentStatus(selectedPayment.id, "completed")
-                    }
-                  >
-                    Mark Completed
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => setPaymentDialogOpen(false)}
-                >
-                  Close
-                </Button>
+                <div style={{ height:"5px", background:"#F0EDE8", borderRadius:"99px" }}>
+                  <div style={{ height:"100%", width:`${pct}%`, background:G, borderRadius:"99px" }} />
+                </div>
               </div>
+            );
+          })}
+        </div>
+
+        {/* Filters */}
+        <div style={card}>
+          <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_SOFT, textTransform:"uppercase", marginBottom:"14px" }}>Filter by Method</p>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:"7px", marginBottom:"16px" }}>
+            {[null,...Object.keys(METHOD_COLORS)].map(m => (
+              <button key={m||"all"} onClick={()=>setFilterMethod(m)} style={{ padding:"5px 12px", borderRadius:"20px", border:`1.5px solid ${filterMethod===m ? G : BORDER}`, background:filterMethod===m ? G : WHITE, color:filterMethod===m ? WHITE : TXT_MID, fontSize:"11px", fontWeight:600, cursor:"pointer" }}>
+                {m ? (METHOD_COLORS[m]?.label || m) : "All"}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_SOFT, textTransform:"uppercase", marginBottom:"10px" }}>Filter by Status</p>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:"7px" }}>
+            {[null,"completed","pending","refunded"].map(s => (
+              <button key={s||"all"} onClick={()=>setFilterStatus(s)} style={{ padding:"5px 12px", borderRadius:"20px", border:`1.5px solid ${filterStatus===s ? G : BORDER}`, background:filterStatus===s ? G : WHITE, color:filterStatus===s ? WHITE : TXT_MID, fontSize:"11px", fontWeight:600, cursor:"pointer" }}>
+                {s ? s.charAt(0).toUpperCase()+s.slice(1) : "All"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Transactions Table */}
+      <div style={card}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
+          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color:TXT, margin:0 }}>Transactions</p>
+          <p style={{ fontSize:"11px", color:TXT_SOFT }}>{filtered.length} record{filtered.length !== 1 ? "s" : ""}</p>
+        </div>
+        {loading ? (
+          <div style={{ display:"flex", justifyContent:"center", padding:"40px" }}>
+            <div style={{ width:"32px", height:"32px", border:`3px solid #F0E4CC`, borderTopColor:G, borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"48px 0", color:TXT_SOFT }}>
+            <div style={{ fontSize:"36px", marginBottom:"12px" }}>💳</div>
+            <p style={{ fontSize:"14px", fontWeight:500 }}>No transactions found</p>
+            <p style={{ fontSize:"12px", marginTop:"4px" }}>Adjust the date range or filters above</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 110px 120px 120px 95px", gap:"12px", padding:"8px 14px", borderBottom:`1px solid ${BORDER}`, marginBottom:"4px" }}>
+              {["Client","Service","Amount","Method","Date","Status"].map(h => (
+                <span key={h} style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.1em", color:TXT_SOFT, textTransform:"uppercase" }}>{h}</span>
+              ))}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            {filtered.map((p, i) => {
+              const mc = METHOD_COLORS[p.payment_method] || { bg:"#F5F5F5", color:TXT_MID, label:p.payment_method||"—" };
+              const sc2 = STATUS_COLORS[p.status] || { bg:"#F5F5F5", color:TXT_MID };
+              return (
+                <div key={p.id} className="sr" onClick={() => setSelected(selected?.id === p.id ? null : p)}
+                  style={{ display:"grid", gridTemplateColumns:"1fr 1fr 110px 120px 120px 95px", gap:"12px", padding:"12px 14px", borderRadius:"10px", alignItems:"center", borderBottom: i < filtered.length-1 ? `1px solid ${BORDER}` : "none", background: selected?.id===p.id ? "#FBF6EE" : "transparent", transition:"background 0.15s" }}>
+                  <div>
+                    <p style={{ fontSize:"12px", fontWeight:600, color:TXT, margin:0 }}>{p.client_name || "—"}</p>
+                    {p.notes && <p style={{ fontSize:"10px", color:TXT_SOFT, margin:"2px 0 0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.notes}</p>}
+                  </div>
+                  <p style={{ fontSize:"12px", color:TXT_MID, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.service_name || "—"}</p>
+                  <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"16px", fontWeight:700, color:TXT, margin:0 }}>GH₵{Number(p.amount).toLocaleString()}</p>
+                  <span style={{ display:"inline-block", padding:"3px 10px", borderRadius:"20px", fontSize:"10px", fontWeight:700, background:mc.bg, color:mc.color }}>{mc.label}</span>
+                  <p style={{ fontSize:"11px", color:TXT_SOFT, margin:0 }}>{p.created_at ? format(new Date(p.created_at),"MMM d, yyyy") : "—"}</p>
+                  <span style={{ display:"inline-block", padding:"3px 10px", borderRadius:"20px", fontSize:"10px", fontWeight:700, background:sc2.bg, color:sc2.color }}>{p.status}</span>
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
+
+      {/* Detail panel */}
+      {selected && (
+        <div style={{ ...card, marginTop:"16px", borderLeft:`3px solid ${G}` }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color:TXT, margin:0 }}>Payment Detail</p>
+            <button onClick={()=>setSelected(null)} style={{ width:"28px", height:"28px", borderRadius:"50%", border:`1px solid ${BORDER}`, background:WHITE, cursor:"pointer", fontSize:"14px", color:TXT_SOFT }}>✕</button>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px", marginBottom:"20px" }}>
+            {[["Client",selected.client_name||"—"],["Service",selected.service_name||"—"],["Amount",`GH₵${Number(selected.amount).toFixed(2)}`],["Method",selected.payment_method||"—"],["Status",selected.status||"—"],["Date",selected.created_at ? format(new Date(selected.created_at),"MMM d, yyyy 'at' h:mm a") : "—"]].map(([l,v]) => (
+              <div key={l}><p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_SOFT, textTransform:"uppercase", marginBottom:"4px" }}>{l}</p><p style={{ fontSize:"13px", fontWeight:600, color:TXT, margin:0 }}>{v}</p></div>
+            ))}
+          </div>
+          {selected.notes && <p style={{ fontSize:"12px", color:TXT_MID, marginBottom:"16px" }}>Note: {selected.notes}</p>}
+          <div style={{ display:"flex", gap:"8px" }}>
+            {selected.status !== "completed" && <button onClick={()=>updateStatus(selected.id,"completed")} style={{ padding:"8px 18px", borderRadius:"10px", background:G, color:WHITE, border:"none", fontSize:"12px", fontWeight:600, cursor:"pointer" }}>Mark Completed</button>}
+            {selected.status !== "refunded" && <button onClick={()=>updateStatus(selected.id,"refunded")} style={{ padding:"8px 18px", borderRadius:"10px", background:WHITE, color:"#DC2626", border:`1px solid #FECACA`, fontSize:"12px", fontWeight:600, cursor:"pointer" }}>Mark Refunded</button>}
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default SalesRevenue;
+}

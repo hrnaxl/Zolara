@@ -544,26 +544,34 @@ const Bookings = () => {
       let resolvedClientPhone = "";
       let resolvedClientEmail = "";
 
+      // Track if this is a truly new client (not found in DB) — deferred until booking succeeds
+      let deferredNewClient: { name: string; phone: string; email: string | null } | null = null;
+
       if (clientMode === "new") {
         if (!newClientName.trim() || !newClientPhone.trim()) {
           toast.error("New client requires name and phone"); setCreating(false); return;
         }
-        // findOrCreateClient normalizes phone (+233/0/233 all treated the same)
-        // and matches by phone or email before creating — prevents duplicates
-        const clientId = await findOrCreateClient({
-          name: newClientName.trim(),
-          phone: newClientPhone.trim(),
-          email: newClientEmail.trim() || null,
-        });
-        if (!clientId) throw new Error("Failed to find or create client");
-        // Fetch the resolved record to get canonical name/phone
-        const { data: resolvedClient } = await supabase.from("clients").select("id, name, phone, email").eq("id", clientId).single();
-        resolvedClientId = clientId;
-        resolvedClientName = resolvedClient?.name || newClientName.trim();
-        resolvedClientPhone = resolvedClient?.phone || newClientPhone.trim();
-        resolvedClientEmail = resolvedClient?.email || newClientEmail.trim();
-        // Refresh clients list
-        supabase.from("clients").select("id, name, email, phone").order("name").then(({ data }) => { if (data) setClients(data); });
+        // Check if client already exists (find only, don't create yet)
+        const { normalizePhone } = await import("@/lib/clientDedup");
+        const canonical = normalizePhone(newClientPhone.trim());
+        const { data: existing } = await supabase
+          .from("clients").select("id, name, phone, email")
+          .in("phone", [canonical, newClientPhone.trim(), "0" + (canonical || "").slice(4)].filter(Boolean))
+          .limit(1).maybeSingle();
+
+        if (existing) {
+          // Found — use existing client
+          resolvedClientId = existing.id;
+          resolvedClientName = existing.name;
+          resolvedClientPhone = existing.phone || newClientPhone.trim();
+          resolvedClientEmail = existing.email || newClientEmail.trim();
+        } else {
+          // Truly new — defer creation until booking insert succeeds
+          deferredNewClient = { name: newClientName.trim(), phone: newClientPhone.trim(), email: newClientEmail.trim() || null };
+          resolvedClientName = newClientName.trim();
+          resolvedClientPhone = newClientPhone.trim();
+          resolvedClientEmail = newClientEmail.trim() || null;
+        }
       } else {
         const c = clients.find((c: any) => c.id === validated.client_id);
         resolvedClientName = c?.name || "";
@@ -634,9 +642,35 @@ const Bookings = () => {
         toast.success("Booking updated");
       } else {
         const ref = `ZB${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,5).toUpperCase()}`;
-        const { error } = await supabase.from("bookings").insert([{ ...bookingPayload, booking_ref: ref, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false }] as any);
+        const { data: newBookingData, error } = await supabase.from("bookings").insert([{ ...bookingPayload, booking_ref: ref, deposit_amount: (settings as any)?.deposit_amount ?? 50, deposit_paid: false }] as any).select("id").single();
         if (error) throw error;
+        // Booking succeeded — now create/find client and update booking
+        if (clientMode === "new") {
+          try {
+            const clientId = await findOrCreateClient({
+              name: resolvedClientName, phone: resolvedClientPhone,
+              email: resolvedClientEmail || null,
+            });
+            if (clientId && newBookingData?.id) {
+              await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", newBookingData.id);
+            }
+            supabase.from("clients").select("id, name, email, phone").order("name").then(({ data }) => { if (data) setClients(data); });
+          } catch (clientErr) { console.warn("Client post-create failed (booking saved):", clientErr); }
+        }
         toast.success(cartData.length > 1 ? `Booking created — ${cartData.length} services` : "Booking created");
+
+        // Now that booking succeeded, create the new client if deferred
+        if (deferredNewClient) {
+          const { findOrCreateClient } = await import("@/lib/clientDedup");
+          const newClientId = await findOrCreateClient(deferredNewClient);
+          if (newClientId) {
+            // Link client to booking
+            await supabase.from("bookings").update({ client_id: newClientId } as any).eq("booking_ref", ref);
+            resolvedClientId = newClientId;
+          }
+          supabase.from("clients").select("id, name, email, phone").order("name").then(({ data }) => { if (data) setClients(data); });
+        }
+
         // SMS notification to client
         if (bookingPayload.client_phone) {
           const dateLabel = bookingPayload.preferred_date ? new Date(bookingPayload.preferred_date + "T12:00:00").toLocaleDateString("en-GH", { weekday: "short", day: "numeric", month: "long" }) : bookingPayload.preferred_date;

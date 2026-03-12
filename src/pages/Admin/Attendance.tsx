@@ -315,9 +315,13 @@ export default function Attendance() {
   };
 
   return (
-    <div className="z-page">
-      <div className="">
-        <h1 className="z-title mb-4" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:"28px" }}>Attendance Management</h1>
+    <div style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
+      <div>
+      <div style={{marginBottom:"28px"}}>
+        <p style={{fontSize:"11px",fontWeight:700,letterSpacing:"0.16em",color:"#C8A97E",textTransform:"uppercase",marginBottom:"4px"}}>Daily Operations</p>
+        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(28px,4vw,42px)",fontWeight:700,color:"#1C160E",margin:0,lineHeight:1}}>Attendance</h1>
+        <p style={{fontSize:"12px",color:"#A8A29E",marginTop:"6px"}}>Track daily staff presence and hours</p>
+      </div>
 
         <Card className="p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:space-x-4 gap-3">

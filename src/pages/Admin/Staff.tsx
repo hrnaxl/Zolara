@@ -548,6 +548,27 @@ const Staff = () => {
         </Dialog>
       </div>
 
+      {/* ── STAFF KPI STRIP ─────────────────────────── */}
+      {staff.length > 0 && (() => {
+        const active = staff.filter((s: any) => s.is_active || s.status === "active").length;
+        const roles = [...new Set(staff.map((s: any) => s.role).filter(Boolean))];
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", marginBottom: "4px" }}>
+            {[
+              { l: "TOTAL STAFF", v: staff.length, bg: "#FBF6EE", border: "#F0E4CC", c: "#C8A97E" },
+              { l: "ACTIVE", v: active, bg: "#F0FDF4", border: "#BBF7D0", c: "#16A34A" },
+              { l: "ON LEAVE", v: staff.filter((s: any) => s.status === "on_leave").length, bg: "#FFFBEB", border: "#FDE68A", c: "#D97706" },
+              { l: "ROLES", v: roles.length, bg: "#EEF2FF", border: "#C7D2FE", c: "#4F46E5" },
+            ].map(k => (
+              <div key={k.l} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: "14px", padding: "16px 18px" }}>
+                <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: k.c, margin: "0 0 6px" }}>{k.l}</p>
+                <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "30px", fontWeight: 700, color: "#1C1917", margin: 0 }}>{k.v}</p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Staff List */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px", alignItems: "stretch" }}>
         {staff.map((member) => (

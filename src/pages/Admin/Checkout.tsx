@@ -547,20 +547,8 @@ const Checkout = () => {
 
         if (paymentError) throw paymentError;
 
-        // If deposit was collected earlier, record it as revenue now that service is complete
-        if (depositPaid && depositAmount > 0) {
-          await supabase.from("sales").insert({
-            booking_id: booking.id,
-            amount: depositAmount,
-            payment_method: "deposit",
-            status: "completed",
-            client_name: booking.client_name || null,
-            service_name: booking.service_name || null,
-            client_id: booking.clients?.id || null,
-            staff_id: selectedStaff || null,
-            notes: "Deposit collected at booking — recognised as revenue on completion",
-          } as any);
-        }
+        // NOTE: deposit was already recorded in sales by paystack-webhook on payment.
+        // No duplicate insert needed here — it's already in revenue.
 
         // Update local UI state
         setPaymentMethod(paymentMethod);
