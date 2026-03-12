@@ -106,67 +106,61 @@ export default function PublicBooking() {
     }).catch(() => setLoading(false));
   }, []);
 
-  // Handle Paystack return URL: /book?ref=xxx
+  // Handle Paystack return URL: /book?booking_id=xxx&ref=ZBxxx
   useEffect(() => {
+    const bookingId = searchParams.get("booking_id");
     const ref = searchParams.get("ref");
-    if (ref) {
+    if (bookingId && ref) {
       setStep("verifying");
-      pollByRef(ref, 0);
+      confirmAndPoll(bookingId, ref, 0);
     }
   }, []);
 
-  const pollByRef = async (ref: string, attempt: number) => {
+  const confirmAndPoll = async (bookingId: string, ref: string, attempt: number) => {
     try {
+      // First mark deposit paid directly — Paystack only calls our callback on success
+      if (attempt === 0) {
+        await supabase.from("bookings").update({
+          deposit_paid: true,
+          payment_ref: ref,
+          payment_status: "paid",
+          status: "confirmed",
+        } as any).eq("id", bookingId).eq("deposit_paid", false);
+      }
+
       const { data: bk } = await supabase
         .from("bookings")
         .select("id, booking_ref, service_name, preferred_date, preferred_time, deposit_paid, status")
-        .eq("booking_ref", ref)
-        .maybeSingle();
+        .eq("id", bookingId)
+        .single();
 
-      if (bk && (bk.deposit_paid || bk.status === "confirmed")) {
+      if (bk) {
         setBookingRef(bk.booking_ref || ref);
         setBookedService(bk.service_name || "");
         setBookedDate(bk.preferred_date || "");
         setBookedTime(bk.preferred_time || "");
         setStep("done");
+
+        // Also call verify-deposit in background to get actual amount from Paystack
+        fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+            body: JSON.stringify({ booking_id: bookingId, reference: ref }),
+          }
+        ).catch(() => null);
         return;
       }
 
-      if (attempt < 3) {
-        // Poll DB a few times first (webhook may have beaten us)
-        setTimeout(() => pollByRef(ref, attempt + 1), 1500);
+      if (attempt < 5) {
+        setTimeout(() => confirmAndPoll(bookingId, ref, attempt + 1), 1500);
       } else {
-        // Webhook hasn't fired — call verify-deposit to create booking directly
-        try {
-          // Read metadata from sessionStorage as fallback
-          const storedMeta = sessionStorage.getItem(`zolara_booking_${ref}`);
-          const metadata = storedMeta ? JSON.parse(storedMeta) : null;
-
-          const res = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-              body: JSON.stringify({ reference: ref, metadata }),
-            }
-          );
-          const data = await res.json();
-          console.log("verify-deposit response:", data);
-          if (data.status === "created" || data.status === "already_exists") {
-            sessionStorage.removeItem(`zolara_booking_${ref}`);
-            setBookingRef(ref);
-            setBookedService(data.service_name || "");
-            setBookedDate(data.preferred_date || "");
-            setBookedTime(data.preferred_time || "");
-            setStep("done");
-            return;
-          }
-        } catch (e) { console.error("verify-deposit fallback error:", e); }
         setStep("failed");
       }
     } catch {
-      if (attempt < 3) {
-        setTimeout(() => pollByRef(ref, attempt + 1), 1500);
+      if (attempt < 5) {
+        setTimeout(() => confirmAndPoll(bookingId, ref, attempt + 1), 1500);
       } else {
         setStep("failed");
       }
@@ -287,39 +281,51 @@ export default function PublicBooking() {
         promoApplied ? `Promo: ${promoApplied.code}` : "",
       ].filter(Boolean).join("\n");
 
-      // NO DB insert here — booking is created by the Paystack webhook after payment confirms.
-      // All booking data travels as Paystack metadata.
-      const returnUrl = `${window.location.origin}/book?ref=${bRef}`;
+      // INSERT BOOKING FIRST into DB as "pending"
+      // This guarantees the booking is always recorded regardless of webhook/Paystack issues
+      const { data: newBooking, error: bookingError } = await supabase
+        .from("bookings")
+        .insert({
+          client_name: name,
+          client_email: email || null,
+          client_phone: cleanPhone,
+          service_id: serviceId,
+          service_name: selectedService?.name || null,
+          variant_id: selectedVariantId || null,
+          variant_name: selectedVariant?.name || null,
+          selected_addons: selectedAddons.length > 0
+            ? addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price }))
+            : [],
+          preferred_date: preferredDate,
+          preferred_time: normalizedTime,
+          price: total,
+          deposit_amount: (settings as any)?.deposit_amount ?? 50,
+          deposit_paid: false,
+          notes: notesFull,
+          status: "pending",
+          booking_ref: bRef,
+          client_id: null,
+          duration_minutes: 0,
+        } as any)
+        .select("id")
+        .single();
 
-      const bookingMeta = {
-        booking_ref: bRef,
-        client_name: name,
-        client_phone: cleanPhone,
-        client_email: email || null,
-        service_id: serviceId,
-        service_name: selectedService?.name || null,
-        variant_id: selectedVariantId || null,
-        variant_name: selectedVariant?.name || null,
-        selected_addons: selectedAddons.length > 0
-          ? JSON.stringify(addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price })))
-          : "[]",
-        preferred_date: preferredDate,
-        preferred_time: normalizedTime,
-        price: total,
-        deposit_amount: (settings as any)?.deposit_amount ?? 50,
-        notes: notesFull,
-        promo_code: promoApplied?.code || null,
-        promo_discount: discount > 0 ? discount : null,
-      };
+      if (bookingError) throw bookingError;
 
-      // Save to sessionStorage so verify-deposit can use it as fallback on return
-      sessionStorage.setItem(`zolara_booking_${bRef}`, JSON.stringify(bookingMeta));
+      // Link client in background (non-blocking)
+      findOrCreateClient({ name, phone: cleanPhone, email: email || null })
+        .then(clientId => {
+          if (clientId) supabase.from("bookings").update({ client_id: clientId } as any).eq("id", newBooking.id);
+        })
+        .catch(() => null);
+
+      const returnUrl = `${window.location.origin}/book?booking_id=${newBooking.id}&ref=${bRef}`;
 
       const { authorizationUrl, error: psError } = await initiatePaystackPayment({
         amount: (settings as any)?.deposit_amount ?? 50,
         email: email || `${cleanPhone}@zolara.com`,
         reference: bRef,
-        metadata: bookingMeta,
+        metadata: { booking_id: newBooking.id, booking_ref: bRef, service: selectedService?.name || "", customer_name: name, phone: cleanPhone },
         callbackUrl: returnUrl,
       });
 
