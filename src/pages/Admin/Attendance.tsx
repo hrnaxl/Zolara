@@ -47,6 +47,13 @@ export default function Attendance() {
   const [editReason, setEditReason] = useState<string>("");
 
   useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap";
+    document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
     fetchUserRole();
   }, []);
 
@@ -314,162 +321,156 @@ export default function Attendance() {
     }
   };
 
+  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+  const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" };
+
+  const statusBadge = (status: string) => {
+    const map: Record<string, { bg: string; color: string }> = {
+      "Checked In":  { bg: "#F0FDF4", color: "#16A34A" },
+      "Checked Out": { bg: "#EFF6FF", color: "#2563EB" },
+      "Late":        { bg: "#FFFBEB", color: "#D97706" },
+      "Absent":      { bg: "#FEF2F2", color: "#DC2626" },
+      "Half Day":    { bg: "#F3F0FF", color: "#7C3AED" },
+    };
+    const s = map[status] || { bg: "#F5F5F5", color: TXT_MID };
+    return <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: s.bg, color: s.color }}>{status}</span>;
+  };
+
   return (
-    <div style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
-      <div>
-      <div style={{marginBottom:"28px"}}>
-        <p style={{fontSize:"11px",fontWeight:700,letterSpacing:"0.16em",color:"#C8A97E",textTransform:"uppercase",marginBottom:"4px"}}>Daily Operations</p>
-        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(28px,4vw,42px)",fontWeight:700,color:"#1C160E",margin:0,lineHeight:1}}>Attendance</h1>
-        <p style={{fontSize:"12px",color:"#A8A29E",marginTop:"6px"}}>Track daily staff presence and hours</p>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+      {/* Header */}
+      <div style={{ marginBottom: "28px" }}>
+        <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.16em", color: G, textTransform: "uppercase", marginBottom: "4px" }}>Daily Operations</p>
+        <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,4vw,42px)", fontWeight: 700, color: TXT, margin: "0 0 4px", lineHeight: 1 }}>Attendance</h1>
+        <p style={{ fontSize: "12px", color: TXT_SOFT, marginTop: "6px" }}>Track daily staff presence, hours, and performance</p>
       </div>
 
-        <Card className="p-4 mb-4">
-          <div className="flex flex-col md:flex-row md:items-center md:space-x-4 gap-3">
-            <div>
-              <label className="text-sm block mb-1">Date</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="border rounded px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm block mb-1">Staff</label>
-              <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} className="border rounded px-3 py-2 min-w-[180px]">
-                <option value="all">All staff</option>
-                {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm block mb-1">Status</label>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as FilterStatus)} className="border rounded px-3 py-2 min-w-[160px]">
-                <option value="all">All statuses</option>
-                <option value="checked_in">Checked In</option>
-                <option value="checked_out">Checked Out</option>
-                <option value="late">Late</option>
-                <option value="absent">Absent</option>
-                <option value="half_day">Half-day</option>
-              </select>
-            </div>
-
-            <div className="ml-auto flex items-end gap-2">
-              <Button onClick={() => fetchAttendance()} variant="secondary">Refresh</Button>
-            </div>
+      {/* KPI Strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "20px" }}>
+        {[
+          { l: "PRESENT", v: summary.present, color: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
+          { l: "ABSENT", v: summary.absent, color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+          { l: "LATE", v: summary.late, color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+          { l: "TOTAL HOURS", v: `${summary.totalHours.toFixed(1)}h`, color: G_D, bg: "#FBF6EE", border: "#F0E4CC" },
+        ].map(k => (
+          <div key={k.l} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: "14px", padding: "18px 20px" }}>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: k.color, marginBottom: "8px" }}>{k.l}</p>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "32px", fontWeight: 700, color: TXT, margin: 0 }}>{k.v}</p>
           </div>
-        </Card>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 items-stretch">
-          <Card className="p-4 flex flex-col justify-between">
-            <div className="text-sm text-muted-foreground mb-1">Present</div>
-            <div className="text-2xl font-bold">{summary.present}</div>
-          </Card>
-          <Card className="p-4 flex flex-col justify-between">
-            <div className="text-sm text-muted-foreground mb-1">Absent</div>
-            <div className="text-2xl font-bold">{summary.absent}</div>
-          </Card>
-          <Card className="p-4 flex flex-col justify-between">
-            <div className="text-sm text-muted-foreground mb-1">Late</div>
-            <div className="text-2xl font-bold">{summary.late}</div>
-          </Card>
-          <Card className="p-4 flex flex-col justify-between">
-            <div className="text-sm text-muted-foreground mb-1">Total Hours</div>
-            <div className="text-2xl font-bold">{summary.totalHours.toFixed(2)}</div>
-          </Card>
+      {/* Filters */}
+      <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "20px 24px", boxShadow: SHADOW, marginBottom: "20px" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: "16px", flexWrap: "wrap" }}>
+          <div style={{ flex: "0 0 auto" }}>
+            <label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Date</label>
+            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ ...inp, width: "auto" }} />
+          </div>
+          <div style={{ flex: "1 1 160px", minWidth: "160px" }}>
+            <label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Staff</label>
+            <select value={staffFilter} onChange={e => setStaffFilter(e.target.value)} style={inp}>
+              <option value="all">All Staff</option>
+              {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: "1 1 160px", minWidth: "160px" }}>
+            <label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Status</label>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as FilterStatus)} style={inp}>
+              <option value="all">All Statuses</option>
+              <option value="checked_in">Checked In</option>
+              <option value="checked_out">Checked Out</option>
+              <option value="late">Late</option>
+              <option value="absent">Absent</option>
+              <option value="half_day">Half Day</option>
+            </select>
+          </div>
+          <button onClick={() => fetchAttendance()}
+            style={{ padding: "9px 20px", borderRadius: "10px", background: CREAM, border: `1px solid ${BORDER}`, fontSize: "13px", fontWeight: 600, cursor: "pointer", color: TXT_MID, alignSelf: "flex-end" }}>
+            ↻ Refresh
+          </button>
         </div>
+      </div>
 
+      {/* Table */}
+      <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", boxShadow: SHADOW, overflow: "hidden" }}>
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="animate-spin" />
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "60px" }}>
+            <div style={{ width: "32px", height: "32px", border: `3px solid #F0E4CC`, borderTopColor: G, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </div>
         ) : (
-          <Card className="p-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Staff</TableHead>
-                  <TableHead>Check-in</TableHead>
-                  <TableHead>Check-out</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">No records</TableCell>
-                  </TableRow>
-                ) : (
-                  filteredRows.map((r) => (
-                    <TableRow key={r.staff?.id}>
-                      <TableCell className="font-medium">{r.staff?.name}</TableCell>
-                      <TableCell>{r.record ? formatTimeShort(r.record.check_in) : "—"}</TableCell>
-                      <TableCell>{r.record ? formatTimeShort(r.record.check_out || null) : "—"}</TableCell>
-                      <TableCell>{r.total.toFixed(2)}h{r.overtime ? ` (+${r.overtime} OT)` : ""}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {r.status === "Absent" ? <XCircle className="text-red-500" /> : r.status === "Late" ? <Clock className="text-yellow-500" /> : r.status === "Checked In" ? <CheckCircle2 className="text-green-500" /> : <CheckCircle2 />}
-                          <span>{r.status}</span>
-                          {r.earlyFlag && <span className="ml-2 text-xs text-muted-foreground">(early out)</span>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        {!r.record ? (
-                          <>
-                            <Button size="sm" onClick={() => handleCheckIn(r.staff?.id)}>Check In</Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleMarkAbsent(r.staff?.id)}>Mark Absent</Button>
-                          </>
-                        ) : !r.record.check_out ? (
-                          <>
-                            <Button size="sm" variant="secondary" onClick={() => handleCheckOut(r.staff?.id)}>Check Out</Button>
-                            <Button size="sm" onClick={() => openEdit(r)}>Edit</Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button size="sm" onClick={() => openEdit(r)}><Edit2 className="mr-2"/>Edit</Button>
-                          </>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-
-        {/* Edit Modal - simple inline modal */}
-        {editing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded shadow-lg max-w-lg w-full p-6">
-              <h3 className="text-lg font-semibold mb-2">Edit Attendance</h3>
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="text-sm block mb-1">Check-in</label>
-                  <input type="datetime-local" value={editCheckIn} onChange={(e) => setEditCheckIn(e.target.value)} className="border rounded px-3 py-2 w-full" />
-                </div>
-                <div>
-                  <label className="text-sm block mb-1">Check-out</label>
-                  <input type="datetime-local" value={editCheckOut} onChange={(e) => setEditCheckOut(e.target.value)} className="border rounded px-3 py-2 w-full" />
-                </div>
-                <div>
-                  <label className="text-sm block mb-1">Reason for edit</label>
-                  <textarea value={editReason} onChange={(e) => setEditReason(e.target.value)} className="border rounded px-3 py-2 w-full" rows={3} />
-                </div>
-              </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button variant="ghost" onClick={closeEdit}>Cancel</Button>
-                <Button onClick={submitEdit}>Save</Button>
-              </div>
+          <>
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1.5fr", gap: "0", padding: "12px 24px", borderBottom: `1.5px solid ${BORDER}` }}>
+              {["Staff Member", "Check-in", "Check-out", "Total", "Status", "Actions"].map(h => (
+                <span key={h} style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</span>
+              ))}
             </div>
-          </div>
+
+            {filteredRows.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <p style={{ fontSize: "36px", marginBottom: "12px" }}>🕐</p>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: TXT, margin: "0 0 4px" }}>No attendance records</p>
+                <p style={{ fontSize: "12px", color: TXT_SOFT }}>No staff found for the selected filters</p>
+              </div>
+            ) : filteredRows.map((r, i) => (
+              <div key={r.staff?.id} className="att-row" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1.5fr", gap: "0", padding: "14px 24px", alignItems: "center", borderBottom: i < filteredRows.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: TXT, margin: 0 }}>{r.staff?.name}</p>
+                  {r.overtime ? <p style={{ fontSize: "10px", color: "#D97706", margin: "2px 0 0" }}>+{r.overtime} OT</p> : null}
+                </div>
+                <span style={{ fontSize: "12px", color: TXT_MID }}>{r.record ? formatTimeShort(r.record.check_in) : "—"}</span>
+                <span style={{ fontSize: "12px", color: TXT_MID }}>{r.record ? formatTimeShort(r.record.check_out || null) : "—"}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{r.total.toFixed(2)}h</span>
+                <div>{statusBadge(r.status)}{r.earlyFlag && <span style={{ fontSize: "9px", color: TXT_SOFT, display: "block", marginTop: "2px" }}>early out</span>}</div>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  {!r.record ? (
+                    <>
+                      <button onClick={() => handleCheckIn(r.staff?.id)} style={{ padding: "5px 10px", borderRadius: "8px", background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>Check In</button>
+                      <button onClick={() => handleMarkAbsent(r.staff?.id)} style={{ padding: "5px 10px", borderRadius: "8px", background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>Absent</button>
+                    </>
+                  ) : !r.record.check_out ? (
+                    <>
+                      <button onClick={() => handleCheckOut(r.staff?.id)} style={{ padding: "5px 10px", borderRadius: "8px", background: "#EFF6FF", color: "#2563EB", border: "1px solid #BFDBFE", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>Check Out</button>
+                      <button onClick={() => openEdit(r)} style={{ padding: "5px 10px", borderRadius: "8px", background: CREAM, color: TXT_MID, border: `1px solid ${BORDER}`, fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>Edit</button>
+                    </>
+                  ) : (
+                    <button onClick={() => openEdit(r)} style={{ padding: "5px 10px", borderRadius: "8px", background: CREAM, color: TXT_MID, border: `1px solid ${BORDER}`, fontSize: "11px", fontWeight: 600, cursor: "pointer" }}>Edit</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editing && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}>
+          <div style={{ background: WHITE, borderRadius: "20px", padding: "28px", width: "100%", maxWidth: "440px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 700, color: TXT, margin: 0 }}>Edit Attendance</h3>
+              <button onClick={closeEdit} style={{ width: "28px", height: "28px", borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, cursor: "pointer", fontSize: "14px", color: TXT_SOFT }}>✕</button>
+            </div>
+            <p style={{ fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>{editing.staff?.name}</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Check-in</label>
+                <input type="datetime-local" value={editCheckIn} onChange={e => setEditCheckIn(e.target.value)} style={inp} /></div>
+              <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Check-out</label>
+                <input type="datetime-local" value={editCheckOut} onChange={e => setEditCheckOut(e.target.value)} style={inp} /></div>
+              <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Reason for edit</label>
+                <textarea value={editReason} onChange={e => setEditReason(e.target.value)} rows={2} style={{ ...inp, resize: "vertical" }} /></div>
+            </div>
+            <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+              <button onClick={submitEdit} style={{ flex: 1, padding: "10px", borderRadius: "12px", background: G_D, color: WHITE, border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Save Changes</button>
+              <button onClick={closeEdit} style={{ padding: "10px 20px", borderRadius: "12px", background: CREAM, color: TXT_MID, border: `1px solid ${BORDER}`, fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

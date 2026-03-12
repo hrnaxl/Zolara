@@ -398,6 +398,14 @@ const Reports = () => {
     fetchClients();
   }, []);
 
+  /* Font injection */
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap";
+    document.head.appendChild(link);
+  }, []);
+
   /* Run on page mount */
   useEffect(() => {
     generateReport();
@@ -436,519 +444,259 @@ const Reports = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+  const card = { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "24px", boxShadow: SHADOW } as React.CSSProperties;
+  const inpStyle = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" } as React.CSSProperties;
+  const selStyle = { ...inpStyle };
+  const row = (label: string, value: any, bold = false) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${BORDER}` }}>
+      <span style={{ fontSize: "12px", color: bold ? TXT : TXT_MID, fontWeight: bold ? 700 : 400 }}>{label}</span>
+      <span style={{ fontSize: "13px", fontWeight: bold ? 700 : 600, color: bold ? G_D : TXT }}>{value}</span>
+    </div>
+  );
+
   return (
-    <div style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
-      <div>
-        <p style={{fontSize:"11px",fontWeight:700,letterSpacing:"0.16em",color:"#C8A97E",textTransform:"uppercase",marginBottom:"4px"}}>Analytics</p>
-        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(28px,4vw,42px)",fontWeight:700,color:"#1C160E",margin:"0 0 4px"}}>Reports</h1>
-        <p className="z-subtitle">
-          Generate and analyze business reports
-        </p>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+      {/* Header */}
+      <div style={{ marginBottom: "28px" }}>
+        <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.16em", color: G, textTransform: "uppercase", marginBottom: "4px" }}>Analytics</p>
+        <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,4vw,42px)", fontWeight: 700, color: TXT, margin: "0 0 4px", lineHeight: 1 }}>Reports</h1>
+        <p style={{ fontSize: "12px", color: TXT_SOFT, marginTop: "6px" }}>Generate, analyze, and export business intelligence</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Report Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Filter Type</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="payment_method">By Payment Method</SelectItem>
-                  <SelectItem value="status">By Payment Status</SelectItem>
-                  <SelectItem value="client">By Client</SelectItem>
-                  <SelectItem value="service">By Service</SelectItem>
-                  <SelectItem value="staff">By Staff</SelectItem>
-                  <SelectItem value="most_active">Most Active Clients</SelectItem>
-                  <SelectItem value="service_history">Service History (Per Client)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-              {filterType === "payment_method" && (
-                <div className="space-y-2">
-                  <Label>Payment Method</Label>
-                  <Select
-                    value={selectedPaymentMethod}
-                    onValueChange={(v) => setSelectedPaymentMethod(v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      {settings?.payment_methods?.filter((m) => m.enabled).map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {filterType === "status" && (
-                <div className="space-y-2">
-                  <Label>Payment Status</Label>
-                  <Select
-                    value={selectedPaymentStatus}
-                    onValueChange={(v) => setSelectedPaymentStatus(v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="refunded">Refunded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            {filterType === "service_history" && (
-              <div className="space-y-2 md:col-span-3">
-                <Label>Choose Client</Label>
-                <Select
-                  value={selectedClientId}
-                  onValueChange={(v) => setSelectedClientId(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All clients</SelectItem>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {filterType === "client" && (
-              <div className="space-y-2 md:col-span-3">
-                <Label>Choose Client</Label>
-                <Select
-                  value={selectedClientId}
-                  onValueChange={(v) => setSelectedClientId(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All clients</SelectItem>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={generateReport} disabled={loading} className="w-full sm:w-auto">
-              {loading ? "Generating..." : "Generate Report"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={exportToCSV}
-              disabled={!reportData}
-              className="w-full sm:w-auto"
-            >
-              <FileDown className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                // If report not generated, run generateReport first
-                if (!reportData) await generateReport();
-                // create PDF using reportData
-                try {
-                  // Build simple HTML from exportRows
-                  const rows = (reportData?.exportRows || []).slice();
-                  const title = `Revenue Report ${startDate} - ${endDate}`;
-                  const style = `
-                    <style>
-                      @page { size: A4 landscape; margin: 20mm }
-                      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111 }
-                      table { width:100%; border-collapse:collapse; font-size:12px }
-                      th, td { border:1px solid #ddd; padding:8px; vertical-align:top }
-                      th { background:#1e90ff; color:#fff; font-weight:700 }
-                    </style>
-                  `;
-
-                  const headers = Object.keys(rows[0] || {});
-                  const tableRowsHtml = rows
-                    .map((r: any) =>
-                      `<tr>${headers
-                        .map((h) => `<td>${(r[h] ?? "").toString()}</td>`)
-                        .join("")}</tr>`
-                    )
-                    .join("");
-
-                  // Ensure body has padding so header isn't hidden in PDF renders
-                  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${style}</head><body style="padding:20mm"><h2 style="margin-top:0;margin-bottom:12px">${title}</h2><div className="mobile-table-wrap" style={{overflowX:"auto"}}><table style="margin-top:8px"><thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div></body></html>`;
-
-                  // create offscreen wrapper and load html2canvas dynamically
-                  const wrapper = document.createElement("div");
-                  wrapper.style.position = "fixed";
-                  wrapper.style.left = "-9999px";
-                  wrapper.innerHTML = html;
-                  document.body.appendChild(wrapper);
-
-                  if (!(window as any).html2canvas) {
-                    await new Promise<void>((resolve, reject) => {
-                      const s = document.createElement("script");
-                      s.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
-                      s.onload = () => resolve();
-                      s.onerror = (e) => reject(e);
-                      document.head.appendChild(s);
-                    });
-                  }
-
-                  const html2canvas = (window as any).html2canvas;
-                  if (!html2canvas) throw new Error("html2canvas failed to load");
-
-                  const canvas = await html2canvas(wrapper, { scale: 2, useCORS: true });
-                  const imgData = canvas.toDataURL("image/png");
-                  const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
-                  const pdfWidth = pdf.internal.pageSize.getWidth();
-                  const pdfHeight = pdf.internal.pageSize.getHeight();
-                  const imgProps: any = (pdf as any).getImageProperties(imgData);
-                  const imgWidth = pdfWidth - 40;
-                  const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-                  if (imgHeight <= pdfHeight - 40) {
-                    pdf.addImage(imgData, "PNG", 20, 20, imgWidth, imgHeight);
-                  } else {
-                    const pageCanvas = document.createElement("canvas");
-                    const pageCtx = pageCanvas.getContext("2d")!;
-                    const scale = canvas.width / imgWidth;
-                    const pageHeightPx = (pdfHeight - 40) * scale;
-                    pageCanvas.width = canvas.width;
-                    pageCanvas.height = pageHeightPx;
-
-                    let renderedHeight = 0;
-                    while (renderedHeight < canvas.height) {
-                      pageCtx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-                      pageCtx.drawImage(canvas, 0, renderedHeight, canvas.width, pageCanvas.height, 0, 0, pageCanvas.width, pageCanvas.height);
-                      const pageData = pageCanvas.toDataURL("image/png");
-                      pdf.addImage(pageData, "PNG", 20, 20, imgWidth, (pageCanvas.height / scale));
-                      renderedHeight += pageCanvas.height;
-                      if (renderedHeight < canvas.height) pdf.addPage();
-                    }
-                  }
-
-                  const nowStamp = format(new Date(), "yyyyMMdd_HHmmss");
-                  pdf.save(`revenue_report_${nowStamp}.pdf`);
-                  document.body.removeChild(wrapper);
-                } catch (err) {
-                  console.error("Export PDF failed", err);
-                  alert("Failed to export PDF");
-                }
-              }}
-              disabled={!reportData}
-            >
-              <FileDown className="w-4 h-4 mr-2" />
-              Export PDF
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filter Card */}
+      <div style={{ ...card, marginBottom: "20px" }}>
+        <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "18px" }}>Report Filters</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "16px", marginBottom: "16px" }}>
+          <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Start Date</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inpStyle} /></div>
+          <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>End Date</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inpStyle} /></div>
+          <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Filter Type</label>
+            <select value={filterType} onChange={e => setFilterType(e.target.value)} style={selStyle}>
+              <option value="all">All</option>
+              <option value="payment_method">By Payment Method</option>
+              <option value="status">By Payment Status</option>
+              <option value="client">By Client</option>
+              <option value="service">By Service</option>
+              <option value="staff">By Staff</option>
+              <option value="most_active">Most Active Clients</option>
+              <option value="service_history">Service History (Per Client)</option>
+            </select></div>
+          {filterType === "payment_method" && (
+            <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Payment Method</label>
+              <select value={selectedPaymentMethod} onChange={e => setSelectedPaymentMethod(e.target.value)} style={selStyle}>
+                <option value="all">All Methods</option>
+                {settings?.payment_methods?.filter(m => m.enabled).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select></div>
+          )}
+          {filterType === "status" && (
+            <div><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Payment Status</label>
+              <select value={selectedPaymentStatus} onChange={e => setSelectedPaymentStatus(e.target.value)} style={selStyle}>
+                <option value="all">All</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="refunded">Refunded</option>
+              </select></div>
+          )}
+          {(filterType === "service_history" || filterType === "client") && (
+            <div style={{ gridColumn: "1/-1" }}><label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Choose Client</label>
+              <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} style={selStyle}>
+                <option value="all">All clients</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select></div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button onClick={generateReport} disabled={loading}
+            style={{ padding: "10px 24px", borderRadius: "12px", background: G_D, color: WHITE, border: "none", fontSize: "13px", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Generating…" : "Generate Report"}
+          </button>
+          <button onClick={exportToCSV} disabled={!reportData}
+            style={{ padding: "10px 20px", borderRadius: "12px", background: WHITE, color: G_D, border: `1.5px solid ${G}`, fontSize: "13px", fontWeight: 600, cursor: !reportData ? "not-allowed" : "pointer", opacity: !reportData ? 0.5 : 1 }}>
+            Export CSV
+          </button>
+          <button disabled={!reportData} onClick={async () => {
+            if (!reportData) await generateReport();
+            try {
+              const rows = (reportData?.exportRows || []).slice();
+              const title = `Revenue Report ${startDate} - ${endDate}`;
+              const headers = Object.keys(rows[0] || {});
+              const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>@page{size:A4 landscape;margin:15mm}body{font-family:Georgia,serif;color:#111;padding:10mm}h2{font-size:18px;color:#8B6914;margin-bottom:12px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ddd;padding:6px}th{background:#C8A97E;color:#fff}</style></head><body><h2>${title}</h2><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r:any)=>`<tr>${headers.map(h=>`<td>${(r[h]??"")}`)}</tr>`).join("")}</tbody></table><script>setTimeout(()=>window.print(),300)</script></body></html>`;
+              const w = window.open("","_blank"); w?.document.write(html); w?.document.close();
+            } catch { alert("PDF export failed"); }
+          }}
+            style={{ padding: "10px 20px", borderRadius: "12px", background: WHITE, color: TXT_MID, border: `1px solid ${BORDER}`, fontSize: "13px", fontWeight: 600, cursor: !reportData ? "not-allowed" : "pointer", opacity: !reportData ? 0.5 : 1 }}>
+            Print / PDF
+          </button>
+        </div>
+      </div>
 
       {reportData && (
-        <>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  Total Income
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-primary">
-                  GH₵{reportData.totalRevenue.toLocaleString()}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Total Completed Bookings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>{reportData.totalBookings}</p>
-              </CardContent>
-            </Card>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {/* KPI Row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "14px" }}>
+            {[
+              { l: "TOTAL INCOME", v: `GH₵${reportData.totalRevenue.toLocaleString()}`, color: G_D, bg: "#FBF6EE", border: "#F0E4CC" },
+              { l: "TOTAL BOOKINGS", v: reportData.totalBookings, color: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
+              { l: "AVG BOOKING VALUE", v: `GH₵${(reportData.totalRevenue / Math.max(1, reportData.totalBookings)).toFixed(2)}`, color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
+              { l: "COMPLETION RATE", v: `${((reportData.bookingCounts?.completed || 0) / Math.max(1, (reportData.bookingCounts?.completed || 0) + (reportData.bookingCounts?.cancelled || 0) + (reportData.bookingCounts?.no_show || 0)) * 100).toFixed(1)}%`, color: "#9333EA", bg: "#FDF4FF", border: "#E9D5FF" },
+            ].map(k => (
+              <div key={k.l} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: "14px", padding: "18px 20px" }}>
+                <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: k.color, marginBottom: "8px" }}>{k.l}</p>
+                <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, color: TXT, margin: 0 }}>{k.v}</p>
+              </div>
+            ))}
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue by Service</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(reportData.serviceBreakdown || {}).map(
-                  ([service, data]: [string, any]) => (
-                    <div
-                      key={service}
-                      className="flex justify-between items-center p-3 bg-muted rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{service}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {data.count} bookings
-                        </p>
-                      </div>
-                      <p className="font-bold text-primary">
-                        GH₵{data.revenue.toLocaleString()}
-                      </p>
-                    </div>
-                  )
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue by Staff</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(reportData.staffBreakdown || {}).map(
-                  ([staff, data]: [string, any]) => (
-                    <div
-                      key={staff}
-                      className="flex justify-between items-center p-3 bg-muted rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{staff}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {data.count} bookings
-                        </p>
-                          {data.avgRating !== null && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Avg rating: {Number(data.avgRating).toFixed(2)}
-                            </p>
-                          )}
-                      </div>
-                      <p className="font-bold text-primary">
-                        GH₵{data.revenue.toLocaleString()}
-                      </p>
-                    </div>
-                  )
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-            {/* PAYMENT BREAKDOWN & PROFIT SUMMARY */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {reportData?.methodTotals && Object.entries(reportData.methodTotals).map(([m, amt]: any) => (
-                      <div key={m} className="flex justify-between">
-                        <div className="capitalize">{m.replace(/_/g, " ")}</div>
-                        <div>GH₵{Number(amt).toLocaleString()} ({((Number(amt) / (reportData.totalRevenue || 1)) * 100).toFixed(1)}%)</div>
-                      </div>
-                    ))}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            {/* Revenue by Service */}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Revenue by Service</p>
+              {Object.entries(reportData.serviceBreakdown || {}).map(([service, data]: [string, any]) => {
+                const pct = reportData.totalRevenue > 0 ? (data.revenue / reportData.totalRevenue) * 100 : 0;
+                return <div key={service} style={{ marginBottom: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{service}</span>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: G_D }}>GH₵{data.revenue.toLocaleString()}</span>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profit Summary (estimate)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><div>Estimated Net Profit</div><div>GH₵{(reportData.totalRevenue * 0.75).toLocaleString()}</div></div>
-                    <div className="flex justify-between"><div>Staff Payouts (estimate)</div><div>GH₵0.00</div></div>
-                    <div className="flex justify-between font-semibold"><div>Owner Net Balance</div><div>GH₵{(reportData.totalRevenue * 0.75).toLocaleString()}</div></div>
+                  <div style={{ fontSize: "10px", color: TXT_SOFT, marginBottom: "5px" }}>{data.count} bookings</div>
+                  <div style={{ height: "4px", background: "#F0EDE8", borderRadius: "99px" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: G, borderRadius: "99px" }} />
                   </div>
-                </CardContent>
-              </Card>
+                </div>;
+              })}
             </div>
 
-            {/* Booking performance & period comparison */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Booking Performance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><div>Completed</div><div>{reportData.bookingCounts?.completed ?? 0}</div></div>
-                    <div className="flex justify-between"><div>Cancelled</div><div>{reportData.bookingCounts?.cancelled ?? 0}</div></div>
-                    <div className="flex justify-between"><div>No-shows</div><div>{reportData.bookingCounts?.no_show ?? 0}</div></div>
-                    <div className="flex justify-between font-semibold"><div>Completion rate</div><div>{((reportData.bookingCounts?.completed || 0) / Math.max(1, (reportData.bookingCounts?.completed || 0) + (reportData.bookingCounts?.cancelled || 0) + (reportData.bookingCounts?.no_show || 0)) * 100).toFixed(1)}%</div></div>
+            {/* Revenue by Staff */}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Revenue by Staff</p>
+              {Object.entries(reportData.staffBreakdown || {}).map(([staff, data]: [string, any]) => {
+                const pct = reportData.totalRevenue > 0 ? (data.revenue / reportData.totalRevenue) * 100 : 0;
+                return <div key={staff} style={{ marginBottom: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{staff}</span>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: G_D }}>GH₵{data.revenue.toLocaleString()}</span>
                   </div>
-                </CardContent>
-              </Card>
+                  <div style={{ fontSize: "10px", color: TXT_SOFT, marginBottom: "5px" }}>{data.count} bookings{data.avgRating ? ` · ★ ${Number(data.avgRating).toFixed(1)}` : ""}</div>
+                  <div style={{ height: "4px", background: "#F0EDE8", borderRadius: "99px" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: "#B0876A", borderRadius: "99px" }} />
+                  </div>
+                </div>;
+              })}
+            </div>
+          </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Period Comparison</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><div>This period</div><div>GH₵{reportData.totalRevenue.toLocaleString()}</div></div>
-                    <div className="flex justify-between"><div>Previous period</div><div>GH₵{(reportData.prevRevenue || 0).toLocaleString()}</div></div>
-                    <div className="flex justify-between font-semibold"><div>Change</div><div>{reportData.prevRevenue ? (((reportData.totalRevenue - reportData.prevRevenue) / Math.abs(reportData.prevRevenue || 1)) * 100).toFixed(1) : "N/A"}%</div></div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            {/* Payment Breakdown */}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Payment Breakdown</p>
+              {reportData?.methodTotals && Object.entries(reportData.methodTotals).map(([m, amt]: any) => row(m.replace(/_/g, " ").replace(/\b./g, (x: string) => x.toUpperCase()), `GH₵${Number(amt).toLocaleString()} (${((Number(amt) / (reportData.totalRevenue || 1)) * 100).toFixed(1)}%)`))}
             </div>
 
-            {/* Service profitability and daily timeline */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Service Profitability</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {(reportData.serviceStats || []).slice(0, 8).map((s: any) => (
-                      <div key={s.name} className="flex justify-between">
-                        <div>
-                          <div className="font-medium">{s.name}</div>
-                          <div className="text-xs text-muted-foreground">Avg price: GH₵{Number(s.avgPrice || 0).toFixed(2)} • Avg duration: {Number(s.avgDuration || 0).toFixed(0)} min</div>
-                        </div>
-                        <div className="text-sm">GH₵{Number(s.revenue || 0).toLocaleString()}<div className="text-xs text-muted-foreground">GH₵{Number(s.revenuePerHour || 0).toFixed(2)}/hr</div></div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Booking Performance */}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Booking Performance</p>
+              {row("Completed", reportData.bookingCounts?.completed ?? 0)}
+              {row("Cancelled", reportData.bookingCounts?.cancelled ?? 0)}
+              {row("No-shows", reportData.bookingCounts?.no_show ?? 0)}
+              {row("Completion Rate", `${((reportData.bookingCounts?.completed || 0) / Math.max(1, (reportData.bookingCounts?.completed || 0) + (reportData.bookingCounts?.cancelled || 0) + (reportData.bookingCounts?.no_show || 0)) * 100).toFixed(1)}%`, true)}
+            </div>
+          </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Daily Revenue Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {Object.entries(reportData.dailyTimeline || {}).slice(0, 14).map(([d, amt]: any) => (
-                      <div key={d} className="flex justify-between">
-                        <div>{d}</div>
-                        <div>GH₵{Number(amt).toLocaleString()}</div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            {/* Period Comparison */}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Period Comparison</p>
+              {row("This Period", `GH₵${reportData.totalRevenue.toLocaleString()}`)}
+              {row("Previous Period", `GH₵${(reportData.prevRevenue || 0).toLocaleString()}`)}
+              {row("Change", reportData.prevRevenue ? `${(((reportData.totalRevenue - reportData.prevRevenue) / Math.abs(reportData.prevRevenue || 1)) * 100).toFixed(1)}%` : "N/A", true)}
             </div>
 
-            {/* Top spenders */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Client Spenders</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  {(reportData.mostActiveList || []).slice(0, 10).map((c: any) => (
-                    <div key={c.name} className="flex justify-between">
-                      <div>{c.name}</div>
-                      <div>GH₵{Number(c.revenue).toLocaleString()}</div>
-                    </div>
-                  ))}
+            {/* Profit Summary */}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Profit Summary (Estimate)</p>
+              {row("Gross Revenue", `GH₵${reportData.totalRevenue.toLocaleString()}`)}
+              {row("Est. Net Profit (75%)", `GH₵${(reportData.totalRevenue * 0.75).toLocaleString()}`)}
+              {row("Staff Payouts (est.)", "GH₵0.00")}
+              {row("Owner Net Balance", `GH₵${(reportData.totalRevenue * 0.75).toLocaleString()}`, true)}
+            </div>
+          </div>
+
+          {/* Service Profitability */}
+          <div style={card}>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Service Profitability</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: "12px" }}>
+              {(reportData.serviceStats || []).slice(0, 8).map((s: any) => (
+                <div key={s.name} style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${BORDER}` }}>
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: TXT, margin: "0 0 4px" }}>{s.name}</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 700, color: G_D, margin: "0 0 6px" }}>GH₵{Number(s.revenue || 0).toLocaleString()}</p>
+                  <p style={{ fontSize: "10px", color: TXT_SOFT, margin: 0 }}>Avg GH₵{Number(s.avgPrice || 0).toFixed(0)} · {Number(s.avgDuration || 0).toFixed(0)}min · GH₵{Number(s.revenuePerHour || 0).toFixed(0)}/hr</p>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+          </div>
 
-            {/* Most active clients (when selected) */}
+          {/* Daily Revenue Timeline */}
+          <div style={card}>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Daily Revenue Timeline</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+              {Object.entries(reportData.dailyTimeline || {}).slice(0, 14).map(([d, amt]: any) => {
+                const max = Math.max(...Object.values(reportData.dailyTimeline || { x: 1 }) as number[], 1);
+                const pct = (Number(amt) / max) * 100;
+                return <div key={d} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "7px 0", borderBottom: `1px solid ${BORDER}` }}>
+                  <span style={{ fontSize: "11px", color: TXT_MID, minWidth: "80px" }}>{d}</span>
+                  <div style={{ flex: 1, height: "6px", background: "#F0EDE8", borderRadius: "99px" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: G, borderRadius: "99px" }} />
+                  </div>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: TXT, minWidth: "80px", textAlign: "right" }}>GH₵{Number(amt).toLocaleString()}</span>
+                </div>;
+              })}
+            </div>
+          </div>
+
+          {/* Top Spenders */}
+          <div style={card}>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Top Client Spenders</p>
+            {(reportData.mostActiveList || []).slice(0, 10).map((c: any, i: number) => (
+              <div key={c.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${BORDER}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: i < 3 ? "#FBF6EE" : CREAM, border: `1px solid ${i < 3 ? G : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700, color: i < 3 ? G_D : TXT_SOFT }}>{i + 1}</div>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{c.name}</span>
+                </div>
+                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: G_D }}>GH₵{Number(c.revenue).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+
           {filterType === "most_active" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Most Active Clients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {(reportData.mostActiveList || []).map((c: any) => (
-                    <div
-                      key={c.id}
-                      className="flex justify-between items-center p-3 bg-muted rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{c.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {c.count} bookings
-                        </p>
-                      </div>
-                      <p className="font-bold text-primary">
-                        GH₵{Number(c.revenue).toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Most Active Clients</p>
+              {(reportData.mostActiveList || []).map((c: any) => (
+                <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
+                  <div><p style={{ fontSize: "13px", fontWeight: 600, color: TXT, margin: 0 }}>{c.name}</p><p style={{ fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{c.count} bookings</p></div>
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: G_D }}>GH₵{Number(c.revenue).toLocaleString()}</span>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
           )}
 
-          {/* Service history for selected client */}
           {filterType === "service_history" && selectedClientId && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  Service History for {clients.find((c) => c.id === selectedClientId)?.name || "Client"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(reportData.serviceHistory || {}).map(
-                    ([service, data]: [string, any]) => (
-                      <div
-                        key={service}
-                        className="flex justify-between items-center p-3 bg-muted rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium">{service}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {data.count} times
-                          </p>
-                        </div>
-                        <p className="font-bold text-primary">
-                          GH₵{data.revenue.toLocaleString()}
-                        </p>
-                      </div>
-                    )
-                  )}
+            <div style={card}>
+              <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>
+                Service History — {clients.find(cl => cl.id === selectedClientId)?.name || "Client"}
+              </p>
+              {Object.entries(reportData.serviceHistory || {}).map(([service, data]: [string, any]) => (
+                <div key={service} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
+                  <div><p style={{ fontSize: "13px", fontWeight: 600, color: TXT, margin: 0 }}>{service}</p><p style={{ fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{data.count} times</p></div>
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: G_D }}>GH₵{data.revenue.toLocaleString()}</span>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

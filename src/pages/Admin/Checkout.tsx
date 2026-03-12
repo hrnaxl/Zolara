@@ -135,6 +135,16 @@ const Checkout = () => {
   const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap";
+    document.head.appendChild(link);
+    const style = document.createElement("style");
+    style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
+    document.head.appendChild(style);
+  }, []);
+
+  useEffect(() => {
     if (bookingId) {
       fetchBookingDetails();
       fetchStaff();
@@ -667,10 +677,10 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-          <p className="z-subtitle">Loading checkout...</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "48px", height: "48px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+          <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout…</p>
         </div>
       </div>
     );
@@ -678,186 +688,110 @@ const Checkout = () => {
 
   if (!bookingId || !booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-        <Card className="max-w-md w-full text-center">
-          <CardContent className="p-8 space-y-4">
-            <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
-              <Receipt className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h2 className="text-xl font-bold">No Booking Selected</h2>
-            <p className="z-subtitle">
-              Please select a booking from the bookings page to proceed with
-              checkout.
-            </p>
-            <Button onClick={() => navigate(-1)} className="mt-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Back
-            </Button>
-          </CardContent>
-        </Card>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", padding: "48px 40px", maxWidth: "400px", width: "100%", textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+          <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "#FBF6EE", border: "1px solid #F0E4CC", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+            <Receipt style={{ width: "28px", height: "28px", color: "#C8A97E" }} />
+          </div>
+          <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#1C160E", margin: "0 0 8px" }}>No Booking Selected</h2>
+          <p style={{ fontSize: "13px", color: "#78716C", margin: "0 0 24px", lineHeight: 1.6 }}>Select a booking from the bookings page to proceed with checkout.</p>
+          <button onClick={() => navigate(-1)} style={{ padding: "10px 24px", borderRadius: "12px", background: "#C8A97E", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <ArrowLeft style={{ width: "16px", height: "16px" }} /> Go Back
+          </button>
+        </div>
       </div>
     );
   }
 
   if (completed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-        <Card className="max-w-lg w-full overflow-hidden">
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 text-center text-white">
-            <div className="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-              <CheckCircle2 className="w-12 h-12" />
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "520px", width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
+          {/* Gold success banner */}
+          <div style={{ background: "linear-gradient(135deg,#C8A97E 0%,#8B6914 100%)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
+            <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", backdropFilter: "blur(4px)" }}>
+              <CheckCircle2 style={{ width: "40px", height: "40px" }} />
             </div>
-            <h2 className="text-2xl font-bold">Checkout Complete!</h2>
-            <p className="text-white/80 mt-2">
-              Service has been marked as completed
-            </p>
+            <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "32px", fontWeight: 700, margin: "0 0 8px" }}>Checkout Complete</h2>
+            <p style={{ fontSize: "13px", opacity: 0.85, margin: 0 }}>Service has been marked as completed</p>
           </div>
 
-          <CardContent className="p-6 space-y-6">
-            {/* Receipt Summary */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Service</span>
-                <span className="font-medium">{booking.service_name}</span>
+          <div style={{ padding: "28px 32px" }}>
+            {[
+              { l: "Service", v: booking.service_name },
+              { l: "Client", v: booking.client_name },
+              { l: "Staff", v: staff.find(s => s.id === selectedStaff)?.name || "Assigned" },
+              { l: "Payment", v: paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "bank_transfer" ? "Bank Transfer" : (paymentMethod || "").charAt(0).toUpperCase() + (paymentMethod || "").slice(1) },
+            ].map(row => (
+              <div key={row.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #EDEBE5" }}>
+                <span style={{ fontSize: "12px", color: "#78716C" }}>{row.l}</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#1C160E" }}>{row.v}</span>
               </div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Client</span>
-                <span className="font-medium">{booking.client_name}</span>
-              </div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Staff</span>
-                <span className="font-medium">
-                  {staff.find((s) => s.id === selectedStaff)?.name ||
-                    "Assigned"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Payment Method</span>
-                <span className="font-medium capitalize flex items-center gap-2">
-                  {getPaymentIcon(paymentMethod)}
-                  {paymentMethod === "mobile_money"
-                    ? "Mobile Money"
-                    : paymentMethod === "bank_transfer"
-                    ? "Bank Transfer"
-                    : paymentMethod.charAt(0).toUpperCase() +
-                      paymentMethod.slice(1)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-lg">
-                <span className="font-semibold">Total Paid</span>
-                <span className="font-bold text-primary">
-                  GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
-                </span>
-              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: "4px" }}>
+              <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Paid</span>
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>
+                GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
+              </span>
             </div>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Bookings
-              </Button>
-              <Button
-                className="flex-1 bg-primary"
-                onClick={() => {
-                  setCompleted(false);
-                  navigate(
-                    userRole === "owner"
-                      ? "/app/admin/bookings"
-                      : "/app/receptionist/bookings"
-                  );
-                }}
-              >
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+              <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                ← Back
+              </button>
+              <button onClick={() => { setCompleted(false); navigate(userRole === "owner" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }}
+                style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#C8A97E,#8B6914)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                 Done
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (pending) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-        <Card className="max-w-lg w-full overflow-hidden">
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 text-center text-white">
-            <div className="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
-              <CheckCircle2 className="w-12 h-12" />
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "520px", width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
+          <div style={{ background: "linear-gradient(135deg,#D97706 0%,#92400E 100%)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
+            <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <CheckCircle2 style={{ width: "40px", height: "40px" }} />
             </div>
-            <h2 className="text-2xl font-bold">Payment Pending</h2>
-            <p className="text-white/80 mt-2">
-              Waiting for payment confirmation. This screen will update
-              automatically when payment completes.
-            </p>
+            <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "32px", fontWeight: 700, margin: "0 0 8px" }}>Payment Pending</h2>
+            <p style={{ fontSize: "13px", opacity: 0.85, margin: 0 }}>Waiting for confirmation. This screen updates automatically.</p>
           </div>
 
-          <CardContent className="p-6 space-y-6">
-            {/* Receipt Summary (same layout as Completed) */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Service</span>
-                <span className="font-medium">{booking.service_name}</span>
+          <div style={{ padding: "28px 32px" }}>
+            {[
+              { l: "Service", v: booking.service_name },
+              { l: "Client", v: booking.client_name },
+              { l: "Staff", v: staff.find(s => s.id === selectedStaff)?.name || "Assigned" },
+              { l: "Payment", v: paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "bank_transfer" ? "Bank Transfer" : (paymentMethod || "").charAt(0).toUpperCase() + (paymentMethod || "").slice(1) },
+            ].map(row => (
+              <div key={row.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #EDEBE5" }}>
+                <span style={{ fontSize: "12px", color: "#78716C" }}>{row.l}</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#1C160E" }}>{row.v}</span>
               </div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Client</span>
-                <span className="font-medium">{booking.client_name}</span>
-              </div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Staff</span>
-                <span className="font-medium">
-                  {staff.find((s) => s.id === selectedStaff)?.name ||
-                    "Assigned"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pb-4 border-b">
-                <span className="z-subtitle">Payment Method</span>
-                <span className="font-medium capitalize flex items-center gap-2">
-                  {getPaymentIcon(paymentMethod)}
-                  {paymentMethod === "mobile_money"
-                    ? "Mobile Money"
-                    : paymentMethod === "bank_transfer"
-                    ? "Bank Transfer"
-                    : paymentMethod.charAt(0).toUpperCase() +
-                      paymentMethod.slice(1)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-lg">
-                <span className="font-semibold">Total Due</span>
-                <span className="font-bold text-primary">
-                  GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
-                </span>
-              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: "4px" }}>
+              <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Due</span>
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#92400E" }}>
+                GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
+              </span>
             </div>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Bookings
-              </Button>
-              <Button
-                className="flex-1 bg-primary"
-                onClick={() => {
-                  setPending(false);
-                  navigate(
-                    userRole === "owner"
-                      ? "/app/admin/bookings"
-                      : "/app/receptionist/bookings"
-                  );
-                }}
-              >
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+              <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                ← Back
+              </button>
+              <button onClick={() => { setPending(false); navigate(userRole === "owner" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }}
+                style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#D97706,#92400E)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                 Done
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -883,9 +817,9 @@ const Checkout = () => {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Booking Details Card */}
           <Card className="overflow-hidden">
-            <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
+            <div style={{ background: "linear-gradient(135deg,rgba(200,169,126,0.12),rgba(200,169,126,0.04))", padding: "16px 20px", borderBottom: "1px solid #EDEBE5" }}>
+              <CardTitle style={{ display: "flex", alignItems: "center", gap: "8px", fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", color: "#1C160E" }}>
+                <Sparkles style={{ width: "18px", height: "18px", color: "#C8A97E" }} />
                 Booking Details
               </CardTitle>
             </div>
@@ -983,12 +917,12 @@ const Checkout = () => {
 
           {/* Checkout Form Card */}
           <Card className="overflow-hidden">
-            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-4 border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-green-600" />
+            <div style={{ background: "linear-gradient(135deg,rgba(200,169,126,0.12),rgba(200,169,126,0.04))", padding: "16px 20px", borderBottom: "1px solid #EDEBE5" }}>
+              <CardTitle style={{ display: "flex", alignItems: "center", gap: "8px", fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", color: "#1C160E" }}>
+                <Receipt style={{ width: "18px", height: "18px", color: "#C8A97E" }} />
                 Complete Checkout
               </CardTitle>
-              <CardDescription className="mt-1">
+              <CardDescription style={{ marginTop: "4px", fontSize: "12px" }}>
                 Confirm payment and mark service as completed
               </CardDescription>
             </div>
@@ -1043,7 +977,7 @@ const Checkout = () => {
                           p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2
                           ${
                             paymentMethod === m.id
-                              ? "border-primary bg-primary/5 text-primary"
+                              ? "border-[#C8A97E] bg-[#FBF6EE] text-[#8B6914]"
                               : "border-muted hover:border-muted-foreground/50"
                           }
                         `}

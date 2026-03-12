@@ -79,6 +79,13 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap";
+    document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
     fetchSettings();
   }, []);
 

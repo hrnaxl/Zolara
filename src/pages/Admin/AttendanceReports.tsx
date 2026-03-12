@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,13 @@ export default function Attendance() {
   const [profileAttendance, setProfileAttendance] = useState<AttendanceRecord[]>([]);
 
   useEffect(() => {
-    fetchUserRole();
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap";
+    document.head.appendChild(link);
+    const style = document.createElement("style");
+    style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
+    document.head.appendChild(style);
   }, []);
 
   useEffect(() => {
@@ -310,209 +316,241 @@ export default function Attendance() {
     return { present, absent, late, totalHours };
   };
 
+  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+  const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" };
+
+  const statusBadge = (status: string, late?: boolean, early?: boolean) => {
+    if (status === "absent") return <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: "#FEF2F2", color: "#DC2626" }}>Absent</span>;
+    if (late) return <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: "#FFFBEB", color: "#D97706" }}>Late</span>;
+    if (early) return <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: "#FFF7ED", color: "#EA580C" }}>Early Out</span>;
+    if (status === "checked_out" || status === "present") return <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: "#EFF6FF", color: "#2563EB" }}>Checked Out</span>;
+    if (status === "checked_in") return <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: "#F0FDF4", color: "#16A34A" }}>Checked In</span>;
+    return <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: "#F5F5F5", color: TXT_SOFT }}>{status.replace("_", " ")}</span>;
+  };
+
+  const s = summary();
+
   return (
-    <div style={{background:"#FAFAF8",minHeight:"100vh",padding:"clamp(16px,4vw,32px)",fontFamily:"Montserrat,sans-serif"}}>
-      <div className="">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Attendance</h1>
-            <p className="text-sm text-muted-foreground">Track staff check-ins, hours and flags</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={exportCSV}>Export CSV</Button>
-          </div>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.16em", color: G, textTransform: "uppercase", marginBottom: "4px" }}>Workforce</p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,4vw,42px)", fontWeight: 700, color: TXT, margin: "0 0 4px", lineHeight: 1 }}>Attendance Reports</h1>
+          <p style={{ fontSize: "12px", color: TXT_SOFT, marginTop: "6px" }}>Staff attendance history, analytics, and export</p>
         </div>
-
-        {/* Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-          {(() => {
-            const s = summary();
-            return (
-              <>
-                <Card className="p-4"><CardHeader><CardTitle>Present Today</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{s.present}</div></CardContent></Card>
-                <Card className="p-4"><CardHeader><CardTitle>Absent Today</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{s.absent}</div></CardContent></Card>
-                <Card className="p-4"><CardHeader><CardTitle>Late Today</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{s.late}</div></CardContent></Card>
-                <Card className="p-4"><CardHeader><CardTitle>Hours Today</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{s.totalHours.toFixed(2)}</div></CardContent></Card>
-              </>
-            );
-          })()}
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button onClick={exportCSV} style={{ padding: "9px 18px", borderRadius: "10px", background: WHITE, color: G_D, border: `1.5px solid ${G}`, fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>Export CSV</button>
+          <button onClick={exportExcel} style={{ padding: "9px 18px", borderRadius: "10px", background: G_D, color: WHITE, border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>Export Excel</button>
         </div>
-
-        {/* Filters */}
-        <Card className="p-4 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-6 gap-3">
-            <div className="sm:col-span-2">
-              <label className="text-xs text-muted-foreground">Start Date</label>
-              <Input type="date" value={filterStart} onChange={(e)=>setFilterStart(e.target.value)} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-xs text-muted-foreground">End Date</label>
-              <Input type="date" value={filterEnd} onChange={(e)=>setFilterEnd(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Staff</label>
-              <Select value={filterStaff} onValueChange={(v)=>setFilterStaff(v)}>
-                <SelectTrigger><SelectValue placeholder="All staff"/></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {staffList.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Status</label>
-              <Select value={filterStatus} onValueChange={(v)=>setFilterStatus(v)}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="present">Present</SelectItem>
-                  <SelectItem value="absent">Absent</SelectItem>
-                  <SelectItem value="late">Late</SelectItem>
-                  <SelectItem value="early">Early checkout</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={()=>fetchAttendance()}>Apply</Button>
-            </div>
-          </div>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <Card className="p-4">
-            <CardHeader><CardTitle>Report Summary</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between"><span>Days present</span><strong>{overallSummary.present}</strong></div>
-                <div className="flex justify-between"><span>Absences</span><strong>{overallSummary.absent}</strong></div>
-                <div className="flex justify-between"><span>Late check-ins</span><strong>{overallSummary.late}</strong></div>
-                <div className="flex justify-between"><span>Early check-outs</span><strong>{overallSummary.early}</strong></div>
-                <div className="flex justify-between"><span>Total hours</span><strong>{overallSummary.totalHours.toFixed(2)}</strong></div>
-                <div className="flex justify-between"><span>Total overtime</span><strong>{overallSummary.totalOvertime.toFixed(2)}</strong></div>
-                <div className="flex justify-between"><span>Disciplinary flags</span><strong>{overallSummary.disciplinary}</strong></div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="p-4 lg:col-span-2">
-            <CardHeader><CardTitle>Per-staff summary</CardTitle></CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Staff</TableHead>
-                      <TableHead>Total Days</TableHead>
-                      <TableHead>Absences</TableHead>
-                      <TableHead>Late</TableHead>
-                      <TableHead>Early</TableHead>
-                      <TableHead>Total Hrs</TableHead>
-                      <TableHead>Overtime</TableHead>
-                      <TableHead>Disciplinary</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {perStaff.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-4">No staff in range</TableCell></TableRow>
-                    ) : perStaff.map((p:any) => (
-                      <TableRow key={p.staff_id}>
-                        <TableCell className="font-medium">{p.staff}</TableCell>
-                        <TableCell>{p.days_present}</TableCell>
-                        <TableCell>{p.absences}</TableCell>
-                        <TableCell>{p.late}</TableCell>
-                        <TableCell>{p.early}</TableCell>
-                        <TableCell>{p.total_hours.toFixed(2)}</TableCell>
-                        <TableCell>{p.overtime.toFixed(2)}</TableCell>
-                        <TableCell>{p.disciplinary}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="p-4">
-          {loading ? (
-            <div className="flex justify-center p-12"><Loader2 className="animate-spin"/></div>
-          ) : (
-            <>
-            <div className="flex items-center justify-end gap-2 mb-4">
-              <Button variant="ghost" onClick={exportCSV}>Export CSV</Button>
-              <Button variant="ghost" onClick={exportExcel}>Export Excel</Button>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Staff</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Check-in</TableHead>
-                  <TableHead>Check-out</TableHead>
-                  <TableHead>Total Hrs</TableHead>
-                  <TableHead>Overtime</TableHead>
-                  <TableHead>Flags</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRecords.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8">No records</TableCell></TableRow>
-                ) : filteredRecords.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium"><button className="flex items-center gap-2" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, name: r.staff?.name||'Staff', email: r.staff?.email||''})}>{r.staff?.name || r.staff_id} <ChevronRight className="w-4 h-4"/></button></TableCell>
-                    <TableCell>{r.staff?.email || '-'}</TableCell>
-                    <TableCell>{r.check_in ? format(new Date(r.check_in), 'yyyy-MM-dd') : ''}</TableCell>
-                    <TableCell>{r.check_in ? format(new Date(r.check_in), 'HH:mm') : '-'}</TableCell>
-                    <TableCell>{r.check_out ? format(new Date(r.check_out), 'HH:mm') : '-'}</TableCell>
-                    <TableCell>{(r.total_hours||0).toFixed(2)}</TableCell>
-                    <TableCell>{(r.overtime_hours||0).toFixed(2)}</TableCell>
-                    <TableCell>{r.late_flag ? <span className="text-red-600">Late</span> : r.early_flag ? <span className="text-orange-600">Early</span> : '-'}</TableCell>
-                    <TableCell className="capitalize">{r.status.replace('_',' ')}</TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" onClick={()=>openStaffProfile({ id: r.staff?.id||r.staff_id, name: r.staff?.name||'Staff', email: r.staff?.email||''})}>View</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </>
-          )}
-        </Card>
-
-        {/* Profile Dialog */}
-        <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-          <DialogContent className="max-w-3xl grid gap-4 p-6">
-            <DialogHeader>
-              <DialogTitle>{profileStaff?.name || 'Staff Profile'}</DialogTitle>
-            </DialogHeader>
-            <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <Card className="p-3"><CardTitle>Total hours (30d)</CardTitle><CardContent>{profileAttendance.reduce((s,a)=>s+(a.total_hours||0),0).toFixed(2)}</CardContent></Card>
-                <Card className="p-3"><CardTitle>Late count (30d)</CardTitle><CardContent>{profileAttendance.filter(a=>a.late_flag).length}</CardContent></Card>
-                <Card className="p-3"><CardTitle>Absences (30d)</CardTitle><CardContent>{profileAttendance.filter(a=>a.status==='absent').length}</CardContent></Card>
-              </div>
-
-              <div className="space-y-2">
-                {profileAttendance.map(a => (
-                  <div key={a.id} className="p-3 border rounded flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{format(new Date(a.check_in), 'PPP')}</div>
-                      <div className="text-sm text-muted-foreground">{a.check_in ? format(new Date(a.check_in), 'HH:mm') : '-'} → {a.check_out ? format(new Date(a.check_out), 'HH:mm') : '-'}</div>
-                    </div>
-                    <div className="text-right">
-                      <div>{(a.total_hours||0).toFixed(2)} hrs</div>
-                      <div className="text-xs text-muted-foreground">{a.status}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Today KPI Strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "20px" }}>
+        {[
+          { l: "PRESENT TODAY", v: s.present, color: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
+          { l: "ABSENT TODAY", v: s.absent, color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+          { l: "LATE TODAY", v: s.late, color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+          { l: "HOURS TODAY", v: `${s.totalHours.toFixed(1)}h`, color: G_D, bg: "#FBF6EE", border: "#F0E4CC" },
+        ].map(k => (
+          <div key={k.l} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: "14px", padding: "18px 20px" }}>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: k.color, marginBottom: "8px" }}>{k.l}</p>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "32px", fontWeight: 700, color: TXT, margin: 0 }}>{k.v}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "20px 24px", boxShadow: SHADOW, marginBottom: "20px" }}>
+        <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Filters</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "16px", alignItems: "flex-end" }}>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Start Date</label>
+            <input type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} style={inp} />
+          </div>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>End Date</label>
+            <input type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} style={inp} />
+          </div>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Staff</label>
+            <select value={filterStaff} onChange={e => setFilterStaff(e.target.value)} style={inp}>
+              <option value="all">All Staff</option>
+              {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 600, color: TXT_MID, display: "block", marginBottom: "6px" }}>Status</label>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={inp}>
+              <option value="all">All</option>
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="late">Late</option>
+              <option value="early">Early Checkout</option>
+            </select>
+          </div>
+          <button onClick={() => fetchAttendance()} style={{ padding: "9px 20px", borderRadius: "10px", background: G_D, color: WHITE, border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+            Apply
+          </button>
+        </div>
+      </div>
+
+      {/* Summary + Per-Staff Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "16px", marginBottom: "20px" }}>
+        {/* Period Summary */}
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "24px", boxShadow: SHADOW }}>
+          <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Period Summary</p>
+          {[
+            { l: "Days Present", v: overallSummary.present },
+            { l: "Absences", v: overallSummary.absent },
+            { l: "Late Check-ins", v: overallSummary.late },
+            { l: "Early Check-outs", v: overallSummary.early },
+            { l: "Total Hours", v: `${overallSummary.totalHours.toFixed(2)}h` },
+            { l: "Total Overtime", v: `${overallSummary.totalOvertime.toFixed(2)}h` },
+            { l: "Disciplinary Flags", v: overallSummary.disciplinary, bold: true },
+          ].map(row => (
+            <div key={row.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${BORDER}` }}>
+              <span style={{ fontSize: "12px", color: row.bold ? TXT : TXT_MID, fontWeight: row.bold ? 700 : 400 }}>{row.l}</span>
+              <span style={{ fontSize: "13px", fontWeight: row.bold ? 700 : 600, color: row.bold ? "#DC2626" : TXT }}>{row.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-Staff Summary */}
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "24px", boxShadow: SHADOW, overflow: "hidden" }}>
+          <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "16px" }}>Per-Staff Summary</p>
+          <div style={{ overflowX: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr", gap: "0", padding: "8px 0", borderBottom: `1.5px solid ${BORDER}`, minWidth: "600px" }}>
+              {["Staff", "Days", "Absent", "Late", "Early", "Hours", "OT", "Flags"].map(h => (
+                <span key={h} style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</span>
+              ))}
+            </div>
+            {perStaff.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "32px 0", color: TXT_SOFT, fontSize: "13px" }}>No staff in this range</div>
+            ) : perStaff.map((p: any) => (
+              <div key={p.staff_id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr", gap: "0", padding: "11px 0", borderBottom: `1px solid ${BORDER}`, minWidth: "600px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{p.staff}</span>
+                <span style={{ fontSize: "12px", color: TXT_MID }}>{p.days_present}</span>
+                <span style={{ fontSize: "12px", color: p.absences > 0 ? "#DC2626" : TXT_MID }}>{p.absences}</span>
+                <span style={{ fontSize: "12px", color: p.late > 0 ? "#D97706" : TXT_MID }}>{p.late}</span>
+                <span style={{ fontSize: "12px", color: p.early > 0 ? "#EA580C" : TXT_MID }}>{p.early}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{p.total_hours.toFixed(1)}h</span>
+                <span style={{ fontSize: "12px", color: p.overtime > 0 ? G_D : TXT_MID }}>{p.overtime.toFixed(1)}h</span>
+                <span style={{ fontSize: "12px", color: p.disciplinary > 0 ? "#DC2626" : TXT_MID, fontWeight: p.disciplinary > 0 ? 700 : 400 }}>{p.disciplinary}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Records Table */}
+      <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", boxShadow: SHADOW, overflow: "hidden" }}>
+        <div style={{ padding: "20px 24px", borderBottom: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", margin: 0 }}>Attendance Records</p>
+        </div>
+
+        {loading ? (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "60px" }}>
+            <div style={{ width: "32px", height: "32px", border: `3px solid #F0E4CC`, borderTopColor: G, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          </div>
+        ) : (
+          <>
+            {/* Table Header */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 0.8fr 0.8fr 0.8fr 0.7fr 0.7fr 1fr 1fr 1fr", gap: "0", padding: "10px 24px", borderBottom: `1px solid ${BORDER}` }}>
+              {["Staff", "Email", "Date", "In", "Out", "Hrs", "OT", "Flags", "Status", ""].map(h => (
+                <span key={h} style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</span>
+              ))}
+            </div>
+
+            {filteredRecords.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <p style={{ fontSize: "36px", marginBottom: "12px" }}>📋</p>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: TXT, margin: "0 0 4px" }}>No records found</p>
+                <p style={{ fontSize: "12px", color: TXT_SOFT }}>Adjust your filters to see attendance data</p>
+              </div>
+            ) : filteredRecords.map((r, i) => (
+              <div key={r.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 0.8fr 0.8fr 0.8fr 0.7fr 0.7fr 1fr 1fr 1fr", gap: "0", padding: "12px 24px", alignItems: "center", borderBottom: i < filteredRecords.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                <button style={{ fontSize: "13px", fontWeight: 600, color: TXT, background: "none", border: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "4px" }}
+                  onClick={() => openStaffProfile({ id: r.staff?.id || r.staff_id, name: r.staff?.name || "Staff", email: r.staff?.email || "" })}>
+                  {r.staff?.name || r.staff_id}
+                  <ChevronRight style={{ width: "12px", height: "12px", color: TXT_SOFT }} />
+                </button>
+                <span style={{ fontSize: "11px", color: TXT_SOFT }}>{r.staff?.email || "—"}</span>
+                <span style={{ fontSize: "12px", color: TXT_MID }}>{r.check_in ? format(new Date(r.check_in), "MM/dd") : "—"}</span>
+                <span style={{ fontSize: "12px", color: TXT_MID }}>{r.check_in ? format(new Date(r.check_in), "HH:mm") : "—"}</span>
+                <span style={{ fontSize: "12px", color: TXT_MID }}>{r.check_out ? format(new Date(r.check_out), "HH:mm") : "—"}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{(r.total_hours || 0).toFixed(1)}</span>
+                <span style={{ fontSize: "12px", color: (r.overtime_hours || 0) > 0 ? G_D : TXT_MID }}>{(r.overtime_hours || 0).toFixed(1)}</span>
+                <div>
+                  {r.late_flag && <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "10px", background: "#FFFBEB", color: "#D97706", fontWeight: 700 }}>Late</span>}
+                  {r.early_flag && <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "10px", background: "#FFF7ED", color: "#EA580C", fontWeight: 700, marginLeft: "4px" }}>Early</span>}
+                  {!r.late_flag && !r.early_flag && <span style={{ color: TXT_SOFT }}>—</span>}
+                </div>
+                <div>{statusBadge(r.status, r.late_flag || false, r.early_flag || false)}</div>
+                <button style={{ padding: "4px 12px", borderRadius: "8px", background: CREAM, color: TXT_MID, border: `1px solid ${BORDER}`, fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                  onClick={() => openStaffProfile({ id: r.staff?.id || r.staff_id, name: r.staff?.name || "Staff", email: r.staff?.email || "" })}>
+                  View
+                </button>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Profile Dialog */}
+      {profileOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+          onClick={() => setProfileOpen(false)}>
+          <div style={{ background: WHITE, borderRadius: "20px", padding: "28px", width: "100%", maxWidth: "580px", boxShadow: "0 20px 60px rgba(0,0,0,0.15)", maxHeight: "85vh", overflowY: "auto" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <div>
+                <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: G, textTransform: "uppercase", margin: "0 0 4px" }}>Staff Profile</p>
+                <h3 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: TXT, margin: 0 }}>{profileStaff?.name}</h3>
+              </div>
+              <button onClick={() => setProfileOpen(false)} style={{ width: "32px", height: "32px", borderRadius: "50%", border: `1px solid ${BORDER}`, background: CREAM, cursor: "pointer", fontSize: "14px", color: TXT_SOFT }}>✕</button>
+            </div>
+
+            {/* Profile KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "20px" }}>
+              {[
+                { l: "Total Hours (30d)", v: `${profileAttendance.reduce((s, a) => s + (a.total_hours || 0), 0).toFixed(1)}h`, color: G_D, bg: "#FBF6EE" },
+                { l: "Late Count (30d)", v: profileAttendance.filter(a => a.late_flag).length, color: "#D97706", bg: "#FFFBEB" },
+                { l: "Absences (30d)", v: profileAttendance.filter(a => a.status === "absent").length, color: "#DC2626", bg: "#FEF2F2" },
+              ].map(k => (
+                <div key={k.l} style={{ background: k.bg, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${BORDER}` }}>
+                  <p style={{ fontSize: "10px", fontWeight: 600, color: k.color, marginBottom: "6px" }}>{k.l}</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: TXT, margin: 0 }}>{k.v}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Profile History */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {profileAttendance.map(a => (
+                <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: "12px", border: `1px solid ${BORDER}`, background: CREAM }}>
+                  <div>
+                    <p style={{ fontSize: "13px", fontWeight: 600, color: TXT, margin: "0 0 2px" }}>{format(new Date(a.check_in), "PPP")}</p>
+                    <p style={{ fontSize: "11px", color: TXT_SOFT, margin: 0 }}>
+                      {a.check_in ? format(new Date(a.check_in), "HH:mm") : "—"} → {a.check_out ? format(new Date(a.check_out), "HH:mm") : "—"}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: "14px", fontWeight: 700, color: G_D, margin: "0 0 4px" }}>{(a.total_hours || 0).toFixed(2)}h</p>
+                    {statusBadge(a.status, a.late_flag || false, a.early_flag || false)}
+                  </div>
+                </div>
+              ))}
+              {profileAttendance.length === 0 && (
+                <p style={{ textAlign: "center", color: TXT_SOFT, fontSize: "13px", padding: "24px 0" }}>No records in the last 30 days</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
