@@ -1,3 +1,4 @@
+import { normalizePhone, findOrCreateClient } from "@/lib/clientDedup";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -543,21 +544,20 @@ const Bookings = () => {
         if (!newClientName.trim() || !newClientPhone.trim()) {
           toast.error("New client requires name and phone"); setCreating(false); return;
         }
-        const { data: existingByPhone } = await supabase.from("clients").select("id, name, phone, email").eq("phone", newClientPhone.trim()).maybeSingle();
-        if (existingByPhone) {
-          resolvedClientId = existingByPhone.id;
-          resolvedClientName = existingByPhone.name;
-          resolvedClientPhone = existingByPhone.phone;
-          resolvedClientEmail = existingByPhone.email || "";
-          toast.info("Existing client matched by phone.");
-        } else {
-          const { data: nc, error: ncErr } = await supabase.from("clients").insert({ name: newClientName.trim(), phone: newClientPhone.trim(), email: newClientEmail.trim() || null, loyalty_points: 0, total_visits: 0, total_spent: 0 }).select("id").single();
-          if (ncErr) throw new Error("Failed to create client: " + ncErr.message);
-          resolvedClientId = nc.id;
-          resolvedClientName = newClientName.trim();
-          resolvedClientPhone = newClientPhone.trim();
-          resolvedClientEmail = newClientEmail.trim();
-        }
+        // findOrCreateClient normalizes phone (+233/0/233 all treated the same)
+        // and matches by phone or email before creating — prevents duplicates
+        const clientId = await findOrCreateClient({
+          name: newClientName.trim(),
+          phone: newClientPhone.trim(),
+          email: newClientEmail.trim() || null,
+        });
+        if (!clientId) throw new Error("Failed to find or create client");
+        // Fetch the resolved record to get canonical name/phone
+        const { data: resolvedClient } = await supabase.from("clients").select("id, name, phone, email").eq("id", clientId).single();
+        resolvedClientId = clientId;
+        resolvedClientName = resolvedClient?.name || newClientName.trim();
+        resolvedClientPhone = resolvedClient?.phone || newClientPhone.trim();
+        resolvedClientEmail = resolvedClient?.email || newClientEmail.trim();
         // Refresh clients list
         supabase.from("clients").select("id, name, email, phone").order("name").then(({ data }) => { if (data) setClients(data); });
       } else {
