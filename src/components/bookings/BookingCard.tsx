@@ -118,11 +118,22 @@ export const BookingCard = ({
                 <CardTitle className="text-lg font-semibold">
                   {booking.client_name || "Unknown Client"}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {booking.service_name || "No service"}
-                </p>
-                {/* Variant + Add-ons detail */}
-                {(booking as any).variant_name && (
+                {/* Multi-service display */}
+                {Array.isArray((booking as any).services_cart) && (booking as any).services_cart.length > 1 ? (
+                  <div className="mt-0.5 space-y-0.5">
+                    {(booking as any).services_cart.map((item: any, i: number) => (
+                      <p key={i} className="text-xs text-muted-foreground">
+                        · {item.service_name}{item.variant_name ? ` (${item.variant_name})` : ""}
+                        <span className="text-amber-700 font-semibold ml-1">GHS {Number(item.price).toLocaleString()}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {booking.service_name || "No service"}
+                  </p>
+                )}
+                {(booking as any).variant_name && !(Array.isArray((booking as any).services_cart) && (booking as any).services_cart.length > 1) && (
                   <p className="text-xs mt-0.5 text-amber-700 dark:text-amber-400 font-medium">
                     ↳ {(booking as any).variant_name}
                   </p>

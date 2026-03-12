@@ -48,7 +48,7 @@ import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
 
 const bookingSchema = z.object({
   client_id: z.string().optional(),
-  service_id: z.string().uuid("Invalid service selection"),
+  service_id: z.string().optional(),
   staff_id: z
     .string()
     .uuid("Invalid staff selection")
@@ -566,64 +566,68 @@ const Bookings = () => {
       for (const item of serviceCart) {
         if (item.variants.length > 0 && !item.variantId) {
           const svc = services.find(s => s.id === item.serviceId);
-          toast.error(`Please select a size/length for: ${svc?.name}`); setCreating(false); return;
+          toast.error(`Select a size/length for: ${svc?.name}`); setCreating(false); return;
         }
       }
 
       const selectedStaffMember = staff.find((s: any) => s.id === validated.staff_id);
-
-      // Prevent scheduling on Sundays
       const dayOfWeek = new Date(validated.preferred_date).getUTCDay();
       if (dayOfWeek === 0) throw new Error("Bookings cannot be scheduled on Sundays.");
 
-      if (editingBookingId && serviceCart.length === 1) {
-        // Single service edit — update in place
-        const item = serviceCart[0];
+      // Build services_cart — full detail for every service
+      const cartData = serviceCart.map(item => {
         const svc = services.find((s: any) => s.id === item.serviceId);
         const variant = item.variants.find(v => v.id === item.variantId);
         const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
-        const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price||0);
-        const totalPrice = basePrice + chosenAddons.reduce((s:number,a:any)=>s+Number(a.price),0);
-        const { error } = await supabase.from("bookings").update({
-          client_id: resolvedClientId, service_id: item.serviceId,
-          staff_id: validated.staff_id || null,
-          client_name: resolvedClientName || null, client_phone: resolvedClientPhone || null, client_email: resolvedClientEmail || null,
-          service_name: variant ? `${svc?.name} (${variant.name})` : svc?.name || null,
-          staff_name: selectedStaffMember?.name || null, price: totalPrice || null,
-          duration_minutes: svc?.duration_minutes || null,
-          preferred_date: validated.preferred_date, preferred_time: validated.preferred_time,
-          status: validated.status || "pending", notes: validated.notes || null,
-          variant_id: variant?.id || null, variant_name: variant?.name || null,
-          selected_addons: chosenAddons.map((a:any) => ({ id: a.id, name: a.name, price: a.price })),
-        } as any).eq("id", editingBookingId);
+        const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price || 0);
+        const addonTotal = chosenAddons.reduce((s: number, a: any) => s + Number(a.price), 0);
+        return {
+          service_id: item.serviceId,
+          service_name: svc?.name || "",
+          variant_id: variant?.id || null,
+          variant_name: variant?.name || null,
+          addons: chosenAddons.map((a: any) => ({ id: a.id, name: a.name, price: Number(a.price) })),
+          price: basePrice + addonTotal,
+          duration_minutes: svc?.duration_minutes || 0,
+        };
+      });
+
+      const totalPrice = cartData.reduce((s, i) => s + i.price, 0);
+      const totalDuration = cartData.reduce((s, i) => s + i.duration_minutes, 0);
+      const serviceNameSummary = cartData.map(i => i.variant_name ? `${i.service_name} (${i.variant_name})` : i.service_name).join(", ");
+      // Use first service for legacy single-service columns (for display compat)
+      const first = cartData[0];
+
+      const bookingPayload = {
+        client_id: resolvedClientId,
+        service_id: first.service_id,
+        staff_id: validated.staff_id || null,
+        client_name: resolvedClientName || null,
+        client_phone: resolvedClientPhone || null,
+        client_email: resolvedClientEmail || null,
+        service_name: serviceNameSummary,
+        staff_name: selectedStaffMember?.name || null,
+        price: totalPrice || null,
+        duration_minutes: totalDuration || null,
+        preferred_date: validated.preferred_date,
+        preferred_time: validated.preferred_time,
+        status: validated.status || "pending",
+        notes: validated.notes || null,
+        variant_id: first.variant_id,
+        variant_name: first.variant_name,
+        selected_addons: first.addons,
+        services_cart: cartData,
+      };
+
+      if (editingBookingId) {
+        const { error } = await supabase.from("bookings").update(bookingPayload as any).eq("id", editingBookingId);
         if (error) throw error;
-        toast.success("Booking updated successfully");
+        toast.success("Booking updated");
       } else {
-        // Insert one booking per service in cart
-        const rows = serviceCart.map(item => {
-          const svc = services.find((s: any) => s.id === item.serviceId);
-          const variant = item.variants.find(v => v.id === item.variantId);
-          const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
-          const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price||0);
-          const totalPrice = basePrice + chosenAddons.reduce((s:number,a:any)=>s+Number(a.price),0);
-          return {
-            client_id: resolvedClientId, service_id: item.serviceId,
-            staff_id: validated.staff_id || null,
-            client_name: resolvedClientName || null, client_phone: resolvedClientPhone || null, client_email: resolvedClientEmail || null,
-            service_name: variant ? `${svc?.name} (${variant.name})` : svc?.name || null,
-            staff_name: selectedStaffMember?.name || null, price: totalPrice || null,
-            duration_minutes: svc?.duration_minutes || null,
-            preferred_date: validated.preferred_date, preferred_time: validated.preferred_time,
-            status: validated.status || "pending", notes: validated.notes || null,
-            booking_ref: `ZB${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,5).toUpperCase()}`,
-            deposit_amount: 50, deposit_paid: false,
-            variant_id: variant?.id || null, variant_name: variant?.name || null,
-            selected_addons: chosenAddons.map((a:any) => ({ id: a.id, name: a.name, price: a.price })),
-          };
-        });
-        const { error } = await supabase.from("bookings").insert(rows as any);
+        const ref = `ZB${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,5).toUpperCase()}`;
+        const { error } = await supabase.from("bookings").insert([{ ...bookingPayload, booking_ref: ref, deposit_amount: 50, deposit_paid: false }] as any);
         if (error) throw error;
-        toast.success(serviceCart.length > 1 ? `${serviceCart.length} bookings created` : "Booking created successfully");
+        toast.success(cartData.length > 1 ? `Booking created — ${cartData.length} services` : "Booking created");
       }
 
       setDialogOpen(false);

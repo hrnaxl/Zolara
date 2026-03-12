@@ -106,7 +106,7 @@ export type Database = {
           status: BookingStatus; notes: string | null; price: number | null
           duration_minutes: number | null; deposit_amount: number | null
           deposit_paid: boolean | null; booking_ref: string | null;
-          variant_id: string | null; variant_name: string | null; selected_addons: any | null
+          variant_id: string | null; variant_name: string | null; selected_addons: any | null; services_cart: any | null
           created_at: string; updated_at: string
         }
         Insert: { id?: string; client_id?: string | null; staff_id?: string | null; service_id?: string | null
