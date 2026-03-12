@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 
 export type GiftCard = {
   id: string;
@@ -146,13 +147,12 @@ export async function checkExistingGiftCards(codes: string[]) {
 
 export async function voidGiftCard(id: string) {
   try {
-    const { data, error } = await (supabase as any).rpc("rpc_void_gift_card", {
-      p_id: id,
-      p_note: "Voided by admin",
-    });
-
+    const { error } = await (supabaseAdmin as any)
+      .from("gift_cards")
+      .update({ status: "void" })
+      .eq("id", id);
     if (error) throw error;
-    return { success: data?.[0]?.success, data: data?.[0] };
+    return { success: true, error: null };
   } catch (error: any) {
     return { success: false, error };
   }
@@ -160,16 +160,12 @@ export async function voidGiftCard(id: string) {
 
 export async function expireGiftCard(id: string) {
   try {
-    const { data, error } = await (supabase as any).rpc(
-      "rpc_expire_gift_card",
-      {
-        p_id: id,
-        p_note: "Expired by admin",
-      }
-    );
-
+    const { error } = await (supabaseAdmin as any)
+      .from("gift_cards")
+      .update({ status: "expired" })
+      .eq("id", id);
     if (error) throw error;
-    return { success: data?.[0]?.success, data: data?.[0] };
+    return { success: true, error: null };
   } catch (error: any) {
     return { success: false, error };
   }
@@ -177,15 +173,12 @@ export async function expireGiftCard(id: string) {
 
 export async function deleteGiftCard(id: string) {
   try {
-    const { data, error } = await (supabase as any).rpc(
-      "rpc_delete_gift_card",
-      {
-        p_id: id,
-      }
-    );
-
+    const { error } = await (supabaseAdmin as any)
+      .from("gift_cards")
+      .delete()
+      .eq("id", id);
     if (error) throw error;
-    return { success: data?.[0]?.success, data: data?.[0] };
+    return { success: true, error: null };
   } catch (error: any) {
     return { success: false, error };
   }
@@ -262,9 +255,12 @@ export default useGiftCards;
 
 export async function markGiftCardSold(id: string) {
   try {
-    const { data, error } = await (supabase as any).rpc("rpc_mark_gift_card_sold", { p_id: id });
+    const { error } = await (supabaseAdmin as any)
+      .from("gift_cards")
+      .update({ status: "active", payment_status: "paid" })
+      .eq("id", id);
     if (error) throw error;
-    return { success: data?.[0]?.success ?? true, error: null };
+    return { success: true, error: null };
   } catch (error: any) {
     return { success: false, error };
   }
@@ -272,9 +268,12 @@ export async function markGiftCardSold(id: string) {
 
 export async function resendGiftCardEmail(id: string) {
   try {
-    const { data, error } = await (supabase as any).rpc("rpc_resend_gift_card_email", { p_id: id });
+    const { error } = await (supabaseAdmin as any)
+      .from("gift_cards")
+      .update({ status: "pending_send" })
+      .eq("id", id);
     if (error) throw error;
-    return { success: data?.[0]?.success ?? true, error: null };
+    return { success: true, error: null };
   } catch (error: any) {
     return { success: false, error };
   }
