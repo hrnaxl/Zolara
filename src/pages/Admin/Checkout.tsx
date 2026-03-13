@@ -1256,7 +1256,7 @@ const Checkout = () => {
 
             </div>
           </div>
-        </div>
+        </div>{/* end two-column grid */}
 
         {/* ── LINE ITEMS PANEL ─────────────────────────────────────────── */}
         <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
