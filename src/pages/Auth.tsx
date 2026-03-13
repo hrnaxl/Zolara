@@ -84,10 +84,29 @@ export default function Auth() {
       }
 
       if (!roleData?.role) {
-        clearTimeout(timeout);
-        setError("No role assigned to this account. Contact the salon owner.");
-        await supabase.auth.signOut();
-        return;
+        // Role missing — try to auto-assign via DB function before giving up
+        const fixRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/get_user_id_by_email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY, "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({ p_email: email.trim().toLowerCase() }),
+        }).catch(() => null);
+
+        // Re-check role after attempting fix
+        const { data: retryRole } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+        if (!retryRole?.role) {
+          // Last resort: assign client role so they can at least log in
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/link_staff_account`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY, "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({ p_user_id: userId, p_staff_id: null, p_role: "client" }),
+          }).catch(() => null);
+
+          clearTimeout(timeout);
+          setError("No role assigned to this account. Contact the salon owner.");
+          await supabase.auth.signOut();
+          return;
+        }
+        roleData!.role = retryRole.role;
       }
 
       let role = roleData.role;
@@ -148,21 +167,11 @@ export default function Auth() {
       const userId = authData.user?.id;
       if (!userId) { clearTimeout(timeout); setError("Signup failed. Try again."); return; }
 
-      // Upsert role — if row already exists (e.g. email-confirmed re-attempt), update it
-      const { error: roleErr } = await supabase
-        .from("user_roles")
-        .upsert({ user_id: userId, role: assignedRole }, { onConflict: "user_id" });
-      // RLS may block this on first signup (session not yet active) — tolerate and continue
-      // The AuthCallback will re-set the role once the email is confirmed
-      if (roleErr) {
-        console.warn("Role upsert warning (non-fatal):", roleErr.message);
-      }
+      // Role assignment and staff linking is handled automatically by the database trigger
+      // on_auth_user_created fires immediately and assigns the correct role
 
-      if (staffMatch) {
-        const { error: linkErr } = await supabase
-          .from("staff").update({ user_id: userId }).eq("id", staffMatch.id);
-        if (linkErr) { clearTimeout(timeout); setError("Staff linking failed. Contact the salon owner."); return; }
-      } else {
+      // For clients, also create a client profile record
+      if (!staffMatch) {
         const cleanPhone = phone.replace(/\s/g, "");
         await findOrCreateClient({ name, phone: cleanPhone, email: email.trim(), userId });
       }
@@ -170,7 +179,8 @@ export default function Auth() {
       clearTimeout(timeout);
       setMode("login");
       setPass(""); setConf("");
-      alert(`Account created${assignedRole !== "client" ? ` for ${staffMatch?.name}` : ""}! Check your email (${email.trim()}) to confirm, then sign in.`);
+      setError("");
+      alert(`Account created! Check your email (${email.trim()}) to confirm your account, then sign in.`);
     } catch (e: any) {
       clearTimeout(timeout);
       setError(e.message || "Signup failed.");

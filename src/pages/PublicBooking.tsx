@@ -385,13 +385,18 @@ export default function PublicBooking() {
           onMouseLeave={e => (e.currentTarget.style.color = TXT_MID)}>
           <ArrowLeft size={16} /> Back to homepage
         </button>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <img src={LOGO} style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} alt="Zolara" />
-          <div>
-            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 800, letterSpacing: "0.2em", color: DARK, lineHeight: 1.1 }}>ZOLARA</div>
-            <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9px", letterSpacing: "0.2em", color: GOLD, fontWeight: 600 }}>BEAUTY STUDIO</div>
-          </div>
-        </a>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <a href="/app/auth" style={{ fontSize: 11, fontWeight: 700, color: "#8B6914", textDecoration: "none", letterSpacing: "0.06em", background: "rgba(200,169,126,0.1)", padding: "7px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
+            Track My Bookings →
+          </a>
+          <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+            <img src={LOGO} style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} alt="Zolara" />
+            <div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 800, letterSpacing: "0.2em", color: DARK, lineHeight: 1.1 }}>ZOLARA</div>
+              <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9px", letterSpacing: "0.2em", color: GOLD, fontWeight: 600 }}>BEAUTY STUDIO</div>
+            </div>
+          </a>
+        </div>
       </div>
 
       <div className="bk-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "44px 24px 80px", display: "grid", gridTemplateColumns: "360px 1fr", gap: "40px", alignItems: "start" }}>
