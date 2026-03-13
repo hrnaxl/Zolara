@@ -75,8 +75,10 @@ const App = () => (
           {/* Client self-service portal */}
           <Route path="/app/client/auth" element={<Navigate to="/app/auth" />} />
           <Route path="/app/client" element={<ClientPortal />}>
-            <Route path="home" element={<ClientDashboard />} />
+            <Route path="dashboard" element={<ClientDashboard />} />
+            <Route path="bookings" element={<ClientBookings />} />
             <Route path="loyalty" element={<ClientDashboard />} />
+            <Route path="services" element={<ViewServices />} />
           </Route>
 
           {/* =================== MANAGEMENT SYSTEM ROUTES =================== */}
@@ -144,13 +146,7 @@ const App = () => (
           </Route>
 
           {/* CLIENT - Customer portal */}
-          <Route element={<ProtectedRoute allowedRoles={["client"]} />}>
-            <Route element={<DashboardLayout />}>
-              <Route path="/app/client/dashboard" element={<ClientLayout />} />
-              <Route path="/app/client/bookings" element={<ClientBookings />} />
-              <Route path="/app/client/services" element={<ViewServices />} />
-            </Route>
-          </Route>
+
 
           {/* =================== LEGACY REDIRECTS =================== */}
           <Route path="/auth" element={<Navigate to="/app/auth" />} />

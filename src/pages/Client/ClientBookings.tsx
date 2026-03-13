@@ -1,590 +1,162 @@
 import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Loader2, Calendar, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { fetchUserBookings } from "@/lib/utils";
-import { format, parseISO, isValid } from "date-fns";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import PaymentDialog from "@/components/PaymentDialog";
-import { useSettings } from "@/context/SettingsContext";
+import { format } from "date-fns";
+import { Calendar, Clock, Filter, Search } from "lucide-react";
 
-const ClientBookings = () => {
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [requestBookings, setRequestBookings] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [rescheduleDialog, setRescheduleDialog] = useState(false);
-  const [requestDialog, setRequestDialog] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [newDate, setNewDate] = useState("");
-  const [newTime, setNewTime] = useState("");
-  const [selectedService, setSelectedService] = useState("");
-  const [preferredDate, setPreferredDate] = useState("");
-  const [preferredTime, setPreferredTime] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [notes, setNotes] = useState("");
-  const [requesting, setRequesting] = useState(false);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+const G      = "#C8A97E";
+const G_DARK = "#8B6914";
+const NAVY   = "#0F1E35";
+const CREAM  = "#FAFAF8";
+const WHITE  = "#FFFFFF";
+const BORDER = "#EDE8E0";
+const TXT    = "#1C160E";
+const TXT_M  = "#78716C";
+const TXT_S  = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
 
-  const { settings } = useSettings();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) {
-        toast.error("Please sign in first");
-        return;
-      }
-
-      const [bookingsRes, requestsRes, servicesRes] = await Promise.all([
-        // Fetch bookings for this user only
-        supabase
-          .from("bookings")
-          .select("*, clients(*), staff(*), services(*)")
-          .eq("client_id", user.id)
-          .order("preferred_date", { ascending: false }),
-
-        // Fetch booking requests for this user only
-        supabase
-          .from("bookings")
-          .select("*, clients(*), services(*)")
-          .eq("client_id", user.id)
-          .order("created_at", { ascending: false }),
-
-        // Fetch all services
-        supabase.from("services").select("*").order("name"),
-      ]);
-
-      if (bookingsRes.data) setBookings(bookingsRes.data);
-      if (requestsRes.data) setRequestBookings(requestsRes.data);
-      if (servicesRes.data) setServices(servicesRes.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = async (id: string) => {
-    const confirm = window.confirm(
-      "Are you sure you want to cancel this booking?"
-    );
-    if (!confirm) return;
-
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled" })
-      .eq("id", id);
-
-    if (error) toast.error("Failed to cancel booking");
-    else {
-      toast.success("Booking cancelled successfully");
-      fetchUserBookings({
-        table: "bookings",
-        setState: setBookings,
-        setLoading,
-        role: "client",
-      });
-    }
-  };
-
-  const handleReschedule = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedBooking) return;
-
-    const { error } = await supabase
-      .from("bookings")
-      .update({
-        preferred_date: newDate,
-        preferred_time: newTime,
-        status: "pending",
-      })
-      .eq("id", selectedBooking.id);
-
-    if (error) toast.error("Failed to reschedule");
-    else {
-      toast.success("Booking rescheduled successfully");
-      setRescheduleDialog(false);
-
-      fetchUserBookings({
-        table: "bookings",
-        setState: setRequestBookings,
-        setLoading,
-        role: "client",
-      });
-
-      fetchUserBookings({
-        table: "booking",
-        setState: setBookings,
-        setLoading,
-        role: "client",
-      });
-    }
-  };
-
-  const handleRequestBooking = async (e: React.FormEvent) => {
-    setRequesting(true);
-    e.preventDefault();
-    const user = (await supabase.auth.getUser()).data.user;
-
-    if (!user) {
-      toast.error("Please sign in first");
-      return;
-    }
-
-    if (!selectedService || !preferredDate || !preferredTime) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-
-    // Prevent booking requests scheduled on Sundays
-    const picked = new Date(preferredDate);
-    if (picked.getUTCDay && picked.getUTCDay() === 0) {
-      toast.error("Bookings cannot be scheduled on Sundays. Please choose another date.");
-      setRequesting(false);
-      return;
-    }
-
-    const { data: existingClient } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (!existingClient) {
-      const clientData = {
-        id: user.id,
-        name: user.user_metadata.full_name || user.user_metadata.name,
-        email: user.email,
-        phone: user.user_metadata.phone || "",
-      };
-
-    }
-    // @ts-ignore
-    const { error } = await supabase.from("bookings").insert([
-      {
-        client_id: user.id,
-        service_id: selectedService,
-        preferred_date: preferredDate,
-        preferred_time: preferredTime,
-        notes,
-        status: "pending",
-      },
-    ]);
-
-    if (error) {
-      toast.error(error.message || "Failed to request booking");
-      setRequesting(false);
-    } else {
-      toast.success("Booking request submitted successfully!");
-
-      fetchUserBookings({
-        table: "bookings",
-        setState: setRequestBookings,
-        setLoading,
-        role: "client",
-      });
-
-      setRequestDialog(false);
-      setSelectedService("");
-      setPreferredDate("");
-      setPreferredTime("");
-      setNotes("");
-      setRequesting(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: any = {
-      scheduled: "bg-blue-100 text-blue-800",
-      confirmed: "bg-green-100 text-green-800",
-      completed: "bg-gray-100 text-gray-800",
-      cancelled: "bg-red-100 text-red-800",
-      no_show: "bg-yellow-100 text-yellow-800",
-    };
-    return colors[status] || "bg-muted text-muted-foreground";
-  };
-
-  return (
-    <div className="space-y-8 p-4 md:p-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Bookings</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            View, manage, or request new appointments
-          </p>
-        </div>
-
-        <Dialog open={requestDialog} onOpenChange={setRequestDialog}>
-          <DialogTrigger asChild>
-            <Button className="whitespace-nowrap">Request New Booking</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md grid gap-4 p-6">
-            <DialogHeader>
-              <DialogTitle>Request Booking</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleRequestBooking} className="space-y-4">
-              <div>
-                <Label>Service</Label>
-                <select
-                  className="w-full border rounded-md p-2 mt-1"
-                  value={selectedService}
-                  onChange={(e) => setSelectedService(e.target.value)}
-                  required
-                >
-                  <option value="">Select a service</option>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>Preferred Date</Label>
-                  <Input
-                    type="date"
-                    value={preferredDate}
-                    onChange={(e) => setPreferredDate(e.target.value)}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label>Preferred Time</Label>
-                  <Input
-                    type="time"
-                    value={preferredTime}
-                    onChange={(e) => setPreferredTime(e.target.value)}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="payment-method">Payment Method</Label>
-                <Select
-                  value={paymentMethod}
-                  onValueChange={(value) =>
-                    setPaymentMethod(
-                      value as
-                        | "cash"
-                        | "card"
-                        | "mobile_money"
-                        | "bank_transfer"
-                        | "gift_card"
-                    )
-                  }
-                >
-                  <SelectTrigger id="payment-method">
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Render only enabled payment methods from settings */}
-                    {settings?.payment_methods
-                      ?.filter((m) => m.enabled)
-                      .map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Notes (optional)</Label>
-                <Input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any special requests..."
-                  className="mt-1"
-                />
-              </div>
-
-              <Button type="submit" className="w-full">
-                {!requesting ? "Submit Request" : "Loading..."}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Loader */}
-      {loading ? (
-        <div className="flex justify-center items-center p-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        </div>
-      ) : requestBookings.length === 0 ? (
-        <Card className="p-8 text-center text-gray-500">
-          No bookings yet. Request your first appointment!
-        </Card>
-      ) : (
-        <>
-          {/* Confirmed Bookings */}
-          <section className="space-y-4 mt-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Confirmed Bookings
-              </h2>
-              <p className="text-sm text-gray-500">
-                Confirmed and upcoming appointments
-              </p>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {bookings.map((booking) => (
-                <Card
-                  key={booking.id}
-                  className="hover:shadow-lg transition-shadow border border-gray-200 rounded-2xl overflow-hidden"
-                >
-                  <CardHeader className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{booking.services?.name}</CardTitle>
-                      <p className="text-sm text-gray-500">
-                        {booking.staff?.name || "Unassigned"}
-                      </p>
-                    </div>
-                    <Badge className={getStatusColor(booking.status)}>
-                      {booking.status}
-                    </Badge>
-                  </CardHeader>
-
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="w-4 h-4" />
-                      {format(new Date(booking.preferred_date), "PPP")}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="w-4 h-4" />
-                      {booking.preferred_time}
-                    </div>
-
-                    <div className="flex gap-2 mt-4 flex-wrap">
-                      {/* {booking.status === "pending" && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setRescheduleDialog(true);
-                            }}
-                          >
-                            Reschedule
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleCancel(booking.id)}
-                          >
-                            Cancel
-                          </Button>
-                        </>
-                      )} */}
-
-                      {/* Make Payment button - visible for pending or scheduled bookings */}
-                      {["pending", "pending_payment"].includes(
-                        booking.status
-                      ) && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedBooking(booking);
-                            setPaymentDialogOpen(true); // open your PaymentDialog
-                          }}
-                        >
-                          Make Payment
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Optional: show price */}
-                    <div className="mt-2 text-sm font-medium text-gray-700">
-                      Amount: GH₵ {booking.services?.price.toFixed(2)}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-
-          {/* Booking Requests */}
-          <section className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Booking Requests
-              </h2>
-              <p className="text-sm text-gray-500">
-                Pending appointments you’ve requested
-              </p>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {requestBookings.map((booking) => (
-                <Card
-                  key={booking.id}
-                  className="hover:shadow-xl transition-shadow border border-gray-200 rounded-2xl overflow-hidden"
-                >
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 gap-4">
-                    {/* Left: Service & Staff */}
-                    <div className="flex-1">
-                      <CardTitle className="text-lg font-semibold text-gray-900">
-                        {booking.services?.name || "Service"}
-                      </CardTitle>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {booking.staff?.name || "Unassigned"}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Preferred payment method:{" "}
-                        {booking.payment_method || "none"}
-                      </p>
-
-                      <div className="flex flex-wrap gap-4 mt-3 text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-5 h-5 text-blue-500" />
-                          <span className="text-sm font-medium">
-                            {booking.preferred_date
-                              ? isValid(parseISO(booking.preferred_date))
-                                ? format(
-                                    parseISO(booking.preferred_date),
-                                    "PPP"
-                                  )
-                                : "Invalid Date"
-                              : "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-5 h-5 text-green-500" />
-                          <span className="text-sm font-medium">
-                            {booking.preferred_time || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Status & Actions */}
-                    <div className="flex flex-col items-end gap-3 mt-4 md:mt-0">
-                      <Badge
-                        className={`${getStatusColor(
-                          booking.status
-                        )} px-4 py-1 rounded-full uppercase text-xs font-semibold`}
-                      >
-                        {booking.status}
-                      </Badge>
-
-                      {booking.status === "pending" && (
-                        <div className="flex gap-2 flex-wrap">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="px-4 py-2"
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setRescheduleDialog(true);
-                            }}
-                          >
-                            Reschedule
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="px-4 py-2"
-                            onClick={() => handleCancel(booking.id)}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-
-      {/* Reschedule Dialog */}
-      <Dialog open={rescheduleDialog} onOpenChange={setRescheduleDialog}>
-        <DialogContent className="max-w-md grid gap-4 p-6">
-          <DialogHeader>
-            <DialogTitle>Reschedule Booking</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleReschedule} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>New Date</Label>
-                <Input
-                  type="date"
-                  value={newDate}
-                  onChange={(e) => setNewDate(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>New Time</Label>
-                <Input
-                  type="time"
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full">
-              Confirm Reschedule
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Payment Dialog */}
-      {selectedBooking && (
-        <PaymentDialog
-          admin={false}
-          open={paymentDialogOpen}
-          onOpenChange={setPaymentDialogOpen}
-          booking={selectedBooking}
-          onPaymentComplete={fetchData}
-        />
-      )}
-    </div>
-  );
+const STATUS_COLOR: Record<string, string> = {
+  confirmed: "#22C55E", pending: "#F59E0B", completed: "#6366F1", cancelled: "#EF4444",
+};
+const STATUS_BG: Record<string, string> = {
+  confirmed: "#F0FDF4", pending: "#FFFBEB", completed: "#EEF2FF", cancelled: "#FEF2F2",
+};
+const STATUS_LABEL: Record<string, string> = {
+  confirmed: "Confirmed", pending: "Pending", completed: "Completed", cancelled: "Cancelled",
 };
 
-export default ClientBookings;
+const FILTERS = ["all", "upcoming", "completed", "cancelled"] as const;
+
+export default function ClientBookings() {
+  const { client } = useOutletContext<any>();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [filter, setFilter]     = useState<typeof FILTERS[number]>("all");
+  const [search, setSearch]     = useState("");
+
+  useEffect(() => {
+    if (!client?.id) return;
+    (supabase as any).from("bookings")
+      .select("*")
+      .eq("client_id", client.id)
+      .order("preferred_date", { ascending: false })
+      .then(({ data }: any) => { setBookings(data || []); setLoading(false); });
+  }, [client]);
+
+  const today = format(new Date(), "yyyy-MM-dd");
+  const filtered = bookings.filter(b => {
+    const matchSearch = !search || b.service_name?.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (filter === "upcoming") return ["pending", "confirmed"].includes(b.status) && b.preferred_date >= today;
+    if (filter === "completed") return b.status === "completed";
+    if (filter === "cancelled") return b.status === "cancelled";
+    return true;
+  });
+
+  return (
+    <div style={{ fontFamily: "'Montserrat', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;500;600;700&display=swap');`}</style>
+
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: TXT_S, textTransform: "uppercase", marginBottom: 4 }}>CLIENT PORTAL</div>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(26px,4vw,36px)", fontWeight: 700, color: TXT, margin: "0 0 4px" }}>My Bookings</h1>
+        <p style={{ fontSize: 13, color: TXT_M }}>View and track all your appointments at Zolara.</p>
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", marginBottom: 24 }}>
+        {/* Search */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "9px 14px", flex: "1 1 200px" }}>
+          <Search size={13} style={{ color: TXT_S, flexShrink: 0 }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search service..."
+            style={{ border: "none", outline: "none", fontSize: 12, color: TXT, background: "transparent", fontFamily: "'Montserrat', sans-serif", width: "100%" }} />
+        </div>
+        {/* Filter tabs */}
+        <div style={{ display: "flex", background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 3, gap: 2, flexWrap: "wrap" }}>
+          {FILTERS.map(f => (
+            <button key={f} onClick={() => setFilter(f)} style={{
+              padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+              fontSize: 11, fontWeight: 700, fontFamily: "'Montserrat', sans-serif",
+              letterSpacing: "0.05em", textTransform: "capitalize",
+              background: filter === f ? NAVY : "transparent",
+              color: filter === f ? WHITE : TXT_S,
+              transition: "all 0.15s",
+            }}>{f}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Count */}
+      <div style={{ fontSize: 12, color: TXT_S, marginBottom: 16, fontWeight: 600 }}>
+        {filtered.length} booking{filtered.length !== 1 ? "s" : ""}
+      </div>
+
+      {/* Bookings list */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "40px", color: TXT_S, fontSize: 13 }}>Loading your bookings…</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px 20px", background: WHITE, borderRadius: 20, border: `1px solid ${BORDER}` }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
+          <p style={{ fontSize: 14, color: TXT_M, marginBottom: 16 }}>No bookings found.</p>
+          <a href="/book" style={{ fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "10px 22px", borderRadius: 20, border: `1px solid rgba(200,169,126,0.3)` }}>
+            Book an Appointment →
+          </a>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {filtered.map(b => (
+            <div key={b.id} style={{ background: WHITE, borderRadius: 16, border: `1px solid ${BORDER}`, padding: "20px 22px", boxShadow: SHADOW, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+              {/* Date block */}
+              <div style={{ width: 52, height: 52, borderRadius: 12, background: STATUS_BG[b.status] || CREAM, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 18, fontWeight: 800, color: STATUS_COLOR[b.status] || TXT_M, lineHeight: 1, fontFamily: "'Cormorant Garamond', serif" }}>
+                  {b.preferred_date ? format(new Date(b.preferred_date + "T00:00"), "dd") : "--"}
+                </span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: STATUS_COLOR[b.status] || TXT_S, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  {b.preferred_date ? format(new Date(b.preferred_date + "T00:00"), "MMM") : ""}
+                </span>
+              </div>
+
+              {/* Details */}
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: TXT, marginBottom: 4 }}>{b.service_name || "Service"}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: TXT_S }}>
+                    <Calendar size={11} /> {b.preferred_date ? format(new Date(b.preferred_date + "T00:00"), "EEEE, MMMM d yyyy") : ""}
+                  </div>
+                  {b.preferred_time && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: TXT_S }}>
+                      <Clock size={11} /> {b.preferred_time}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Price + status */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                {b.price && (
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: TXT }}>
+                    GH₵ {Number(b.price).toLocaleString()}
+                  </div>
+                )}
+                <div style={{ display: "inline-flex", padding: "4px 12px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: STATUS_BG[b.status] || CREAM, color: STATUS_COLOR[b.status] || TXT_S, letterSpacing: "0.06em" }}>
+                  {STATUS_LABEL[b.status] || b.status}
+                </div>
+                {b.deposit_paid && (
+                  <div style={{ fontSize: 10, color: "#22C55E", fontWeight: 600 }}>✓ Deposit paid</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Book more CTA */}
+      <div style={{ marginTop: 28, textAlign: "center" }}>
+        <a href="/book" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "12px 28px", borderRadius: 24, border: `1px solid rgba(200,169,126,0.3)` }}>
+          + Book New Appointment
+        </a>
+      </div>
+    </div>
+  );
+}
