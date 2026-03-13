@@ -189,7 +189,7 @@ const Clients = () => {
       try {
         const { data: bkData } = await supabase
           .from("bookings")
-          .select("id, client_id, preferred_date, price, status, service_name");
+          .select("id, client_id, preferred_date, price, status, service_name, staff:staff_id(name), services:service_id(price)");
         allBookings = bkData || [];
       } catch { allBookings = []; }
 
@@ -990,12 +990,10 @@ const Clients = () => {
                           >
                             <div>
                               <div className="text-sm font-medium">
-                                {b.services?.name || "Service"}
+                                {b.service_name || b.services?.name || "Service"}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {b.staff?.name ||
-                                  b.staff?.name ||
-                                  "Unassigned"}{" "}
+                                {b.staff?.name || "Unassigned"}{" "}
                                 •{" "}
                                 {b.preferred_date
                                   ? format(new Date(b.preferred_date), "PPP")
@@ -1004,7 +1002,7 @@ const Clients = () => {
                             </div>
                             <div className="text-right">
                               <div className="font-semibold">
-                                GH₵{Number(b.services?.price || 0).toFixed(2)}
+                                GH₵{Number(b.price || b.services?.price || 0).toFixed(2)}
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 {b.status || "-"}
@@ -1024,7 +1022,7 @@ const Clients = () => {
                               // count only completed bookings as spent
                               if (bk.status && bk.status !== "completed")
                                 return sum;
-                              return sum + Number(bk.services?.price || 0);
+                              return sum + Number(bk.price || bk.services?.price || 0);
                             },
                             0
                           );
