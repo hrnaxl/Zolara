@@ -30,11 +30,13 @@ export default function ClientPortal() {
   const navigate   = useNavigate();
   const location   = useLocation();
   const [client, setClient]         = useState<any>(null);
+  const [clientLoading, setClientLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { navigate("/app/auth"); return; }
+      setClientLoading(true);
       const userId = session.user.id;
       const userEmail = session.user.email?.toLowerCase();
 
@@ -65,6 +67,7 @@ export default function ClientPortal() {
       }
 
       setClient(data);
+      setClientLoading(false);
     });
   }, []);
 
@@ -196,7 +199,15 @@ export default function ClientPortal() {
         </header>
 
         <main style={{ padding: "clamp(20px,3vw,36px) clamp(16px,3vw,32px)", maxWidth: 1100, margin: "0 auto" }}>
-          <Outlet context={{ client, setClient }} />
+          {clientLoading ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 20 }}>
+              <style>{`@keyframes zspin{to{transform:rotate(360deg)}}`}</style>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", border: "3px solid #EDE8E0", borderTop: "3px solid #C8A97E", animation: "zspin 0.8s linear infinite" }} />
+              <p style={{ fontSize: 13, color: "#A8A29E", fontFamily: "'Montserrat',sans-serif" }}>Loading your account…</p>
+            </div>
+          ) : (
+            <Outlet context={{ client, setClient }} />
+          )}
         </main>
       </div>
     </div>

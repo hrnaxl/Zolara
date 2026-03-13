@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AmandaWidget from "@/components/AmandaWidget";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,7 +22,18 @@ const reviews = [
 ];
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+
+  // Handle Supabase email confirmation tokens landing on homepage
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token_hash = params.get("token_hash");
+    const type = params.get("type");
+    if (token_hash && type) {
+      navigate(`/app/auth/callback?token_hash=${token_hash}&type=${type}`, { replace: true });
+    }
+  }, []);
   const [activeReview, setActiveReview] = useState(0);
   const [reviewVisible, setReviewVisible] = useState(false);
   const [expVisible, setExpVisible] = useState(false);

@@ -78,7 +78,8 @@ export default function AuthCallback() {
           }
 
           if (data.session) {
-            setStatus("Confirmed! Redirecting...");
+            setStatus("Email confirmed! Taking you to your dashboard…");
+            await new Promise(r => setTimeout(r, 1200));
             await redirectByRole(data.session.user.id, data.session.user.user_metadata);
             return;
           }
