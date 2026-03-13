@@ -41,18 +41,7 @@ export default function ClientPortal() {
       // 1. Try matching by user_id first
       let { data } = await (supabase as any).from("clients").select("*").eq("user_id", userId).maybeSingle();
 
-      // 2. If not found, try matching by email (client booked publicly without account)
-      if (!data && userEmail) {
-        const { data: byEmail } = await (supabase as any)
-          .from("clients").select("*").ilike("email", userEmail).maybeSingle();
-        if (byEmail) {
-          // Link user_id to existing client record
-          await (supabase as any).from("clients").update({ user_id: userId }).eq("id", byEmail.id);
-          data = { ...byEmail, user_id: userId };
-        }
-      }
-
-      // 3. Try matching by phone from auth metadata if still not found
+      // 2. Try matching by phone first (most reliable — clients book with phone)
       if (!data) {
         const phone = session.user.user_metadata?.phone;
         if (phone) {
@@ -62,6 +51,16 @@ export default function ClientPortal() {
             await (supabase as any).from("clients").update({ user_id: userId }).eq("id", byPhone.id);
             data = { ...byPhone, user_id: userId };
           }
+        }
+      }
+
+      // 3. Fall back to email match
+      if (!data && userEmail) {
+        const { data: byEmail } = await (supabase as any)
+          .from("clients").select("*").ilike("email", userEmail).maybeSingle();
+        if (byEmail) {
+          await (supabase as any).from("clients").update({ user_id: userId }).eq("id", byEmail.id);
+          data = { ...byEmail, user_id: userId };
         }
       }
 
