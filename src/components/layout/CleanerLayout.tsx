@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { supabase } from "@/integrations/supabase/client";
 import { useSettings } from "@/context/SettingsContext";
 import { format } from "date-fns";
@@ -21,6 +22,7 @@ const greeting = () => {
 };
 
 export default function CleanerLayout() {
+  useInactivityLogout(2 * 60 * 1000); // 2-min inactivity logout
   const { settings } = useSettings();
   const [staffName, setStaffName] = useState("");
   const [clockedIn, setClockedIn] = useState(false);

@@ -38,8 +38,11 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 const DashboardLayout = () => {
+  // 2-minute inactivity logout for all staff/admin/receptionist roles
+  useInactivityLogout(2 * 60 * 1000);
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();

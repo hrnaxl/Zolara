@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { LayoutDashboard, Calendar, Star, Scissors, LogOut, Menu, X, ChevronRight } from "lucide-react";
 
 const G      = "#C8A97E";
@@ -29,6 +30,7 @@ const NAV = [
 export default function ClientPortal() {
   const navigate   = useNavigate();
   const location   = useLocation();
+  useInactivityLogout(5 * 60 * 1000); // 5-minute inactivity logout for clients
   const [client, setClient]         = useState<any>(null);
   const [clientLoading, setClientLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
