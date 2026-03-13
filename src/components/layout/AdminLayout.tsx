@@ -547,10 +547,10 @@ const AdminDashboard = () => {
         .filter((s: any) => !checkedInStaffIds.includes(s.id))
         .map((s: any) => s.name);
 
-      // Pending bookings count
+      // Pending bookings count — only truly unconfirmed (no deposit yet)
       const pendingBookings =
         todayBookingsRes.data?.filter(
-          (b) => b.status === "pending" || b.status === "confirmed"
+          (b) => b.status === "pending"
         ).length || 0;
 
       // Generate alerts
