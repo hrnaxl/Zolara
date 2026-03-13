@@ -26,16 +26,31 @@ export default function SubscriptionsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [plansRes, subsRes, clientsRes] = await Promise.all([
+      const [plansRes, clientsRes] = await Promise.all([
         (supabase as any).from("subscription_plans").select("*").order("monthly_price"),
-        (supabase as any).from("client_subscriptions").select("*, subscription_plans(name,monthly_price), clients(name,phone)").order("created_at",{ascending:false}).limit(100),
         (supabase as any).from("clients").select("id,name,phone").order("name"),
       ]);
       if (plansRes.error) throw plansRes.error;
-      setPlans(plansRes.data||[]);
-      setSubs(subsRes.data||[]);
-      setClients(clientsRes.data||[]);
-    } catch(e:any) { toast.error(e.message || "Could not load subscription plans. Ensure the SQL migration has been run."); console.error("Subscriptions load error:", e); }
+      setPlans(plansRes.data || []);
+      setClients(clientsRes.data || []);
+      // Load subscribers separately — join may fail if FK not registered
+      const subsRes = await (supabase as any)
+        .from("client_subscriptions")
+        .select("*, clients:client_id(name,phone)")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!subsRes.error) {
+        // Manually attach plan name from plans array
+        const subsWithPlan = (subsRes.data || []).map((s: any) => ({
+          ...s,
+          subscription_plans: plansRes.data?.find((p: any) => p.id === s.subscription_id) || null,
+        }));
+        setSubs(subsWithPlan);
+      }
+    } catch(e:any) {
+      console.error("Subscriptions load error:", e);
+      toast.error(e.message || "Could not load. Run the SQL migration first.");
+    }
     finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
