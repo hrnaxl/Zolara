@@ -865,13 +865,15 @@ const Clients = () => {
                         {isVip && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(200,169,126,0.15)", color: "#8B6914", border: "1px solid rgba(200,169,126,0.3)" }}>VIP</span>}
                         {isNew && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(59,130,246,0.1)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.2)" }}>NEW</span>}
                         {isRisk && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}>AT RISK</span>}
-                        <button
-                          onClick={e => { e.stopPropagation(); setDeleteClientId(client.id); setDeleteDialogOpen(true); }}
-                          style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: "6px", color: "#EF4444", opacity: 0.7, display: "flex", alignItems: "center" }}
-                          title="Delete client"
-                        >
-                          <Trash2 style={{ width: "13px", height: "13px" }} />
-                        </button>
+                        {["owner","admin"].includes(userRole) && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setDeleteClientId(client.id); setDeleteDialogOpen(true); }}
+                            style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: "6px", color: "#EF4444", opacity: 0.7, display: "flex", alignItems: "center" }}
+                            title="Delete client"
+                          >
+                            <Trash2 style={{ width: "13px", height: "13px" }} />
+                          </button>
+                        )}
                       </div>
                       {client.phone && (
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
