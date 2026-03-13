@@ -597,7 +597,7 @@ const Checkout = () => {
           }
 
           if (clientId) {
-            const fullBookingPrice = Number((booking as any).price || originalPrice || 0);
+            const fullBookingPrice = Number(originalPrice || (booking as any).price || (booking as any).services?.price || 0);
             // Fetch fresh client data — booking join may be stale
             const { data: freshClient } = await (supabase as any).from("clients").select("loyalty_points, total_spent, total_visits, date_of_birth").eq("id", clientId).single();
             const currentStamps = Number(freshClient?.loyalty_points || 0);
