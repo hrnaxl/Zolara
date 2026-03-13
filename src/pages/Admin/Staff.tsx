@@ -377,17 +377,30 @@ const Staff = () => {
       const userId = signUpData.user?.id;
       if (!userId) throw new Error("No user ID returned");
 
-      // Immediately restore admin session using their refresh token
+      // Link staff record and role via raw fetch with anon key — SECURITY DEFINER bypasses RLS
+      // We do this BEFORE restoring session so timing doesn't matter
+      const rpcRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/link_staff_account`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          p_user_id: userId,
+          p_staff_id: loginStaff.id,
+          p_role: loginStaff.role || "staff",
+        }),
+      });
+      if (!rpcRes.ok) {
+        const rpcErr = await rpcRes.text();
+        throw new Error("Failed to link account: " + rpcErr);
+      }
+
+      // Restore admin session
       await supabase.auth.setSession({
         access_token: adminSession.access_token,
         refresh_token: adminSession.refresh_token,
-      });
-
-      // Link staff record and role via SECURITY DEFINER function — works regardless of RLS
-      await (supabase as any).rpc("link_staff_account", {
-        p_user_id: userId,
-        p_staff_id: loginStaff.id,
-        p_role: loginStaff.role || "staff",
       });
 
       toast.success(`Account created for ${loginStaff.name}. They'll receive a confirmation email.`);
