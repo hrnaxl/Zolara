@@ -60,8 +60,9 @@ export default function MyAttendance() {
     if (!staffId) return;
     setClockingIn(true);
     try {
+      const today = new Date().toISOString().split("T")[0];
       const { error } = await supabase.from("attendance").insert([{
-        staff_id: staffId, check_in: new Date().toISOString(), status: "present",
+        staff_id: staffId, check_in: new Date().toISOString(), status: "present", date: today,
       }]);
       if (error) throw error;
       toast.success("Clocked in successfully");
