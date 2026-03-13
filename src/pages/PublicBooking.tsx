@@ -268,26 +268,19 @@ export default function PublicBooking() {
         onSuccess: async (ref) => {
           setStep("verifying");
 
-          // Call edge function with service role — anon key cannot UPDATE bookings (RLS blocks it)
-          await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-booking`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-                "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              },
-              body: JSON.stringify({
-                booking_id: bookingId,
-                booking_ref: bRef,
-                payment_ref: ref,
-                client_name: name,
-                client_phone: cleanPhone,
-                client_email: email || null,
-              }),
-            }
-          ).catch(() => null);
+          // Mark booking confirmed — RLS now allows authenticated and anon updates
+          await supabase.from("bookings").update({
+            deposit_paid: true,
+            payment_ref: ref,
+            payment_status: "paid",
+            status: "confirmed",
+          } as any).eq("id", bookingId);
+
+          // Link client in background
+          findOrCreateClient({ name, phone: cleanPhone, email: email || null })
+            .then(clientId => {
+              if (clientId) supabase.from("bookings").update({ client_id: clientId } as any).eq("id", bookingId);
+            }).catch(() => null);
 
           setBookingRef(bRef);
           setBookedService(selectedService?.name || "");
