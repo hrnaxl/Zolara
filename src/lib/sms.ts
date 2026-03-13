@@ -56,23 +56,23 @@ export const SMS = {
     const first = firstName(name);
     const dayDate = date.includes("-") ? dayDateLabel(date) : date;
     const depositLine = depositPaid
-      ? "Deposit: GHS 50 received."
-      : "Deposit: Not recorded.";
+      ? "💳 Deposit: GHS 50 received."
+      : "💳 Deposit: Not recorded.";
     const statusLine = depositPaid
-      ? "Your appointment is being reviewed by our team. You will receive a confirmation message shortly."
-      : "Your appointment request is awaiting confirmation. You will receive an update shortly.";
-    return `Hi ${first}, your booking request at Zolara has been received.
+      ? "Your appointment is being reviewed by our team. You will receive a confirmation message shortly. 🌸"
+      : "Your appointment request is awaiting confirmation. You will receive an update shortly. 🌸";
+    return `Hi ${first}! ✨ Your booking request at Zolara has been received.
 
-Service: ${service}
-Date: ${dayDate}
-Time: ${time}
-Ref: ${ref}
+💆 Service: ${service}
+📅 Date: ${dayDate}
+🕐 Time: ${time}
+🔖 Ref: ${ref}
 
 ${depositLine}
 
 ${statusLine}
 
-Zolara Beauty Studio
+Zolara Beauty Studio 💛
 ${CONTACT}`;
   },
 
@@ -87,17 +87,19 @@ ${CONTACT}`;
   ) => {
     const first = firstName(name);
     const dayDate = date.includes("-") ? dayDateLabel(date) : date;
-    return `Hi ${first}, your Zolara appointment is confirmed.
+    return `Hi ${first}! ✅ Your Zolara appointment is confirmed!
 
-Service: ${service}
-Date: ${dayDate}
-Time: ${time}
-Stylist: ${staffName}
-Ref: ${ref}
+💆 Service: ${service}
+📅 Date: ${dayDate}
+🕐 Time: ${time}
+💅 Stylist: ${staffName}
+🔖 Ref: ${ref}
 
-We look forward to serving you. Please arrive about 5 minutes early.
+We can't wait to pamper you! 🌸 Please arrive about 5 minutes early.
 
-Zolara Beauty Studio
+📍 Sakasaka, Opp. CalBank – Tamale
+
+Zolara Beauty Studio 💛
 ${CONTACT}`;
   },
 

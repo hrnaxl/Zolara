@@ -257,6 +257,18 @@ export default function PublicBooking() {
 
       if (bookingError) throw bookingError;
 
+      // Send booking received SMS immediately — deposit not yet paid at this point
+      if (cleanPhone) {
+        sendSMS(cleanPhone, SMS.bookingReceived(
+          name || "Valued Client",
+          selectedService?.name || "service",
+          preferredDate,
+          normalizedTime,
+          bRef,
+          false, // deposit not yet paid
+        )).catch(console.error);
+      }
+
       // 2. Open Paystack popup — inline, no redirect, no edge function, no secret key
       // NOTE: client record is created at checkout, not here
       await openPaystackPopup({
@@ -277,19 +289,16 @@ export default function PublicBooking() {
             toast.error("Payment received but booking confirmation failed. Please contact us.");
           }
 
-          // Send booking received SMS — deposit paid via Paystack
+          // Send deposit-confirmed follow-up SMS
           if (cleanPhone) {
-            const smsPhone = cleanPhone || phone.replace(/\s/g, "");
-            const smsName  = name || "Valued Client";
-            const smsMsg   = SMS.bookingReceived(
-              smsName,
+            sendSMS(cleanPhone, SMS.bookingReceived(
+              name || "Valued Client",
               selectedService?.name || "service",
               preferredDate,
               normalizedTime,
               bRef,
-              true,
-            );
-            sendSMS(smsPhone, smsMsg).catch(console.error);
+              true, // deposit now paid
+            )).catch(console.error);
           }
 
           // Client record created at checkout only — not here
