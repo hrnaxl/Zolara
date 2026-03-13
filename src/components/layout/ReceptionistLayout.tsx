@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { RefreshCw, Bell, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { fetchPendingDepositBookings } from "@/lib/giftCardEcommerce";
@@ -176,13 +177,19 @@ const ReceptionistDashboard = () => {
         </div>
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <button onClick={fetchData}
-            style={{ width: "38px", height: "38px", borderRadius: "50%", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, fontSize: "16px" }}>
-            ↻
+          <button onClick={fetchData} title="Refresh"
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "linear-gradient(135deg,#8B6914,#C8A97E)"; (e.currentTarget as HTMLElement).style.color = "#fff"; (e.currentTarget as HTMLElement).style.borderColor = "transparent"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(200,169,126,0.35)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = WHITE; (e.currentTarget as HTMLElement).style.color = TXT_MID; (e.currentTarget as HTMLElement).style.borderColor = BORDER; (e.currentTarget as HTMLElement).style.boxShadow = SHADOW; }}
+            style={{ width: "40px", height: "40px", borderRadius: "12px", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, transition: "all 0.22s ease" }}>
+            <RefreshCw size={15} />
           </button>
           <div style={{ position: "relative" }}>
-            <button onClick={() => setBellOpen(o => !o)}
-              style={{ width: "38px", height: "38px", borderRadius: "50%", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px" }}>🔔</button>
+            <button onClick={() => setBellOpen(o => !o)} title="Notifications"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "linear-gradient(135deg,#8B6914,#C8A97E)"; (e.currentTarget as HTMLElement).style.color = "#fff"; (e.currentTarget as HTMLElement).style.borderColor = "transparent"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(200,169,126,0.35)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = WHITE; (e.currentTarget as HTMLElement).style.color = TXT_MID; (e.currentTarget as HTMLElement).style.borderColor = BORDER; (e.currentTarget as HTMLElement).style.boxShadow = SHADOW; }}
+              style={{ width: "40px", height: "40px", borderRadius: "12px", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, transition: "all 0.22s ease" }}>
+              <Bell size={15} />
+            </button>
             {stats.pending > 0 && (
               <div style={{ position: "absolute", top: "-2px", right: "-2px", minWidth: "16px", height: "16px", borderRadius: "8px", background: "#EF4444", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
                 <span style={{ fontSize: "8px", fontWeight: 700, color: "#fff" }}>{stats.pending}</span>
@@ -192,7 +199,7 @@ const ReceptionistDashboard = () => {
               <div style={{ position: "fixed", top: "70px", right: "36px", width: "300px", background: WHITE, borderRadius: "16px", boxShadow: "0 8px 40px rgba(0,0,0,0.14)", border: `1px solid ${BORDER}`, zIndex: 99999, overflow: "hidden" }}>
                 <div style={{ padding: "14px 18px", borderBottom: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 700, fontSize: "13px" }}>Notifications</span>
-                  <span onClick={() => setBellOpen(false)} style={{ cursor: "pointer", color: TXT_SOFT }}>✕</span>
+                  <button onClick={() => setBellOpen(false)} style={{ background:"none", border:"none", cursor:"pointer", color: TXT_SOFT, display:"flex", alignItems:"center", padding:"2px" }}><X size={14} /></button>
                 </div>
                 <div style={{ maxHeight: "340px", overflowY: "auto" }}>
                   {pendingItems.length > 0 ? pendingItems.map((b: any, i: number) => (
