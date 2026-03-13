@@ -383,25 +383,12 @@ const Staff = () => {
         refresh_token: adminSession.refresh_token,
       });
 
-      // Link staff record and role using service role via edge function (lightweight)
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-staff-login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          staff_id: loginStaff.id,
-          user_id: userId,
-          role: loginStaff.role || "staff",
-          link_only: true,
-        }),
-      }).catch(() => null);
-
-      // Also link directly in case edge function isn't deployed
-      await supabase.from("user_roles" as any).upsert({ user_id: userId, role: loginStaff.role || "staff" });
-      await supabase.from("staff" as any).update({ user_id: userId }).eq("id", loginStaff.id);
+      // Link staff record and role via SECURITY DEFINER function — works regardless of RLS
+      await (supabase as any).rpc("link_staff_account", {
+        p_user_id: userId,
+        p_staff_id: loginStaff.id,
+        p_role: loginStaff.role || "staff",
+      });
 
       toast.success(`Account created for ${loginStaff.name}. They'll receive a confirmation email.`);
       setLoginModalOpen(false);
