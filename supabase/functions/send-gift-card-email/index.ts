@@ -117,7 +117,7 @@ Deno.serve(async (_req) => {
             "Authorization": `Bearer ${Deno.env.get("RESEND_API_KEY") || ""}`,
           },
           body: JSON.stringify({
-            from: "Zolara Beauty Studio <gifts@gifts.zolarasalon.com>",
+            from: "Zolara Beauty Studio <hello@zolarasalon.com>",
             to: [card.recipient_email],
             subject: `Your Zolara ${card.tier} Gift Card — GH₵${card.amount}`,
             html: buildEmailHtml(card),
