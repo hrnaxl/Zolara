@@ -23,11 +23,13 @@ Deno.serve(async (req) => {
     );
 
     // Create user via admin API — does NOT affect caller's session
+    // email_confirm: true skips confirmation email entirely
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // auto-confirm so they can log in immediately
+      email_confirm: true,
       user_metadata: { role: role || "staff", name },
+      suppress_confirmation_email: true,
     });
 
     if (authError) throw authError;

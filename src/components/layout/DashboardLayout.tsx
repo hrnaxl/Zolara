@@ -179,6 +179,14 @@ const DashboardLayout = () => {
           .map((item) => ({ ...item, path: `/app/staff/${item.path}` }));
       }
 
+      // ── CLEANER: view only + attendance ────────────────────────
+      case "cleaner": {
+        const allowed = ["Dashboard", "Promo Codes", "Services", "Attendance"];
+        return baseNavItems
+          .filter((item) => allowed.includes(item.label))
+          .map((item) => ({ ...item, path: `/app/cleaner/${item.path}` }));
+      }
+
       // ── CLIENT: personal portal ─────────────────────────────────
       case "client": {
         const allowed = ["Dashboard", "Bookings", "Services"];
@@ -200,6 +208,7 @@ const DashboardLayout = () => {
     admin: "Admin Access",
     receptionist: "Reception",
     staff: "Staff Access",
+    cleaner: "Cleaner Access",
     client: "Client",
   };
 

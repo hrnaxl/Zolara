@@ -133,12 +133,13 @@ const App = () => (
             </Route>
           </Route>
 
-          {/* CLEANER - Read-only: promo codes + services */}
+          {/* CLEANER - Read-only: promo codes + services + attendance */}
           <Route element={<ProtectedRoute allowedRoles={["cleaner"]} />}>
             <Route element={<DashboardLayout />}>
               <Route path="/app/cleaner/dashboard" element={<CleanerLayout />} />
               <Route path="/app/cleaner/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/cleaner/services" element={<ViewServices />} />
+              <Route path="/app/cleaner/attendance" element={<MyAttendance />} />
             </Route>
           </Route>
 
