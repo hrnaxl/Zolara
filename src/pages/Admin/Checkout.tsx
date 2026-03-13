@@ -597,7 +597,15 @@ const Checkout = () => {
           }
 
           if (clientId) {
-            const fullBookingPrice = Number(originalPrice || parseFloat(amount) || (booking as any).price || (booking as any).services?.price || 0);
+            // Full price = originalPrice if known, else amount paid now + deposit already paid
+            const amountPaid = parseFloat(amount) || 0;
+            const fullBookingPrice = Number(
+              originalPrice ||
+              (amountPaid + (depositPaid ? depositAmount : 0)) ||
+              (booking as any).price ||
+              (booking as any).services?.price ||
+              0
+            );
             // Fetch fresh client data — booking join may be stale
             const { data: freshClient } = await (supabase as any).from("clients").select("loyalty_points, total_spent, total_visits, date_of_birth").eq("id", clientId).single();
             const currentStamps = Number(freshClient?.loyalty_points || 0);
