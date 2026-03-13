@@ -315,11 +315,11 @@ const ReceptionistDashboard = () => {
           <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: "#DC2626", marginBottom: "5px" }}>DEPOSIT NOT PAID</div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT }}>
-              Incomplete Bookings ({pendingDeposits.length})
+              Deposit Not Paid ({pendingDeposits.length})
             </div>
           </div>
           <div style={{ fontSize: "12px", color: TXT_MID, marginBottom: "16px" }}>
-            These clients started a booking but did not complete payment. Their slot is <strong>not reserved</strong>. You can cancel and remove them or follow up.
+            These clients did not pay the deposit. Their slot is <strong>not reserved</strong>. At checkout, collect the <strong>full service amount</strong> — do not deduct the GH₵50 deposit.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "10px" }}>
             {pendingDeposits.map((b: any) => (
