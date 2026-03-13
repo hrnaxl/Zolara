@@ -143,12 +143,12 @@ const Checkout = () => {
       if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
 
       // Price: use services.price as source of truth for the actual service cost
-      // Use explicit FK join services:service_id(*) to get real service price
-      const servicePrice = Number((data as any).services?.price ?? 0);
-      const bookingStoredPrice = Number((data as any).price ?? 0);
-      // Always prefer the live service price from services table
-      const price = servicePrice > 0 ? servicePrice : bookingStoredPrice;
-      console.log("Checkout price debug:", { servicePrice, bookingStoredPrice, price, services: (data as any).services });
+      // booking.price is set at booking time = service base + variant + addons (the correct total)
+      // services.price is just the base price - NOT the full price when variants are selected
+      // So we MUST use booking.price as the definitive checkout price
+      const bookingPrice = Number((data as any).price ?? 0);
+      const serviceBasePrice = Number((data as any).services?.price ?? 0);
+      const price = bookingPrice > 0 ? bookingPrice : serviceBasePrice;
       setOriginalPrice(price);
 
       // Check if deposit was already paid and auto-verify via edge function
