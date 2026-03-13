@@ -173,7 +173,7 @@ const DashboardLayout = () => {
 
       // ── STAFF: personal work only ───────────────────────────────
       case "staff": {
-        const allowed = ["Dashboard", "Bookings", "Services", "Attendance"];
+        const allowed = ["Dashboard", "Bookings", "Services", "Attendance", "Promo Codes"];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))
           .map((item) => ({ ...item, path: `/app/staff/${item.path}` }));
