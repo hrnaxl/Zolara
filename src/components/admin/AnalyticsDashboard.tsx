@@ -279,7 +279,7 @@ export default function AnalyticsDashboard() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: TXT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
-                <div style={{ fontSize: 10, color: TXT_SOFT }}>{c.total_visits || 0} visits · {c.loyalty_points || 0} pts</div>
+                <div style={{ fontSize: 10, color: TXT_SOFT }}>{c.total_visits || 0} visit{(c.total_visits || 0) !== 1 ? "s" : ""} · {c.loyalty_points || 0} stamp{(c.loyalty_points || 0) !== 1 ? "s" : ""}</div>
               </div>
               <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 700, color: TXT, flexShrink: 0 }}>{fmt(c.total_spent || 0)}</div>
             </div>
