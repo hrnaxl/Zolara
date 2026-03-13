@@ -36,6 +36,7 @@ import ClientBookings from "./pages/Client/ClientBookings";
 import ClientAuth from "./pages/Client/ClientAuth";
 import ClientPortal from "./pages/Client/ClientPortal";
 import ClientDashboard from "./pages/Client/ClientDashboard";
+import ClientLoyalty from "./pages/Client/ClientLoyalty";
 import ViewServices from "./pages/Client/ViewServices";
 import SettingsPage from "./pages/Admin/Settings";
 import Loyalty from "./pages/Admin/Loyalty";
@@ -77,7 +78,7 @@ const App = () => (
           <Route path="/app/client" element={<ClientPortal />}>
             <Route path="dashboard" element={<ClientDashboard />} />
             <Route path="bookings" element={<ClientBookings />} />
-            <Route path="loyalty" element={<ClientDashboard />} />
+            <Route path="loyalty" element={<ClientLoyalty />} />
             <Route path="services" element={<ViewServices />} />
           </Route>
 

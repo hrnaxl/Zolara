@@ -154,7 +154,7 @@ const ReceptionistDashboard = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
-        .rc{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW};transition:box-shadow 0.2s,transform 0.2s}
+        .rc{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW};transition:box-shadow 0.2s,transform 0.2s;position:relative;z-index:0}
         .rc:hover{box-shadow:0 2px 8px rgba(0,0,0,0.06),0 12px 36px rgba(0,0,0,0.1);transform:translateY(-1px)}
         .rc-flat{background:${WHITE};border:1px solid ${BORDER};border-radius:16px;padding:24px;box-shadow:${SHADOW}}
         @keyframes spin{to{transform:rotate(360deg)}}
@@ -183,7 +183,7 @@ const ReceptionistDashboard = () => {
             style={{ width: "40px", height: "40px", borderRadius: "12px", background: WHITE, border: `1px solid ${BORDER}`, boxShadow: SHADOW, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: TXT_MID, transition: "all 0.22s ease" }}>
             <RefreshCw size={15} />
           </button>
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", zIndex: 100000 }}>
             <button onClick={() => setBellOpen(o => !o)} title="Notifications"
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "linear-gradient(135deg,#8B6914,#C8A97E)"; (e.currentTarget as HTMLElement).style.color = "#fff"; (e.currentTarget as HTMLElement).style.borderColor = "transparent"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(200,169,126,0.35)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = WHITE; (e.currentTarget as HTMLElement).style.color = TXT_MID; (e.currentTarget as HTMLElement).style.borderColor = BORDER; (e.currentTarget as HTMLElement).style.boxShadow = SHADOW; }}
