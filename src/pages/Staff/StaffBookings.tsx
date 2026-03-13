@@ -48,18 +48,20 @@ const StaffBookings = () => {
       const { data: profile } = await supabase.from("staff").select("id, name").eq("user_id", user.id).maybeSingle();
       if (profile) { setStaffName(profile.name); setStaffProfileId(profile.id); }
 
+      // Build query filtered to this staff member at DB level
+      let bookingsQuery = supabase.from("bookings").select("*").order("preferred_date", { ascending: false });
+      if (profile?.id) {
+        bookingsQuery = bookingsQuery.eq("staff_id", profile.id);
+      } else if (profile?.name) {
+        bookingsQuery = bookingsQuery.ilike("staff_name", profile.name);
+      }
+
       const [bookingsRes, servicesRes] = await Promise.all([
-        supabase.from("bookings").select("*").order("preferred_date", { ascending: false }),
+        bookingsQuery,
         supabase.from("services").select("*").eq("is_active", true).order("name"),
       ]);
 
-      // Filter to only this staff member's bookings
-      const myBookings = (bookingsRes.data || []).filter((b: any) =>
-        (profile?.id && b.staff_id === profile.id) ||
-        (profile?.name && b.staff_name?.toLowerCase() === profile.name.toLowerCase())
-      );
-
-      setBookings(myBookings);
+      setBookings(bookingsRes.data || []);
       if (servicesRes.data) setServices(servicesRes.data);
     } catch {
       toast.error("Failed to load bookings");

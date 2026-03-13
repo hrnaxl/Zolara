@@ -26,7 +26,6 @@ import {
   X,
   Clock,
   Settings,
-  MessageSquare,
   CheckIcon,
   Gift,
   Star,
@@ -145,7 +144,6 @@ const DashboardLayout = () => {
     { icon: FileText,        label: "Reports",             path: "reports" },
     { icon: Clock,           label: "Attendance",          path: "attendance" },
     { icon: FileText,        label: "Attendance Reports",  path: "attendance-reports" },
-    { icon: MessageSquare,   label: "SMS Test",            path: "sms-test" },
     { icon: Settings,        label: "Settings",            path: "settings" },
   ];
 

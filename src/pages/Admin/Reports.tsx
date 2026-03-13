@@ -531,6 +531,14 @@ const Reports = () => {
         </div>
       </div>
 
+      {!reportData && !loading && (
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "48px", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ fontSize: 40, marginBottom: 14 }}>📊</div>
+          <p style={{ fontSize: 15, fontWeight: 600, color: TXT, marginBottom: 6 }}>No sales data for this period</p>
+          <p style={{ fontSize: 13, color: TXT_SOFT }}>Try a different date range, or complete a checkout to start seeing reports.</p>
+        </div>
+      )}
+
       {reportData && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* KPI Row */}

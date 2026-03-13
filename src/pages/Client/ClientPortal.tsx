@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
-import { LayoutDashboard, Calendar, Star, Scissors, LogOut, Menu, X, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Calendar, Star, Scissors, User, LogOut, Menu, X, ChevronRight } from "lucide-react";
 
 const G      = "#C8A97E";
 const G_DARK = "#8B6914";
@@ -25,6 +25,7 @@ const NAV = [
   { icon: Calendar,        label: "My Bookings", path: "/app/client/bookings" },
   { icon: Star,            label: "Loyalty",     path: "/app/client/loyalty" },
   { icon: Scissors,        label: "Services",    path: "/app/client/services" },
+  { icon: User,            label: "My Profile",  path: "/app/client/profile" },
 ];
 
 export default function ClientPortal() {

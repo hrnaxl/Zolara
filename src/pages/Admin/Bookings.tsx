@@ -802,10 +802,10 @@ const Bookings = () => {
 
       if (error) throw error;
 
+      const bk = bookings.find(b => b.id === bookingId);
+
       if (newStatus === "confirmed") {
-        const bk = bookings.find(b => b.id === bookingId);
         if (bk?.client_phone) {
-          // Fetch fresh booking with staff join to get actual staff name
           const { data: freshBk } = await supabase
             .from("bookings")
             .select("*, staff:staff_id(name)")
@@ -823,7 +823,47 @@ const Bookings = () => {
           )).catch(console.error);
         }
       }
-      toast.success("Booking status updated");
+
+      if (newStatus === "no_show") {
+        // Flag the client with a no-show count
+        if (bk?.client_id) {
+          const { data: cl } = await supabase
+            .from("clients")
+            .select("no_show_count, notes")
+            .eq("id", bk.client_id)
+            .maybeSingle();
+          const currentCount = Number((cl as any)?.no_show_count || 0);
+          await supabase
+            .from("clients")
+            .update({
+              no_show_count: currentCount + 1,
+              notes: (cl as any)?.notes
+                ? `${(cl as any).notes}
+No-show on ${bk.preferred_date || "unknown date"}.`
+                : `No-show on ${bk.preferred_date || "unknown date"}.`,
+            } as any)
+            .eq("id", bk.client_id);
+        }
+        // Send no-show SMS
+        if (bk?.client_phone) {
+          const CONTACT = "0594365314 / 0208848707";
+          const first = (bk.client_name || "").split(" ")[0] || "there";
+          sendSMS(bk.client_phone, [
+            `Hi ${first}, we missed you at Zolara today. 💛`,
+            ``,
+            `Your appointment for ${bk.service_name || "your service"} was not attended.`,
+            ``,
+            `If you'd like to rebook, we're happy to have you back:`,
+            `🔗 zolarasalon.com`,
+            ``,
+            `Zolara Beauty Studio`,
+            CONTACT,
+          ].join("\n")).catch(console.error);
+        }
+        toast.warning("Marked as no-show. Client notified.");
+      } else {
+        toast.success("Booking status updated");
+      }
       fetchBookings();
       fetchAllBookings();
     } catch (err: any) {

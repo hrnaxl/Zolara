@@ -133,18 +133,29 @@ export default function ClientBookings() {
               </div>
 
               {/* Price + status */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-                {b.price && (
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: TXT }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                {b.status === "completed" && b.price ? (
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: TXT }}>
+                      GH₵ {Number(b.price).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 9, color: TXT_S, textAlign: "right", marginTop: 1 }}>TOTAL PAID</div>
+                  </div>
+                ) : b.deposit_paid && b.deposit_amount ? (
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700, color: "#C8A97E" }}>
+                      GH₵ {Number(b.deposit_amount).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 9, color: "#C8A97E", textAlign: "right", marginTop: 1 }}>DEPOSIT PAID</div>
+                  </div>
+                ) : b.price ? (
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 600, color: TXT_S }}>
                     GH₵ {Number(b.price).toLocaleString()}
                   </div>
-                )}
+                ) : null}
                 <div style={{ display: "inline-flex", padding: "4px 12px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: STATUS_BG[b.status] || CREAM, color: STATUS_COLOR[b.status] || TXT_S, letterSpacing: "0.06em" }}>
                   {STATUS_LABEL[b.status] || b.status}
                 </div>
-                {b.deposit_paid && (
-                  <div style={{ fontSize: 10, color: "#22C55E", fontWeight: 600 }}>✓ Deposit paid</div>
-                )}
               </div>
             </div>
           ))}
