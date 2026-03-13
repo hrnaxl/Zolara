@@ -600,51 +600,22 @@ const Checkout = () => {
 
           if (clientId) {
             // ── LOYALTY: only awarded on completed checkout ──────────────────
-            // Full service price — same source used for the sales record
+            // Full service price — balance entered + deposit already paid
             const fullBookingPrice = Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
-            console.log("🧾 LOYALTY DEBUG", {
-              originalPrice,
-              amount,
-              depositPaid,
-              depositAmount,
-              fullBookingPrice,
-              clientId,
-              freshClient,
+
+            // Use SECURITY DEFINER RPC to bypass RLS and update client reliably
+            await (supabase as any).rpc("update_client_after_checkout", {
+              p_client_id:    clientId,
+              p_amount_spent: fullBookingPrice,
             });
 
-            // Fetch fresh client data to avoid stale cache
+            // Read back final points for SMS
             const { data: freshClient } = await (supabase as any)
               .from("clients")
-              .select("loyalty_points, total_spent, total_visits, date_of_birth")
+              .select("loyalty_points, total_spent, date_of_birth")
               .eq("id", clientId)
               .single();
-
-            const prevTotalSpent  = Number(freshClient?.total_spent  || 0);
-            const prevTotalVisits = Number(freshClient?.total_visits  || 0);
-
-            // Accumulate lifetime completed spend
-            const newTotalSpent  = prevTotalSpent + fullBookingPrice;
-            const newTotalVisits = prevTotalVisits + 1;
-
-            // Points = floor(lifetime_completed_spend / 100)
-            // Birthday month: double the points earned this visit only
-            const clientDob = freshClient?.date_of_birth;
-            const isBirthdayMonth = clientDob
-              ? new Date(clientDob).getMonth() === new Date().getMonth()
-              : false;
-            const stampPerGhs = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
-            const basePoints     = Math.floor(newTotalSpent / stampPerGhs);
-            const birthdayBonus  = isBirthdayMonth
-              ? Math.floor(fullBookingPrice / stampPerGhs) // extra once for birthday visit
-              : 0;
-            const finalPoints = basePoints + birthdayBonus;
-
-            const { error: loyaltyError } = await supabase.from("clients" as any).update({
-              loyalty_points: finalPoints,
-              total_spent:    newTotalSpent,
-              total_visits:   newTotalVisits,
-            }).eq("id", clientId);
-            console.log("🏆 LOYALTY UPDATE", { clientId, finalPoints, newTotalSpent, newTotalVisits, loyaltyError });
+            const finalPoints = Number(freshClient?.loyalty_points || 0);
             if (clientPhone) {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
               const rewardGhs = Number((settings as any)?.loyalty_reward_discount ?? 50);
