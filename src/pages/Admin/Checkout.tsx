@@ -597,36 +597,48 @@ const Checkout = () => {
           }
 
           if (clientId) {
-            // Full price = originalPrice if known, else amount paid now + deposit already paid
+            // ── LOYALTY: only awarded on completed checkout ──────────────────
+            // Full service price = originalPrice (entered by receptionist) OR
+            // amount paid now + deposit already collected, never just the balance
             const amountPaid = parseFloat(amount) || 0;
             const fullBookingPrice = Number(
               originalPrice ||
               (amountPaid + (depositPaid ? depositAmount : 0)) ||
               (booking as any).price ||
-              (booking as any).services?.price ||
               0
             );
-            // Fetch fresh client data — booking join may be stale
-            const { data: freshClient } = await (supabase as any).from("clients").select("loyalty_points, total_spent, total_visits, date_of_birth").eq("id", clientId).single();
-            const currentStamps = Number(freshClient?.loyalty_points || 0);
-            const currentSpent = Number(freshClient?.total_spent || 0);
-            const currentVisits = Number(freshClient?.total_visits || 0);
-            // Birthday bonus: double stamps in birthday month
+
+            // Fetch fresh client data to avoid stale cache
+            const { data: freshClient } = await (supabase as any)
+              .from("clients")
+              .select("loyalty_points, total_spent, total_visits, date_of_birth")
+              .eq("id", clientId)
+              .single();
+
+            const prevTotalSpent  = Number(freshClient?.total_spent  || 0);
+            const prevTotalVisits = Number(freshClient?.total_visits  || 0);
+
+            // Accumulate lifetime completed spend
+            const newTotalSpent  = prevTotalSpent + fullBookingPrice;
+            const newTotalVisits = prevTotalVisits + 1;
+
+            // Points = floor(lifetime_completed_spend / 100)
+            // Birthday month: double the points earned this visit only
             const clientDob = freshClient?.date_of_birth;
             const isBirthdayMonth = clientDob
               ? new Date(clientDob).getMonth() === new Date().getMonth()
               : false;
             const stampPerGhs = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
-            const stampsEarned = Math.floor(fullBookingPrice / stampPerGhs) * (isBirthdayMonth ? 2 : 1);
-            const newStamps = currentStamps + stampsEarned;
-            const newTotalSpent = currentSpent + fullBookingPrice;
-            const recalcPoints = Math.floor(newTotalSpent / stampPerGhs) * (isBirthdayMonth ? 2 : 1);
-            // Use the higher of incremental vs recalculated to never lose points
-            const finalPoints = Math.max(newStamps, recalcPoints);
+            const basePoints     = Math.floor(newTotalSpent / stampPerGhs);
+            const birthdayBonus  = isBirthdayMonth
+              ? Math.floor(fullBookingPrice / stampPerGhs) // extra once for birthday visit
+              : 0;
+            const finalPoints = basePoints + birthdayBonus;
+
             await supabase.from("clients" as any).update({
               loyalty_points: finalPoints,
-              total_spent: newTotalSpent,
-              total_visits: currentVisits + 1,
+              total_spent:    newTotalSpent,
+              total_visits:   newTotalVisits,
             }).eq("id", clientId);
             if (clientPhone) {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
