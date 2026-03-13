@@ -277,17 +277,19 @@ export default function PublicBooking() {
             toast.error("Payment received but booking confirmation failed. Please contact us.");
           }
 
-          // Send booking received SMS
+          // Send booking received SMS — deposit paid via Paystack
           if (cleanPhone) {
-            const depositPaid = true; // they just paid via Paystack
-            sendSMS(cleanPhone, SMS.bookingReceived(
-              name,
+            const smsPhone = cleanPhone || phone.replace(/\s/g, "");
+            const smsName  = name || "Valued Client";
+            const smsMsg   = SMS.bookingReceived(
+              smsName,
               selectedService?.name || "service",
               preferredDate,
               normalizedTime,
               bRef,
-              depositPaid,
-            )).catch(console.error);
+              true,
+            );
+            sendSMS(smsPhone, smsMsg).catch(console.error);
           }
 
           // Client record created at checkout only — not here
