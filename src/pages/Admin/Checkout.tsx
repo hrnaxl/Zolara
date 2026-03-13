@@ -195,9 +195,11 @@ const Checkout = () => {
 
   useEffect(() => {
     if (!booking) return;
-    const svcPrice = Number(booking.services?.price ?? (booking as any).price ?? 0);
-    setLineItems([{ type: "service", id: booking.service_id || booking.id, name: booking.service_name || "Service", quantity: 1, unitPrice: svcPrice, coveredBySubscription: false }]);
-  }, [booking]);
+    // Priority: services join price > originalPrice (set during fetch) > booking.price
+    const svcPrice = Number((booking as any).services?.price ?? originalPrice ?? (booking as any).price ?? 0);
+    const finalPrice = svcPrice > 0 ? svcPrice : originalPrice;
+    setLineItems([{ type: "service", id: (booking as any).service_id || booking.id, name: booking.service_name || "Service", quantity: 1, unitPrice: finalPrice, coveredBySubscription: false }]);
+  }, [booking, originalPrice]);
 
   useEffect(() => { if (!paymentMethod) setPaymentMethod("cash"); }, []);
 
@@ -235,17 +237,20 @@ const Checkout = () => {
     try {
       const code = giftCode.trim().toUpperCase();
       const { data: cards, error: fetchErr } = await (supabase as any)
-        .from("gift_cards").select("*").eq("final_code", code).limit(1);
+        .from("gift_cards").select("*").eq("code", code).limit(1);
       if (fetchErr) throw fetchErr;
       const card = cards?.[0];
       if (!card) { toast.error("Gift card not found. Check the code and try again."); return; }
       if (card.status === "redeemed") { toast.error("This gift card has already been used."); return; }
       if (card.status === "expired" || (card.expire_at && new Date(card.expire_at) < new Date())) { toast.error("This gift card has expired."); return; }
       if (!["active","available","pending_send"].includes(card.status || "")) { toast.error("Gift card is not available (status: " + card.status + ")."); return; }
-      const value = Number(card.balance || card.card_value || 0);
-      const orig = Number(originalPrice || (booking as any).price || (booking as any).services?.price || 0);
-      setRedeemedCard({ id: card.id, value });
-      setAmount(String(Math.max(0, orig - value).toFixed(2)));
+      const value = Number(card.balance || 0);
+      if (value <= 0) { toast.error("This gift card has no remaining balance."); return; }
+      // Apply after deposit deduction
+      const dep2 = depositPaid ? depositAmount : 0;
+      const baseAfterDeposit = Math.max(0, originalPrice - dep2);
+      setRedeemedCard({ id: card.id, value: Math.min(value, baseAfterDeposit) });
+      toast.success("Gift card applied: GHS " + Math.min(value, baseAfterDeposit).toFixed(2) + " off");
       toast.success("Gift card applied: GHS " + value.toFixed(2) + " off");
     } catch (err: any) {
       console.error("Redeem error:", err);
@@ -260,7 +265,8 @@ const Checkout = () => {
       const result = await validatePromoCode(promoCode.trim());
       if (!result.valid) { toast.error(result.message); return; }
       const promo = result.promo;
-      const base = originalPrice || parseFloat(amount) || 0;
+      const dep3 = depositPaid ? depositAmount : 0;
+      const base = Math.max(0, originalPrice - dep3 - (redeemedCard?.value ?? 0));
       const discount = promo.discount_type === "percentage" ? (base * promo.discount_value) / 100 : Math.min(promo.discount_value, base);
       setAppliedPromo(promo); setPromoDiscount(discount);
       toast.success(`Promo applied: GHS ${discount.toFixed(2)} off`);
@@ -278,7 +284,8 @@ const Checkout = () => {
 
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
-    const effectivePrice = lineItemsTotal > 0 ? lineItemsTotal : (Number(originalPrice) || (parseFloat(amount) + dep) || 0);
+    // effectivePrice = full service price (source of truth for sales records)
+    const effectivePrice = originalPrice > 0 ? originalPrice : (lineItemsTotal > 0 ? lineItemsTotal : parseFloat(amount) || 0);
     const paymentAmount = Math.max(0, effectivePrice - promoDiscount - giftValue - dep);
     setProcessing(true);
 
@@ -454,7 +461,10 @@ const Checkout = () => {
 
   const checkoutDisabled = processing || !selectedStaff;
   const statusColors = sc(booking.status);
-  const balanceDue = Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - (depositPaid ? depositAmount : 0));
+  const dep = depositPaid ? depositAmount : 0;
+  const afterDeposit = Math.max(0, originalPrice - dep);
+  const afterPromo = Math.max(0, afterDeposit - promoDiscount);
+  const balanceDue = Math.max(0, afterPromo - (redeemedCard?.value ?? 0));
 
   // Pre-computed style vars to avoid esbuild TSX parse issues
   const itemRowBg = (covered: boolean) => covered ? "#F0FDF4" : "#FAFAF8";
@@ -522,31 +532,35 @@ const Checkout = () => {
                 <span style={{ padding: "3px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700, background: statusColors.bg, color: statusColors.color, border: "1px solid " + statusColors.border }}>{booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span>
               </div>
               <div style={{ paddingTop: "14px", borderTop: "1px solid " + BORDER }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid " + BORDER }}>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>Service Price</span>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>GHS {Number(originalPrice || booking.services?.price || 0).toFixed(2)}</span>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>GHS {originalPrice.toFixed(2)}</span>
+                </div>
+                {depositPaid && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid " + BORDER }}>
+                    <span style={{ fontSize: "12px", color: "#16A34A" }}>Deposit Paid</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {depositAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid " + BORDER }}>
+                  <span style={{ fontSize: "12px", color: TXT_MID }}>Remaining before discounts</span>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>GHS {afterDeposit.toFixed(2)}</span>
                 </div>
                 {appliedPromo && (
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
-                    <span style={{ fontSize: "12px", color: TXT_MID }}>Promo ({appliedPromo.code})</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid " + BORDER }}>
+                    <span style={{ fontSize: "12px", color: "#16A34A" }}>Promo ({appliedPromo.code})</span>
                     <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {promoDiscount.toFixed(2)}</span>
                   </div>
                 )}
                 {redeemedCard && (
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
-                    <span style={{ fontSize: "12px", color: TXT_MID }}>Gift Card</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid " + BORDER }}>
+                    <span style={{ fontSize: "12px", color: "#16A34A" }}>Gift Card</span>
                     <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {redeemedCard.value.toFixed(2)}</span>
                   </div>
                 )}
-                {depositPaid && (
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
-                    <span style={{ fontSize: "12px", color: TXT_MID }}>Deposit Paid</span>
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {depositAmount.toFixed(2)}</span>
-                  </div>
-                )}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "10px", marginTop: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "12px", marginTop: "4px" }}>
                   <span style={{ fontSize: "14px", fontWeight: 700, color: TXT }}>Balance Due</span>
-                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "26px", fontWeight: 700, color: G_D }}>GHS {balanceDue.toFixed(2)}</span>
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, color: G_D }}>GHS {balanceDue.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -589,11 +603,6 @@ const Checkout = () => {
                     );
                   })}
                 </div>
-              </div>
-
-              <div>
-                <label style={lbl}>Amount (GHS)</label>
-                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={inp} />
               </div>
 
               <div style={{ background: depositBg, border: depositBorder, borderRadius: "12px", padding: "14px 16px" }}>
