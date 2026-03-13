@@ -363,19 +363,28 @@ const Staff = () => {
     if (!loginPassword || loginPassword.length < 6) { toast.error("Password must be at least 6 characters."); return; }
     setLoginLoading(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: loginStaff.email,
-        password: loginPassword,
-        options: { data: { role: loginStaff.role || "staff", name: loginStaff.name } }
+      // Use edge function with admin API — browser signUp() signs out the current admin session
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-staff-login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          staff_id: loginStaff.id,
+          email: loginStaff.email,
+          password: loginPassword,
+          role: loginStaff.role || "staff",
+          name: loginStaff.name,
+        }),
       });
-      if (authError) throw authError;
-      const userId = authData.user?.id;
-      if (!userId) throw new Error("No user ID returned");
-      await supabase.from("user_roles").upsert({ user_id: userId, role: loginStaff.role || "staff" });
-      await supabase.from("staff").update({ user_id: userId }).eq("id", loginStaff.id);
-      toast.success(`Login created for ${loginStaff.name}. They'll receive a confirmation email.`);
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Failed to create login");
+      toast.success(`Login created for ${loginStaff.name}. They can log in immediately.`);
       setLoginModalOpen(false);
       setLoginPassword("");
+      fetchStaff();
     } catch (err: any) {
       toast.error(err.message || "Failed to create login");
     } finally {

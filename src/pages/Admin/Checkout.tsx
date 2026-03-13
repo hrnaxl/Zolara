@@ -587,11 +587,13 @@ const Checkout = () => {
           const clientPhone = (booking as any).client_phone || booking.clients?.phone;
           if (clientId) {
             const fullBookingPrice = Number((booking as any).price || originalPrice || 0);
-            const currentStamps = (booking as any).clients?.loyalty_points || 0;
-            const currentSpent = Number((booking as any).clients?.total_spent || 0);
-            const currentVisits = Number((booking as any).clients?.total_visits || 0);
+            // Fetch fresh client data — booking join may be stale
+            const { data: freshClient } = await (supabase as any).from("clients").select("loyalty_points, total_spent, total_visits, date_of_birth").eq("id", clientId).single();
+            const currentStamps = Number(freshClient?.loyalty_points || 0);
+            const currentSpent = Number(freshClient?.total_spent || 0);
+            const currentVisits = Number(freshClient?.total_visits || 0);
             // Birthday bonus: double stamps in birthday month
-            const clientDob = (booking as any).clients?.date_of_birth;
+            const clientDob = freshClient?.date_of_birth;
             const isBirthdayMonth = clientDob
               ? new Date(clientDob).getMonth() === new Date().getMonth()
               : false;

@@ -79,7 +79,11 @@ export default function SalesRevenue() {
   };
 
   const filtered = payments
-    .filter(p => !filterMethod || p.payment_method === filterMethod)
+    .filter(p => {
+      if (!filterMethod) return true;
+      if (filterMethod === "deposit") return p.payment_method === "deposit" || (p.notes && p.notes.toLowerCase().includes("deposit"));
+      return p.payment_method === filterMethod;
+    })
     .filter(p => !filterStatus || p.status === filterStatus);
 
   const completed = filtered.filter(p => p.status === "completed");
