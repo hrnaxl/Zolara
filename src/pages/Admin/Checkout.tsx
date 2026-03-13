@@ -597,7 +597,7 @@ const Checkout = () => {
           }
 
           if (clientId) {
-            const fullBookingPrice = Number(originalPrice || (booking as any).price || (booking as any).services?.price || 0);
+            const fullBookingPrice = Number(originalPrice || parseFloat(amount) || (booking as any).price || (booking as any).services?.price || 0);
             // Fetch fresh client data — booking join may be stale
             const { data: freshClient } = await (supabase as any).from("clients").select("loyalty_points, total_spent, total_visits, date_of_birth").eq("id", clientId).single();
             const currentStamps = Number(freshClient?.loyalty_points || 0);
@@ -611,9 +611,13 @@ const Checkout = () => {
             const stampPerGhs = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
             const stampsEarned = Math.floor(fullBookingPrice / stampPerGhs) * (isBirthdayMonth ? 2 : 1);
             const newStamps = currentStamps + stampsEarned;
+            const newTotalSpent = currentSpent + fullBookingPrice;
+            const recalcPoints = Math.floor(newTotalSpent / stampPerGhs) * (isBirthdayMonth ? 2 : 1);
+            // Use the higher of incremental vs recalculated to never lose points
+            const finalPoints = Math.max(newStamps, recalcPoints);
             await supabase.from("clients" as any).update({
-              loyalty_points: newStamps,
-              total_spent: currentSpent + fullBookingPrice,
+              loyalty_points: finalPoints,
+              total_spent: newTotalSpent,
               total_visits: currentVisits + 1,
             }).eq("id", clientId);
             if (clientPhone) {
@@ -624,7 +628,7 @@ const Checkout = () => {
                 booking.client_name || "Valued Client",
                 booking.service_name || "service",
                 fullBookingPrice.toFixed(0),
-                newStamps,
+                finalPoints,
                 stampsForReward,
                 rewardGhs,
                 staffName,
