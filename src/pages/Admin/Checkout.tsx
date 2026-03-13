@@ -618,20 +618,30 @@ const Checkout = () => {
             const finalPoints = Number(freshClient?.loyalty_points || 0);
             if (clientPhone) {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
-              const rewardGhs = Number((settings as any)?.loyalty_reward_discount ?? 50);
-              const staffName = staff.find(s => s.id === selectedStaff)?.name;
+              const prevPoints = Number(freshClient?.loyalty_points || 0);
+              const pointsEarned = Math.max(0, finalPoints - prevPoints);
+
+              // SMS #5 — checkout complete
               await sendSMS(clientPhone, SMS.checkoutComplete(
                 booking.client_name || "Valued Client",
                 booking.service_name || "service",
                 fullBookingPrice.toFixed(0),
+                pointsEarned,
                 finalPoints,
-                stampsForReward,
-                rewardGhs,
-                staffName,
-                depositPaid ? depositAmount : undefined,
-                appliedPromo?.code || undefined,
-                promoDiscount > 0 ? promoDiscount : undefined,
+                booking.booking_ref || booking.id.slice(0,8).toUpperCase(),
               ));
+
+              // SMS #7 — loyalty reward unlocked (crosses 20 stamp threshold)
+              const prevBucket = Math.floor(prevPoints / stampsForReward);
+              const newBucket  = Math.floor(finalPoints / stampsForReward);
+              if (newBucket > prevBucket && finalPoints >= stampsForReward) {
+                setTimeout(() => {
+                  sendSMS(clientPhone, SMS.loyaltyReward(
+                    booking.client_name || "Valued Client",
+                    finalPoints,
+                  )).catch(console.error);
+                }, 3000); // small delay so checkout SMS arrives first
+              }
             }
           }
         } catch(loyaltyErr) { console.error("Loyalty update error:", loyaltyErr); }

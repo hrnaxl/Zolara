@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 const genId = () => crypto.randomUUID();
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { sendSMS, SMS } from "@/lib/sms";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { openPaystackPopup } from "@/lib/payment";
@@ -274,6 +275,19 @@ export default function PublicBooking() {
           if (confirmErr) {
             console.error("Booking confirm error:", confirmErr);
             toast.error("Payment received but booking confirmation failed. Please contact us.");
+          }
+
+          // Send booking received SMS
+          if (cleanPhone) {
+            const depositPaid = true; // they just paid via Paystack
+            sendSMS(cleanPhone, SMS.bookingReceived(
+              name,
+              selectedService?.name || "service",
+              preferredDate,
+              normalizedTime,
+              bRef,
+              depositPaid,
+            )).catch(console.error);
           }
 
           // Client record created at checkout only — not here

@@ -678,6 +678,7 @@ const Bookings = () => {
             dateLabel || "",
             bookingPayload.preferred_time || "",
             ref,
+            false, // admin-created bookings don't have deposit by default
           )).catch(console.error);
         }
       }
@@ -808,7 +809,7 @@ const Bookings = () => {
           sendSMS(bk.client_phone, SMS.bookingConfirmed(
             bk.client_name || "Valued Client",
             bk.service_name || "service",
-            dateLabel || "",
+            bk.preferred_date || "",
             bk.preferred_time || "",
             bk.staff_name || "our stylist",
             bk.booking_ref || bookingId.slice(0,8).toUpperCase(),
