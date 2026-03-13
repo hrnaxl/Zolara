@@ -159,6 +159,15 @@ const Checkout = () => {
         ? bookingStoredPrice
         : serviceBasePrice > 0 ? serviceBasePrice : bookingStoredPrice;
       setOriginalPrice(price);
+      // Set service line item immediately with the correct price
+      setLineItems([{
+        type: "service",
+        id: (data as any).service_id || (data as any).id,
+        name: (data as any).service_name || "Service",
+        quantity: 1,
+        unitPrice: price,
+        coveredBySubscription: false,
+      }]);
 
       // Check if deposit was already paid and auto-verify via edge function
       let depositAlreadyPaid = !!(data as any).deposit_paid;
@@ -205,13 +214,8 @@ const Checkout = () => {
     } catch (e) { console.error("fetchStaff error:", e); }
   };
 
-  useEffect(() => {
-    if (!booking) return;
-    // Priority: services join price > originalPrice (set during fetch) > booking.price
-    const svcPrice = Number((booking as any).services?.price ?? originalPrice ?? (booking as any).price ?? 0);
-    const finalPrice = svcPrice > 0 ? svcPrice : originalPrice;
-    setLineItems([{ type: "service", id: (booking as any).service_id || booking.id, name: booking.service_name || "Service", quantity: 1, unitPrice: finalPrice, coveredBySubscription: false }]);
-  }, [booking, originalPrice]);
+  // lineItems is set directly in fetchBookingDetails after price is computed
+  // so no useEffect needed here
 
   useEffect(() => { if (!paymentMethod) setPaymentMethod("cash"); }, []);
 
