@@ -143,12 +143,21 @@ const Checkout = () => {
       if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
 
       // Price: use services.price as source of truth for the actual service cost
-      // booking.price is set at booking time = service base + variant + addons (the correct total)
-      // services.price is just the base price - NOT the full price when variants are selected
-      // So we MUST use booking.price as the definitive checkout price
-      const bookingPrice = Number((data as any).price ?? 0);
-      const serviceBasePrice = Number((data as any).services?.price ?? 0);
-      const price = bookingPrice > 0 ? bookingPrice : serviceBasePrice;
+      // Fetch service price directly (join may fail if no FK registered in Supabase)
+      const serviceId = (data as any).service_id;
+      let serviceBasePrice = Number((data as any).services?.price ?? 0);
+      if (serviceBasePrice === 0 && serviceId) {
+        const { data: svcData } = await supabase.from("services").select("price").eq("id", serviceId).single();
+        serviceBasePrice = Number((svcData as any)?.price ?? 0);
+      }
+      // booking.price includes variant + addon adjustments on top of base price
+      // If booking.price > serviceBasePrice, it has extras — use it
+      // If booking.price < serviceBasePrice, the variant stores a full price (not delta) — use serviceBasePrice
+      // If booking.price === 0, use serviceBasePrice
+      const bookingStoredPrice = Number((data as any).price ?? 0);
+      const price = bookingStoredPrice >= serviceBasePrice && bookingStoredPrice > 0
+        ? bookingStoredPrice
+        : serviceBasePrice > 0 ? serviceBasePrice : bookingStoredPrice;
       setOriginalPrice(price);
 
       // Check if deposit was already paid and auto-verify via edge function
