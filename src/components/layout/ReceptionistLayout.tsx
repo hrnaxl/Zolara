@@ -309,23 +309,39 @@ const ReceptionistDashboard = () => {
         </div>
       </div>
 
-      {/* ── PENDING DEPOSITS ────────────────────────────── */}
+      {/* ── INCOMPLETE BOOKINGS (no deposit paid) ───────── */}
       {pendingDeposits.length > 0 && (
         <div className="rc-flat au" style={{ animationDelay: "0.42s", padding: "clamp(14px,3vw,28px)", border: "1.5px solid #FCA5A5", background: "#FFF5F5" }}>
-          <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: "#DC2626", marginBottom: "5px" }}>ACTION REQUIRED</div>
-          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT, marginBottom: "18px" }}>
-            Pending Deposits ({pendingDeposits.length})
+          <div style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: "#DC2626", marginBottom: "5px" }}>DEPOSIT NOT PAID</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: TXT }}>
+              Incomplete Bookings ({pendingDeposits.length})
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", color: TXT_MID, marginBottom: "16px" }}>
+            These clients started a booking but did not complete payment. Their slot is <strong>not reserved</strong>. You can cancel and remove them or follow up.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "10px" }}>
             {pendingDeposits.map((b: any) => (
               <div key={b.id} style={{ padding: "14px 16px", borderRadius: "10px", background: "white", border: "1px solid #FCA5A5", display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                <span style={{ fontSize: "18px", flexShrink: 0 }}>💳</span>
+                <span style={{ fontSize: "18px", flexShrink: 0 }}>⚠️</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{b.client_name || "Client"}</div>
                   <div style={{ fontSize: "11px", color: TXT_MID, marginTop: "2px" }}>{b.service_name || "Service"}</div>
                   <div style={{ fontSize: "11px", color: TXT_SOFT, marginTop: "2px" }}>{b.preferred_date} · {b.preferred_time}</div>
-                  <div style={{ marginTop: "6px", display: "inline-block", background: "#FEE2E2", color: "#DC2626", fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px", letterSpacing: "0.05em" }}>
-                    GH₵50 DEPOSIT UNPAID
+                  <div style={{ marginTop: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ display: "inline-block", background: "#FEE2E2", color: "#DC2626", fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px", letterSpacing: "0.05em" }}>
+                      DEPOSIT NOT PAID
+                    </span>
+                    <button
+                      onClick={async () => {
+                        await supabase.from("bookings").update({ status: "cancelled" } as any).eq("id", b.id);
+                        setPendingDeposits(prev => prev.filter(x => x.id !== b.id));
+                      }}
+                      style={{ fontSize: "10px", color: "#DC2626", background: "none", border: "1px solid #FCA5A5", borderRadius: "20px", padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               </div>
