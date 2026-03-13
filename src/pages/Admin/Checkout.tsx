@@ -1,95 +1,38 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  validateGiftCard,
-  redeemGiftCard as rpcRedeem,
-} from "@/lib/useGiftCards";
+import { validateGiftCard, redeemGiftCard as rpcRedeem } from "@/lib/useGiftCards";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSettings } from "@/context/SettingsContext";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Calendar,
-  Clock,
-  User,
-  Sparkles,
-  CreditCard,
-  Banknote,
-  Smartphone,
-  Building,
-  CheckCircle2,
-  ArrowLeft,
-  Receipt,
-  UserCheck,
-} from "lucide-react";
+import { Loader2, Calendar, Clock, User, Sparkles, CreditCard, Banknote, Smartphone, Building, CheckCircle2, ArrowLeft, Receipt, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { sendSMS, SMS } from "@/lib/sms";
+import LineItemsPanel from "@/components/checkout/LineItemsPanel";
+import LineItemsPanel from "@/components/checkout/LineItemsPanel";
 
 type PaymentMethod = "cash" | "mobile_money" | "card" | "bank_transfer" | "gift_card";
 
 interface BookingData {
-  id: string;
-  preferred_date: string;
-  preferred_time: string;
-  status: string;
-  notes: string | null;
-  client_name: string | null;
-  service_name: string | null;
-  client_phone: string | null;
-  service_id: string | null;
-  clients: {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    loyalty_points: number;
-  };
-  services: {
-    id: string;
-    name: string;
-    price: number;
-    category: string;
-  };
-  staff: {
-    id: string;
-    name: string;
-    specialization: string | null;
-  } | null;
+  id: string; preferred_date: string; preferred_time: string; status: string;
+  notes: string | null; client_name: string | null; service_name: string | null;
+  client_phone: string | null; service_id: string | null;
+  clients: { id: string; name: string; email: string | null; phone: string | null; loyalty_points: number };
+  services: { id: string; name: string; price: number; category: string };
+  staff: { id: string; name: string; specialization: string | null } | null;
 }
 
-interface StaffMember {
-  id: string;
-  name: string;
-  specialization: string | null;
-}
+interface StaffMember { id: string; name: string; specialization: string | null }
+interface LineItem { type: "service" | "product" | "subscription"; id: string; name: string; quantity: number; unitPrice: number; coveredBySubscription: boolean }
 
 const Checkout = () => {
   const [searchParams] = useSearchParams();
@@ -111,42 +54,29 @@ const Checkout = () => {
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [giftCode, setGiftCode] = useState<string>("");
   const [redeeming, setRedeeming] = useState<boolean>(false);
-  const [redeemedCard, setRedeemedCard] = useState<{
-    id: string;
-    value: number;
-  } | null>(null);
+  const [redeemedCard, setRedeemedCard] = useState<{ id: string; value: number } | null>(null);
   const [promoCode, setPromoCode] = useState<string>("");
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
   const [promoDiscount, setPromoDiscount] = useState<number>(0);
   const [usePaystackForTransfer, setUsePaystackForTransfer] = useState(true);
-  const [paymentInfo, setPaymentInfo] = useState({
-    id: null,
-    bank_name: "",
-    account_name: "",
-    account_number: "",
-  });
-  const [showBankEditModal, setShowBankEditModal] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({
-    bank_name: "",
-    account_name: "",
-    account_number: "",
-  });
+  const [paymentInfo, setPaymentInfo] = useState({ id: null, bank_name: "", account_name: "", account_number: "" });
   const [userRole, setUserRole] = useState(null);
 
-  // - Unified line items -
-  const [lineItems, setLineItems] = useState<{
-    type: 'service' | 'product' | 'subscription';
-    id: string;
-    name: string;
-    quantity: number;
-    unitPrice: number;
-    coveredBySubscription?: boolean;
-  }[]>([]);
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [clientSubscription, setClientSubscription] = useState<any>(null);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [productSearch, setProductSearch] = useState('');
+  const [productSearch, setProductSearch] = useState("");
+
+  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+  const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" };
+  const lbl: React.CSSProperties = { fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: "6px" };
+  const card: React.CSSProperties = { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW };
+  const cardHdr: React.CSSProperties = { background: `linear-gradient(135deg,rgba(200,169,126,0.1),rgba(200,169,126,0.04))`, padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "10px" };
+
+  const sc = (s: string) => { if (s === "confirmed") return { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" }; if (s === "pending") return { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" }; return { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" }; };
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -159,337 +89,117 @@ const Checkout = () => {
   }, []);
 
   useEffect(() => {
-    if (bookingId) {
-      fetchBookingDetails();
-      fetchStaff();
-      fetchProducts();
-    } else {
-      setLoading(false);
-    }
+    if (bookingId) { fetchBookingDetails(); fetchStaff(); fetchProducts(); }
+    else { setLoading(false); }
   }, [bookingId]);
-
-  const fetchProducts = async () => {
-    setLoadingProducts(true);
-    const { data } = await supabase.from('products' as any)
-      .select('id,name,price,cost_price,stock_quantity,category')
-      .eq('is_active', true)
-      .gt('stock_quantity', 0)
-      .order('name');
-    setProducts(data || []);
-    setLoadingProducts(false);
-  };
-
-  const fetchClientSubscription = async (clientId: string) => {
-    const { data } = await (supabase as any)
-      .from('client_subscriptions')
-      .select('*, subscription_plans(name,price,included_services)')
-      .eq('client_id', clientId)
-      .eq('status', 'active')
-      .maybeSingle();
-    setClientSubscription(data || null);
-  };
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-      const metaDataRole = user.user_metadata.role;
-
-      setUserRole(roleData?.role || metaDataRole);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
+      setUserRole(roleData?.role || user.user_metadata.role);
       setLoading(false);
     };
-
     fetchUserRole();
   }, []);
 
-  // Poll payments when UI is pending to detect completion (webhook may update payments table)
   useEffect(() => {
     if (!pending || !booking?.id) return;
-
     let cancelled = false;
     const iv = setInterval(async () => {
       try {
-        const { data: payments } = await supabase
-          .from("sales")
-          .select("*")
-          .eq("booking_id", booking.id)
-          .eq("status", "completed")
-          .limit(1);
-
+        const { data: payments } = await supabase.from("sales").select("*").eq("booking_id", booking.id).eq("status", "completed").limit(1);
         if (payments && payments.length > 0 && !cancelled) {
-          // Payment completed - update UI
-          setPending(false);
-          setCompleted(true);
-          setPaymentMethod(
-            (payments[0].payment_method as PaymentMethod) || paymentMethod
-          );
+          setPending(false); setCompleted(true);
+          setPaymentMethod((payments[0].payment_method as PaymentMethod) || paymentMethod);
+          clearInterval(iv);
         }
-      } catch (err) {
-        console.error("Payment poll error:", err);
-      }
+      } catch {}
     }, 5000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [pending, booking]);
 
-    return () => {
-      cancelled = true;
-      clearInterval(iv);
-    };
-  }, [pending, booking?.id]);
+  const fetchProducts = async () => {
+    const { data } = await (supabase as any).from("products").select("id,name,price,stock_quantity").eq("is_active", true).gt("stock_quantity", 0).order("name");
+    setProducts(data || []);
+  };
+
+  const fetchClientSubscription = async (clientId: string) => {
+    const { data } = await (supabase as any).from("client_subscriptions").select("*, subscription_plans(name,monthly_price,included_services,max_usage_per_cycle)").eq("client_id", clientId).eq("status", "active").maybeSingle();
+    setClientSubscription(data || null);
+  };
 
   const fetchBookingDetails = async () => {
     try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select(
-          `
-          *,
-          clients(*),
-          services(*),
-          staff(*)
-        `
-        )
-        .eq("id", bookingId)
-        .maybeSingle();
-
+      const { data, error } = await supabase.from("bookings").select(`*, clients:client_id(*), services:service_id(*), staff:staff_id(*)`).eq("id", bookingId!).single();
       if (error) throw error;
-
-      if (data) {
-        setBooking(data as BookingData);
-        if (data.staff?.id) {
-          setSelectedStaff(data.staff?.id);
-        }
-        const price = Number((data as any).price || (data.services && data.services?.price) || 0);
-        setOriginalPrice(price);
-
-        // Auto-verify deposit with Paystack if not yet marked paid
-        // (handles case where webhook didn't fire)
-        let depositAlreadyPaid = (data as any).deposit_paid;
-        if (!depositAlreadyPaid && (data as any).booking_ref) {
-          try {
-            const res = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-deposit`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-                body: JSON.stringify({ booking_id: bookingId }),
-              }
-            );
-            const vd = await res.json();
-            if (vd.status === "verified" || vd.status === "already_paid") {
-              depositAlreadyPaid = true;
-            }
-          } catch { /* ignore - fallback to manual toggle */ }
-        }
-
-        const depositAmt = depositAlreadyPaid ? (Number((data as any).deposit_amount) || 50) : 0;
-        setDepositPaid(!!depositAlreadyPaid);
-        setAmount(String(Math.max(0, price - depositAmt).toFixed(2)));
-      }
-    } catch (error) {
-      console.error("Error fetching booking:", error);
-      toast.error("Failed to load booking details");
-    } finally {
-      setLoading(false);
-    }
+      const bk = data as unknown as BookingData;
+      setBooking(bk);
+      const price = Number(bk.services?.price ?? (data as any).price ?? 0);
+      setOriginalPrice(price);
+      setAmount(price.toString());
+      setDepositPaid((data as any).deposit_paid || false);
+      if (bk.staff?.id) setSelectedStaff(bk.staff.id);
+      if (bk.clients?.id) fetchClientSubscription(bk.clients.id);
+    } catch { toast.error("Failed to load booking"); }
   };
 
   const fetchStaff = async () => {
     try {
-      const { data, error } = await supabase
-        .from("staff")
-        .select("id, name, specialties, role")
-        .eq("is_active", true)
-        .order("name");
-
-      if (error) throw error;
-      // Only show operational staff (not cleaners or receptionists)
-      const operational = (data || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || ""));
-      setStaff(operational);
-
-      // Load today's attendance to flag absent staff
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: attData } = await supabase
-        .from("attendance")
-        .select("staff_id, status")
-        .eq("date", today);
-      const absentIds = new Set<string>(
-        (attData || [])
-          .filter((a: any) => a.status === "absent")
-          .map((a: any) => a.staff_id)
-      );
-      setAbsentStaffIds(absentIds);
-    } catch (error) {
-      console.error("Error fetching staff:", error);
-    }
+      const [{ data: staffData }, { data: attData }] = await Promise.all([
+        supabase.from("staff").select("id,name,specialization").eq("is_active", true).order("name"),
+        supabase.from("attendance").select("staff_id,status").eq("date", new Date().toISOString().split("T")[0]),
+      ]);
+      setStaff(staffData || []);
+      setAbsentStaffIds(new Set((attData || []).filter((a: any) => a.status === "absent").map((a: any) => a.staff_id)));
+    } catch {}
   };
 
-  const handleRedeemGiftCard = async () => {
+  useEffect(() => {
     if (!booking) return;
-    if (!giftCode || giftCode.trim() === "") {
-      toast.error("Enter a gift card code");
-      return;
-    }
-    if (!selectedStaff) {
-      toast.error("Assign a staff member before redeeming");
-      return;
-    }
+    const svcPrice = Number(booking.services?.price ?? (booking as any).price ?? 0);
+    setLineItems([{ type: "service", id: booking.service_id || booking.id, name: booking.service_name || "Service", quantity: 1, unitPrice: svcPrice, coveredBySubscription: false }]);
+  }, [booking]);
 
-    setRedeeming(true);
-    try {
-      // Look up the card directly
-      const code = giftCode.trim().toUpperCase();
-      const { data: cards, error: fetchErr } = await (supabase as any)
-        .from("gift_cards")
-        .select("*")
-        .eq("code", code)
-        .limit(1);
+  useEffect(() => { if (!paymentMethod) setPaymentMethod("cash"); }, []);
 
-      if (fetchErr) throw fetchErr;
-      const card = cards?.[0];
-
-      if (!card) {
-        toast.error("Gift card not found. Check the code and try again.");
-        setRedeeming(false);
-        return;
-      }
-      if (card.status === "redeemed") {
-        toast.error("This gift card has already been used.");
-        setRedeeming(false);
-        return;
-      }
-      if (card.status === "expired" || (card.expires_at && new Date(card.expires_at) < new Date())) {
-        toast.error("This gift card has expired.");
-        setRedeeming(false);
-        return;
-      }
-      if (card.payment_status === "voided" || card.payment_status === "expired") {
-        toast.error(`Gift card has been voided or expired.`);
-        return;
-      }
-      if (!["active","available","pending_send"].includes(card.status)) {
-        toast.error(`Gift card is not available (status: ${card.status}).`);
-        setRedeeming(false);
-        return;
-      }
-
-      const value = Number(card.balance || card.amount || 0);
-      const orig = Number(originalPrice || booking.price || booking.services?.price || 0);
-      const remaining = Math.max(0, orig - value);
-
-      // Store card info - actual redemption happens on checkout completion
-      setRedeemedCard({ id: card.id, value });
-      setAmount(String(remaining.toFixed(2)));
-      toast.success(`Gift card applied: GH ${value.toFixed(2)} off`);
-    } catch (err: any) {
-      console.error("Redeem error:", err);
-      toast.error(err.message || "Redeem failed");
-    } finally {
-      setRedeeming(false);
-    }
-  };
+  useEffect(() => {
+    const fetchPaymentInfo = async () => {
+      const { data } = await (supabase as any).from("payment_settings").select("*").single();
+      if (data) setPaymentInfo({ id: data.id, bank_name: data.bank_name, account_name: data.account_name, account_number: data.account_number });
+    };
+    fetchPaymentInfo();
+  }, []);
 
   const { settings } = useSettings();
   const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
 
-  // Initialise service line item when booking loads
-  useEffect(() => {
-    if (!booking) return;
-    const svcPrice = Number(booking.services?.price ?? (booking as any).price ?? 0);
-    setLineItems([{
-      type: 'service',
-      id: booking.service_id || booking.id,
-      name: booking.service_name || 'Service',
-      quantity: 1,
-      unitPrice: svcPrice,
-      coveredBySubscription: false,
-    }]);
-    if (booking.clients?.id) {
-      fetchClientSubscription(booking.clients.id);
-    }
-  }, [booking]);
-
-  const lineItemsTotal = lineItems.reduce((sum, item) =>
-    sum + (item.coveredBySubscription ? 0 : item.unitPrice * item.quantity), 0);
+  const lineItemsTotal = lineItems.reduce((sum, item) => sum + (item.coveredBySubscription ? 0 : item.unitPrice * item.quantity), 0);
 
   const addProduct = (product: any) => {
     setLineItems(prev => {
-      const existing = prev.find(i => i.type === 'product' && i.id === product.id);
-      if (existing) {
-        return prev.map(i => i.id === product.id && i.type === 'product'
-          ? { ...i, quantity: i.quantity + 1 }
-          : i);
-      }
-      return [...prev, {
-        type: 'product',
-        id: product.id,
-        name: product.name,
-        quantity: 1,
-        unitPrice: Number(product.price),
-        coveredBySubscription: false,
-      }];
+      const ex = prev.find(i => i.type === "product" && i.id === product.id);
+      if (ex) return prev.map(i => i.id === product.id && i.type === "product" ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { type: "product", id: product.id, name: product.name, quantity: 1, unitPrice: Number(product.price), coveredBySubscription: false }];
     });
-    setProductSearch('');
+    setProductSearch("");
   };
 
-  const removeLineItem = (idx: number) => {
-    setLineItems(prev => prev.filter((_, i) => i !== idx));
+  const removeLineItem = (idx: number) => setLineItems(prev => prev.filter((_, i) => i !== idx));
+  const updateQty = (idx: number, qty: number) => { if (qty < 1) { removeLineItem(idx); return; } setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: qty } : item)); };
+  const toggleSub = (idx: number) => setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item));
+
+  const handleRedeemGiftCard = async () => {
+    if (!giftCode.trim() || !selectedStaff) return;
+    setRedeeming(true);
+    try {
+      const result = await validateGiftCard(giftCode.trim());
+      if (!result.valid) { toast.error(result.message); return; }
+      setRedeemedCard({ id: result.card!.id, value: result.card!.balance });
+      toast.success(`Gift card applied: GHS ${result.card!.balance.toFixed(2)} off`);
+    } catch (e: any) { toast.error(e.message || "Invalid gift card"); } finally { setRedeeming(false); }
   };
-
-  const updateQty = (idx: number, qty: number) => {
-    if (qty < 1) { removeLineItem(idx); return; }
-    setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: qty } : item));
-  };
-
-  const toggleSubscriptionCover = (idx: number) => {
-    setLineItems(prev => prev.map((item, i) =>
-      i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item
-    ));
-  };
-
-  // fetch bank/payment settings for manual transfer option
-  useEffect(() => {
-    const fetchPaymentInfo = async () => {
-      const { data, error } = await supabase // @ts-ignore
-        .from("payment_settings")
-        .select("*")
-        .single();
-
-      if (!error && data) {
-        const d: any = data;
-        setPaymentInfo({
-          id: d.id,
-          bank_name: d.bank_name,
-          account_name: d.account_name,
-          account_number: d.account_number,
-        });
-        setPaymentForm({
-          bank_name: d.bank_name || "",
-          account_name: d.account_name || "",
-          account_number: d.account_number || "",
-        });
-      }
-    };
-
-    fetchPaymentInfo();
-  }, []);
-
-  // set default payment method
-  useEffect(() => {
-    if (!paymentMethod) {
-      setPaymentMethod("cash");
-    }
-  }, []);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -499,367 +209,110 @@ const Checkout = () => {
       if (!result.valid) { toast.error(result.message); return; }
       const promo = result.promo;
       const base = originalPrice || parseFloat(amount) || 0;
-      if (promo.minimum_amount && base < promo.minimum_amount) {
-        toast.error(`Minimum purchase of GH${promo.minimum_amount} required`);
-        return;
-      }
-      let discount = 0;
-      if (promo.discount_type === "percentage") {
-        discount = (base * promo.discount_value) / 100;
-      } else {
-        discount = Math.min(promo.discount_value, base);
-      }
-      setAppliedPromo(promo);
-      setPromoDiscount(discount);
-      // Update amount field to reflect discount
-      const dep = depositPaid ? Math.round(base * 0.5) : 0;
-      const newAmount = Math.max(0, base - discount - (redeemedCard?.value ?? 0) - dep);
-      setAmount(newAmount.toFixed(2));
-      toast.success(`Promo applied: GH${discount.toFixed(2)} off`);
-    } catch (e: any) {
-      toast.error(e.message || "Failed to validate promo code");
-    } finally {
-      setValidatingPromo(false);
-    }
+      const discount = promo.discount_type === "percentage" ? (base * promo.discount_value) / 100 : Math.min(promo.discount_value, base);
+      setAppliedPromo(promo); setPromoDiscount(discount);
+      toast.success(`Promo applied: GHS ${discount.toFixed(2)} off`);
+    } catch (e: any) { toast.error(e.message || "Failed to validate"); } finally { setValidatingPromo(false); }
   };
 
   const handleCheckout = async () => {
     if (!booking) return;
-
-    if (!selectedStaff) {
-      toast.error("Please assign a staff member to this service");
-      return;
-    }
-
+    if (!selectedStaff) { toast.error("Please assign a staff member"); return; }
     if (absentStaffIds.has(selectedStaff)) {
-      const staffName = staff.find(s => s.id === selectedStaff)?.name || "This staff member";
-      const proceed = window.confirm(`! ${staffName} is marked absent today. Proceed anyway?`);
-      if (!proceed) return;
+      const name = staff.find(s => s.id === selectedStaff)?.name || "This staff member";
+      if (!window.confirm(`${name} is marked absent today. Proceed anyway?`)) return;
     }
+    if (!amount || isNaN(parseFloat(amount))) { toast.error("Please enter a valid amount"); return; }
 
-    if (!amount || isNaN(parseFloat(amount))) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
-    // Compute payment amount - use line items total as the source of truth
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
-    // effectivePrice = sum of non-subscription line items
-    const effectivePrice = lineItemsTotal > 0
-      ? lineItemsTotal
-      : (Number(originalPrice) || (parseFloat(amount) + dep) || 0);
-    const base = effectivePrice;
-    const paymentAmount = Math.max(0, base - promoDiscount - giftValue - dep);
+    const effectivePrice = lineItemsTotal > 0 ? lineItemsTotal : (Number(originalPrice) || (parseFloat(amount) + dep) || 0);
+    const paymentAmount = Math.max(0, effectivePrice - promoDiscount - giftValue - dep);
     setProcessing(true);
 
     try {
       const enabled = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
-      if (paymentAmount > 0) {
-        if (!paymentMethod || !enabled.includes(paymentMethod)) {
-          toast.error("Please select a payment method");
-          setProcessing(false);
-          return;
-        }
+      if (paymentAmount > 0 && (!paymentMethod || !enabled.includes(paymentMethod))) {
+        toast.error("Please select a payment method"); setProcessing(false); return;
       }
-      // Update booking (always happens first)
-      const { error: bookingError } = await supabase
-        .from("bookings")
-        .update({
-          staff_id: selectedStaff,
-          notes: notes || booking.notes,
-          ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}),
-        } as any)
-        .eq("id", booking.id);
 
-      if (bookingError) throw bookingError;
+      await supabase.from("bookings").update({ staff_id: selectedStaff, notes: notes || booking.notes, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
 
-      // If a gift card was redeemed earlier, record the gift portion as a completed payment (clamped to original price)
       if (redeemedCard && Number(redeemedCard.value) > 0) {
-        try {
-          const orig = Number(originalPrice || (booking.services?.price ?? 0));
-          const appliedGiftAmount = Math.min(Number(redeemedCard.value), orig);
-
-          if (appliedGiftAmount > 0) {
-            const { data: giftPaymentData, error: giftPaymentError } =
-              await supabase.from("sales").insert([
-                {
-                  booking_id: booking.id,
-                  amount: appliedGiftAmount,
-                  payment_method: "gift_card",
-                  status: "completed",
-                  client_name: booking.client_name || null,
-                  service_name: booking.service_name || null,
-                  client_id: booking.clients?.id || null,
-                  notes: [notes, appliedPromo ? `Promo: ${appliedPromo.code}` : null, redeemedCard ? `Gift card: ${redeemedCard.id}` : null].filter(Boolean).join(" | ") || null,
-                },
-              ]);
-
-            console.debug("gift card payment insert result:", {
-              giftPaymentData,
-              giftPaymentError,
-            });
-
-            if (giftPaymentError) {
-              console.error(
-                "Failed to insert gift_card payment:",
-                giftPaymentError
-              );
-              toast.error(
-                giftPaymentError.message ||
-                  "Failed to record gift card payment. Check server logs and DB migrations."
-              );
-              setProcessing(false);
-              return;
-            }
-
-            // NOW mark the card as redeemed - only after sale is recorded
-            await (supabase as any)
-              .from("gift_cards")
-              .update({
-                status: "redeemed",
-                balance: 0,
-                redeemed_by_client: booking.client_name || null,
-              })
-              .eq("id", redeemedCard.id);
-          }
-        } catch (err: any) {
-          console.error("Unexpected error recording gift card payment:", err);
-          toast.error(err?.message || "Failed to record gift card payment");
-          setProcessing(false);
-          return;
+        const orig = Number(originalPrice || (booking.services?.price ?? 0));
+        const appliedGift = Math.min(Number(redeemedCard.value), orig);
+        if (appliedGift > 0) {
+          const { error: giftErr } = await supabase.from("sales").insert([{ booking_id: booking.id, amount: appliedGift, payment_method: "gift_card", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, notes: notes || null }]);
+          if (giftErr) { toast.error("Failed to record gift card payment"); setProcessing(false); return; }
+          await (supabase as any).from("gift_cards").update({ status: "redeemed", balance: 0, redeemed_by_client: booking.client_name || null }).eq("id", redeemedCard.id);
         }
       }
 
-      const capitalizedPaymentMethod =
-        paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
-      // CASH   mark completed immediately (admin page)
       if (paymentMethod !== "bank_transfer") {
-        const capitalizedPaymentMethod =
-          paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+        await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
+        const totalRev = effectivePrice - promoDiscount - giftValue;
+        const { error: saleErr } = await supabase.from("sales").insert({ booking_id: booking.id, amount: totalRev, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "), promo_code: appliedPromo?.code || null, promo_discount: promoDiscount > 0 ? promoDiscount : null });
+        if (saleErr) throw saleErr;
 
-        // 1  Update the booking status and payment_method
-        const { error: bookingError } = await supabase
-          .from("bookings")
-          .update({
-            status: "completed",
-            staff_id: selectedStaff,
-            notes: notes || booking.notes,
-            price: effectivePrice,
-            ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}),
-          } as any)
-          .eq("id", booking.id);
-
-        if (bookingError) throw bookingError;
-
-        // totalRevenue = full service price minus promos/gift cards
-        const totalRevenue = effectivePrice - promoDiscount - giftValue;
-        const { error: paymentError } = await supabase.from("sales").insert({
-          booking_id: booking.id,
-          amount: totalRevenue,
-          payment_method: paymentMethod,
-          status: "completed",
-          client_name: booking.client_name || null,
-          service_name: booking.service_name || null,
-          client_id: booking.clients?.id || null,
-          staff_id: selectedStaff || null,
-          notes: [notes || `${capitalizedPaymentMethod} payment recorded at checkout`, dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
-          promo_code: appliedPromo?.code || null,
-          promo_discount: promoDiscount > 0 ? promoDiscount : null,
-        });
-
-        if (paymentError) throw paymentError;
-
-        // - Write checkout line items -
+        // Write checkout session + line items
         try {
-          const { data: saleRecord } = await supabase
-            .from('sales').select('id').eq('booking_id', booking.id)
-            .eq('status','completed').order('created_at',{ascending:false}).limit(1).single();
-          if (saleRecord?.id && lineItems.length > 0) {
-            await (supabase as any).from('checkout_items').insert(
-              lineItems.map(item => ({
-                sale_id: saleRecord.id,
-                booking_id: booking.id,
-                item_type: item.type,
-                item_id: item.id,
-                item_name: item.name,
-                quantity: item.quantity,
-                unit_price: item.unitPrice,
-                price_at_time: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity,
-              }))
-            );
+          const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff, booking_id: booking.id, total_amount: effectivePrice, payment_method: paymentMethod, status: "completed" }]).select("id").single();
+          if (sess?.id && lineItems.length > 0) {
+            await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: sess.id, booking_id: booking.id, item_type: item.type, item_id: item.id, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
           }
-          // - Deduct product inventory -
-          const productItems = lineItems.filter(i => i.type === 'product');
-          for (const pi of productItems) {
+          // Deduct product stock
+          for (const pi of lineItems.filter(i => i.type === "product")) {
             const prod = products.find(p => p.id === pi.id);
-            if (prod) {
-              await (supabase as any).from('products')
-                .update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) })
-                .eq('id', pi.id);
-            }
+            if (prod) await (supabase as any).from("products").update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) }).eq("id", pi.id);
           }
-          // - Record subscription usage -
+          // Log subscription usage
           if (clientSubscription) {
-            const coveredItems = lineItems.filter(i => i.coveredBySubscription);
-            for (const ci of coveredItems) {
-              await (supabase as any).from('subscription_usage').insert({
-                client_subscription_id: clientSubscription.id,
-                client_id: booking.clients?.id || null,
-                service_id: ci.type === 'service' ? ci.id : null,
-                booking_id: booking.id,
-              });
+            for (const ci of lineItems.filter(i => i.coveredBySubscription)) {
+              await (supabase as any).from("subscription_usage").insert({ client_subscription_id: clientSubscription.id, client_id: booking.clients?.id || null, service_id: ci.type === "service" ? ci.id : null, booking_id: booking.id });
             }
           }
-        } catch (itemErr) { console.error('Line items error:', itemErr); }
+        } catch (itemErr) { console.error("Line items error:", itemErr); }
 
-        // Update local UI state
-        setPaymentMethod(paymentMethod);
         setCompleted(true);
-        toast.success("Checkout completed successfully!");
-        // Create client record at checkout if not already exists, then award loyalty points
+        toast.success("Checkout completed!");
+
+        // Loyalty + SMS
         try {
           const clientPhone = (booking as any).client_phone || booking.clients?.phone;
           const clientName = (booking as any).client_name || booking.clients?.name || "Guest";
           const clientEmail = (booking as any).client_email || booking.clients?.email || null;
-
-          // Always find or create - client only officially exists after first checkout
           let clientId = booking.clients?.id || (booking as any).client_id || null;
           const resolvedId = await findOrCreateClient({ name: clientName, phone: clientPhone, email: clientEmail });
-          if (resolvedId) {
-            clientId = resolvedId;
-            // Link to booking if not already linked
-            await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id);
-          }
-
+          if (resolvedId) { clientId = resolvedId; await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id); }
           if (clientId) {
-            // - LOYALTY: only on actual spend - subscription-covered items excluded -
-            const fullBookingPrice = lineItems.reduce((sum, item) =>
-              sum + (item.coveredBySubscription ? 0 : item.unitPrice * item.quantity), 0
-            ) || Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
-
-            // Capture points BEFORE RPC so we can calculate earned this visit
-            const { data: beforeClient } = await (supabase as any)
-              .from("clients")
-              .select("loyalty_points")
-              .eq("id", clientId)
-              .single();
-            const prevPoints = Number(beforeClient?.loyalty_points || 0);
-
-            // Use SECURITY DEFINER RPC to bypass RLS and update client reliably
-            await (supabase as any).rpc("update_client_after_checkout", {
-              p_client_id:    clientId,
-              p_amount_spent: fullBookingPrice,
-            });
-
-            // Read back final points after RPC
-            const { data: freshClient } = await (supabase as any)
-              .from("clients")
-              .select("loyalty_points, total_spent, date_of_birth")
-              .eq("id", clientId)
-              .single();
-            const finalPoints = Number(freshClient?.loyalty_points || 0);
+            const spendable = lineItems.reduce((s, i) => s + (i.coveredBySubscription ? 0 : i.unitPrice * i.quantity), 0) || Number(originalPrice) || 0;
+            const { data: before } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
+            const prevPts = Number(before?.loyalty_points || 0);
+            await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendable });
+            const { data: after } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
+            const finalPts = Number(after?.loyalty_points || 0);
             if (clientPhone) {
+              const earned = Math.max(0, finalPts - prevPts);
+              await sendSMS(clientPhone, SMS.checkoutComplete(booking.client_name || "Valued Client", booking.service_name || "service", spendable.toFixed(0), earned, finalPts, booking.booking_ref || booking.id.slice(0, 8).toUpperCase()));
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
-              const pointsEarned = Math.max(0, finalPoints - prevPoints);
-
-              // SMS #5 - checkout complete
-              await sendSMS(clientPhone, SMS.checkoutComplete(
-                booking.client_name || "Valued Client",
-                booking.service_name || "service",
-                fullBookingPrice.toFixed(0),
-                pointsEarned,
-                finalPoints,
-                booking.booking_ref || booking.id.slice(0,8).toUpperCase(),
-              ));
-
-              // SMS #7 - loyalty reward unlocked (crosses 20 stamp threshold)
-              const prevBucket = Math.floor(prevPoints / stampsForReward);
-              const newBucket  = Math.floor(finalPoints / stampsForReward);
-              if (newBucket > prevBucket && finalPoints >= stampsForReward) {
-                setTimeout(() => {
-                  sendSMS(clientPhone, SMS.loyaltyReward(
-                    booking.client_name || "Valued Client",
-                    finalPoints,
-                  )).catch(console.error);
-                }, 3000); // small delay so checkout SMS arrives first
+              if (Math.floor(finalPts / stampsForReward) > Math.floor(prevPts / stampsForReward) && finalPts >= stampsForReward) {
+                setTimeout(() => sendSMS(clientPhone, SMS.loyaltyReward(booking.client_name || "Valued Client", finalPts)).catch(console.error), 3000);
               }
             }
           }
-        } catch(loyaltyErr) { console.error("Loyalty update error:", loyaltyErr); }
+        } catch (loyErr) { console.error("Loyalty error:", loyErr); }
         return;
       }
 
-      // BANK TRANSFER chosen and user opts for manual transfer
-      if (paymentMethod === "bank_transfer" && !usePaystackForTransfer) {
-        const { error: paymentError } = await supabase.from("sales").insert({
-          booking_id: booking.id,
-          amount: paymentAmount + dep,
-          payment_method: "bank_transfer",
-          status: "pending",
-          client_name: booking.client_name || null,
-          service_name: booking.service_name || null,
-          client_id: booking.clients?.id || null,
-          notes: [notes || "Manual bank transfer (pending)", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
-          promo_code: appliedPromo?.code || null,
-          promo_discount: promoDiscount > 0 ? promoDiscount : null,
-        });
-
-        if (paymentError) throw paymentError;
-        // Update booking to record chosen payment method
-        const { error: bmErr3 } = await supabase
-          .from("bookings")
-          .update({ status: "confirmed" } as any)
-          .eq("id", booking.id);
-
-        // ensure local state reflects chosen method for UI
-        setPaymentMethod("bank_transfer");
-        setPending(true);
-        toast.success(
-          "Pending payment recorded. Awaiting manual transfer confirmation."
-        );
-        return;
-      }
-
-      // bank_transfer via Paystack (usePaystackForTransfer=true)   just record as pending
-      const { error: btErr } = await supabase.from("sales").insert({
-        booking_id: booking.id,
-        amount: paymentAmount + dep,
-        payment_method: "bank_transfer",
-        status: "pending",
-        client_name: booking.client_name || null,
-        service_name: booking.service_name || null,
-        client_id: booking.clients?.id || null,
-        notes: [notes || "Bank transfer - awaiting confirmation", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
-        promo_code: appliedPromo?.code || null,
-        promo_discount: promoDiscount > 0 ? promoDiscount : null,
-      });
-      if (btErr) throw btErr;
+      // Bank transfer
+      await supabase.from("sales").insert({ booking_id: booking.id, amount: paymentAmount + dep, payment_method: "bank_transfer", status: usePaystackForTransfer ? "pending" : "pending", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, notes: [notes || "Bank transfer - awaiting confirmation", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | ") });
       await supabase.from("bookings").update({ status: "confirmed" } as any).eq("id", booking.id);
-      setPaymentMethod("bank_transfer");
-      setPending(true);
+      setPaymentMethod("bank_transfer"); setPending(true);
       toast.success("Bank transfer recorded. Awaiting confirmation.");
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast.error(error.message || "Failed to complete checkout");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const getPaymentIcon = (method?: PaymentMethod | string) => {
-    switch (method) {
-      case "cash":
-        return <Banknote className="w-5 h-5" />;
-      case "card":
-        return <CreditCard className="w-5 h-5" />;
-      case "mobile_money":
-        return <Smartphone className="w-5 h-5" />;
-      case "bank_transfer":
-        return <Building className="w-5 h-5" />;
-      default:
-        return null;
-    }
+    } finally { setProcessing(false); }
   };
 
   if (loading) {
@@ -867,7 +320,7 @@ const Checkout = () => {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: "48px", height: "48px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
-          <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout </p>
+          <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout...</p>
         </div>
       </div>
     );
@@ -876,15 +329,11 @@ const Checkout = () => {
   if (!bookingId || !booking) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
-        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", padding: "48px 40px", maxWidth: "400px", width: "100%", textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-          <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "#FBF6EE", border: "1px solid #F0E4CC", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-            <Receipt style={{ width: "28px", height: "28px", color: "#C8A97E" }} />
-          </div>
+        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", padding: "48px 40px", maxWidth: "400px", width: "100%", textAlign: "center" }}>
+          <Receipt style={{ width: "32px", height: "32px", color: "#C8A97E", margin: "0 auto 16px" }} />
           <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#1C160E", margin: "0 0 8px" }}>No Booking Selected</h2>
-          <p style={{ fontSize: "13px", color: "#78716C", margin: "0 0 24px", lineHeight: 1.6 }}>Select a booking from the bookings page to proceed with checkout.</p>
-          <button onClick={() => navigate(-1)} style={{ padding: "10px 24px", borderRadius: "12px", background: "#C8A97E", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-            <ArrowLeft style={{ width: "16px", height: "16px" }} /> Go Back
-          </button>
+          <p style={{ fontSize: "13px", color: "#78716C", margin: "0 0 24px" }}>Select a booking from the bookings page to proceed.</p>
+          <button onClick={() => navigate(-1)} style={{ padding: "10px 24px", borderRadius: "12px", background: "#C8A97E", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Go Back</button>
         </div>
       </div>
     );
@@ -893,50 +342,36 @@ const Checkout = () => {
   if (completed) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
-        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "520px", width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
-          {/* Gold success banner */}
-          <div style={{ background: "linear-gradient(135deg,#C8A97E 0%,#8B6914 100%)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
-            <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", backdropFilter: "blur(4px)" }}>
-              <CheckCircle2 style={{ width: "40px", height: "40px" }} />
-            </div>
+        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "520px", width: "100%" }}>
+          <div style={{ background: "linear-gradient(135deg,#C8A97E,#8B6914)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
+            <CheckCircle2 style={{ width: "48px", height: "48px", margin: "0 auto 16px" }} />
             <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "32px", fontWeight: 700, margin: "0 0 8px" }}>Checkout Complete</h2>
-            <p style={{ fontSize: "13px", opacity: 0.85, margin: 0 }}>Service has been marked as completed</p>
+            <p style={{ fontSize: "13px", opacity: 0.85, margin: 0 }}>Service marked as completed</p>
           </div>
-
           <div style={{ padding: "28px 32px" }}>
             {[
               { l: "Client", v: booking.client_name },
               { l: "Staff", v: staff.find(s => s.id === selectedStaff)?.name || "Assigned" },
               { l: "Payment", v: paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "bank_transfer" ? "Bank Transfer" : (paymentMethod || "").charAt(0).toUpperCase() + (paymentMethod || "").slice(1) },
             ].map(row => (
-              <div key={row.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #EDEBE5" }}>
+              <div key={row.l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #EDEBE5" }}>
                 <span style={{ fontSize: "12px", color: "#78716C" }}>{row.l}</span>
                 <span style={{ fontSize: "13px", fontWeight: 600, color: "#1C160E" }}>{row.v}</span>
               </div>
             ))}
             {lineItems.map((item, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #EDEBE5" }}>
-                <span style={{ fontSize: "12px", color: "#78716C" }}>{item.type === "service" ? "Service" : item.type === "product" ? "Product" : "Plan"}: {item.name}{item.quantity > 1 ? ` x${item.quantity}` : ""}</span>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : "#1C160E" }}>
-                  {item.coveredBySubscription ? "Included" : `GH ${(item.unitPrice * item.quantity).toFixed(2)}`}
-                </span>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EDEBE5" }}>
+                <span style={{ fontSize: "12px", color: "#78716C" }}>{item.type === "service" ? "Service" : item.type === "product" ? "Product" : "Plan"}: {item.name}{item.quantity > 1 ? (" x" + item.quantity) : ""}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : "#1C160E" }}>{item.coveredBySubscription ? "Included" : `GHS ${(item.unitPrice * item.quantity).toFixed(2)}`}</span>
               </div>
             ))}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: "4px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0" }}>
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Paid</span>
-              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>
-                GH {lineItemsTotal.toFixed(2)}
-              </span>
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>GHS {lineItemsTotal.toFixed(2)}</span>
             </div>
-
-            <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-              <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                  Back
-              </button>
-              <button onClick={() => { setCompleted(false); navigate(userRole === "owner" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }}
-                style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#C8A97E,#8B6914)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                Done
-              </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Back</button>
+              <button onClick={() => { setCompleted(false); navigate(userRole === "owner" || userRole === "admin" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#C8A97E,#8B6914)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Done</button>
             </div>
           </div>
         </div>
@@ -947,43 +382,18 @@ const Checkout = () => {
   if (pending) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
-        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "520px", width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.08)" }}>
-          <div style={{ background: "linear-gradient(135deg,#D97706 0%,#92400E 100%)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
-            <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <CheckCircle2 style={{ width: "40px", height: "40px" }} />
-            </div>
-            <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "32px", fontWeight: 700, margin: "0 0 8px" }}>Payment Pending</h2>
-            <p style={{ fontSize: "13px", opacity: 0.85, margin: 0 }}>Waiting for confirmation. This screen updates automatically.</p>
+        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "480px", width: "100%" }}>
+          <div style={{ background: "linear-gradient(135deg,#D97706,#92400E)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
+            <CheckCircle2 style={{ width: "48px", height: "48px", margin: "0 auto 16px" }} />
+            <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, margin: "0 0 8px" }}>Payment Pending</h2>
+            <p style={{ fontSize: "13px", opacity: 0.85, margin: 0 }}>Waiting for bank transfer confirmation...</p>
           </div>
-
           <div style={{ padding: "28px 32px" }}>
-            {[
-              { l: "Service", v: booking.service_name },
-              { l: "Client", v: booking.client_name },
-              { l: "Staff", v: staff.find(s => s.id === selectedStaff)?.name || "Assigned" },
-              { l: "Payment", v: paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "bank_transfer" ? "Bank Transfer" : (paymentMethod || "").charAt(0).toUpperCase() + (paymentMethod || "").slice(1) },
-            ].map(row => (
-              <div key={row.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #EDEBE5" }}>
-                <span style={{ fontSize: "12px", color: "#78716C" }}>{row.l}</span>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "#1C160E" }}>{row.v}</span>
-              </div>
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: "4px" }}>
-              <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Due</span>
-              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#92400E" }}>
-                GH {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
-              </span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0" }}>
+              <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Amount Due</span>
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 700, color: "#92400E" }}>GHS {lineItemsTotal.toFixed(2)}</span>
             </div>
-
-            <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-              <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                  Back
-              </button>
-              <button onClick={() => { setPending(false); navigate(userRole === "owner" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }}
-                style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#D97706,#92400E)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                Done
-              </button>
-            </div>
+            <button onClick={() => { setPending(false); navigate(userRole === "owner" || userRole === "admin" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }} style={{ width: "100%", padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#D97706,#92400E)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Done</button>
           </div>
         </div>
       </div>
@@ -991,37 +401,31 @@ const Checkout = () => {
   }
 
   const checkoutDisabled = processing || !selectedStaff;
+  const statusColors = sc(booking.status);
+  const balanceDue = Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - (depositPaid ? depositAmount : 0));
 
-
-  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
-  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
-  const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
-  const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" };
-  const lbl: React.CSSProperties = { fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: "6px" };
-  const card: React.CSSProperties = { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW };
-  const cardHdr: React.CSSProperties = { background: `linear-gradient(135deg,rgba(200,169,126,0.1),rgba(200,169,126,0.04))`, padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "10px" };
-  const row = (label: string, value: any, bold = false) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${BORDER}` }}>
-      <span style={{ fontSize: "12px", color: bold ? TXT : TXT_MID, fontWeight: bold ? 700 : 400 }}>{label}</span>
-      <span style={{ fontSize: "13px", fontWeight: bold ? 700 : 600, color: bold ? G_D : TXT }}>{value}</span>
-    </div>
-  );
-
-  const statusColor = (s: string) => {
-    if (s === "confirmed") return { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" };
-    if (s === "pending") return { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" };
-    if (s === "completed") return { bg: "#FAFAF8", color: TXT_MID, border: BORDER };
-    return { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" };
-  };
-  const sc = statusColor(booking.status);
+  // Pre-computed style vars to avoid esbuild TSX parse issues
+  const itemRowBg = (covered: boolean) => covered ? "#F0FDF4" : "#FAFAF8";
+  const itemRowBorder = (covered: boolean) => "1px solid " + (covered ? "#BBF7D0" : "#EDEBE5");
+  const itemAmtColor = (covered: boolean) => covered ? "#16A34A" : G_D;
+  const subBtnBorder = (covered: boolean) => "1px solid " + (covered ? "#16A34A" : "#EDEBE5");
+  const subBtnBg = (covered: boolean) => covered ? "#DCFCE7" : "#FFFFFF";
+  const subBtnColor = (covered: boolean) => covered ? "#16A34A" : TXT_SOFT;
+  const depositBg = depositPaid ? "#F0FDF4" : "#FFFBEB";
+  const depositBorder = "1px solid " + (depositPaid ? "#BBF7D0" : "#FDE68A");
+  const depositLabelColor = depositPaid ? "#16A34A" : "#D97706";
+  const depositBadgeBg = depositPaid ? "#DCFCE7" : "#FEF9C3";
+  const depositBadgeColor = depositPaid ? "#16A34A" : "#CA8A04";
+  const btnBg = checkoutDisabled ? "#E8E0D4" : "linear-gradient(135deg," + G + "," + G_D + ")";
+  const btnColor = checkoutDisabled ? TXT_SOFT : WHITE;
+  const btnCursor = checkoutDisabled ? "not-allowed" : "pointer";
 
   return (
     <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <div style={{ maxWidth: "960px", margin: "0 auto" }}>
 
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
-          <button onClick={() => navigate(-1)} style={{ width: "36px", height: "36px", borderRadius: "10px", border: `1px solid ${BORDER}`, background: WHITE, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+          <button onClick={() => navigate(-1)} style={{ width: "36px", height: "36px", borderRadius: "10px", border: "1px solid " + BORDER, background: WHITE, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
             <ArrowLeft style={{ width: "16px", height: "16px", color: TXT_MID }} />
           </button>
           <div>
@@ -1030,26 +434,20 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/* Top row: Booking Details + Payment Form */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
 
-          {/* LEFT: Booking Details */}
           <div style={card}>
             <div style={cardHdr}>
               <Sparkles style={{ width: "16px", height: "16px", color: G }} />
               <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "19px", fontWeight: 700, color: TXT }}>Booking Details</span>
             </div>
             <div style={{ padding: "20px" }}>
-
-              <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", marginBottom: "14px", border: `1px solid ${BORDER}` }}>
-                <p style={{ fontSize: "15px", fontWeight: 700, color: TXT, margin: "0 0 6px" }}>{booking.service_name}</p>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  {booking.services?.category && <span style={{ fontSize: "10px", padding: "2px 9px", borderRadius: "12px", background: "#FBF6EE", color: G_D, fontWeight: 600, border: `1px solid #F0E4CC` }}>{booking.services.category}</span>}
-                </div>
+              <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", marginBottom: "14px", border: "1px solid " + BORDER }}>
+                <p style={{ fontSize: "15px", fontWeight: 700, color: TXT, margin: "0 0 4px" }}>{booking.service_name}</p>
+                {booking.services?.category && <span style={{ fontSize: "10px", padding: "2px 9px", borderRadius: "12px", background: "#FBF6EE", color: G_D, fontWeight: 600, border: "1px solid #F0E4CC" }}>{booking.services.category}</span>}
               </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "12px", background: CREAM, marginBottom: "14px", border: `1px solid ${BORDER}` }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#FBF6EE", border: `1px solid ${G}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "12px", background: CREAM, marginBottom: "14px", border: "1px solid " + BORDER }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#FBF6EE", border: "1px solid " + G, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <User style={{ width: "18px", height: "18px", color: G_D }} />
                 </div>
                 <div>
@@ -1057,81 +455,78 @@ const Checkout = () => {
                   <p style={{ fontSize: "11px", color: TXT_SOFT, margin: 0 }}>{booking.clients?.phone || (booking as any).client_phone || ""}</p>
                 </div>
               </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" }}>
-                <div style={{ padding: "10px 14px", borderRadius: "10px", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ padding: "10px 14px", borderRadius: "10px", background: CREAM, border: "1px solid " + BORDER, display: "flex", alignItems: "center", gap: "8px" }}>
                   <Calendar style={{ width: "14px", height: "14px", color: G }} />
                   <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{format(new Date(booking.preferred_date), "PP")}</span>
                 </div>
-                <div style={{ padding: "10px 14px", borderRadius: "10px", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ padding: "10px 14px", borderRadius: "10px", background: CREAM, border: "1px solid " + BORDER, display: "flex", alignItems: "center", gap: "8px" }}>
                   <Clock style={{ width: "14px", height: "14px", color: G }} />
-                  <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{booking.preferred_time}</span>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: TXT }}>{(booking.preferred_time || "").slice(0, 5)}</span>
                 </div>
               </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <span style={lbl as any}>Status</span>
-                <span style={{ padding: "3px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                </span>
+                <span style={{ padding: "3px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700, background: statusColors.bg, color: statusColors.color, border: "1px solid " + statusColors.border }}>{booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span>
               </div>
-
-              <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${BORDER}` }}>
-                {row("Service Price", `GH${String.fromCharCode(8373)} ${Number(originalPrice || booking?.services?.price || 0).toFixed(2)}`)}
-                {appliedPromo && row(`Promo (${appliedPromo.code})`, `- GH${String.fromCharCode(8373)} ${promoDiscount.toFixed(2)}`)}
-                {redeemedCard && row("Gift Card", `- GH${String.fromCharCode(8373)} ${redeemedCard.value.toFixed(2)}`)}
-                {depositPaid && row("Deposit Paid", `- GH${String.fromCharCode(8373)} ${depositAmount.toFixed(2)}`)}
+              <div style={{ paddingTop: "14px", borderTop: "1px solid " + BORDER }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
+                  <span style={{ fontSize: "12px", color: TXT_MID }}>Service Price</span>
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>GHS {Number(originalPrice || booking.services?.price || 0).toFixed(2)}</span>
+                </div>
+                {appliedPromo && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
+                    <span style={{ fontSize: "12px", color: TXT_MID }}>Promo ({appliedPromo.code})</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {promoDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {redeemedCard && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
+                    <span style={{ fontSize: "12px", color: TXT_MID }}>Gift Card</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {redeemedCard.value.toFixed(2)}</span>
+                  </div>
+                )}
+                {depositPaid && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid " + BORDER }}>
+                    <span style={{ fontSize: "12px", color: TXT_MID }}>Deposit Paid</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {depositAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "10px", marginTop: "6px" }}>
                   <span style={{ fontSize: "14px", fontWeight: 700, color: TXT }}>Balance Due</span>
-                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "26px", fontWeight: 700, color: G_D }}>
-                    GH{String.fromCharCode(8373)} {Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - (depositPaid ? depositAmount : 0)).toFixed(2)}
-                  </span>
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "26px", fontWeight: 700, color: G_D }}>GHS {balanceDue.toFixed(2)}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* RIGHT: Complete Checkout */}
           <div style={card}>
             <div style={cardHdr}>
               <Receipt style={{ width: "16px", height: "16px", color: G }} />
               <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "19px", fontWeight: 700, color: TXT }}>Complete Checkout</span>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "18px" }}>
-
-              {/* Assign Staff */}
               <div>
                 <label style={lbl}>Assign Staff Member *</label>
                 <Select value={selectedStaff} onValueChange={setSelectedStaff}>
-                  <SelectTrigger style={{ border: `1.5px solid ${BORDER}`, borderRadius: "10px", fontSize: "13px" }}>
+                  <SelectTrigger style={{ border: "1.5px solid " + BORDER, borderRadius: "10px", fontSize: "13px" }}>
                     <SelectValue placeholder="Select staff member" />
                   </SelectTrigger>
                   <SelectContent>
-                    {staff.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.name}{absentStaffIds.has(member.id) ? " (Absent)" : ""}
-                        {member.specialization ? ` - ${member.specialization}` : ""}
-                      </SelectItem>
-                    ))}
+                    {staff.map(m => <SelectItem key={m.id} value={m.id}>{m.name}{absentStaffIds.has(m.id) ? " (Absent)" : ""}{m.specialization ? " - " + m.specialization : ""}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Payment Method */}
               <div>
                 <label style={lbl}>Payment Method</label>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  {[
-                    { id: "cash", name: "Cash", icon: Banknote },
-                    { id: "mobile_money", name: "Mobile Money", icon: Smartphone },
-                    { id: "card", name: "Card", icon: CreditCard },
-                    { id: "bank_transfer", name: "Bank Transfer", icon: Building },
-                  ].map((m) => {
+                  {[{ id: "cash", name: "Cash", icon: Banknote }, { id: "mobile_money", name: "Mobile Money", icon: Smartphone }, { id: "card", name: "Card", icon: CreditCard }, { id: "bank_transfer", name: "Bank Transfer", icon: Building }].map(m => {
                     const Icon = m.icon as any;
                     const active = paymentMethod === m.id;
                     return (
                       <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id as PaymentMethod)}
-                        style={{ padding: "12px 8px", borderRadius: "10px", border: `2px solid ${active ? G : BORDER}`, background: active ? "#FBF6EE" : WHITE, color: active ? G_D : TXT_MID, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", transition: "all 0.15s", fontFamily: "Montserrat,sans-serif" }}>
+                        style={{ padding: "12px 8px", borderRadius: "10px", border: "2px solid " + (active ? G : BORDER), background: active ? "#FBF6EE" : WHITE, color: active ? G_D : TXT_MID, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", fontFamily: "Montserrat,sans-serif" }}>
                         <Icon style={{ width: "20px", height: "20px" }} />
                         <span style={{ fontSize: "11px", fontWeight: 600 }}>{m.name}</span>
                       </button>
@@ -1140,31 +535,24 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Amount */}
               <div>
                 <label style={lbl}>Amount (GHS)</label>
                 <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={inp} />
               </div>
 
-              {/* Deposit */}
-              <div style={{ background: depositPaid ? "#F0FDF4" : "#FFFBEB", border: `1px solid ${depositPaid ? "#BBF7D0" : "#FDE68A"}`, borderRadius: "12px", padding: "14px 16px" }}>
+              <div style={{ background: depositBg, border: depositBorder, borderRadius: "12px", padding: "14px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <p style={{ fontSize: "11px", fontWeight: 700, color: depositPaid ? "#16A34A" : "#D97706", margin: "0 0 2px", textTransform: "uppercase" }}>Deposit - GHS {depositAmount}</p>
+                    <p style={{ fontSize: "11px", fontWeight: 700, color: depositLabelColor, margin: "0 0 2px", textTransform: "uppercase" }}>Deposit - GHS {depositAmount}</p>
                     <p style={{ fontSize: "12px", color: TXT_MID, margin: 0 }}>{depositPaid ? "Collected. Balance reduced." : "Not collected. Full price due."}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: depositPaid ? "#DCFCE7" : "#FEF9C3", color: depositPaid ? "#16A34A" : "#CA8A04" }}>
-                      {depositPaid ? "PAID" : "UNPAID"}
-                    </span>
-                    <button onClick={() => setDepositPaid(d => !d)} style={{ fontSize: "11px", fontWeight: 600, color: G_D, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-                      {depositPaid ? "Mark Unpaid" : "Mark Paid"}
-                    </button>
+                    <span style={{ padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: depositBadgeBg, color: depositBadgeColor }}>{depositPaid ? "PAID" : "UNPAID"}</span>
+                    <button onClick={() => setDepositPaid(d => !d)} style={{ fontSize: "11px", fontWeight: 600, color: G_D, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>{depositPaid ? "Mark Unpaid" : "Mark Paid"}</button>
                   </div>
                 </div>
               </div>
 
-              {/* Gift Card */}
               <div>
                 <label style={lbl}>Redeem Gift Card</label>
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -1177,169 +565,60 @@ const Checkout = () => {
                 {redeemedCard && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>GHS {redeemedCard.value.toFixed(2)} off</p>}
               </div>
 
-              {/* Promo Code */}
               <div>
                 <label style={lbl}>Promo Code</label>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input placeholder="Enter promo code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} disabled={!!appliedPromo} style={{ ...inp, flex: 1 }} />
                   {appliedPromo ? (
-                    <button onClick={() => { setAppliedPromo(null); setPromoDiscount(0); setPromoCode(""); setAmount(String(Math.max(0, originalPrice - (redeemedCard?.value ?? 0)).toFixed(2))); }}
-                      style={{ padding: "9px 14px", borderRadius: "10px", background: WHITE, color: "#DC2626", border: "1px solid #FECACA", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                      Remove
-                    </button>
+                    <button onClick={() => { setAppliedPromo(null); setPromoDiscount(0); setPromoCode(""); }} style={{ padding: "9px 14px", borderRadius: "10px", background: WHITE, color: "#DC2626", border: "1px solid #FECACA", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>Remove</button>
                   ) : (
-                    <button onClick={handleApplyPromo} disabled={validatingPromo || !promoCode}
-                      style={{ padding: "9px 16px", borderRadius: "10px", background: G_D, color: WHITE, border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                      {validatingPromo ? "..." : "Apply"}
-                    </button>
+                    <button onClick={handleApplyPromo} disabled={validatingPromo || !promoCode} style={{ padding: "9px 16px", borderRadius: "10px", background: G_D, color: WHITE, border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>{validatingPromo ? "..." : "Apply"}</button>
                   )}
                 </div>
-                {appliedPromo && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>{appliedPromo.code}: GHS{promoDiscount.toFixed(2)} off</p>}
+                {appliedPromo && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>{appliedPromo.code}: GHS {promoDiscount.toFixed(2)} off</p>}
               </div>
 
-              {/* Bank Transfer */}
               {paymentMethod === "bank_transfer" && (
-                <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${BORDER}` }}>
+                <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", border: "1px solid " + BORDER }}>
                   <label style={lbl}>Transfer Mode</label>
-                  <div style={{ display: "flex", gap: "16px", marginBottom: "12px" }}>
+                  <div style={{ display: "flex", gap: "16px" }}>
                     {[{ v: true, l: "Paystack Transfer" }, { v: false, l: "Manual Transfer" }].map(opt => (
                       <label key={String(opt.v)} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", cursor: "pointer" }}>
-                        <input type="radio" name="transfer_mode" checked={usePaystackForTransfer === opt.v} onChange={() => setUsePaystackForTransfer(opt.v)} />
+                        <input type="radio" name="tm" checked={usePaystackForTransfer === opt.v} onChange={() => setUsePaystackForTransfer(opt.v)} />
                         {opt.l}
                       </label>
                     ))}
                   </div>
-                  {!usePaystackForTransfer && paymentInfo.bank_name && (
-                    <div style={{ fontSize: "12px", color: TXT_MID }}>
-                      <p style={{ margin: "0 0 2px" }}><strong>Bank:</strong> {paymentInfo.bank_name}</p>
-                      <p style={{ margin: "0 0 2px" }}><strong>Account:</strong> {paymentInfo.account_name}</p>
-                      <p style={{ margin: 0 }}><strong>Number:</strong> {paymentInfo.account_number}</p>
-                    </div>
-                  )}
                 </div>
               )}
 
-              {/* Notes */}
               <div>
                 <label style={lbl}>Notes (Optional)</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any notes about this checkout..." rows={2}
-                  style={{ ...inp, resize: "vertical" as any }} />
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any notes..." rows={2} style={{ ...inp, resize: "vertical" as any }} />
               </div>
 
-              {/* Checkout Button */}
               <button onClick={handleCheckout} disabled={checkoutDisabled}
-                style={{ padding: "14px 20px", borderRadius: "12px", background: checkoutDisabled ? "#E8E0D4" : `linear-gradient(135deg,${G},${G_D})`, color: checkoutDisabled ? TXT_SOFT : WHITE, border: "none", fontSize: "13px", fontWeight: 700, cursor: checkoutDisabled ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", letterSpacing: "0.04em", width: "100%" }}>
-                {processing ? (
-                  <Loader2 style={{ width: "18px", height: "18px", animation: "spin 1s linear infinite" }} />
-                ) : (
-                  <>
-                    <CheckCircle2 style={{ width: "18px", height: "18px" }} />
-                    Complete Checkout - GHS {Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - (depositPaid ? depositAmount : 0)).toFixed(2)}
-                  </>
-                )}
+                style={{ padding: "14px 20px", borderRadius: "12px", background: btnBg, color: btnColor, border: "none", fontSize: "13px", fontWeight: 700, cursor: btnCursor, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", width: "100%" }}>
+                {processing ? (<Loader2 style={{ width: "18px", height: "18px", animation: "spin 1s linear infinite" }} />) : (<span style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 style={{ width: "18px", height: "18px" }} />Complete Checkout - GHS {balanceDue.toFixed(2)}</span>)}
               </button>
-
             </div>
           </div>
         </div>
-
-        {/* LINE ITEMS PANEL */}
-        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
-          <div style={{ ...cardHdr, justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <Receipt style={{ width: "16px", height: "16px", color: G }} />
-              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "19px", fontWeight: 700, color: TXT }}>Line Items</span>
-            </div>
-            <span style={{ fontSize: "11px", color: TXT_SOFT }}>Add retail products sold at this visit</span>
-          </div>
-          <div style={{ padding: "20px" }}>
-
-            {/* Items list */}
-            <div style={{ marginBottom: "16px" }}>
-              {lineItems.map((item, idx) => (
-                <div key={idx} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", borderRadius: "10px", background: item.coveredBySubscription ? "#F0FDF4" : CREAM, border: `1px solid ${item.coveredBySubscription ? "#BBF7D0" : BORDER}`, marginBottom: "8px" }}>
-                  <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "20px", fontWeight: 700,
-                    background: item.type === "service" ? "#FBF6EE" : item.type === "product" ? "#EFF6FF" : "#F5F3FF",
-                    color: item.type === "service" ? G_D : item.type === "product" ? "#2563EB" : "#7C3AED"
-                  }}>{item.type.toUpperCase()}</span>
-                  <span style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: TXT }}>{item.name}</span>
-                  {item.type !== "service" && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                      <button onClick={() => updateQty(idx, item.quantity - 1)} style={{ width: "22px", height: "22px", borderRadius: "6px", border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: "14px", fontWeight: 700, color: TXT_MID }}>-</button>
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: TXT, minWidth: "20px", textAlign: "center" }}>{item.quantity}</span>
-                      <button onClick={() => updateQty(idx, item.quantity + 1)} style={{ width: "22px", height: "22px", borderRadius: "6px", border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: "14px", fontWeight: 700, color: TXT_MID }}>+</button>
-                    </div>
-                  )}
-                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "16px", fontWeight: 700, color: item.coveredBySubscription ? "#16A34A" : G_D, minWidth: "80px", textAlign: "right" }}>
-                    {item.coveredBySubscription ? "Plan" : `GHS ${(item.unitPrice * item.quantity).toFixed(2)}`}
-                  </span>
-                  {clientSubscription && item.type === "service" && (
-                    <button onClick={() => toggleSubscriptionCover(idx)} style={{ fontSize: "10px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", border: `1px solid ${item.coveredBySubscription ? "#16A34A" : BORDER}`, background: item.coveredBySubscription ? "#DCFCE7" : WHITE, color: item.coveredBySubscription ? "#16A34A" : TXT_SOFT, cursor: "pointer", whiteSpace: "nowrap" }}>
-                      {item.coveredBySubscription ? "Plan active" : "Use Plan"}
-                    </button>
-                  )}
-                  {item.type !== "service" && (
-                    <button onClick={() => removeLineItem(idx)} style={{ fontSize: "11px", color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>X</button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Product search */}
-            <div style={{ position: "relative", marginBottom: "14px" }}>
-              <label style={lbl}>Add Product to Sale</label>
-              <input
-                placeholder="Search products..."
-                value={productSearch}
-                onChange={e => setProductSearch(e.target.value)}
-                style={inp}
-              />
-              {productSearch.length > 0 && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "10px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", zIndex: 100, maxHeight: "200px", overflowY: "auto" }}>
-                  {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 ? (
-                    <div style={{ padding: "12px 16px", fontSize: "13px", color: TXT_SOFT }}>No products found</div>
-                  ) : products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
-                    <div key={p.id} onClick={() => addProduct(p)}
-                      style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderBottom: `1px solid ${BORDER}`, background: WHITE }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FBF6EE"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#FFFFFF"; }}>
-                      <div>
-                        <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{p.name}</span>
-                        <span style={{ fontSize: "10px", color: TXT_SOFT, marginLeft: "8px" }}>In stock: {p.stock_quantity}</span>
-                      </div>
-                      <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "15px", fontWeight: 700, color: G_D }}>GHS {Number(p.price).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Active subscription */}
-            {clientSubscription && (
-              <div style={{ marginBottom: "14px", padding: "10px 14px", borderRadius: "10px", background: "#F5F3FF", border: "1px solid #DDD6FE", display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "10px", fontWeight: 700, color: "#7C3AED", letterSpacing: "0.1em" }}>ACTIVE PLAN</span>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{clientSubscription.subscription_plans?.name}</span>
-                <span style={{ fontSize: "11px", color: TXT_SOFT, marginLeft: "auto" }}>GHS {Number(clientSubscription.subscription_plans?.price || 0).toFixed(2)}/mo</span>
-              </div>
-            )}
-
-            {/* Transaction total */}
-            <div style={{ paddingTop: "14px", borderTop: `1px solid ${BORDER}` }}>
-              {lineItems.map((item, idx) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-                  <span style={{ fontSize: "12px", color: TXT_MID }}>{item.name}{item.quantity > 1 ? ` x${item.quantity}` : ""}</span>
-                  <span style={{ fontSize: "12px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : TXT }}>
-                    {item.coveredBySubscription ? "Included in plan" : `GHS ${(item.unitPrice * item.quantity).toFixed(2)}`}
-                  </span>
-                </div>
-              ))}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", paddingTop: "12px", borderTop: `2px solid ${BORDER}` }}>
-                <span style={{ fontSize: "15px", fontWeight: 700, color: TXT }}>Transaction Total</span>
-                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, color: G_D }}>GHS {lineItemsTotal.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LineItemsPanel
+          lineItems={lineItems}
+          lineItemsTotal={lineItemsTotal}
+          products={products}
+          productSearch={productSearch}
+          clientSubscription={clientSubscription}
+          cardHdr={cardHdr}
+          lbl={lbl}
+          inp={inp}
+          onProductSearch={setProductSearch}
+          onAddProduct={addProduct}
+          onUpdateQty={updateQty}
+          onRemove={removeLineItem}
+          onToggleSub={toggleSub}
+        />
 
       </div>
     </div>
