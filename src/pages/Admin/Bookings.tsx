@@ -806,12 +806,14 @@ const Bookings = () => {
         const bk = bookings.find(b => b.id === bookingId);
         if (bk?.client_phone) {
           const dateLabel = bk.preferred_date ? new Date(bk.preferred_date + "T12:00:00").toLocaleDateString("en-GH", { weekday: "short", day: "numeric", month: "long" }) : bk.preferred_date;
+          // Format time as HH:MM only (strip seconds)
+          const confirmTime = (bk.preferred_time || "").slice(0, 5);
           sendSMS(bk.client_phone, SMS.bookingConfirmed(
             bk.client_name || "Valued Client",
             bk.service_name || "service",
             bk.preferred_date || "",
-            bk.preferred_time || "",
-            bk.staff_name || "our stylist",
+            confirmTime,
+            bk.staff_name || "our team",
             bk.booking_ref || bookingId.slice(0,8).toUpperCase(),
           )).catch(console.error);
         }

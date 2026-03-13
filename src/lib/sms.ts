@@ -55,6 +55,7 @@ export const SMS = {
   ) => {
     const first = firstName(name);
     const dayDate = date.includes("-") ? dayDateLabel(date) : date;
+    const cleanTime = time.slice(0, 5);
     const depositLine = depositPaid
       ? "💳 Deposit: GHS 50 received."
       : "💳 Deposit: Not recorded.";
@@ -65,7 +66,7 @@ export const SMS = {
 
 💆 Service: ${service}
 📅 Date: ${dayDate}
-🕐 Time: ${time}
+🕐 Time: ${cleanTime}
 🔖 Ref: ${ref}
 
 ${depositLine}
@@ -87,11 +88,12 @@ ${CONTACT}`;
   ) => {
     const first = firstName(name);
     const dayDate = date.includes("-") ? dayDateLabel(date) : date;
-    return `Hi ${first}! ✅ Your Zolara appointment is confirmed!
+    const cleanTime = time.slice(0, 5);
+    return `Hi ${first}, your Zolara appointment is confirmed! ✅
 
 💆 Service: ${service}
 📅 Date: ${dayDate}
-🕐 Time: ${time}
+🕐 Time: ${cleanTime}
 💅 Stylist: ${staffName}
 🔖 Ref: ${ref}
 
