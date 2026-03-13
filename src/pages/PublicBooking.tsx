@@ -268,13 +268,17 @@ export default function PublicBooking() {
         onSuccess: async (ref) => {
           setStep("verifying");
 
-          // Mark booking confirmed — RLS now allows authenticated and anon updates
-          await supabase.from("bookings").update({
+          const { error: confirmErr } = await supabase.from("bookings").update({
             deposit_paid: true,
             payment_ref: ref,
             payment_status: "paid",
             status: "confirmed",
           } as any).eq("id", bookingId);
+
+          if (confirmErr) {
+            console.error("Booking confirm error:", confirmErr);
+            toast.error("Payment received but booking confirmation failed. Please contact us.");
+          }
 
           // Link client in background
           findOrCreateClient({ name, phone: cleanPhone, email: email || null })
