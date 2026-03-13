@@ -362,12 +362,50 @@ const Staff = () => {
     if (!loginStaff?.email) { toast.error("Staff member needs an email address first."); return; }
     if (!loginPassword || loginPassword.length < 6) { toast.error("Password must be at least 6 characters."); return; }
     setLoginLoading(true);
+
+    const linkAccount = async (userId: string) => {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/link_staff_account`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          p_user_id: userId,
+          p_staff_id: loginStaff!.id,
+          p_role: loginStaff!.role || "staff",
+        }),
+      });
+    };
+
     try {
-      // Save current admin session so we can restore it after signUp()
+      // Check if account already exists for this email
+      const existingRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/get_user_id_by_email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ p_email: loginStaff.email }),
+      });
+      const existingUserId = existingRes.ok ? await existingRes.json() : null;
+
+      if (existingUserId) {
+        // Account already exists — just link it and we're done
+        await linkAccount(existingUserId);
+        toast.success(`Account linked for ${loginStaff.name}. They can log in with their existing password.`);
+        setLoginModalOpen(false);
+        setLoginPassword("");
+        fetchStaff();
+        return;
+      }
+
+      // Account doesn't exist — create it via signUp
       const { data: { session: adminSession } } = await supabase.auth.getSession();
       if (!adminSession) throw new Error("Admin session not found");
 
-      // Create staff account — this signs out the admin temporarily
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: loginStaff.email,
         password: loginPassword,
@@ -377,25 +415,8 @@ const Staff = () => {
       const userId = signUpData.user?.id;
       if (!userId) throw new Error("No user ID returned");
 
-      // Link staff record and role via raw fetch with anon key — SECURITY DEFINER bypasses RLS
-      // We do this BEFORE restoring session so timing doesn't matter
-      const rpcRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/link_staff_account`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          p_user_id: userId,
-          p_staff_id: loginStaff.id,
-          p_role: loginStaff.role || "staff",
-        }),
-      });
-      if (!rpcRes.ok) {
-        const rpcErr = await rpcRes.text();
-        throw new Error("Failed to link account: " + rpcErr);
-      }
+      // Link before restoring session
+      await linkAccount(userId);
 
       // Restore admin session
       await supabase.auth.setSession({
