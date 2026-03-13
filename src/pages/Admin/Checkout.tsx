@@ -137,9 +137,13 @@ const Checkout = () => {
       const bk = data as unknown as BookingData;
       setBooking(bk);
       const price = Number(bk.services?.price ?? (data as any).price ?? 0);
+      const alreadyDeposited = (data as any).deposit_paid || false;
+      const depositAmt = Number((data as any).deposit_amount ?? 50);
       setOriginalPrice(price);
-      setAmount(price.toString());
-      setDepositPaid((data as any).deposit_paid || false);
+      setDepositPaid(alreadyDeposited);
+      // Amount field = balance still owed (price minus deposit if already paid)
+      const balanceOwed = alreadyDeposited ? Math.max(0, price - depositAmt) : price;
+      setAmount(balanceOwed.toString());
       if (bk.staff?.id) setSelectedStaff(bk.staff.id);
       if (bk.clients?.id) fetchClientSubscription(bk.clients.id);
     } catch { toast.error("Failed to load booking"); }
@@ -508,14 +512,18 @@ const Checkout = () => {
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
                 <label style={lbl}>Assign Staff Member *</label>
-                <Select value={selectedStaff} onValueChange={setSelectedStaff}>
-                  <SelectTrigger style={{ border: "1.5px solid " + BORDER, borderRadius: "10px", fontSize: "13px" }}>
-                    <SelectValue placeholder="Select staff member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {staff.map(m => <SelectItem key={m.id} value={m.id}>{m.name}{absentStaffIds.has(m.id) ? " (Absent)" : ""}{m.specialization ? " - " + m.specialization : ""}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={selectedStaff}
+                  onChange={e => setSelectedStaff(e.target.value)}
+                  style={{ width: "100%", border: "1.5px solid " + BORDER, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: selectedStaff ? TXT : TXT_SOFT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", cursor: "pointer" }}
+                >
+                  <option value="">Select staff member...</option>
+                  {staff.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}{absentStaffIds.has(m.id) ? " (Absent)" : ""}{m.specialization ? " - " + m.specialization : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
