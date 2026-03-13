@@ -268,12 +268,10 @@ export default function PublicBooking() {
         onSuccess: async (ref) => {
           setStep("verifying");
 
-          const { error: confirmErr } = await supabase.from("bookings").update({
-            deposit_paid: true,
-            payment_ref: ref,
-            payment_status: "paid",
-            status: "confirmed",
-          } as any).eq("id", bookingId);
+          const { error: confirmErr } = await (supabase as any).rpc("confirm_booking_payment", {
+            p_booking_id: bookingId,
+            p_payment_ref: ref,
+          });
 
           if (confirmErr) {
             console.error("Booking confirm error:", confirmErr);
