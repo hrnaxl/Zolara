@@ -158,6 +158,7 @@ const Checkout = () => {
       const price = bookingStoredPrice >= serviceBasePrice && bookingStoredPrice > 0
         ? bookingStoredPrice
         : serviceBasePrice > 0 ? serviceBasePrice : bookingStoredPrice;
+      console.log("[CHECKOUT PRICE]", { serviceId, serviceBasePrice, bookingStoredPrice, price, servicesJoin: (data as any).services });
       setOriginalPrice(price);
       // Set service line item immediately with the correct price
       setLineItems([{
