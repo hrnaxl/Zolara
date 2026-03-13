@@ -215,7 +215,7 @@ export async function fetchPendingDepositBookings(): Promise<{ data: any[]; erro
       .from("bookings")
       .select("*")
       .eq("deposit_paid", false)
-      .not("status", "eq", "cancelled")
+      .not("status", "in", "(cancelled,completed)")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
