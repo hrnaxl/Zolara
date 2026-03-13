@@ -600,8 +600,15 @@ const Checkout = () => {
 
           if (clientId) {
             // ── LOYALTY: only awarded on completed checkout ──────────────────
-            // Full service price — balance entered + deposit already paid
             const fullBookingPrice = Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
+
+            // Capture points BEFORE RPC so we can calculate earned this visit
+            const { data: beforeClient } = await (supabase as any)
+              .from("clients")
+              .select("loyalty_points")
+              .eq("id", clientId)
+              .single();
+            const prevPoints = Number(beforeClient?.loyalty_points || 0);
 
             // Use SECURITY DEFINER RPC to bypass RLS and update client reliably
             await (supabase as any).rpc("update_client_after_checkout", {
@@ -609,7 +616,7 @@ const Checkout = () => {
               p_amount_spent: fullBookingPrice,
             });
 
-            // Read back final points for SMS
+            // Read back final points after RPC
             const { data: freshClient } = await (supabase as any)
               .from("clients")
               .select("loyalty_points, total_spent, date_of_birth")
@@ -618,7 +625,6 @@ const Checkout = () => {
             const finalPoints = Number(freshClient?.loyalty_points || 0);
             if (clientPhone) {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
-              const prevPoints = Number(freshClient?.loyalty_points || 0);
               const pointsEarned = Math.max(0, finalPoints - prevPoints);
 
               // SMS #5 — checkout complete

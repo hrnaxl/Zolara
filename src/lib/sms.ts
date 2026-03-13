@@ -26,9 +26,6 @@ export async function sendSMS(phone: string, message: string): Promise<boolean> 
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  HELPERS
-// ─────────────────────────────────────────────────────────────
 function firstName(name: string): string {
   return (name || "").split(" ")[0] || name;
 }
@@ -39,12 +36,9 @@ function dayDateLabel(date: string): string {
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-//  MESSAGE TEMPLATES
-// ─────────────────────────────────────────────────────────────
 export const SMS = {
 
-  // 1. Booking Initiated — deposit paid
+  // 1 & 2. Booking Received
   bookingReceived: (
     name: string,
     service: string,
@@ -60,24 +54,26 @@ export const SMS = {
       ? "💳 Deposit: GHS 50 received."
       : "💳 Deposit: Not recorded.";
     const statusLine = depositPaid
-      ? "Your appointment is being reviewed by our team. You will receive a confirmation message shortly. 🌸"
-      : "Your appointment request is awaiting confirmation. You will receive an update shortly. 🌸";
-    return `Hi ${first}! ✨ Your booking request at Zolara has been received.
-
-💆 Service: ${service}
-📅 Date: ${dayDate}
-🕐 Time: ${cleanTime}
-🔖 Ref: ${ref}
-
-${depositLine}
-
-${statusLine}
-
-Zolara Beauty Studio 💛
-${CONTACT}`;
+      ? "Your appointment is being reviewed by our team. We'll send a confirmation shortly. 🌸"
+      : "Your request is awaiting confirmation. We'll send an update shortly. 🌸";
+    return [
+      `Hi ${first}! ✨ Your booking at Zolara has been received.`,
+      ``,
+      `💆 Service: ${service}`,
+      `📅 Date: ${dayDate}`,
+      `🕐 Time: ${cleanTime}`,
+      `🔖 Ref: ${ref}`,
+      ``,
+      depositLine,
+      ``,
+      statusLine,
+      ``,
+      `Zolara Beauty Studio 💛`,
+      CONTACT,
+    ].join("\n");
   },
 
-  // 3. Booking Confirmed (stylist name included)
+  // 3. Booking Confirmed
   bookingConfirmed: (
     name: string,
     service: string,
@@ -89,23 +85,26 @@ ${CONTACT}`;
     const first = firstName(name);
     const dayDate = date.includes("-") ? dayDateLabel(date) : date;
     const cleanTime = time.slice(0, 5);
-    return `Hi ${first}, your Zolara appointment is confirmed! ✅
-
-💆 Service: ${service}
-📅 Date: ${dayDate}
-🕐 Time: ${cleanTime}
-💅 Stylist: ${staffName}
-🔖 Ref: ${ref}
-
-We can't wait to pamper you! 🌸 Please arrive about 5 minutes early.
-
-📍 Sakasaka, Opp. CalBank – Tamale
-
-Zolara Beauty Studio 💛
-${CONTACT}`;
+    return [
+      `Hi ${first}, your Zolara appointment is confirmed! ✅`,
+      ``,
+      `💆 Service: ${service}`,
+      `📅 Date: ${dayDate}`,
+      `🕐 Time: ${cleanTime}`,
+      `💅 Stylist: ${staffName}`,
+      `🔖 Ref: ${ref}`,
+      ``,
+      `We can't wait to pamper you! 🌸`,
+      `Please arrive about 5 minutes early.`,
+      ``,
+      `📍 Sakasaka, Opp. CalBank – Tamale`,
+      ``,
+      `Zolara Beauty Studio 💛`,
+      CONTACT,
+    ].join("\n");
   },
 
-  // 4. Appointment Reminder (2hrs before — only if booked >2hrs ahead)
+  // 4. Appointment Reminder
   appointmentReminder: (
     name: string,
     service: string,
@@ -114,20 +113,23 @@ ${CONTACT}`;
     ref: string,
   ) => {
     const first = firstName(name);
-    return `Hi ${first}, this is a reminder of your Zolara appointment today.
-
-Service: ${service}
-Time: ${time}
-Stylist: ${staffName}
-Ref: ${ref}
-
-We look forward to serving you.
-
-Zolara Beauty Studio
-${CONTACT}`;
+    const cleanTime = time.slice(0, 5);
+    return [
+      `Hi ${first}, reminder for your Zolara appointment today! ⏰`,
+      ``,
+      `💆 Service: ${service}`,
+      `🕐 Time: ${cleanTime}`,
+      `💅 Stylist: ${staffName}`,
+      `🔖 Ref: ${ref}`,
+      ``,
+      `We look forward to seeing you! 🌸`,
+      ``,
+      `Zolara Beauty Studio 💛`,
+      CONTACT,
+    ].join("\n");
   },
 
-  // 5. Checkout / Visit Completion
+  // 5. Checkout Complete
   checkoutComplete: (
     name: string,
     service: string,
@@ -137,22 +139,25 @@ ${CONTACT}`;
     ref: string,
   ) => {
     const first = firstName(name);
-    return `Thank you for visiting Zolara, ${first}.
-
-Service: ${service}
-Total Paid: GHS ${totalPaid}
-Ref: ${ref}
-
-You earned ${pointsEarned} stamp${pointsEarned !== 1 ? "s" : ""} from this visit.
-Your total stamps: ${totalPoints}
-
-Collect 20 stamps and enjoy a GHS 50 reward.
-
-Book your next visit:
-zolarasalon.com
-
-Zolara Beauty Studio
-${CONTACT}`;
+    const rewardLine = totalPoints >= 20
+      ? `🎁 You've unlocked a GHS 50 reward! Redeem on your next visit.`
+      : `⭐ ${totalPoints} stamp${totalPoints !== 1 ? "s" : ""} total. ${20 - totalPoints} more for a GHS 50 reward!`;
+    return [
+      `Thank you for visiting Zolara, ${first}! 💛`,
+      ``,
+      `💆 Service: ${service}`,
+      `💰 Total Paid: GHS ${totalPaid}`,
+      `🔖 Ref: ${ref}`,
+      ``,
+      `✨ You earned ${pointsEarned} stamp${pointsEarned !== 1 ? "s" : ""} from this visit.`,
+      rewardLine,
+      ``,
+      `Book your next visit:`,
+      `🔗 zolarasalon.com`,
+      ``,
+      `Zolara Beauty Studio 💛`,
+      CONTACT,
+    ].join("\n");
   },
 
   // 6. Rebooking Reminder
@@ -161,17 +166,17 @@ ${CONTACT}`;
     service: string,
   ) => {
     const first = firstName(name);
-    return `Hi ${first}, it may be time for your next Zolara visit.
-
-Your last service: ${service}
-
-Book your next appointment anytime:
-zolarasalon.com
-
-We would love to welcome you back.
-
-Zolara Beauty Studio
-${CONTACT}`;
+    return [
+      `Hi ${first}, it may be time for your next Zolara visit! 💅`,
+      ``,
+      `💆 Your last service: ${service}`,
+      ``,
+      `We'd love to have you back! Book anytime:`,
+      `🔗 zolarasalon.com`,
+      ``,
+      `Zolara Beauty Studio 💛`,
+      CONTACT,
+    ].join("\n");
   },
 
   // 7. Loyalty Reward Unlocked
@@ -180,33 +185,37 @@ ${CONTACT}`;
     totalPoints: number,
   ) => {
     const first = firstName(name);
-    return `Hi ${first}, great news from Zolara.
-
-You have collected ${totalPoints} stamps and unlocked your reward.
-
-Your GHS 50 loyalty credit is ready to use on your next visit.
-
-Book your appointment:
-zolarasalon.com
-
-Zolara Beauty Studio
-${CONTACT}`;
+    return [
+      `Hi ${first}, great news from Zolara! 🎉`,
+      ``,
+      `⭐ You've collected ${totalPoints} stamps and unlocked your reward!`,
+      ``,
+      `🎁 Your GHS 50 loyalty credit is ready to use on your next visit.`,
+      ``,
+      `Book your appointment:`,
+      `🔗 zolarasalon.com`,
+      ``,
+      `Zolara Beauty Studio 💛`,
+      CONTACT,
+    ].join("\n");
   },
 
   // 8. Missed-You Recovery
   missedYou: (name: string) => {
     const first = firstName(name);
-    return `Hi ${first}, we have missed seeing you at Zolara.
-
-It has been a while since your last visit and we would love to welcome you back.
-
-Book your next appointment anytime:
-zolarasalon.com
-
-We look forward to taking care of you again.
-
-Zolara Beauty Studio
-${CONTACT}`;
+    return [
+      `Hi ${first}, we've missed you at Zolara! 🌸`,
+      ``,
+      `It's been a while since your last visit and we'd love to welcome you back.`,
+      ``,
+      `Book your next appointment anytime:`,
+      `🔗 zolarasalon.com`,
+      ``,
+      `We look forward to taking care of you again. 💛`,
+      ``,
+      `Zolara Beauty Studio`,
+      CONTACT,
+    ].join("\n");
   },
 
   // Legacy alias
