@@ -35,7 +35,36 @@ export default function ClientPortal() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { navigate("/app/auth"); return; }
-      const { data } = await (supabase as any).from("clients").select("*").eq("user_id", session.user.id).maybeSingle();
+      const userId = session.user.id;
+      const userEmail = session.user.email?.toLowerCase();
+
+      // 1. Try matching by user_id first
+      let { data } = await (supabase as any).from("clients").select("*").eq("user_id", userId).maybeSingle();
+
+      // 2. If not found, try matching by email (client booked publicly without account)
+      if (!data && userEmail) {
+        const { data: byEmail } = await (supabase as any)
+          .from("clients").select("*").ilike("email", userEmail).maybeSingle();
+        if (byEmail) {
+          // Link user_id to existing client record
+          await (supabase as any).from("clients").update({ user_id: userId }).eq("id", byEmail.id);
+          data = { ...byEmail, user_id: userId };
+        }
+      }
+
+      // 3. Try matching by phone from auth metadata if still not found
+      if (!data) {
+        const phone = session.user.user_metadata?.phone;
+        if (phone) {
+          const { data: byPhone } = await (supabase as any)
+            .from("clients").select("*").eq("phone", phone).maybeSingle();
+          if (byPhone) {
+            await (supabase as any).from("clients").update({ user_id: userId }).eq("id", byPhone.id);
+            data = { ...byPhone, user_id: userId };
+          }
+        }
+      }
+
       setClient(data);
     });
   }, []);

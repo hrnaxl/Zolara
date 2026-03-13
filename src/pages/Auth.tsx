@@ -170,10 +170,19 @@ export default function Auth() {
       // Role assignment and staff linking is handled automatically by the database trigger
       // on_auth_user_created fires immediately and assigns the correct role
 
-      // For clients, also create a client profile record
+      // For clients, link existing record by email or create new one
       if (!staffMatch) {
         const cleanPhone = phone.replace(/\s/g, "");
-        await findOrCreateClient({ name, phone: cleanPhone, email: email.trim(), userId });
+        // Try to find existing client by email first (booked without account)
+        const { data: existingByEmail } = await supabase
+          .from("clients" as any).select("id, user_id").ilike("email", email.trim()).maybeSingle();
+        if (existingByEmail && !existingByEmail.user_id) {
+          // Link user_id to the existing client record
+          await supabase.from("clients" as any).update({ user_id: userId }).eq("id", existingByEmail.id);
+        } else if (!existingByEmail) {
+          // No existing client — create one
+          await findOrCreateClient({ name, phone: cleanPhone, email: email.trim(), userId });
+        }
       }
 
       clearTimeout(timeout);
