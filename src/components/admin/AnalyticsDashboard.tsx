@@ -78,6 +78,7 @@ export default function AnalyticsDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [topServices, setTopServices] = useState<any[]>([]);
   const [topClients, setTopClients] = useState<any[]>([]);
+  const [revenueSplit, setRevenueSplit] = useState({ service: 0, product: 0, subscription: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -88,9 +89,10 @@ export default function AnalyticsDashboard() {
     setLoading(true);
     try {
       const { start, end } = getRangeDates(range);
-      const [salesRes, bookingsRes, svc, clients] = await Promise.all([
+      const [salesRes, bookingsRes, itemsRes, svc, clients] = await Promise.all([
         supabase.from("sales").select("amount, created_at, payment_method, service_name, client_name").eq("status", "completed").gte("created_at", start).lte("created_at", end + "T23:59:59"),
         supabase.from("bookings").select("status, preferred_date, service_name, client_name, staff_name, price").gte("preferred_date", start).lte("preferred_date", end),
+        (supabase as any).from("checkout_items").select("item_type, price_at_time, quantity").gte("created_at", start).lte("created_at", end + "T23:59:59"),
         getTopServices(),
         getTopClients(),
       ]);
@@ -98,6 +100,12 @@ export default function AnalyticsDashboard() {
       setBookings(bookingsRes.data || []);
       setTopServices(svc);
       setTopClients(clients);
+      // Revenue split by type from line items
+      const items = itemsRes.data || [];
+      const svcRev  = items.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
+      const prodRev = items.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
+      const subRev  = items.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
+      setRevenueSplit({ service: svcRev, product: prodRev, subscription: subRev });
     } catch { toast.error("Failed to load analytics"); }
     finally { setLoading(false); }
   };
@@ -163,6 +171,23 @@ export default function AnalyticsDashboard() {
         <KPICard label="No Shows"       value={noShows}                 sub="missed appointments" />
         <KPICard label="Top Clients"    value={topClients.length}       sub="all-time" />
       </div>
+
+      {/* Revenue by Type */}
+      {(revenueSplit.service > 0 || revenueSplit.product > 0 || revenueSplit.subscription > 0) && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+          {[
+            { label: "SERVICE REVENUE",      value: revenueSplit.service,      color: "#8B6914", bg: "#FBF6EE", border: "#F0E4CC" },
+            { label: "PRODUCT REVENUE",       value: revenueSplit.product,      color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
+            { label: "SUBSCRIPTION REVENUE",  value: revenueSplit.subscription, color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+          ].map(k => (
+            <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 14, padding: "16px 20px" }}>
+              <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: k.color, margin: "0 0 6px" }}>{k.label}</p>
+              <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 26, fontWeight: 700, color: "#1C160E", margin: 0 }}>{fmt(k.value)}</p>
+              {totalRevenue > 0 && <p style={{ fontSize: 10, color: k.color, margin: "4px 0 0" }}>{((k.value / totalRevenue) * 100).toFixed(1)}% of total</p>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Revenue Chart */}
       <Card style={{ marginBottom: 24 }}>

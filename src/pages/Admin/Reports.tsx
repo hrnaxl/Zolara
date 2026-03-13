@@ -91,6 +91,17 @@ const Reports = () => {
     setLoading(true);
     try {
       // include transaction_reference and service price when available
+      // Fetch checkout line items for revenue split
+      const { data: checkoutItemsData } = await (supabase as any)
+        .from("checkout_items")
+        .select("item_type, price_at_time")
+        .gte("created_at", startDate)
+        .lte("created_at", endDate + "T23:59:59");
+      const ciItems = checkoutItemsData || [];
+      const serviceRevenue      = ciItems.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
+      const productRevenue      = ciItems.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
+      const subscriptionRevenue = ciItems.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
+
       let query = supabase
         .from("sales")
         .select(
@@ -353,7 +364,7 @@ const Reports = () => {
         // ignore
       }
 
-      setReportData({
+      setReportData({ serviceRevenue, productRevenue, subscriptionRevenue,
         totalRevenue,
         totalBookings,
         serviceBreakdown,
@@ -555,6 +566,23 @@ const Reports = () => {
               </div>
             ))}
           </div>
+
+          {/* Revenue split by type */}
+          {(reportData.serviceRevenue > 0 || reportData.productRevenue > 0 || reportData.subscriptionRevenue > 0) && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px" }}>
+              {[
+                { l: "SERVICE REVENUE",      v: reportData.serviceRevenue,      c: G_D,      bg: "#FBF6EE", bd: "#F0E4CC" },
+                { l: "PRODUCT REVENUE",       v: reportData.productRevenue,      c: "#2563EB", bg: "#EFF6FF", bd: "#BFDBFE" },
+                { l: "SUBSCRIPTION REVENUE",  v: reportData.subscriptionRevenue, c: "#7C3AED", bg: "#F5F3FF", bd: "#DDD6FE" },
+              ].map(k => (
+                <div key={k.l} style={{ background: k.bg, border: `1px solid ${k.bd}`, borderRadius: "14px", padding: "16px 20px" }}>
+                  <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.12em", color: k.c, margin: "0 0 6px" }}>{k.l}</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: TXT, margin: 0 }}>GH₵{Number(k.v || 0).toLocaleString()}</p>
+                  {reportData.totalRevenue > 0 && <p style={{ fontSize: "10px", color: k.c, margin: "4px 0 0" }}>{((k.v / reportData.totalRevenue) * 100).toFixed(1)}% of total</p>}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             {/* Revenue by Service */}

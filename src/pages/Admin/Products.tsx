@@ -104,6 +104,19 @@ export default function ProductsPage() {
         ))}
       </div>
 
+      {/* Low stock alert */}
+      {lowStock.length > 0 && (
+        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "14px", padding: "14px 20px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <span style={{ fontSize: "18px" }}>⚠️</span>
+          <div>
+            <p style={{ fontSize: "12px", fontWeight: 700, color: "#DC2626", margin: "0 0 2px" }}>LOW STOCK ALERT</p>
+            <p style={{ fontSize: "12px", color: "#991B1B", margin: 0 }}>
+              {lowStock.map(p => `${p.name} (${p.stock_quantity} left)`).join(" · ")}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Form */}
       {showForm && (
         <div style={{ ...card,marginBottom:"24px",borderLeft:`3px solid ${G}` }}>

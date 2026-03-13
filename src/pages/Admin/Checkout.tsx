@@ -134,6 +134,20 @@ const Checkout = () => {
   });
   const [userRole, setUserRole] = useState(null);
 
+  // ── Unified line items ──────────────────────────────────────────────────
+  const [lineItems, setLineItems] = useState<{
+    type: 'service' | 'product' | 'subscription';
+    id: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    coveredBySubscription?: boolean;
+  }[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [clientSubscription, setClientSubscription] = useState<any>(null);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+
   useEffect(() => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
@@ -148,10 +162,32 @@ const Checkout = () => {
     if (bookingId) {
       fetchBookingDetails();
       fetchStaff();
+      fetchProducts();
     } else {
       setLoading(false);
     }
   }, [bookingId]);
+
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    const { data } = await supabase.from('products' as any)
+      .select('id,name,price,cost_price,stock_quantity,category')
+      .eq('is_active', true)
+      .gt('stock_quantity', 0)
+      .order('name');
+    setProducts(data || []);
+    setLoadingProducts(false);
+  };
+
+  const fetchClientSubscription = async (clientId: string) => {
+    const { data } = await (supabase as any)
+      .from('client_subscriptions')
+      .select('*, subscription_plans(name,price,included_services)')
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+      .maybeSingle();
+    setClientSubscription(data || null);
+  };
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -366,6 +402,61 @@ const Checkout = () => {
   const { settings } = useSettings();
   const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
 
+  // Initialise service line item when booking loads
+  useEffect(() => {
+    if (!booking) return;
+    const svcPrice = Number(booking.services?.price ?? (booking as any).price ?? 0);
+    setLineItems([{
+      type: 'service',
+      id: booking.service_id || booking.id,
+      name: booking.service_name || 'Service',
+      quantity: 1,
+      unitPrice: svcPrice,
+      coveredBySubscription: false,
+    }]);
+    if (booking.clients?.id) {
+      fetchClientSubscription(booking.clients.id);
+    }
+  }, [booking]);
+
+  const lineItemsTotal = lineItems.reduce((sum, item) =>
+    sum + (item.coveredBySubscription ? 0 : item.unitPrice * item.quantity), 0);
+
+  const addProduct = (product: any) => {
+    setLineItems(prev => {
+      const existing = prev.find(i => i.type === 'product' && i.id === product.id);
+      if (existing) {
+        return prev.map(i => i.id === product.id && i.type === 'product'
+          ? { ...i, quantity: i.quantity + 1 }
+          : i);
+      }
+      return [...prev, {
+        type: 'product',
+        id: product.id,
+        name: product.name,
+        quantity: 1,
+        unitPrice: Number(product.price),
+        coveredBySubscription: false,
+      }];
+    });
+    setProductSearch('');
+  };
+
+  const removeLineItem = (idx: number) => {
+    setLineItems(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateQty = (idx: number, qty: number) => {
+    if (qty < 1) { removeLineItem(idx); return; }
+    setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: qty } : item));
+  };
+
+  const toggleSubscriptionCover = (idx: number) => {
+    setLineItems(prev => prev.map((item, i) =>
+      i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item
+    ));
+  };
+
   // fetch bank/payment settings for manual transfer option
   useEffect(() => {
     const fetchPaymentInfo = async () => {
@@ -451,13 +542,13 @@ const Checkout = () => {
       return;
     }
 
-    // Compute payment amount deterministically:
-    // - If a gift card was redeemed, prefer originalPrice - giftValue (clamped at 0)
-    // - Otherwise use the amount entered (clamped at 0)
+    // Compute payment amount — use line items total as the source of truth
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
-    // effectivePrice = full service price: use originalPrice if set, else amount entered + deposit already paid
-    const effectivePrice = Number(originalPrice) || (parseFloat(amount) + dep) || 0;
+    // effectivePrice = sum of non-subscription line items
+    const effectivePrice = lineItemsTotal > 0
+      ? lineItemsTotal
+      : (Number(originalPrice) || (parseFloat(amount) + dep) || 0);
     const base = effectivePrice;
     const paymentAmount = Math.max(0, base - promoDiscount - giftValue - dep);
     setProcessing(true);
@@ -579,6 +670,49 @@ const Checkout = () => {
 
         if (paymentError) throw paymentError;
 
+        // ── Write checkout line items ────────────────────────────────────
+        try {
+          const { data: saleRecord } = await supabase
+            .from('sales').select('id').eq('booking_id', booking.id)
+            .eq('status','completed').order('created_at',{ascending:false}).limit(1).single();
+          if (saleRecord?.id && lineItems.length > 0) {
+            await (supabase as any).from('checkout_items').insert(
+              lineItems.map(item => ({
+                sale_id: saleRecord.id,
+                booking_id: booking.id,
+                item_type: item.type,
+                item_id: item.id,
+                item_name: item.name,
+                quantity: item.quantity,
+                unit_price: item.unitPrice,
+                price_at_time: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity,
+              }))
+            );
+          }
+          // ── Deduct product inventory ─────────────────────────────────
+          const productItems = lineItems.filter(i => i.type === 'product');
+          for (const pi of productItems) {
+            const prod = products.find(p => p.id === pi.id);
+            if (prod) {
+              await (supabase as any).from('products')
+                .update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) })
+                .eq('id', pi.id);
+            }
+          }
+          // ── Record subscription usage ────────────────────────────────
+          if (clientSubscription) {
+            const coveredItems = lineItems.filter(i => i.coveredBySubscription);
+            for (const ci of coveredItems) {
+              await (supabase as any).from('subscription_usage').insert({
+                client_subscription_id: clientSubscription.id,
+                client_id: booking.clients?.id || null,
+                service_id: ci.type === 'service' ? ci.id : null,
+                booking_id: booking.id,
+              });
+            }
+          }
+        } catch (itemErr) { console.error('Line items error:', itemErr); }
+
         // Update local UI state
         setPaymentMethod(paymentMethod);
         setCompleted(true);
@@ -599,8 +733,10 @@ const Checkout = () => {
           }
 
           if (clientId) {
-            // ── LOYALTY: only awarded on completed checkout ──────────────────
-            const fullBookingPrice = Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
+            // ── LOYALTY: only on actual spend — subscription-covered items excluded ──
+            const fullBookingPrice = lineItems.reduce((sum, item) =>
+              sum + (item.coveredBySubscription ? 0 : item.unitPrice * item.quantity), 0
+            ) || Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
 
             // Capture points BEFORE RPC so we can calculate earned this visit
             const { data: beforeClient } = await (supabase as any)
@@ -769,7 +905,6 @@ const Checkout = () => {
 
           <div style={{ padding: "28px 32px" }}>
             {[
-              { l: "Service", v: booking.service_name },
               { l: "Client", v: booking.client_name },
               { l: "Staff", v: staff.find(s => s.id === selectedStaff)?.name || "Assigned" },
               { l: "Payment", v: paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "bank_transfer" ? "Bank Transfer" : (paymentMethod || "").charAt(0).toUpperCase() + (paymentMethod || "").slice(1) },
@@ -779,10 +914,18 @@ const Checkout = () => {
                 <span style={{ fontSize: "13px", fontWeight: 600, color: "#1C160E" }}>{row.v}</span>
               </div>
             ))}
+            {lineItems.map((item, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #EDEBE5" }}>
+                <span style={{ fontSize: "12px", color: "#78716C" }}>{item.type === "service" ? "Service" : item.type === "product" ? "Product" : "Plan"}: {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : "#1C160E" }}>
+                  {item.coveredBySubscription ? "Included" : `GH₵ ${(item.unitPrice * item.quantity).toFixed(2)}`}
+                </span>
+              </div>
+            ))}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: "4px" }}>
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Paid</span>
               <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>
-                GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
+                GH₵ {lineItemsTotal.toFixed(2)}
               </span>
             </div>
 
@@ -887,6 +1030,7 @@ const Checkout = () => {
           </div>
         </div>
 
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
 
           {/* LEFT — Booking Details */}
@@ -1103,9 +1247,8 @@ const Checkout = () => {
                   <>
                     <CheckCircle2 style={{ width: "18px", height: "18px" }} />
                     Complete Checkout — GH₵ {(() => {
-                      const base = Number(originalPrice || booking?.services?.price || 0);
                       const dep = depositPaid ? depositAmount : 0;
-                      return Math.max(0, base - promoDiscount - (redeemedCard?.value ?? 0) - dep).toFixed(2);
+                      return Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - dep).toFixed(2);
                     })()}
                   </>
                 )}
@@ -1114,6 +1257,96 @@ const Checkout = () => {
             </div>
           </div>
         </div>
+
+        {/* ── LINE ITEMS PANEL ─────────────────────────────────────────── */}
+        <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
+          <div style={{ ...cardHdr, justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Receipt style={{ width: 16, height: 16, color: G }} />
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 19, fontWeight: 700, color: TXT }}>Line Items</span>
+            </div>
+            <span style={{ fontSize: 11, color: TXT_SOFT }}>Add products sold alongside this service</span>
+          </div>
+          <div style={{ padding: "20px" }}>
+            {/* Current line items */}
+            <div style={{ marginBottom: 16 }}>
+              {lineItems.map((item, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: item.coveredBySubscription ? "#F0FDF4" : CREAM, border: `1px solid ${item.coveredBySubscription ? "#BBF7D0" : BORDER}`, marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 700, background: item.type === "service" ? "#FBF6EE" : item.type === "product" ? "#EFF6FF" : "#F5F3FF", color: item.type === "service" ? G_D : item.type === "product" ? "#2563EB" : "#7C3AED" }}>{item.type.toUpperCase()}</span>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: TXT }}>{item.name}</span>
+                  {item.type !== "service" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <button onClick={() => updateQty(idx, item.quantity - 1)} style={{ width: 22, height: 22, borderRadius: 6, border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: 14, fontWeight: 700, color: TXT_MID, display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: TXT, minWidth: 20, textAlign: "center" }}>{item.quantity}</span>
+                      <button onClick={() => updateQty(idx, item.quantity + 1)} style={{ width: 22, height: 22, borderRadius: 6, border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: 14, fontWeight: 700, color: TXT_MID, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                    </div>
+                  )}
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: item.coveredBySubscription ? "#16A34A" : G_D, minWidth: 80, textAlign: "right" }}>
+                    {item.coveredBySubscription ? "Plan" : `GH₵ ${(item.unitPrice * item.quantity).toFixed(2)}`}
+                  </span>
+                  {clientSubscription && item.type === "service" && (
+                    <button onClick={() => toggleSubscriptionCover(idx)} style={{ fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: `1px solid ${item.coveredBySubscription ? "#16A34A" : BORDER}`, background: item.coveredBySubscription ? "#DCFCE7" : WHITE, color: item.coveredBySubscription ? "#16A34A" : TXT_SOFT, cursor: "pointer", whiteSpace: "nowrap" }}>
+                      {item.coveredBySubscription ? "✓ Plan" : "Use Plan"}
+                    </button>
+                  )}
+                  {item.type !== "service" && (
+                    <button onClick={() => removeLineItem(idx)} style={{ fontSize: 11, color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Add product search */}
+            <div style={{ position: "relative", marginBottom: 14 }}>
+              <label style={lbl}>Add Product to Sale</label>
+              <input placeholder="Search products…" value={productSearch} onChange={e => setProductSearch(e.target.value)} style={inp} />
+              {productSearch && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.1)", zIndex: 100, maxHeight: 200, overflowY: "auto" as any }}>
+                  {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 ? (
+                    <div style={{ padding: "12px 16px", fontSize: 13, color: TXT_SOFT }}>No products found</div>
+                  ) : products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                    <div key={p.id} onClick={() => addProduct(p)} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}
+                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "#FBF6EE")}
+                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = WHITE)}>
+                      <div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: TXT }}>{p.name}</span>
+                        <span style={{ fontSize: 10, color: TXT_SOFT, marginLeft: 8 }}>In stock: {p.stock_quantity}</span>
+                      </div>
+                      <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 700, color: G_D }}>GH₵ {Number(p.price).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Active subscription badge */}
+            {clientSubscription && (
+              <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 10, background: "#F5F3FF", border: "1px solid #DDD6FE", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", letterSpacing: "0.1em" }}>ACTIVE PLAN</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: TXT }}>{clientSubscription.subscription_plans?.name}</span>
+                <span style={{ fontSize: 11, color: TXT_SOFT, marginLeft: "auto" }}>GH₵{Number(clientSubscription.subscription_plans?.price || 0).toFixed(2)}/mo</span>
+              </div>
+            )}
+
+            {/* Total breakdown */}
+            <div style={{ paddingTop: 14, borderTop: `1px solid ${BORDER}` }}>
+              {lineItems.map((item, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+                  <span style={{ fontSize: 12, color: TXT_MID }}>{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : TXT }}>
+                    {item.coveredBySubscription ? "Included in plan" : `GH₵ ${(item.unitPrice * item.quantity).toFixed(2)}`}
+                  </span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: `2px solid ${BORDER}` }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: TXT }}>Transaction Total</span>
+                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 28, fontWeight: 700, color: G_D }}>GH₵ {lineItemsTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        </div>{/* end outer flex column */}
       </div>
     </div>
   );
