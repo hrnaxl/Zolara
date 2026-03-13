@@ -63,7 +63,51 @@ export default function BuyGiftCard() {
           recipient_email: isEmail ? form.recipientEmail : form.buyerEmail || "",
           message: form.message || (isEmail ? "" : "Physical card pickup"),
         },
-        onSuccess: () => {
+        onSuccess: async () => {
+          try {
+            // Generate gift card code
+            const code = `ZGC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
+            const tierValue = GIFT_CARD_TIERS[selectedTier!].value;
+
+            // Create gift card record in DB
+            const { data: card, error } = await (await import("@/integrations/supabase/client")).supabase
+              .from("gift_cards" as any)
+              .insert({
+                code,
+                tier: selectedTier,
+                amount: tierValue,
+                balance: tierValue,
+                status: isEmail ? "pending_send" : "active",
+                payment_status: isEmail ? "pending_send" : "paid",
+                card_type: isEmail ? "digital" : "physical",
+                buyer_name: form.buyerName,
+                buyer_email: form.buyerEmail || null,
+                buyer_phone: form.buyerPhone,
+                recipient_name: isEmail ? form.recipientName : form.buyerName,
+                recipient_email: isEmail ? form.recipientEmail : null,
+                message: form.message || null,
+              })
+              .select("id")
+              .single();
+
+            // If digital, trigger email immediately
+            if (!error && card?.id && isEmail) {
+              await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-gift-card-email`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                  },
+                  body: JSON.stringify({ card_id: card.id }),
+                }
+              ).catch(() => null);
+            }
+          } catch (e) {
+            console.error("Gift card creation error:", e);
+          }
           window.location.href = `${window.location.origin}/gift-card/success`;
         },
         onClose: () => {
