@@ -287,8 +287,8 @@ const Checkout = () => {
 
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
-    // effectivePrice = full service price (source of truth for sales records)
-    const effectivePrice = originalPrice > 0 ? originalPrice : (lineItemsTotal > 0 ? lineItemsTotal : parseFloat(amount) || 0);
+    // effectivePrice = service price + products (full transaction value)
+    const effectivePrice = originalPrice > 0 ? (originalPrice + productTotal) : (lineItemsTotal > 0 ? lineItemsTotal : parseFloat(amount) || 0);
     const paymentAmount = Math.max(0, effectivePrice - promoDiscount - giftValue - dep);
     setProcessing(true);
 
@@ -465,7 +465,9 @@ const Checkout = () => {
   const checkoutDisabled = processing || !selectedStaff;
   const statusColors = sc(booking.status);
   const dep = depositPaid ? depositAmount : 0;
-  const afterDeposit = Math.max(0, originalPrice - dep);
+  // productTotal = sum of all non-service line items (products added at checkout)
+  const productTotal = lineItems.filter(i => i.type === "product").reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const afterDeposit = Math.max(0, originalPrice - dep) + productTotal;
   const afterPromo = Math.max(0, afterDeposit - promoDiscount);
   const balanceDue = Math.max(0, afterPromo - (redeemedCard?.value ?? 0));
 
@@ -545,8 +547,14 @@ const Checkout = () => {
                     <span style={{ fontSize: "13px", fontWeight: 600, color: "#16A34A" }}>- GHS {depositAmount.toFixed(2)}</span>
                   </div>
                 )}
+                {productTotal > 0 && lineItems.filter(i => i.type === "product").map((item, idx) => (
+                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid " + BORDER }}>
+                    <span style={{ fontSize: "12px", color: TXT_MID }}>+ {item.name}{item.quantity > 1 ? " x" + item.quantity : ""}</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>GHS {(item.unitPrice * item.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid " + BORDER }}>
-                  <span style={{ fontSize: "12px", color: TXT_MID }}>Remaining before discounts</span>
+                  <span style={{ fontSize: "12px", color: TXT_MID }}>Subtotal before discounts</span>
                   <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>GHS {afterDeposit.toFixed(2)}</span>
                 </div>
                 {appliedPromo && (
