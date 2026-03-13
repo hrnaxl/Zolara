@@ -1030,7 +1030,6 @@ const Checkout = () => {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
 
           {/* LEFT — Booking Details */}
@@ -1256,7 +1255,7 @@ const Checkout = () => {
 
             </div>
           </div>
-        </div>{/* end two-column grid */}
+        </div>
 
         {/* ── LINE ITEMS PANEL ─────────────────────────────────────────── */}
         <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
@@ -1346,7 +1345,8 @@ const Checkout = () => {
           </div>
         </div>
 
-        </div>{/* end outer flex column */}
+        </div>
+
       </div>
     </div>
   );
