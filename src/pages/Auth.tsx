@@ -36,6 +36,15 @@ export default function Auth() {
     else                                      navigate("/app/client/dashboard", { replace: true });
   };
 
+  // If already logged in, redirect immediately
+  useState(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).maybeSingle();
+      if (roleData?.role) redirectByRole(roleData.role);
+    });
+  });
+
   const handleLogin = async () => {
     if (!email.trim() || !pass) { setError("Enter your email and password."); return; }
     setLoading(true); setError("");

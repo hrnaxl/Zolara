@@ -53,6 +53,11 @@ export default function PublicBooking() {
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>("form");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session));
+  }, []);
 
   const [bookingRef, setBookingRef] = useState("");
   const [bookedService, setBookedService] = useState("");
@@ -380,14 +385,21 @@ export default function PublicBooking() {
 
       {/* Topbar */}
       <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(245,239,230,0.97)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(200,169,126,0.2)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 20px rgba(28,22,14,0.06)" }}>
-        <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: TXT_MID, fontSize: "13px", fontWeight: 500, fontFamily: "'Montserrat',sans-serif", transition: "color 0.15s", padding: 0 }}
-          onMouseEnter={e => (e.currentTarget.style.color = GOLD_DARK)}
-          onMouseLeave={e => (e.currentTarget.style.color = TXT_MID)}>
-          <ArrowLeft size={16} /> Back to homepage
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: TXT_MID, fontSize: "13px", fontWeight: 500, fontFamily: "'Montserrat',sans-serif", transition: "color 0.15s", padding: 0 }}
+            onMouseEnter={e => (e.currentTarget.style.color = GOLD_DARK)}
+            onMouseLeave={e => (e.currentTarget.style.color = TXT_MID)}>
+            <ArrowLeft size={16} /> Back to homepage
+          </button>
+          {isLoggedIn && (
+            <a href="/app/client/dashboard" style={{ fontSize: 11, fontWeight: 700, color: GOLD_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "6px 12px", borderRadius: 16, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
+              ← My Account
+            </a>
+          )}
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <a href="/app/auth" style={{ fontSize: 11, fontWeight: 700, color: "#8B6914", textDecoration: "none", letterSpacing: "0.06em", background: "rgba(200,169,126,0.1)", padding: "7px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
-            Track My Bookings →
+          <a href={isLoggedIn ? "/app/client/dashboard" : "/app/auth"} style={{ fontSize: 11, fontWeight: 700, color: "#8B6914", textDecoration: "none", letterSpacing: "0.06em", background: "rgba(200,169,126,0.1)", padding: "7px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
+            {isLoggedIn ? "My Dashboard →" : "Track My Bookings →"}
           </a>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
             <img src={LOGO} style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} alt="Zolara" />
