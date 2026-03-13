@@ -4,7 +4,6 @@ const genId = () => crypto.randomUUID();
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode } from "@/lib/promoCodes";
-import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { openPaystackPopup } from "@/lib/payment";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
@@ -252,14 +251,8 @@ export default function PublicBooking() {
 
       if (bookingError) throw bookingError;
 
-      // Link client in background
-      findOrCreateClient({ name, phone: cleanPhone, email: email || null })
-        .then(clientId => {
-          if (clientId) supabase.from("bookings").update({ client_id: clientId } as any).eq("id", bookingId);
-        })
-        .catch(() => null);
-
       // 2. Open Paystack popup — inline, no redirect, no edge function, no secret key
+      // NOTE: client record is created at checkout, not here
       await openPaystackPopup({
         amount: depositAmount,
         email: email || `${cleanPhone}@zolara.com`,
@@ -278,12 +271,7 @@ export default function PublicBooking() {
             toast.error("Payment received but booking confirmation failed. Please contact us.");
           }
 
-          // Link client in background
-          findOrCreateClient({ name, phone: cleanPhone, email: email || null })
-            .then(clientId => {
-              if (clientId) supabase.from("bookings").update({ client_id: clientId } as any).eq("id", bookingId);
-            }).catch(() => null);
-
+          // Client record created at checkout only — not here
           setBookingRef(bRef);
           setBookedService(selectedService?.name || "");
           setBookedDate(preferredDate);

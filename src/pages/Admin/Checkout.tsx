@@ -6,6 +6,7 @@ import {
   redeemGiftCard as rpcRedeem,
 } from "@/lib/useGiftCards";
 import { validatePromoCode } from "@/lib/promoCodes";
+import { findOrCreateClient } from "@/lib/clientDedup";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -580,10 +581,21 @@ const Checkout = () => {
         setPaymentMethod(paymentMethod);
         setCompleted(true);
         toast.success("Checkout completed successfully!");
-        // Award loyalty points + update total_spent + send SMS
+        // Create client record at checkout if not already exists, then award loyalty points
         try {
-          const clientId = booking.clients?.id || (booking as any).client_id;
           const clientPhone = (booking as any).client_phone || booking.clients?.phone;
+          const clientName = (booking as any).client_name || booking.clients?.name || "Guest";
+          const clientEmail = (booking as any).client_email || booking.clients?.email || null;
+
+          // Always find or create — client only officially exists after first checkout
+          let clientId = booking.clients?.id || (booking as any).client_id || null;
+          const resolvedId = await findOrCreateClient({ name: clientName, phone: clientPhone, email: clientEmail });
+          if (resolvedId) {
+            clientId = resolvedId;
+            // Link to booking if not already linked
+            await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id);
+          }
+
           if (clientId) {
             const fullBookingPrice = Number((booking as any).price || originalPrice || 0);
             // Fetch fresh client data — booking join may be stale
