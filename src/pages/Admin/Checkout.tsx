@@ -229,7 +229,7 @@ const Checkout = () => {
           .limit(1);
 
         if (payments && payments.length > 0 && !cancelled) {
-          // Payment completed — update UI
+          // Payment completed - update UI
           setPending(false);
           setCompleted(true);
           setPaymentMethod(
@@ -289,7 +289,7 @@ const Checkout = () => {
             if (vd.status === "verified" || vd.status === "already_paid") {
               depositAlreadyPaid = true;
             }
-          } catch { /* ignore — fallback to manual toggle */ }
+          } catch { /* ignore - fallback to manual toggle */ }
         }
 
         const depositAmt = depositAlreadyPaid ? (Number((data as any).deposit_amount) || 50) : 0;
@@ -387,10 +387,10 @@ const Checkout = () => {
       const orig = Number(originalPrice || booking.price || booking.services?.price || 0);
       const remaining = Math.max(0, orig - value);
 
-      // Store card info — actual redemption happens on checkout completion
+      // Store card info - actual redemption happens on checkout completion
       setRedeemedCard({ id: card.id, value });
       setAmount(String(remaining.toFixed(2)));
-      toast.success(`Gift card applied: GH₵ ${value.toFixed(2)} off`);
+      toast.success(`Gift card applied: GH ${value.toFixed(2)} off`);
     } catch (err: any) {
       console.error("Redeem error:", err);
       toast.error(err.message || "Redeem failed");
@@ -500,7 +500,7 @@ const Checkout = () => {
       const promo = result.promo;
       const base = originalPrice || parseFloat(amount) || 0;
       if (promo.minimum_amount && base < promo.minimum_amount) {
-        toast.error(`Minimum purchase of GH₵${promo.minimum_amount} required`);
+        toast.error(`Minimum purchase of GH${promo.minimum_amount} required`);
         return;
       }
       let discount = 0;
@@ -515,7 +515,7 @@ const Checkout = () => {
       const dep = depositPaid ? Math.round(base * 0.5) : 0;
       const newAmount = Math.max(0, base - discount - (redeemedCard?.value ?? 0) - dep);
       setAmount(newAmount.toFixed(2));
-      toast.success(`Promo applied: GH₵${discount.toFixed(2)} off`);
+      toast.success(`Promo applied: GH${discount.toFixed(2)} off`);
     } catch (e: any) {
       toast.error(e.message || "Failed to validate promo code");
     } finally {
@@ -533,7 +533,7 @@ const Checkout = () => {
 
     if (absentStaffIds.has(selectedStaff)) {
       const staffName = staff.find(s => s.id === selectedStaff)?.name || "This staff member";
-      const proceed = window.confirm(`⚠️ ${staffName} is marked absent today. Proceed anyway?`);
+      const proceed = window.confirm(`! ${staffName} is marked absent today. Proceed anyway?`);
       if (!proceed) return;
     }
 
@@ -542,7 +542,7 @@ const Checkout = () => {
       return;
     }
 
-    // Compute payment amount — use line items total as the source of truth
+    // Compute payment amount - use line items total as the source of truth
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
     // effectivePrice = sum of non-subscription line items
@@ -613,7 +613,7 @@ const Checkout = () => {
               return;
             }
 
-            // NOW mark the card as redeemed — only after sale is recorded
+            // NOW mark the card as redeemed - only after sale is recorded
             await (supabase as any)
               .from("gift_cards")
               .update({
@@ -633,12 +633,12 @@ const Checkout = () => {
 
       const capitalizedPaymentMethod =
         paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
-      // CASH → mark completed immediately (admin page)
+      // CASH   mark completed immediately (admin page)
       if (paymentMethod !== "bank_transfer") {
         const capitalizedPaymentMethod =
           paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
 
-        // 1️⃣ Update the booking status and payment_method
+        // 1  Update the booking status and payment_method
         const { error: bookingError } = await supabase
           .from("bookings")
           .update({
@@ -723,7 +723,7 @@ const Checkout = () => {
           const clientName = (booking as any).client_name || booking.clients?.name || "Guest";
           const clientEmail = (booking as any).client_email || booking.clients?.email || null;
 
-          // Always find or create — client only officially exists after first checkout
+          // Always find or create - client only officially exists after first checkout
           let clientId = booking.clients?.id || (booking as any).client_id || null;
           const resolvedId = await findOrCreateClient({ name: clientName, phone: clientPhone, email: clientEmail });
           if (resolvedId) {
@@ -733,7 +733,7 @@ const Checkout = () => {
           }
 
           if (clientId) {
-            // - LOYALTY: only on actual spend — subscription-covered items excluded -
+            // - LOYALTY: only on actual spend - subscription-covered items excluded -
             const fullBookingPrice = lineItems.reduce((sum, item) =>
               sum + (item.coveredBySubscription ? 0 : item.unitPrice * item.quantity), 0
             ) || Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
@@ -763,7 +763,7 @@ const Checkout = () => {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
               const pointsEarned = Math.max(0, finalPoints - prevPoints);
 
-              // SMS #5 — checkout complete
+              // SMS #5 - checkout complete
               await sendSMS(clientPhone, SMS.checkoutComplete(
                 booking.client_name || "Valued Client",
                 booking.service_name || "service",
@@ -773,7 +773,7 @@ const Checkout = () => {
                 booking.booking_ref || booking.id.slice(0,8).toUpperCase(),
               ));
 
-              // SMS #7 — loyalty reward unlocked (crosses 20 stamp threshold)
+              // SMS #7 - loyalty reward unlocked (crosses 20 stamp threshold)
               const prevBucket = Math.floor(prevPoints / stampsForReward);
               const newBucket  = Math.floor(finalPoints / stampsForReward);
               if (newBucket > prevBucket && finalPoints >= stampsForReward) {
@@ -821,7 +821,7 @@ const Checkout = () => {
         return;
       }
 
-      // bank_transfer via Paystack (usePaystackForTransfer=true) → just record as pending
+      // bank_transfer via Paystack (usePaystackForTransfer=true)   just record as pending
       const { error: btErr } = await supabase.from("sales").insert({
         booking_id: booking.id,
         amount: paymentAmount + dep,
@@ -830,7 +830,7 @@ const Checkout = () => {
         client_name: booking.client_name || null,
         service_name: booking.service_name || null,
         client_id: booking.clients?.id || null,
-        notes: [notes || "Bank transfer — awaiting confirmation", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
+        notes: [notes || "Bank transfer - awaiting confirmation", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "),
         promo_code: appliedPromo?.code || null,
         promo_discount: promoDiscount > 0 ? promoDiscount : null,
       });
@@ -867,7 +867,7 @@ const Checkout = () => {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: "48px", height: "48px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
-          <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout…</p>
+          <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout </p>
         </div>
       </div>
     );
@@ -916,22 +916,22 @@ const Checkout = () => {
             ))}
             {lineItems.map((item, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #EDEBE5" }}>
-                <span style={{ fontSize: "12px", color: "#78716C" }}>{item.type === "service" ? "Service" : item.type === "product" ? "Product" : "Plan"}: {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}</span>
+                <span style={{ fontSize: "12px", color: "#78716C" }}>{item.type === "service" ? "Service" : item.type === "product" ? "Product" : "Plan"}: {item.name}{item.quantity > 1 ? ` x${item.quantity}` : ""}</span>
                 <span style={{ fontSize: "13px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : "#1C160E" }}>
-                  {item.coveredBySubscription ? "Included" : `GH₵ ${(item.unitPrice * item.quantity).toFixed(2)}`}
+                  {item.coveredBySubscription ? "Included" : `GH ${(item.unitPrice * item.quantity).toFixed(2)}`}
                 </span>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: "4px" }}>
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Paid</span>
               <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>
-                GH₵ {lineItemsTotal.toFixed(2)}
+                GH {lineItemsTotal.toFixed(2)}
               </span>
             </div>
 
             <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
               <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                ← Back
+                  Back
               </button>
               <button onClick={() => { setCompleted(false); navigate(userRole === "owner" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }}
                 style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#C8A97E,#8B6914)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
@@ -971,13 +971,13 @@ const Checkout = () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", marginTop: "4px" }}>
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Due</span>
               <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#92400E" }}>
-                GH₵ {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
+                GH {(originalPrice || Number(booking.services?.price ?? 0)).toFixed(2)}
               </span>
             </div>
 
             <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
               <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-                ← Back
+                  Back
               </button>
               <button onClick={() => { setPending(false); navigate(userRole === "owner" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }}
                 style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#D97706,#92400E)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
@@ -1030,9 +1030,10 @@ const Checkout = () => {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        {/* Top row: Booking Details + Payment Form */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
 
-          {/* LEFT — Booking Details */}
+          {/* LEFT: Booking Details */}
           <div style={card}>
             <div style={cardHdr}>
               <Sparkles style={{ width: "16px", height: "16px", color: G }} />
@@ -1040,7 +1041,6 @@ const Checkout = () => {
             </div>
             <div style={{ padding: "20px" }}>
 
-              {/* Service */}
               <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", marginBottom: "14px", border: `1px solid ${BORDER}` }}>
                 <p style={{ fontSize: "15px", fontWeight: 700, color: TXT, margin: "0 0 6px" }}>{booking.service_name}</p>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -1048,18 +1048,16 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Client */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "12px", background: CREAM, marginBottom: "14px", border: `1px solid ${BORDER}` }}>
                 <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#FBF6EE", border: `1px solid ${G}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <User style={{ width: "18px", height: "18px", color: G_D }} />
                 </div>
                 <div>
                   <p style={{ fontSize: "13px", fontWeight: 700, color: TXT, margin: "0 0 2px" }}>{booking.client_name}</p>
-                  <p style={{ fontSize: "11px", color: TXT_SOFT, margin: 0 }}>{booking.clients?.phone || booking.client_phone || ""}</p>
+                  <p style={{ fontSize: "11px", color: TXT_SOFT, margin: 0 }}>{booking.clients?.phone || (booking as any).client_phone || ""}</p>
                 </div>
               </div>
 
-              {/* Date & Time */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px" }}>
                 <div style={{ padding: "10px 14px", borderRadius: "10px", background: CREAM, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: "8px" }}>
                   <Calendar style={{ width: "14px", height: "14px", color: G }} />
@@ -1071,35 +1069,29 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Status */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={lbl as any}>Booking Status</span>
+                <span style={lbl as any}>Status</span>
                 <span style={{ padding: "3px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                 </span>
               </div>
 
-              {/* Pricing Summary */}
               <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${BORDER}` }}>
-                {row("Service Price", `GH₵ ${Number(originalPrice || booking?.services?.price || 0).toFixed(2)}`)}
-                {appliedPromo && row(`Promo (${appliedPromo.code})`, `- GH₵ ${promoDiscount.toFixed(2)}`)}
-                {redeemedCard && row("Gift Card", `- GH₵ ${redeemedCard.value.toFixed(2)}`)}
-                {depositPaid && row(`Deposit Paid`, `- GH₵ ${depositAmount.toFixed(2)}`)}
+                {row("Service Price", `GH${String.fromCharCode(8373)} ${Number(originalPrice || booking?.services?.price || 0).toFixed(2)}`)}
+                {appliedPromo && row(`Promo (${appliedPromo.code})`, `- GH${String.fromCharCode(8373)} ${promoDiscount.toFixed(2)}`)}
+                {redeemedCard && row("Gift Card", `- GH${String.fromCharCode(8373)} ${redeemedCard.value.toFixed(2)}`)}
+                {depositPaid && row("Deposit Paid", `- GH${String.fromCharCode(8373)} ${depositAmount.toFixed(2)}`)}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "10px", marginTop: "6px" }}>
                   <span style={{ fontSize: "14px", fontWeight: 700, color: TXT }}>Balance Due</span>
                   <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "26px", fontWeight: 700, color: G_D }}>
-                    GH₵ {(() => {
-                      const base = Number(originalPrice || booking?.services?.price || 0);
-                      const dep = depositPaid ? depositAmount : 0;
-                      return Math.max(0, base - promoDiscount - (redeemedCard?.value ?? 0) - dep).toFixed(2);
-                    })()}
+                    GH{String.fromCharCode(8373)} {Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - (depositPaid ? depositAmount : 0)).toFixed(2)}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* RIGHT — Checkout Form */}
+          {/* RIGHT: Complete Checkout */}
           <div style={card}>
             <div style={cardHdr}>
               <Receipt style={{ width: "16px", height: "16px", color: G }} />
@@ -1117,8 +1109,8 @@ const Checkout = () => {
                   <SelectContent>
                     {staff.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
-                        {member.name}{absentStaffIds.has(member.id) ? " ⚠️ Absent" : ""}
-                        {member.specialization ? ` — ${member.specialization}` : ""}
+                        {member.name}{absentStaffIds.has(member.id) ? " (Absent)" : ""}
+                        {member.specialization ? ` - ${member.specialization}` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1150,15 +1142,15 @@ const Checkout = () => {
 
               {/* Amount */}
               <div>
-                <label style={lbl}>Amount (GH₵)</label>
+                <label style={lbl}>Amount (GHS)</label>
                 <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={inp} />
               </div>
 
-              {/* Deposit Tracking */}
+              {/* Deposit */}
               <div style={{ background: depositPaid ? "#F0FDF4" : "#FFFBEB", border: `1px solid ${depositPaid ? "#BBF7D0" : "#FDE68A"}`, borderRadius: "12px", padding: "14px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <p style={{ fontSize: "11px", fontWeight: 700, color: depositPaid ? "#16A34A" : "#D97706", margin: "0 0 2px", letterSpacing: "0.08em", textTransform: "uppercase" }}>Deposit — GH₵ {depositAmount}</p>
+                    <p style={{ fontSize: "11px", fontWeight: 700, color: depositPaid ? "#16A34A" : "#D97706", margin: "0 0 2px", textTransform: "uppercase" }}>Deposit - GHS {depositAmount}</p>
                     <p style={{ fontSize: "12px", color: TXT_MID, margin: 0 }}>{depositPaid ? "Collected. Balance reduced." : "Not collected. Full price due."}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1182,7 +1174,7 @@ const Checkout = () => {
                     {redeeming ? "..." : "Redeem"}
                   </button>
                 </div>
-                {redeemedCard && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>✓ GH₵ {redeemedCard.value.toFixed(2)} off</p>}
+                {redeemedCard && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>GHS {redeemedCard.value.toFixed(2)} off</p>}
               </div>
 
               {/* Promo Code */}
@@ -1202,10 +1194,10 @@ const Checkout = () => {
                     </button>
                   )}
                 </div>
-                {appliedPromo && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>✓ {appliedPromo.code}: GH₵{promoDiscount.toFixed(2)} off{appliedPromo.discount_type === "percentage" ? ` (${appliedPromo.discount_value}%)` : ""}</p>}
+                {appliedPromo && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>{appliedPromo.code}: GHS{promoDiscount.toFixed(2)} off</p>}
               </div>
 
-              {/* Bank Transfer Options */}
+              {/* Bank Transfer */}
               {paymentMethod === "bank_transfer" && (
                 <div style={{ background: CREAM, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${BORDER}` }}>
                   <label style={lbl}>Transfer Mode</label>
@@ -1236,19 +1228,13 @@ const Checkout = () => {
 
               {/* Checkout Button */}
               <button onClick={handleCheckout} disabled={checkoutDisabled}
-                style={{ width: "100%", padding: "14px", borderRadius: "12px", background: checkoutDisabled ? "#E5E0D8" : `linear-gradient(135deg,${G},${G_D})`, color: checkoutDisabled ? TXT_SOFT : WHITE, border: "none", fontSize: "14px", fontWeight: 700, cursor: checkoutDisabled ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "Montserrat,sans-serif", letterSpacing: "0.02em" }}>
+                style={{ padding: "14px 20px", borderRadius: "12px", background: checkoutDisabled ? "#E8E0D4" : `linear-gradient(135deg,${G},${G_D})`, color: checkoutDisabled ? TXT_SOFT : WHITE, border: "none", fontSize: "13px", fontWeight: 700, cursor: checkoutDisabled ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", letterSpacing: "0.04em", width: "100%" }}>
                 {processing ? (
-                  <>
-                    <div style={{ width: "16px", height: "16px", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: WHITE, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                    Processing…
-                  </>
+                  <Loader2 style={{ width: "18px", height: "18px", animation: "spin 1s linear infinite" }} />
                 ) : (
                   <>
                     <CheckCircle2 style={{ width: "18px", height: "18px" }} />
-                    Complete Checkout — GH₵ {(() => {
-                      const dep = depositPaid ? depositAmount : 0;
-                      return Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - dep).toFixed(2);
-                    })()}
+                    Complete Checkout - GHS {Math.max(0, lineItemsTotal - promoDiscount - (redeemedCard?.value ?? 0) - (depositPaid ? depositAmount : 0)).toFixed(2)}
                   </>
                 )}
               </button>
@@ -1260,91 +1246,99 @@ const Checkout = () => {
         {/* LINE ITEMS PANEL */}
         <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
           <div style={{ ...cardHdr, justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Receipt style={{ width: 16, height: 16, color: G }} />
-              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 19, fontWeight: 700, color: TXT }}>Line Items</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <Receipt style={{ width: "16px", height: "16px", color: G }} />
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "19px", fontWeight: 700, color: TXT }}>Line Items</span>
             </div>
-            <span style={{ fontSize: 11, color: TXT_SOFT }}>Add products sold alongside this service</span>
+            <span style={{ fontSize: "11px", color: TXT_SOFT }}>Add retail products sold at this visit</span>
           </div>
           <div style={{ padding: "20px" }}>
-            {/* Current line items */}
-            <div style={{ marginBottom: 16 }}>
+
+            {/* Items list */}
+            <div style={{ marginBottom: "16px" }}>
               {lineItems.map((item, idx) => (
-                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: item.coveredBySubscription ? "#F0FDF4" : CREAM, border: `1px solid ${item.coveredBySubscription ? "#BBF7D0" : BORDER}`, marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 700, background: item.type === "service" ? "#FBF6EE" : item.type === "product" ? "#EFF6FF" : "#F5F3FF", color: item.type === "service" ? G_D : item.type === "product" ? "#2563EB" : "#7C3AED" }}>{item.type.toUpperCase()}</span>
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: TXT }}>{item.name}</span>
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", borderRadius: "10px", background: item.coveredBySubscription ? "#F0FDF4" : CREAM, border: `1px solid ${item.coveredBySubscription ? "#BBF7D0" : BORDER}`, marginBottom: "8px" }}>
+                  <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "20px", fontWeight: 700,
+                    background: item.type === "service" ? "#FBF6EE" : item.type === "product" ? "#EFF6FF" : "#F5F3FF",
+                    color: item.type === "service" ? G_D : item.type === "product" ? "#2563EB" : "#7C3AED"
+                  }}>{item.type.toUpperCase()}</span>
+                  <span style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: TXT }}>{item.name}</span>
                   {item.type !== "service" && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <button onClick={() => updateQty(idx, item.quantity - 1)} style={{ width: 22, height: 22, borderRadius: 6, border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: 14, fontWeight: 700, color: TXT_MID, display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: TXT, minWidth: 20, textAlign: "center" }}>{item.quantity}</span>
-                      <button onClick={() => updateQty(idx, item.quantity + 1)} style={{ width: 22, height: 22, borderRadius: 6, border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: 14, fontWeight: 700, color: TXT_MID, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <button onClick={() => updateQty(idx, item.quantity - 1)} style={{ width: "22px", height: "22px", borderRadius: "6px", border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: "14px", fontWeight: 700, color: TXT_MID }}>-</button>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: TXT, minWidth: "20px", textAlign: "center" }}>{item.quantity}</span>
+                      <button onClick={() => updateQty(idx, item.quantity + 1)} style={{ width: "22px", height: "22px", borderRadius: "6px", border: `1px solid ${BORDER}`, background: WHITE, cursor: "pointer", fontSize: "14px", fontWeight: 700, color: TXT_MID }}>+</button>
                     </div>
                   )}
-                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: item.coveredBySubscription ? "#16A34A" : G_D, minWidth: 80, textAlign: "right" }}>
-                    {item.coveredBySubscription ? "Plan" : `GH₵ ${(item.unitPrice * item.quantity).toFixed(2)}`}
+                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "16px", fontWeight: 700, color: item.coveredBySubscription ? "#16A34A" : G_D, minWidth: "80px", textAlign: "right" }}>
+                    {item.coveredBySubscription ? "Plan" : `GHS ${(item.unitPrice * item.quantity).toFixed(2)}`}
                   </span>
                   {clientSubscription && item.type === "service" && (
-                    <button onClick={() => toggleSubscriptionCover(idx)} style={{ fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: `1px solid ${item.coveredBySubscription ? "#16A34A" : BORDER}`, background: item.coveredBySubscription ? "#DCFCE7" : WHITE, color: item.coveredBySubscription ? "#16A34A" : TXT_SOFT, cursor: "pointer", whiteSpace: "nowrap" }}>
-                      {item.coveredBySubscription ? "✓ Plan" : "Use Plan"}
+                    <button onClick={() => toggleSubscriptionCover(idx)} style={{ fontSize: "10px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", border: `1px solid ${item.coveredBySubscription ? "#16A34A" : BORDER}`, background: item.coveredBySubscription ? "#DCFCE7" : WHITE, color: item.coveredBySubscription ? "#16A34A" : TXT_SOFT, cursor: "pointer", whiteSpace: "nowrap" }}>
+                      {item.coveredBySubscription ? "Plan active" : "Use Plan"}
                     </button>
                   )}
                   {item.type !== "service" && (
-                    <button onClick={() => removeLineItem(idx)} style={{ fontSize: 11, color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+                    <button onClick={() => removeLineItem(idx)} style={{ fontSize: "11px", color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>X</button>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Add product search */}
-            <div style={{ position: "relative", marginBottom: 14 }}>
+            {/* Product search */}
+            <div style={{ position: "relative", marginBottom: "14px" }}>
               <label style={lbl}>Add Product to Sale</label>
-              <input placeholder="Search products…" value={productSearch} onChange={e => setProductSearch(e.target.value)} style={inp} />
-              {productSearch && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.1)", zIndex: 100, maxHeight: 200, overflowY: "auto" as any }}>
+              <input
+                placeholder="Search products..."
+                value={productSearch}
+                onChange={e => setProductSearch(e.target.value)}
+                style={inp}
+              />
+              {productSearch.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "10px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", zIndex: 100, maxHeight: "200px", overflowY: "auto" }}>
                   {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 ? (
-                    <div style={{ padding: "12px 16px", fontSize: 13, color: TXT_SOFT }}>No products found</div>
+                    <div style={{ padding: "12px 16px", fontSize: "13px", color: TXT_SOFT }}>No products found</div>
                   ) : products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
-                    <div key={p.id} onClick={() => addProduct(p)} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}
+                    <div key={p.id} onClick={() => addProduct(p)}
+                      style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderBottom: `1px solid ${BORDER}`, background: WHITE }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FBF6EE"; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#FFFFFF"; }}>
                       <div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: TXT }}>{p.name}</span>
-                        <span style={{ fontSize: 10, color: TXT_SOFT, marginLeft: 8 }}>In stock: {p.stock_quantity}</span>
+                        <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{p.name}</span>
+                        <span style={{ fontSize: "10px", color: TXT_SOFT, marginLeft: "8px" }}>In stock: {p.stock_quantity}</span>
                       </div>
-                      <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 700, color: G_D }}>GH₵ {Number(p.price).toFixed(2)}</span>
+                      <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "15px", fontWeight: 700, color: G_D }}>GHS {Number(p.price).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Active subscription badge */}
+            {/* Active subscription */}
             {clientSubscription && (
-              <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 10, background: "#F5F3FF", border: "1px solid #DDD6FE", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", letterSpacing: "0.1em" }}>ACTIVE PLAN</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: TXT }}>{clientSubscription.subscription_plans?.name}</span>
-                <span style={{ fontSize: 11, color: TXT_SOFT, marginLeft: "auto" }}>GH₵{Number(clientSubscription.subscription_plans?.price || 0).toFixed(2)}/mo</span>
+              <div style={{ marginBottom: "14px", padding: "10px 14px", borderRadius: "10px", background: "#F5F3FF", border: "1px solid #DDD6FE", display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ fontSize: "10px", fontWeight: 700, color: "#7C3AED", letterSpacing: "0.1em" }}>ACTIVE PLAN</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{clientSubscription.subscription_plans?.name}</span>
+                <span style={{ fontSize: "11px", color: TXT_SOFT, marginLeft: "auto" }}>GHS {Number(clientSubscription.subscription_plans?.price || 0).toFixed(2)}/mo</span>
               </div>
             )}
 
-            {/* Total breakdown */}
-            <div style={{ paddingTop: 14, borderTop: `1px solid ${BORDER}` }}>
+            {/* Transaction total */}
+            <div style={{ paddingTop: "14px", borderTop: `1px solid ${BORDER}` }}>
               {lineItems.map((item, idx) => (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-                  <span style={{ fontSize: 12, color: TXT_MID }}>{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : TXT }}>
-                    {item.coveredBySubscription ? "Included in plan" : `GH₵ ${(item.unitPrice * item.quantity).toFixed(2)}`}
+                  <span style={{ fontSize: "12px", color: TXT_MID }}>{item.name}{item.quantity > 1 ? ` x${item.quantity}` : ""}</span>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : TXT }}>
+                    {item.coveredBySubscription ? "Included in plan" : `GHS ${(item.unitPrice * item.quantity).toFixed(2)}`}
                   </span>
                 </div>
               ))}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: `2px solid ${BORDER}` }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: TXT }}>Transaction Total</span>
-                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 28, fontWeight: 700, color: G_D }}>GH₵ {lineItemsTotal.toFixed(2)}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", paddingTop: "12px", borderTop: `2px solid ${BORDER}` }}>
+                <span style={{ fontSize: "15px", fontWeight: 700, color: TXT }}>Transaction Total</span>
+                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, color: G_D }}>GHS {lineItemsTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
-        </div>
-
         </div>
 
       </div>
