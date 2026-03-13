@@ -31,7 +31,7 @@ interface BookingData {
   staff: { id: string; name: string; specialization: string | null } | null;
 }
 
-interface StaffMember { id: string; name: string; specialization: string | null }
+interface StaffMember { id: string; name: string; specialties: string[] | null }
 interface LineItem { type: "service" | "product" | "subscription"; id: string; name: string; quantity: number; unitPrice: number; coveredBySubscription: boolean }
 
 const Checkout = () => {
@@ -136,14 +136,13 @@ const Checkout = () => {
       if (error) throw error;
       const bk = data as unknown as BookingData;
       setBooking(bk);
-      const price = Number(bk.services?.price ?? (data as any).price ?? 0);
-      const alreadyDeposited = (data as any).deposit_paid || false;
-      const depositAmt = Number((data as any).deposit_amount ?? 50);
+      // Use booking.price if set (has variant/addon adjustments), else service base price
+      const bookingPrice = Number((data as any).price ?? 0);
+      const servicePrice = Number(bk.services?.price ?? 0);
+      const price = bookingPrice > 0 ? bookingPrice : servicePrice;
       setOriginalPrice(price);
-      setDepositPaid(alreadyDeposited);
-      // Amount field = balance still owed (price minus deposit if already paid)
-      const balanceOwed = alreadyDeposited ? Math.max(0, price - depositAmt) : price;
-      setAmount(balanceOwed.toString());
+      setDepositPaid((data as any).deposit_paid || false);
+      setAmount(price.toString());
       if (bk.staff?.id) setSelectedStaff(bk.staff.id);
       if (bk.clients?.id) fetchClientSubscription(bk.clients.id);
     } catch { toast.error("Failed to load booking"); }
@@ -151,13 +150,14 @@ const Checkout = () => {
 
   const fetchStaff = async () => {
     try {
-      const [{ data: staffData }, { data: attData }] = await Promise.all([
-        supabase.from("staff").select("id,name,specialization").eq("is_active", true).order("name"),
-        supabase.from("attendance").select("staff_id,status").eq("date", new Date().toISOString().split("T")[0]),
-      ]);
+      const { data: staffData, error: staffErr } = await supabase
+        .from("staff").select("id,name,specialties").eq("is_active", true).order("name");
+      if (staffErr) { console.error("Staff fetch error:", staffErr); }
       setStaff(staffData || []);
+      const { data: attData } = await supabase
+        .from("attendance").select("staff_id,status").eq("date", new Date().toISOString().split("T")[0]);
       setAbsentStaffIds(new Set((attData || []).filter((a: any) => a.status === "absent").map((a: any) => a.staff_id)));
-    } catch {}
+    } catch (e) { console.error("fetchStaff error:", e); }
   };
 
   useEffect(() => {
@@ -520,7 +520,7 @@ const Checkout = () => {
                   <option value="">Select staff member...</option>
                   {staff.map(m => (
                     <option key={m.id} value={m.id}>
-                      {m.name}{absentStaffIds.has(m.id) ? " (Absent)" : ""}{m.specialization ? " - " + m.specialization : ""}
+                      {m.name}{absentStaffIds.has(m.id) ? " (Absent)" : ""}{m.specialties && m.specialties[0] ? " - " + m.specialties[0] : ""}
                     </option>
                   ))}
                 </select>

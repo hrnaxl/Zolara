@@ -26,13 +26,16 @@ export default function SubscriptionsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [{ data:p }, { data:s }, { data:c }] = await Promise.all([
+      const [plansRes, subsRes, clientsRes] = await Promise.all([
         (supabase as any).from("subscription_plans").select("*").order("monthly_price"),
         (supabase as any).from("client_subscriptions").select("*, subscription_plans(name,monthly_price), clients(name,phone)").order("created_at",{ascending:false}).limit(100),
         (supabase as any).from("clients").select("id,name,phone").order("name"),
       ]);
-      setPlans(p||[]); setSubs(s||[]); setClients(c||[]);
-    } catch(e) { toast.error("Could not load. Run the SQL migration first."); }
+      if (plansRes.error) throw plansRes.error;
+      setPlans(plansRes.data||[]);
+      setSubs(subsRes.data||[]);
+      setClients(clientsRes.data||[]);
+    } catch(e:any) { toast.error(e.message || "Could not load subscription plans. Ensure the SQL migration has been run."); console.error("Subscriptions load error:", e); }
     finally { setLoading(false); }
   };
   useEffect(()=>{ load(); },[]);
