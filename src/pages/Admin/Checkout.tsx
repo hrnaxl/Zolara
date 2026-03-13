@@ -602,6 +602,15 @@ const Checkout = () => {
             // ── LOYALTY: only awarded on completed checkout ──────────────────
             // Full service price — same source used for the sales record
             const fullBookingPrice = Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
+            console.log("🧾 LOYALTY DEBUG", {
+              originalPrice,
+              amount,
+              depositPaid,
+              depositAmount,
+              fullBookingPrice,
+              clientId,
+              freshClient,
+            });
 
             // Fetch fresh client data to avoid stale cache
             const { data: freshClient } = await (supabase as any)
@@ -630,11 +639,12 @@ const Checkout = () => {
               : 0;
             const finalPoints = basePoints + birthdayBonus;
 
-            await supabase.from("clients" as any).update({
+            const { error: loyaltyError } = await supabase.from("clients" as any).update({
               loyalty_points: finalPoints,
               total_spent:    newTotalSpent,
               total_visits:   newTotalVisits,
             }).eq("id", clientId);
+            console.log("🏆 LOYALTY UPDATE", { clientId, finalPoints, newTotalSpent, newTotalVisits, loyaltyError });
             if (clientPhone) {
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
               const rewardGhs = Number((settings as any)?.loyalty_reward_discount ?? 50);
