@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { validateGiftCard, redeemGiftCard as rpcRedeem } from "@/lib/useGiftCards";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { Button } from "@/components/ui/button";
@@ -132,31 +131,65 @@ const Checkout = () => {
 
   const fetchBookingDetails = async () => {
     try {
-      const { data, error } = await supabase.from("bookings").select(`*, clients:client_id(*), services:service_id(*), staff:staff_id(*)`).eq("id", bookingId!).single();
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*, clients(*), services(*), staff(*)")
+        .eq("id", bookingId!)
+        .maybeSingle();
       if (error) throw error;
-      const bk = data as unknown as BookingData;
-      setBooking(bk);
-      // Use booking.price if set (has variant/addon adjustments), else service base price
+      if (!data) { toast.error("Booking not found"); return; }
+      setBooking(data as any);
+      if ((data as any).staff?.id) setSelectedStaff((data as any).staff.id);
+      if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
+
+      // Price: use services.price as source of truth for the actual service cost
+      const servicePrice = Number((data as any).services?.price ?? 0);
       const bookingPrice = Number((data as any).price ?? 0);
-      const servicePrice = Number(bk.services?.price ?? 0);
-      const price = bookingPrice > 0 ? bookingPrice : servicePrice;
+      const price = servicePrice > 0 ? servicePrice : bookingPrice;
       setOriginalPrice(price);
-      setDepositPaid((data as any).deposit_paid || false);
-      setAmount(price.toString());
-      if (bk.staff?.id) setSelectedStaff(bk.staff.id);
-      if (bk.clients?.id) fetchClientSubscription(bk.clients.id);
-    } catch { toast.error("Failed to load booking"); }
+
+      // Check if deposit was already paid and auto-verify via edge function
+      let depositAlreadyPaid = !!(data as any).deposit_paid;
+      if (!depositAlreadyPaid && (data as any).booking_ref) {
+        try {
+          const res = await fetch(
+            import.meta.env.VITE_SUPABASE_URL + "/functions/v1/verify-deposit",
+            { method: "POST", headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+              body: JSON.stringify({ booking_id: bookingId }) }
+          );
+          const vd = await res.json();
+          if (vd.status === "verified" || vd.status === "already_paid") depositAlreadyPaid = true;
+        } catch { /* ignore */ }
+      }
+
+      const depositAmt = depositAlreadyPaid ? (Number((data as any).deposit_amount) || 50) : 0;
+      setDepositPaid(!!depositAlreadyPaid);
+      setAmount(String(Math.max(0, price - depositAmt).toFixed(2)));
+    } catch (err) {
+      console.error("Booking load error:", err);
+      toast.error("Failed to load booking details");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchStaff = async () => {
     try {
-      const { data: staffData, error: staffErr } = await supabase
-        .from("staff").select("id,name,specialties").eq("is_active", true).order("name");
-      if (staffErr) { console.error("Staff fetch error:", staffErr); }
-      setStaff(staffData || []);
+      const { data, error } = await supabase
+        .from("staff")
+        .select("id, name, specialties, role")
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      // Only operational staff — exclude cleaners and receptionists
+      const operational = (data || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || ""));
+      setStaff(operational);
+      const today = new Date().toISOString().slice(0, 10);
       const { data: attData } = await supabase
-        .from("attendance").select("staff_id,status").eq("date", new Date().toISOString().split("T")[0]);
-      setAbsentStaffIds(new Set((attData || []).filter((a: any) => a.status === "absent").map((a: any) => a.staff_id)));
+        .from("attendance").select("staff_id,status").eq("date", today);
+      setAbsentStaffIds(new Set(
+        (attData || []).filter((a: any) => a.status === "absent").map((a: any) => a.staff_id)
+      ));
     } catch (e) { console.error("fetchStaff error:", e); }
   };
 
@@ -195,14 +228,29 @@ const Checkout = () => {
   const toggleSub = (idx: number) => setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item));
 
   const handleRedeemGiftCard = async () => {
-    if (!giftCode.trim() || !selectedStaff) return;
+    if (!booking) return;
+    if (!giftCode || !giftCode.trim()) { toast.error("Enter a gift card code"); return; }
+    if (!selectedStaff) { toast.error("Assign a staff member before redeeming"); return; }
     setRedeeming(true);
     try {
-      const result = await validateGiftCard(giftCode.trim());
-      if (!result.valid) { toast.error(result.message); return; }
-      setRedeemedCard({ id: result.card!.id, value: result.card!.balance });
-      toast.success(`Gift card applied: GHS ${result.card!.balance.toFixed(2)} off`);
-    } catch (e: any) { toast.error(e.message || "Invalid gift card"); } finally { setRedeeming(false); }
+      const code = giftCode.trim().toUpperCase();
+      const { data: cards, error: fetchErr } = await (supabase as any)
+        .from("gift_cards").select("*").eq("final_code", code).limit(1);
+      if (fetchErr) throw fetchErr;
+      const card = cards?.[0];
+      if (!card) { toast.error("Gift card not found. Check the code and try again."); return; }
+      if (card.status === "redeemed") { toast.error("This gift card has already been used."); return; }
+      if (card.status === "expired" || (card.expire_at && new Date(card.expire_at) < new Date())) { toast.error("This gift card has expired."); return; }
+      if (!["active","available","pending_send"].includes(card.status || "")) { toast.error("Gift card is not available (status: " + card.status + ")."); return; }
+      const value = Number(card.balance || card.card_value || 0);
+      const orig = Number(originalPrice || (booking as any).price || (booking as any).services?.price || 0);
+      setRedeemedCard({ id: card.id, value });
+      setAmount(String(Math.max(0, orig - value).toFixed(2)));
+      toast.success("Gift card applied: GHS " + value.toFixed(2) + " off");
+    } catch (err: any) {
+      console.error("Redeem error:", err);
+      toast.error(err.message || "Redeem failed");
+    } finally { setRedeeming(false); }
   };
 
   const handleApplyPromo = async () => {
