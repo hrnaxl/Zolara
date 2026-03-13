@@ -455,8 +455,10 @@ const Checkout = () => {
     // - If a gift card was redeemed, prefer originalPrice - giftValue (clamped at 0)
     // - Otherwise use the amount entered (clamped at 0)
     const giftValue = redeemedCard?.value ?? 0;
-    const base = Number(originalPrice) || 0;
     const dep = depositPaid ? depositAmount : 0;
+    // effectivePrice = full service price: use originalPrice if set, else amount entered + deposit already paid
+    const effectivePrice = Number(originalPrice) || (parseFloat(amount) + dep) || 0;
+    const base = effectivePrice;
     const paymentAmount = Math.max(0, base - promoDiscount - giftValue - dep);
     setProcessing(true);
 
@@ -552,15 +554,15 @@ const Checkout = () => {
             status: "completed",
             staff_id: selectedStaff,
             notes: notes || booking.notes,
+            price: effectivePrice,
             ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}),
           } as any)
           .eq("id", booking.id);
 
         if (bookingError) throw bookingError;
 
-        // @ts-ignore
-        // amount = balance collected now + deposit already held = full service revenue
-        const totalRevenue = paymentAmount + dep;
+        // totalRevenue = full service price minus promos/gift cards
+        const totalRevenue = effectivePrice - promoDiscount - giftValue;
         const { error: paymentError } = await supabase.from("sales").insert({
           booking_id: booking.id,
           amount: totalRevenue,
@@ -598,15 +600,8 @@ const Checkout = () => {
 
           if (clientId) {
             // ── LOYALTY: only awarded on completed checkout ──────────────────
-            // Full service price = originalPrice (entered by receptionist) OR
-            // amount paid now + deposit already collected, never just the balance
-            const amountPaid = parseFloat(amount) || 0;
-            const fullBookingPrice = Number(
-              originalPrice ||
-              (amountPaid + (depositPaid ? depositAmount : 0)) ||
-              (booking as any).price ||
-              0
-            );
+            // Full service price — same source used for the sales record
+            const fullBookingPrice = Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
 
             // Fetch fresh client data to avoid stale cache
             const { data: freshClient } = await (supabase as any)
