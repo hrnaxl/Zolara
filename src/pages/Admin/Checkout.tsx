@@ -134,7 +134,7 @@ const Checkout = () => {
   });
   const [userRole, setUserRole] = useState(null);
 
-  // ── Unified line items ──────────────────────────────────────────────────
+  // - Unified line items -
   const [lineItems, setLineItems] = useState<{
     type: 'service' | 'product' | 'subscription';
     id: string;
@@ -670,7 +670,7 @@ const Checkout = () => {
 
         if (paymentError) throw paymentError;
 
-        // ── Write checkout line items ────────────────────────────────────
+        // - Write checkout line items -
         try {
           const { data: saleRecord } = await supabase
             .from('sales').select('id').eq('booking_id', booking.id)
@@ -689,7 +689,7 @@ const Checkout = () => {
               }))
             );
           }
-          // ── Deduct product inventory ─────────────────────────────────
+          // - Deduct product inventory -
           const productItems = lineItems.filter(i => i.type === 'product');
           for (const pi of productItems) {
             const prod = products.find(p => p.id === pi.id);
@@ -699,7 +699,7 @@ const Checkout = () => {
                 .eq('id', pi.id);
             }
           }
-          // ── Record subscription usage ────────────────────────────────
+          // - Record subscription usage -
           if (clientSubscription) {
             const coveredItems = lineItems.filter(i => i.coveredBySubscription);
             for (const ci of coveredItems) {
@@ -733,7 +733,7 @@ const Checkout = () => {
           }
 
           if (clientId) {
-            // ── LOYALTY: only on actual spend — subscription-covered items excluded ──
+            // - LOYALTY: only on actual spend — subscription-covered items excluded -
             const fullBookingPrice = lineItems.reduce((sum, item) =>
               sum + (item.coveredBySubscription ? 0 : item.unitPrice * item.quantity), 0
             ) || Number(originalPrice) || (parseFloat(amount) + (depositPaid ? depositAmount : 0)) || (booking as any).price || 0;
@@ -1257,7 +1257,7 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/* ── LINE ITEMS PANEL ─────────────────────────────────────────── */}
+        {/* LINE ITEMS PANEL */}
         <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", overflow: "hidden", boxShadow: SHADOW }}>
           <div style={{ ...cardHdr, justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1305,8 +1305,8 @@ const Checkout = () => {
                     <div style={{ padding: "12px 16px", fontSize: 13, color: TXT_SOFT }}>No products found</div>
                   ) : products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
                     <div key={p.id} onClick={() => addProduct(p)} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderBottom: `1px solid ${BORDER}` }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "#FBF6EE")}
-                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = WHITE)}>
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FBF6EE"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#FFFFFF"; }}>
                       <div>
                         <span style={{ fontSize: 13, fontWeight: 600, color: TXT }}>{p.name}</span>
                         <span style={{ fontSize: 10, color: TXT_SOFT, marginLeft: 8 }}>In stock: {p.stock_quantity}</span>
