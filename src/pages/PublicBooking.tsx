@@ -4,7 +4,6 @@ const genId = () => crypto.randomUUID();
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSMS, SMS } from "@/lib/sms";
-import { validatePromoCode } from "@/lib/promoCodes";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { openPaystackPopup } from "@/lib/payment";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
@@ -77,10 +76,6 @@ export default function PublicBooking() {
   const [preferredDate, setDate] = useState("");
   const [preferredTime, setTime] = useState("");
   const [notes, setNotes] = useState("");
-  const [promoCode, setPromoCode] = useState("");
-  const [promoApplied, setPromoApplied] = useState<any>(null);
-  const [promoLoading, setPromoLoading] = useState(false);
-  const [promoError, setPromoError] = useState("");
   const [paymentPref, setPaymentPref] = useState("mobile_money");
   const [errors, setErrors] = useState<Record<string,string>>({});
 
@@ -164,11 +159,7 @@ export default function PublicBooking() {
   const variantAdj = 0;
   const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
   const subtotal = basePrice + variantAdj + addonTotal;
-  const discount = promoApplied
-    ? promoApplied.discount_type === "percentage"
-      ? (subtotal * promoApplied.discount_value) / 100
-      : promoApplied.discount_value
-    : 0;
+  const discount = 0;
   const total = Math.max(0, subtotal - discount);
 
   const enabledPayments = (settings as any)?.payment_methods?.filter((m: any) => m.enabled)
@@ -186,14 +177,6 @@ export default function PublicBooking() {
     return !Object.keys(e).length;
   };
 
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim()) return;
-    setPromoLoading(true); setPromoError("");
-    const result = await validatePromoCode(promoCode);
-    setPromoLoading(false);
-    if (result.valid) { setPromoApplied(result.promo); toast.success("Promo applied!"); }
-    else { setPromoError(result.message); setPromoApplied(null); }
-  };
 
   const handlePayDeposit = async () => {
     if (!validate()) {
@@ -225,7 +208,6 @@ export default function PublicBooking() {
       const notesFull = [
         notes,
         `Balance payment preference: ${PAYMENT_LABELS[paymentPref] || paymentPref}`,
-        promoApplied ? `Promo: ${promoApplied.code}` : "",
       ].filter(Boolean).join("\n");
 
       // 1. Insert booking as pending BEFORE opening payment popup
@@ -712,24 +694,8 @@ export default function PublicBooking() {
             <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Style references, allergies, or anything we should know..." rows={3} style={{ ...inp, resize: "vertical" }} />
           </div>
 
-          {/* Promo */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>PROMO CODE</p>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <div style={{ position: "relative", flex: 1 }}>
-                <Tag size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
-                <input value={promoCode} onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(null); setPromoError(""); }} placeholder="ENTER CODE" style={{ ...inp, paddingLeft: "38px", fontFamily: "monospace", letterSpacing: "0.1em" }} />
-              </div>
-              <button onClick={handleApplyPromo} disabled={!promoCode || promoLoading}
-                style={{ padding: "12px 20px", background: promoApplied ? GREEN : `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", borderRadius: "8px", color: WHITE, fontWeight: 700, fontSize: "12px", cursor: "pointer", whiteSpace: "nowrap", opacity: !promoCode ? 0.5 : 1, fontFamily: "'Montserrat',sans-serif" }}>
-                {promoLoading ? "..." : promoApplied ? "Applied" : "Apply"}
-              </button>
-            </div>
-            {promoError && <p className="err">{promoError}</p>}
-            {promoApplied && <p style={{ fontFamily: "'Montserrat',sans-serif", color: GREEN, fontSize: "11px", marginTop: "6px" }}>{promoApplied.discount_type === "percentage" ? `${promoApplied.discount_value}% off` : `GHS ${promoApplied.discount_value} off`} applied.</p>}
-          </div>
 
-          {/* Balance payment method */}
+                    {/* Balance payment method */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "6px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
