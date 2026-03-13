@@ -434,7 +434,7 @@ export default function GiftCards() {
                           { l:"Payment Status",v:card.payment_status || "—" },
                           { l:"Payment Ref",   v:card.payment_ref || "—" },
                           { l:"Created",       v:card.created_at ? new Date(card.created_at).toLocaleDateString("en-GB") : "—" },
-                          { l:"Redeemed At",   v:card.redeemed_at ? new Date(card.redeemed_at).toLocaleDateString("en-GB") : "—" },
+                          { l:"Redeemed At",   v:"—" },
                           { l:"Redeemed By",   v:card.redeemed_by_client || "—" },
                           { l:"Message",       v:card.message || "—" },
                           { l:"Buyer Phone",   v:card.buyer_phone || "—" },

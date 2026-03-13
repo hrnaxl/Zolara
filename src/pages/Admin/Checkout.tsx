@@ -525,7 +525,6 @@ const Checkout = () => {
               .update({
                 status: "redeemed",
                 balance: 0,
-                redeemed_at: new Date().toISOString(),
                 redeemed_by_client: booking.client_name || null,
               })
               .eq("id", redeemedCard.id);
