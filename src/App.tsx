@@ -37,6 +37,7 @@ import ClientAuth from "./pages/Client/ClientAuth";
 import ClientPortal from "./pages/Client/ClientPortal";
 import ClientDashboard from "./pages/Client/ClientDashboard";
 import ClientLoyalty from "./pages/Client/ClientLoyalty";
+import SMSTest from "./pages/Admin/SMSTest";
 import ViewServices from "./pages/Client/ViewServices";
 import SettingsPage from "./pages/Admin/Settings";
 import Loyalty from "./pages/Admin/Loyalty";
@@ -102,6 +103,7 @@ const App = () => (
               <Route path="/app/admin/gift-cards" element={<GiftCards />} />
               <Route path="/app/admin/gift-card-batches" element={<GiftCardBatchGenerator />} />
               <Route path="/app/admin/loyalty" element={<Loyalty />} />
+              <Route path="/app/admin/sms-test" element={<SMSTest />} />
               <Route path="/app/admin/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/admin/analytics" element={<AnalyticsPage />} />
               <Route path="/app/admin/products" element={<ProductsPage />} />
