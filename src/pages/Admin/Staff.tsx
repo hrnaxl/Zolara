@@ -363,8 +363,28 @@ const Staff = () => {
     if (!loginPassword || loginPassword.length < 6) { toast.error("Password must be at least 6 characters."); return; }
     setLoginLoading(true);
     try {
-      // Use edge function with admin API — browser signUp() signs out the current admin session
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-staff-login`, {
+      // Save current admin session so we can restore it after signUp()
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+      if (!adminSession) throw new Error("Admin session not found");
+
+      // Create staff account — this signs out the admin temporarily
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: loginStaff.email,
+        password: loginPassword,
+        options: { data: { role: loginStaff.role || "staff", name: loginStaff.name } },
+      });
+      if (signUpError) throw signUpError;
+      const userId = signUpData.user?.id;
+      if (!userId) throw new Error("No user ID returned");
+
+      // Immediately restore admin session using their refresh token
+      await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+      });
+
+      // Link staff record and role using service role via edge function (lightweight)
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-staff-login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -373,15 +393,17 @@ const Staff = () => {
         },
         body: JSON.stringify({
           staff_id: loginStaff.id,
-          email: loginStaff.email,
-          password: loginPassword,
+          user_id: userId,
           role: loginStaff.role || "staff",
-          name: loginStaff.name,
+          link_only: true,
         }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Failed to create login");
-      toast.success(`Login created for ${loginStaff.name}. They can log in immediately.`);
+      }).catch(() => null);
+
+      // Also link directly in case edge function isn't deployed
+      await supabase.from("user_roles" as any).upsert({ user_id: userId, role: loginStaff.role || "staff" });
+      await supabase.from("staff" as any).update({ user_id: userId }).eq("id", loginStaff.id);
+
+      toast.success(`Account created for ${loginStaff.name}. They'll receive a confirmation email.`);
       setLoginModalOpen(false);
       setLoginPassword("");
       fetchStaff();

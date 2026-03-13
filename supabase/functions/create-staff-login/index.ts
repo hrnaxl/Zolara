@@ -11,10 +11,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
-    const { staff_id, email, password, role, name } = await req.json();
-    if (!staff_id || !email || !password) {
-      return new Response(JSON.stringify({ error: "staff_id, email and password required" }), { status: 400, headers: cors });
-    }
+    const body = await req.json();
+    const { staff_id, email, password, role, name, link_only, user_id: existingUserId } = body;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -22,14 +20,23 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // link_only mode: just link an existing auth user to the staff record
+    if (link_only && existingUserId && staff_id) {
+      await supabase.from("user_roles").upsert({ user_id: existingUserId, role: role || "staff" });
+      await supabase.from("staff").update({ user_id: existingUserId }).eq("id", staff_id);
+      return new Response(JSON.stringify({ success: true, user_id: existingUserId }), { headers: cors });
+    }
+
+    if (!staff_id || !email || !password) {
+      return new Response(JSON.stringify({ error: "staff_id, email and password required" }), { status: 400, headers: cors });
+    }
+
     // Create user via admin API — does NOT affect caller's session
-    // email_confirm: true skips confirmation email entirely
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: false, // send confirmation email
       user_metadata: { role: role || "staff", name },
-      suppress_confirmation_email: true,
     });
 
     if (authError) throw authError;
