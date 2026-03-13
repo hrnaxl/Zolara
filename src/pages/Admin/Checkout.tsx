@@ -133,7 +133,7 @@ const Checkout = () => {
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, clients(*), services(*), staff(*)")
+        .select("*, clients:client_id(*), services:service_id(*), staff:staff_id(*)")
         .eq("id", bookingId!)
         .maybeSingle();
       if (error) throw error;
@@ -143,9 +143,12 @@ const Checkout = () => {
       if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
 
       // Price: use services.price as source of truth for the actual service cost
+      // Use explicit FK join services:service_id(*) to get real service price
       const servicePrice = Number((data as any).services?.price ?? 0);
-      const bookingPrice = Number((data as any).price ?? 0);
-      const price = servicePrice > 0 ? servicePrice : bookingPrice;
+      const bookingStoredPrice = Number((data as any).price ?? 0);
+      // Always prefer the live service price from services table
+      const price = servicePrice > 0 ? servicePrice : bookingStoredPrice;
+      console.log("Checkout price debug:", { servicePrice, bookingStoredPrice, price, services: (data as any).services });
       setOriginalPrice(price);
 
       // Check if deposit was already paid and auto-verify via edge function
