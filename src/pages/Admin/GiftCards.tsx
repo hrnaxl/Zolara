@@ -72,6 +72,14 @@ export default function GiftCards() {
   const [genLoading, setGenLoading] = useState(false);
   const [newBatch, setNewBatch]     = useState<any[]>([]);
 
+  // Physical card POS
+  const [physPosOpen, setPhysPosOpen]     = useState(false);
+  const [physPosCode, setPhysPosCode]     = useState("");
+  const [physPosCard, setPhysPosCard]     = useState<any>(null);
+  const [physPosMethod, setPhysPosMethod] = useState<"cash"|"mobile_money">("cash");
+  const [physPosSaving, setPhysPosSaving] = useState(false);
+  const [physPosSearch, setPhysPosSearch] = useState("");
+
   // Confirm actions
   const [confirmCard, setConfirmCard] = useState<any>(null);
   const [confirmAct, setConfirmAct]   = useState<"void"|"expire"|"delete"|"sold"|"resend"|null>(null);
@@ -109,15 +117,30 @@ export default function GiftCards() {
   const isPhys   = (c: any) => c.card_type === "physical" || c.delivery_type === "physical" || c.is_admin_generated;
 
   // ─── Stats ───────────────────────────────────────────────────
-  const totalActive    = cards.filter(c => ["active","available","pending_send"].includes(c.status) && c.payment_status !== "voided" && c.payment_status !== "expired").length;
+  const isPaid        = (c: any) => c.payment_status === "paid" || c.payment_status === "pending_send";
+  const totalActive   = cards.filter(c => ["active","available","pending_send"].includes(c.status) && c.payment_status !== "voided" && c.payment_status !== "expired").length;
   const totalPendingEmail = cards.filter(c => c.status === "pending_send" || (c.status === "unused" && c.payment_status === "paid" && isDigit(c) && !c.redeemed_at)).length;
-  const thisMonth      = cards.filter(c => {
+  const thisMonth     = cards.filter(c => {
     const d = new Date(c.created_at);
     const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && ["active","available","pending_send","redeemed"].includes(c.status) && c.payment_status === "paid";
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && isPaid(c);
   });
-  const monthRevenue   = thisMonth.reduce((s, c) => s + getValue(c), 0);
-  const totalRedeemed  = cards.filter(c => c.status === "redeemed").length;
+  const monthRevenue  = thisMonth.reduce((s, c) => s + getValue(c), 0);
+  const totalRedeemed = cards.filter(c => c.status === "redeemed").length;
+
+  // Online vs Physical split
+  const onlineCards   = cards.filter(c => isDigit(c) && isPaid(c));
+  const physCards     = cards.filter(c => isPhys(c) && isPaid(c));
+  const onlineRev     = onlineCards.reduce((s, c) => s + getValue(c), 0);
+  const physRev       = physCards.reduce((s, c) => s + getValue(c), 0);
+  const onlineActive  = onlineCards.filter(c => ["active","available","pending_send"].includes(c.status)).length;
+  const physActive    = physCards.filter(c => ["active","available"].includes(c.status)).length;
+  const onlineRedeemed = onlineCards.filter(c => c.status === "redeemed").length;
+  const physRedeemed  = physCards.filter(c => c.status === "redeemed").length;
+  // Outstanding value = total value of active cards not yet redeemed (liability)
+  const outstandingValue = cards.filter(c => ["active","available"].includes(c.status) && isPaid(c)).reduce((s, c) => s + Number(c.balance || getValue(c)), 0);
+  // Total revenue collected from card sales
+  const totalRevCollected = cards.filter(c => isPaid(c)).reduce((s, c) => s + getValue(c), 0);
 
   // ─── Filter ──────────────────────────────────────────────────
   const filtered = cards.filter(c => {
@@ -178,6 +201,55 @@ export default function GiftCards() {
     } finally {
       setActLoading(false);
     }
+  };
+
+  // ─── Physical Card POS ───────────────────────────────────────
+  const searchPhysCard = async (code: string) => {
+    if (!code.trim()) { setPhysPosCard(null); return; }
+    const { data } = await (supabase as any).from("gift_cards")
+      .select("*")
+      .or(`code.eq.${code.trim().toUpperCase()},serial_number.ilike.%${code.trim()}%`)
+      .eq("card_type", "physical")
+      .limit(1).maybeSingle();
+    setPhysPosCard(data || null);
+  };
+
+  const handleSellPhysCard = async () => {
+    if (!physPosCard) { toast.error("Find a card first"); return; }
+    if (physPosCard.payment_status === "paid") { toast.error("Card already sold"); return; }
+    if (physPosCard.status === "redeemed") { toast.error("Card already redeemed"); return; }
+    if (physPosCard.payment_status === "voided") { toast.error("Card is voided"); return; }
+    setPhysPosSaving(true);
+    try {
+      // Mark card as paid/active
+      const { error: cardErr } = await (supabase as any).from("gift_cards").update({
+        payment_status: "paid",
+        status: "active",
+        sold_at: new Date().toISOString(),
+        sold_by: "pos",
+      }).eq("id", physPosCard.id);
+      if (cardErr) throw cardErr;
+
+      // Record sale in sales table
+      const { error: saleErr } = await (supabase as any).from("sales").insert({
+        amount: getValue(physPosCard),
+        payment_method: physPosMethod,
+        status: "completed",
+        client_name: null,
+        service_name: (physPosCard.tier || "Physical") + " Gift Card (Physical)",
+        notes: "Physical gift card sale · code: " + (physPosCard.code || physPosCard.serial_number),
+        payment_date: new Date().toISOString(),
+      });
+      if (saleErr) console.error("Sale record error:", saleErr);
+
+      toast.success("Gift card sold and activated!");
+      setPhysPosCard(null);
+      setPhysPosCode("");
+      setPhysPosOpen(false);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || "Sale failed");
+    } finally { setPhysPosSaving(false); }
   };
 
   // ─── Generate Physical Batch ─────────────────────────────────
@@ -271,22 +343,61 @@ export default function GiftCards() {
       </div>
 
       {/* ── Stats row ───────────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"24px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"12px", marginBottom:"16px" }}>
         {[
-          { label:"ACTIVE CARDS", val: totalActive, sub:"Ready to use", icon:"🎁" },
-          { label:"SOLD THIS MONTH", val:`GHS ${monthRevenue.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${thisMonth.length} cards`, icon:"💳" },
-          { label:"REDEEMED ALL TIME", val: totalRedeemed, sub:"Fully used", icon:"✓" },
-          { label:"PENDING EMAIL", val: totalPendingEmail, sub: totalPendingEmail > 0 ? "Will send within 5 min" : "All sent", icon:"📧" },
+          { label:"TOTAL REVENUE COLLECTED", val:`GHS ${totalRevCollected.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${cards.filter(c=>isPaid(c)).length} cards sold all time`, icon:"💰", color:"#8B6914", bg:"#FBF6EE" },
+          { label:"OUTSTANDING VALUE", val:`GHS ${outstandingValue.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${totalActive} active cards (unredeemed)`, icon:"🎁", color:"#6366F1", bg:"#EEF2FF" },
+          { label:"REDEEMED ALL TIME", val: totalRedeemed, sub:`GHS ${cards.filter(c=>c.status==="redeemed").reduce((s,c)=>s+getValue(c),0).toLocaleString()} redeemed`, icon:"✓", color:"#16A34A", bg:"#F0FDF4" },
+          { label:"PENDING EMAIL SEND", val: totalPendingEmail, sub: totalPendingEmail > 0 ? "Sends within 5 minutes" : "All emails sent", icon:"📧", color: totalPendingEmail > 0 ? "#1D4ED8" : "#16A34A", bg: totalPendingEmail > 0 ? "#DBEAFE" : "#F0FDF4" },
         ].map((s, i) => (
-          <div key={i} className="gc-card" style={{ padding:"20px" }}>
+          <div key={i} className="gc-card" style={{ padding:"20px", background: s.bg, border:`1px solid ${s.color}22` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"10px" }}>
-              <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.15em", color:TXT_S }}>{s.label}</span>
+              <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.15em", color:s.color }}>{s.label}</span>
               <span style={{ fontSize:"18px" }}>{s.icon}</span>
             </div>
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"28px", fontWeight:600, color:TXT, lineHeight:1 }}>{s.val}</div>
-            <div style={{ fontSize:"10px", color: i === 3 && totalPendingEmail > 0 ? "#1D4ED8" : TXT_S, marginTop:"6px" }}>{s.sub}</div>
+            <div style={{ fontSize:"10px", color:s.color, marginTop:"6px" }}>{s.sub}</div>
           </div>
         ))}
+      </div>
+      {/* ── Online vs Physical split ─────────────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginBottom:"24px" }}>
+        <div className="gc-card" style={{ padding:"20px" }}>
+          <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.15em", color:TXT_S, margin:"0 0 14px" }}>ONLINE GIFT CARDS (Digital)</p>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+            {[
+              { l:"Revenue", v:`GHS ${onlineRev.toLocaleString()}`, c:"#8B6914" },
+              { l:"Active", v:onlineActive, c:"#16A34A" },
+              { l:"Redeemed", v:onlineRedeemed, c:"#6B7280" },
+            ].map(k=>(
+              <div key={k.l} style={{ textAlign:"center", padding:"10px", background:CREAM, borderRadius:"10px" }}>
+                <p style={{ fontSize:"9px", color:TXT_S, margin:"0 0 4px", fontWeight:600 }}>{k.l}</p>
+                <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color:k.c, margin:0 }}>{k.v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="gc-card" style={{ padding:"20px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px" }}>
+            <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.15em", color:TXT_S, margin:0 }}>PHYSICAL GIFT CARDS</p>
+            <button onClick={()=>setPhysPosOpen(true)}
+              style={{ padding:"6px 14px", borderRadius:"8px", background:G, color:WHITE, border:"none", fontSize:"11px", fontWeight:700, cursor:"pointer" }}>
+              + Sell Card
+            </button>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+            {[
+              { l:"Revenue", v:`GHS ${physRev.toLocaleString()}`, c:"#8B6914" },
+              { l:"Active", v:physActive, c:"#16A34A" },
+              { l:"Redeemed", v:physRedeemed, c:"#6B7280" },
+            ].map(k=>(
+              <div key={k.l} style={{ textAlign:"center", padding:"10px", background:CREAM, borderRadius:"10px" }}>
+                <p style={{ fontSize:"9px", color:TXT_S, margin:"0 0 4px", fontWeight:600 }}>{k.l}</p>
+                <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color:k.c, margin:0 }}>{k.v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── Tab + Filters ───────────────────────────────────── */}
@@ -539,6 +650,75 @@ export default function GiftCards() {
       )}
 
       {/* ── Confirm Action Modal ─────────────────────────────── */}
+      {/* ── Physical Card POS Modal ─────────────────────── */}
+      {physPosOpen && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px" }}>
+          <div style={{ background:WHITE, borderRadius:"20px", padding:"28px", maxWidth:"440px", width:"100%", boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px" }}>
+              <div>
+                <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.15em", color:TXT_S, margin:"0 0 4px" }}>PHYSICAL GIFT CARDS</p>
+                <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"24px", fontWeight:700, color:TXT, margin:0 }}>Sell Physical Card</h2>
+              </div>
+              <button onClick={()=>{ setPhysPosOpen(false); setPhysPosCard(null); setPhysPosCode(""); }}
+                style={{ background:"none", border:"none", fontSize:"20px", cursor:"pointer", color:TXT_S }}>x</button>
+            </div>
+            <div style={{ marginBottom:"16px" }}>
+              <label style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_S, textTransform:"uppercase", display:"block", marginBottom:"6px" }}>Card Code or Serial Number</label>
+              <div style={{ display:"flex", gap:"8px" }}>
+                <input value={physPosCode} onChange={e=>setPhysPosCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. GLD-A1B2-C3D4 or ZLR-GLD-0001"
+                  style={{ flex:1, border:"1.5px solid #EDEBE5", borderRadius:"10px", padding:"9px 12px", fontSize:"13px", outline:"none", fontFamily:"Montserrat,sans-serif" }}
+                  onKeyDown={e=>{ if(e.key==="Enter") searchPhysCard(physPosCode); }} />
+                <button onClick={()=>searchPhysCard(physPosCode)}
+                  style={{ padding:"9px 16px", borderRadius:"10px", background:G_D, color:WHITE, border:"none", fontSize:"12px", fontWeight:700, cursor:"pointer" }}>Find</button>
+              </div>
+            </div>
+            {!physPosCard && physPosCode.length > 3 && (
+              <p style={{ fontSize:"12px", color:"#DC2626", textAlign:"center", padding:"12px" }}>No physical card found with that code</p>
+            )}
+            {physPosCard && (
+              <div style={{ background:CREAM, borderRadius:"12px", padding:"16px", marginBottom:"16px", border:"1px solid #EDEBE5" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
+                  <span style={{ fontSize:"13px", fontWeight:700, color:TXT }}>{physPosCard.tier || "Gift"} Card</span>
+                  <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:700, color:G_D }}>GHS {getValue(physPosCard).toLocaleString()}</span>
+                </div>
+                <p style={{ fontSize:"11px", color:TXT_S, margin:"0 0 6px" }}>Code: {physPosCard.code || physPosCard.serial_number}</p>
+                <span style={{ padding:"2px 10px", borderRadius:"20px", fontSize:"10px", fontWeight:700,
+                  background: physPosCard.payment_status === "paid" ? "#DCFCE7" : physPosCard.status === "redeemed" ? "#F3F4F6" : "#FEF9C3",
+                  color: physPosCard.payment_status === "paid" ? "#166534" : physPosCard.status === "redeemed" ? "#374151" : "#854D0E" }}>
+                  {physPosCard.payment_status === "paid" ? "Already Sold" : physPosCard.status === "redeemed" ? "Already Redeemed" : "Available to Sell"}
+                </span>
+              </div>
+            )}
+            {physPosCard && physPosCard.payment_status !== "paid" && physPosCard.status !== "redeemed" && (
+              <>
+                <div style={{ marginBottom:"16px" }}>
+                  <label style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_S, textTransform:"uppercase", display:"block", marginBottom:"8px" }}>Payment Method</label>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px" }}>
+                    {(["cash","mobile_money"] as const).map(m=>(
+                      <button key={m} onClick={()=>setPhysPosMethod(m)}
+                        style={{ padding:"10px", borderRadius:"10px", border:"1.5px solid " + (physPosMethod===m ? G : "#EDEBE5"),
+                          background:physPosMethod===m ? "#FBF6EE" : WHITE, color:physPosMethod===m ? G_D : TXT_S,
+                          fontSize:"12px", fontWeight:600, cursor:"pointer" }}>
+                        {m.replace("_"," ")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={handleSellPhysCard} disabled={physPosSaving}
+                  style={{ width:"100%", padding:"13px", borderRadius:"12px", background:"linear-gradient(135deg," + G + "," + G_D + ")",
+                    color:WHITE, border:"none", fontSize:"13px", fontWeight:700, cursor:"pointer" }}>
+                  {physPosSaving ? "Processing..." : "Complete Sale  GHS " + getValue(physPosCard).toLocaleString()}
+                </button>
+              </>
+            )}
+            {!physPosCard && physPosCode.length === 0 && (
+              <p style={{ textAlign:"center", padding:"20px", color:TXT_S, fontSize:"13px" }}>Enter a card code or serial number to find the card</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {confirmCard && confirmAct && (
         <div className="overlay" onClick={e => { if (e.target === e.currentTarget) { setConfirmCard(null); setConfirmAct(null); }}}>
           <div className="modal" style={{ maxWidth:"400px" }}>
