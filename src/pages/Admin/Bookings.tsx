@@ -541,9 +541,17 @@ const Bookings = () => {
       // Track if this is a truly new client (not found in DB) — deferred until booking succeeds
       let deferredNewClient: { name: string; phone: string; email: string | null } | null = null;
 
+      // Require client — cannot create booking without a name
+      if (clientMode === "search" && !validated.client_id) {
+        toast.error("Please select a client or add a new client"); setCreating(false); return;
+      }
+
       if (clientMode === "new") {
-        if (!newClientName.trim() || !newClientPhone.trim()) {
-          toast.error("New client requires name and phone"); setCreating(false); return;
+        if (!newClientName.trim()) {
+          toast.error("Client name is required"); setCreating(false); return;
+        }
+        if (!newClientPhone.trim()) {
+          toast.error("Client phone is required"); setCreating(false); return;
         }
         // Check if client already exists (find only, don't create yet)
         const { normalizePhone } = await import("@/lib/clientDedup");
