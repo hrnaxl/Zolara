@@ -951,12 +951,28 @@ const Clients = () => {
                     </div>
 
                     <div>
-                      <h4 className="font-medium text-sm text-gray-600">
-                        Notes
-                      </h4>
-                      <p className="mt-2 text-sm text-gray-800">
-                        {selectedClient.notes || "No notes"}
-                      </p>
+                      <h4 className="font-medium text-sm text-gray-600">Notes</h4>
+                      {(() => {
+                        const raw = selectedClient.notes || "";
+                        const divIdx = raw.indexOf("\n--- Aliases ---");
+                        const baseNotes = divIdx >= 0 ? raw.slice(0, divIdx).trim() : raw;
+                        const aliasSection = divIdx >= 0 ? raw.slice(divIdx) : "";
+                        const nameMatch = aliasSection.match(/Other names?: ([^\n]+)/i);
+                        const emailMatch = aliasSection.match(/Other emails?: ([^\n]+)/i);
+                        return (
+                          <div className="mt-2 space-y-2">
+                            {baseNotes && <p className="text-sm text-gray-800">{baseNotes}</p>}
+                            {!baseNotes && !nameMatch && !emailMatch && <p className="text-sm text-gray-400">No notes</p>}
+                            {(nameMatch || emailMatch) && (
+                              <div style={{ background: "#FBF6EE", border: "1px solid #F0E4CC", borderRadius: 8, padding: "8px 12px" }}>
+                                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: "#8B6914", marginBottom: 4 }}>ALSO BOOKED AS</p>
+                                {nameMatch && <p style={{ fontSize: 12, color: "#1C160E", margin: "2px 0" }}>👤 {nameMatch[1]}</p>}
+                                {emailMatch && <p style={{ fontSize: 12, color: "#1C160E", margin: "2px 0" }}>✉️ {emailMatch[1]}</p>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div>
