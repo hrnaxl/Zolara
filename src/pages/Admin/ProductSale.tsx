@@ -60,19 +60,24 @@ export default function ProductSale() {
           stock_quantity: Math.max(0, item.stock_quantity - item.quantity)
         }).eq("id", item.id);
 
-        await (supabase as any).from("sales").insert({
+        await supabase.from("sales").insert({
           amount: item.price * item.quantity,
-          payment_method: paymentMethod,
+          payment_method: paymentMethod as any,
           status: "completed",
           client_name: clientName.trim() || null,
           service_name: item.name + (item.quantity > 1 ? " x" + item.quantity : ""),
-          notes: "Direct product sale",
-        });
+          notes: "Product sale" + (clientName.trim() ? " · " + clientName.trim() : ""),
+          booking_id: null,
+          client_id: null,
+          staff_id: null,
+        } as any);
       }
 
       // Write checkout session + items
       const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{
         client_id: null,
+        staff_id: null,
+        booking_id: null,
         total_amount: total,
         payment_method: paymentMethod,
         status: "completed",

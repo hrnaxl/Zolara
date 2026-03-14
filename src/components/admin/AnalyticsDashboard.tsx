@@ -92,7 +92,7 @@ export default function AnalyticsDashboard() {
       const [salesRes, bookingsRes, itemsRes, svc, clients] = await Promise.all([
         supabase.from("sales").select("amount, created_at, payment_method, service_name, client_name").eq("status", "completed").gte("created_at", start).lte("created_at", end + "T23:59:59"),
         supabase.from("bookings").select("status, preferred_date, service_name, client_name, staff_name, price").gte("preferred_date", start).lte("preferred_date", end),
-        (supabase as any).from("checkout_items").select("item_type, price_at_time, quantity").gte("created_at", start).lte("created_at", end + "T23:59:59"),
+        (supabase as any).from("checkout_items").select("item_type, price_at_time, subtotal, quantity").gte("created_at", start).lte("created_at", end + "T23:59:59"),
         getTopServices(),
         getTopClients(),
       ]);
@@ -102,10 +102,20 @@ export default function AnalyticsDashboard() {
       setTopClients(clients);
       // Revenue split by type from line items
       const items = itemsRes.data || [];
-      const svcRev  = items.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
-      const prodRev = items.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
-      const subRev  = items.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
-      setRevenueSplit({ service: svcRev, product: prodRev, subscription: subRev });
+      const ciSvcRev  = items.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const ciProdRev = items.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const ciSubRev  = items.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const hasCI = ciSvcRev > 0 || ciProdRev > 0;
+      // Fallback: when checkout_items empty, detect product sales from sales.notes
+      const allSales = salesRes.data || [];
+      const fallbackProd = allSales.filter((s: any) => s.notes && (s.notes.toLowerCase().includes("product sale") || s.notes.toLowerCase().includes("direct product")))
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      const fallbackSvc = (allSales.filter((s: any) => s.status === "completed").reduce((s: number, p: any) => s + Number(p.amount || 0), 0)) - fallbackProd;
+      setRevenueSplit({
+        service: hasCI ? ciSvcRev : fallbackSvc,
+        product: hasCI ? ciProdRev : fallbackProd,
+        subscription: ciSubRev,
+      });
     } catch { toast.error("Failed to load analytics"); }
     finally { setLoading(false); }
   };

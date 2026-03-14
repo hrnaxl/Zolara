@@ -172,9 +172,16 @@ const DashboardLayout = () => {
           "Services", "Gift Cards", "Checkout", "Loyalty",
           "Promo Codes", "Attendance", "Products", "Sell Products",
         ];
+        // Products and Sell Products share admin routes (no receptionist-specific version)
+        const adminOnly = ["Products", "Sell Products"];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))
-          .map((item) => ({ ...item, path: `/app/receptionist/${item.path}` }));
+          .map((item) => ({
+            ...item,
+            path: adminOnly.includes(item.label)
+              ? `/app/admin/${item.path}`
+              : `/app/receptionist/${item.path}`,
+          }));
       }
 
       // ── STAFF: personal work only ───────────────────────────────
