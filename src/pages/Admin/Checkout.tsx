@@ -328,6 +328,20 @@ const Checkout = () => {
         const { error: saleErr } = await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), payment_date: new Date().toISOString() });
         if (saleErr) throw saleErr;
 
+        // If a deposit was previously collected, record it as revenue now (checkout = confirmed revenue)
+        if (dep > 0) {
+          await (supabase as any).from("sales").insert({
+            booking_id: booking.id,
+            amount: dep,
+            payment_method: "mobile_money", // deposit was paid online via Paystack
+            status: "completed",
+            client_name: booking.client_name || null,
+            service_name: booking.service_name || null,
+            notes: "Deposit collected - confirmed at checkout",
+            payment_date: new Date().toISOString(),
+          }).catch((e: any) => console.error("Deposit revenue record failed:", e));
+        }
+
         // Write checkout session + line items
         try {
           const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff, booking_id: booking.id, total_amount: effectivePrice, payment_method: paymentMethod, status: "completed" }]).select("id").single();
@@ -399,6 +413,18 @@ const Checkout = () => {
       await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
       const { error: bankSaleErr } = await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: "bank_transfer", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Bank transfer payment", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), payment_date: new Date().toISOString() });
       if (bankSaleErr) throw bankSaleErr;
+
+      // Record deposit as confirmed revenue at checkout (bank transfer path)
+      if (dep > 0) {
+        await (supabase as any).from("sales").insert({
+          booking_id: booking.id, amount: dep,
+          payment_method: "mobile_money", status: "completed",
+          client_name: booking.client_name || null, service_name: booking.service_name || null,
+          notes: "Deposit collected - confirmed at checkout",
+          payment_date: new Date().toISOString(),
+        }).catch((e: any) => console.error("Deposit revenue record failed:", e));
+      }
+
       // Write checkout session + line items for bank transfer too
       try {
         const { data: bSess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff, booking_id: booking.id, total_amount: effectivePrice, payment_method: "bank_transfer", status: "completed" }]).select("id").single();

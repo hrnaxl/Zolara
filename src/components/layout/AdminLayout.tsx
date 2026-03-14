@@ -901,28 +901,31 @@ const AdminDashboard = () => {
             <span style={{ fontSize:"16px" }}>💰</span>
           </div>
 
-          {/* Checked-out deposits = revenue */}
+          {/* Deposits confirmed as revenue */}
           <div style={{ marginBottom:"14px" }}>
-            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:"rgba(200,169,126,0.9)", marginBottom:"4px" }}>REVENUE (CHECKED OUT)</div>
+            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:"rgba(200,169,126,0.9)", marginBottom:"4px" }}>CONFIRMED REVENUE</div>
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(20px,2vw,28px)", fontWeight:700, color: TXT }}>
               GHS {stats.depositsRevenue.toLocaleString("en", { minimumFractionDigits:2 })}
             </div>
             <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>
-              Counted in revenue · {stats.depositCount - stats.depositsPendingCount} booking{(stats.depositCount - stats.depositsPendingCount) !== 1 ? "s" : ""}
+              Deposit recognised at checkout · {stats.depositCount - stats.depositsPendingCount} booking{(stats.depositCount - stats.depositsPendingCount) !== 1 ? "s" : ""}
             </div>
           </div>
 
           {/* Divider */}
           <div style={{ borderTop:"1px solid rgba(200,169,126,0.15)", marginBottom:"14px" }} />
 
-          {/* Pending deposits = in hand, not revenue yet */}
+          {/* Pending deposits — collected but not yet revenue */}
           <div>
-            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color: TXT_SOFT, marginBottom:"4px" }}>PENDING CHECKOUT (IN HAND)</div>
+            <div style={{ display:"flex", alignItems:"center", gap:"6px", marginBottom:"4px" }}>
+              <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:"#D97706" }}>PENDING REVENUE</div>
+              <span style={{ fontSize:"9px", background:"#FEF3C7", color:"#92400E", padding:"1px 6px", borderRadius:20, fontWeight:700 }}>Awaiting checkout</span>
+            </div>
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,1.8vw,24px)", fontWeight:600, color: TXT }}>
               GHS {stats.depositsPending.toLocaleString("en", { minimumFractionDigits:2 })}
             </div>
             <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>
-              {stats.depositsPendingCount} booking{stats.depositsPendingCount !== 1 ? "s" : ""} awaiting checkout · not yet revenue
+              {stats.depositsPendingCount} booking{stats.depositsPendingCount !== 1 ? "s" : ""} in progress · moves to revenue at checkout · refund cancels booking without affecting revenue
             </div>
           </div>
         </div>
