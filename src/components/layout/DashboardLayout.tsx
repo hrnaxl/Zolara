@@ -373,10 +373,12 @@ const DashboardLayout = () => {
       <div className="lg:ml-[240px]" style={{ minHeight: "100vh" }}>
         {/* Mobile top bar — only visible on phones, hidden on lg+ */}
         <div style={{display:"none"}} className="mobile-topbar">
-        <div className="pwa-topbar" style={{
+        <div style={{
           position: "sticky", top: 0, zIndex: 30,
-          background: NAVY, height: 56, display: "flex", alignItems: "center",
-          justifyContent: "space-between", padding: "0 16px",
+          background: NAVY, minHeight: 56, display: "flex", alignItems: "flex-end",
+          justifyContent: "space-between",
+          paddingTop: "max(env(safe-area-inset-top,0px),12px)",
+          paddingBottom: "10px", paddingLeft: "16px", paddingRight: "16px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
         }}>
           <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: WHITE, padding: 4 }}>

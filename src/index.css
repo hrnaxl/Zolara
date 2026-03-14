@@ -669,24 +669,3 @@ body {
     max-width: 100% !important;
   }
 }
-
-/* ── PWA topbar: adds safe area ONLY in standalone mode ─────
-   Outside of PWA mode (normal browser), this adds nothing.
-   Inside PWA mode (installed app), it adds the status bar
-   height to the topbar padding so content clears the notch.
-   ─────────────────────────────────────────────────────── */
-@media all {
-  .pwa-topbar {
-    /* In browser: env() resolves to 0, so this is a no-op */
-    padding-top: max(env(safe-area-inset-top, 0px), 12px);
-    /* 12px minimum ensures readable spacing even on devices
-       that don't support safe-area-inset-top */
-  }
-}
-
-@media (display-mode: browser) {
-  /* In normal browser: override back to no extra top padding */
-  .pwa-topbar {
-    padding-top: 0 !important;
-  }
-}
