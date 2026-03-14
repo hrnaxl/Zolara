@@ -17,7 +17,6 @@ import { Loader2, Calendar, Clock, User, Sparkles, CreditCard, Banknote, Smartph
 import { format } from "date-fns";
 import { sendSMS, SMS } from "@/lib/sms";
 import LineItemsPanel from "@/components/checkout/LineItemsPanel";
-import LineItemsPanel from "@/components/checkout/LineItemsPanel";
 
 type PaymentMethod = "cash" | "mobile_money" | "card" | "bank_transfer" | "gift_card";
 
@@ -715,7 +714,7 @@ const Checkout = () => {
         </div>
         <LineItemsPanel
           lineItems={lineItems}
-          lineItemsTotal={lineItemsTotal}
+          lineItemsTotal={balanceDue}
           products={products}
           productSearch={productSearch}
           clientSubscription={clientSubscription}
