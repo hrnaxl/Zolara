@@ -100,6 +100,17 @@ Deno.serve(async (req) => {
           payment_status: "paid",
           status: "confirmed",
         } as any).eq("id", booking.id);
+
+        // Record deposit as a sale so it appears in revenue reports
+        await supabase.from("sales").insert({
+          amount: amountGhs,
+          payment_method: "mobile_money",
+          status: "completed",
+          client_name: booking.client_name || null,
+          service_name: booking.service_name || null,
+          notes: "Deposit payment online - booking: " + booking.booking_ref,
+          payment_date: new Date().toISOString(),
+        } as any).catch(() => null);
       }
       return new Response(JSON.stringify({ received: true, action: "deposit_confirmed" }), { headers: cors });
     }

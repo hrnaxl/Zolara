@@ -36,6 +36,7 @@ const STAMP_EARN_RATE = 100; // GHS per stamp
 
 export default function Loyalty() {
   const { settings } = useSettings();
+  const REWARD_DISCOUNT = (settings as any)?.loyalty_reward_discount ?? 50;
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
