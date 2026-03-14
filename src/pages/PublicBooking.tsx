@@ -421,7 +421,16 @@ export default function PublicBooking() {
         .err { animation: errIn 0.25s ease; font-family: 'Montserrat',sans-serif; color: ${RED}; font-size: 11px; margin-top: 5px; }
         .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
         .svc-select:hover { border-color: ${GOLD} !important; }
-        @media (max-width: 900px) { .bk-grid { grid-template-columns: 1fr !important; } .bk-sidebar { position: static !important; top: auto !important; } }
+        @media (max-width: 900px) {
+          .bk-grid { grid-template-columns: 1fr !important; gap: 24px !important; padding: 24px 16px 60px !important; }
+          .bk-sidebar { position: static !important; top: auto !important; }
+        }
+        @media (max-width: 480px) {
+          .bk-grid { padding: 16px 12px 60px !important; gap: 20px !important; }
+          .bk-form-grid { grid-template-columns: 1fr !important; }
+          .bk-time-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .bk-section { padding: 20px 16px !important; }
+        }
       `}</style>
 
       {/* Topbar */}
@@ -585,7 +594,7 @@ export default function PublicBooking() {
 
               {/* Category tabs */}
               {!serviceSearch && (
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "14px" }}>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "nowrap", overflowX: "auto", marginBottom: "14px", paddingBottom: "4px", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any }}>
                   {allCategories.filter(c => !isPackage(c)).map(cat => (
                     <button key={cat} onClick={() => setActiveCategory(cat)}
                       style={{ background: activeCategory === cat ? GOLD_DARK : "white", color: activeCategory === cat ? "white" : TXT_MID, border: `1.5px solid ${activeCategory === cat ? GOLD_DARK : BORDER}`, borderRadius: "20px", padding: "5px 14px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", transition: "all 0.15s", whiteSpace: "nowrap" }}>
@@ -596,7 +605,7 @@ export default function PublicBooking() {
               )}
 
               {/* Service cards grid */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "320px", overflowY: "auto", paddingRight: "4px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {filteredServices.filter(s => !isPackage(s.category)).length === 0 && (
                   <p style={{ textAlign: "center", color: TXT_SOFT, fontSize: "13px", padding: "24px 0" }}>No services found.</p>
                 )}
@@ -693,7 +702,7 @@ export default function PublicBooking() {
           {/* Date & Time */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>DATE AND TIME</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="bk-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={lbl}>Date *</label>
                 <div style={{ position: "relative" }}>
@@ -727,7 +736,7 @@ export default function PublicBooking() {
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "6px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+            <div className="bk-time-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
               {enabledPayments.map((m: any) => {
                 const sel = paymentPref === m.id;
                 return (
