@@ -17,10 +17,42 @@
     <meta name="twitter:title" content="Salon Management System" />
     <meta name="twitter:description" content="Professional salon management software for modern businesses" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#C8A97E" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Zolara" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
+
+    <!-- Splash screens for iOS -->
+    <meta name="apple-touch-fullscreen" content="yes" />
+
+    <!-- Tiles for Windows -->
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    <meta name="msapplication-TileColor" content="#C8A97E" />
+
+    <!-- Updated meta -->
+    <meta property="og:title" content="Zolara Beauty Studio" />
+    <meta property="og:description" content="Premium beauty salon in Tamale, Ghana. Book your appointment online." />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js")
+            .then(reg => console.log("Zolara SW registered:", reg.scope))
+            .catch(err => console.warn("SW registration failed:", err));
+        });
+      }
+    </script>
   </body>
 </html>
