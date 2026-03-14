@@ -116,12 +116,14 @@ export default function Auth() {
 
       // Single-session enforcement: stamp this login so any previous session is invalidated
       const sessionKey = crypto.randomUUID();
-      await (supabase as any).from("user_sessions").upsert({
-        user_id: data.user.id,
-        session_key: sessionKey,
-        updated_at: new Date().toISOString(),
-      }).catch(() => null); // Non-fatal if table doesn't exist yet
-      localStorage.setItem("zolara_session_key", sessionKey);
+      try {
+        await (supabase as any).from("user_sessions").upsert({
+          user_id: data.user.id,
+          session_key: sessionKey,
+          updated_at: new Date().toISOString(),
+        });
+        localStorage.setItem("zolara_session_key", sessionKey);
+      } catch { /* non-fatal */ }
 
       redirectByRole(role);
     } catch (e: any) {
