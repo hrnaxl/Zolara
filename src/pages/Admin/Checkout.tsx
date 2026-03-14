@@ -327,19 +327,23 @@ const Checkout = () => {
         // amount saved = what client actually paid (balance after deposit + discounts)
         // amount = actual cash received (balance after deposit + promo + gift deductions)
         // original_price = full service price, discount_amount = promo discount given
+        const saleNotes = [
+          notes || "Payment at checkout",
+          dep > 0 ? ("Deposit GHS " + dep + " included") : null,
+          promoDiscount > 0 ? ("Promo " + (appliedPromo?.code || "") + " saved GHS " + promoDiscount) : null,
+          giftValue > 0 ? ("Gift card GHS " + giftValue + " applied") : null,
+        ].filter(Boolean).join(" | ");
+
         const { error: saleErr } = await (supabase as any).from("sales").insert({
           booking_id: booking.id,
           amount: amountToCharge,
-          original_price: originalPrice + prodTotal,
-          discount_amount: promoDiscount > 0 ? promoDiscount : 0,
-          promo_code_used: appliedPromo?.code || null,
           payment_method: paymentMethod,
           status: "completed",
           client_name: booking.client_name || null,
           service_name: booking.service_name || null,
           client_id: booking.clients?.id || null,
           staff_id: selectedStaff || null,
-          notes: [notes || "Payment at checkout", dep > 0 ? ("Includes GHS " + dep + " deposit") : null, promoDiscount > 0 ? ("Promo " + (appliedPromo?.code || "") + " GHS " + promoDiscount + " off") : null].filter(Boolean).join(" | "),
+          notes: saleNotes,
           payment_date: new Date().toISOString(),
         });
         if (saleErr) throw saleErr;
@@ -394,54 +398,64 @@ const Checkout = () => {
           }
         } catch (itemErr) { console.error("Line items error:", itemErr); }
 
-        setFinalAmountCharged(amountToCharge);
-        setCompleted(true);
-        toast.success("Checkout completed!");
-
-        // Loyalty + SMS
+        // Auto-create/find client + assign loyalty points (always runs before showing completion)
         try {
           const clientPhone = (booking as any).client_phone || booking.clients?.phone;
           const clientName = (booking as any).client_name || booking.clients?.name || "Guest";
           const clientEmail = (booking as any).client_email || booking.clients?.email || null;
           let clientId = booking.clients?.id || (booking as any).client_id || null;
+
+          // Always attempt to find or create the client record
           const resolvedId = await findOrCreateClient({ name: clientName, phone: clientPhone, email: clientEmail });
-          if (resolvedId) { clientId = resolvedId; await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id); }
+          if (resolvedId) {
+            clientId = resolvedId;
+            await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id);
+          }
+
           if (clientId) {
-            // Loyalty points on actual amount paid (after deposit/promo/gift deductions)
-            const spendable = amountToCharge > 0 ? amountToCharge : (lineItems.reduce((s, i) => s + (i.coveredBySubscription ? 0 : i.unitPrice * i.quantity), 0) || Number(originalPrice) || 0);
+            // Loyalty: full amount including deposit (deposit was also real spend)
+            const spendable = (amountToCharge > 0 ? amountToCharge : 0) + (dep > 0 ? dep : 0);
+            const spendableActual = spendable > 0 ? spendable : (lineItems.reduce((s, i) => s + (i.coveredBySubscription ? 0 : i.unitPrice * i.quantity), 0) || Number(originalPrice) || 0);
             const { data: before } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
             const prevPts = Number(before?.loyalty_points || 0);
-            await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendable });
+            await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendableActual });
             const { data: after } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
             const finalPts = Number(after?.loyalty_points || 0);
             if (clientPhone) {
               const earned = Math.max(0, finalPts - prevPts);
-              await sendSMS(clientPhone, SMS.checkoutComplete(booking.client_name || "Valued Client", booking.service_name || "service", amountToCharge.toFixed(0), earned, finalPts, booking.booking_ref || booking.id.slice(0, 8).toUpperCase()));
+              await sendSMS(clientPhone, SMS.checkoutComplete(clientName, booking.service_name || "service", amountToCharge.toFixed(0), earned, finalPts, booking.booking_ref || booking.id.slice(0, 8).toUpperCase()));
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
               if (Math.floor(finalPts / stampsForReward) > Math.floor(prevPts / stampsForReward) && finalPts >= stampsForReward) {
-                setTimeout(() => sendSMS(clientPhone, SMS.loyaltyReward(booking.client_name || "Valued Client", finalPts)).catch(console.error), 3000);
+                setTimeout(() => sendSMS(clientPhone, SMS.loyaltyReward(clientName, finalPts)).catch(console.error), 3000);
               }
             }
           }
-        } catch (loyErr) { console.error("Loyalty error:", loyErr); }
+        } catch (loyErr) { console.error("Client/loyalty error:", loyErr); }
+
+        setFinalAmountCharged(amountToCharge);
+        setCompleted(true);
+        toast.success("Checkout completed!");
         return;
       }
 
       // Bank transfer — mark booking completed, record sale, show completed screen
       await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
+      const bankNotes = [
+        notes || "Bank transfer payment",
+        dep > 0 ? ("Deposit GHS " + dep + " included") : null,
+        promoDiscount > 0 ? ("Promo " + (appliedPromo?.code || "") + " saved GHS " + promoDiscount) : null,
+      ].filter(Boolean).join(" | ");
+
       const { error: bankSaleErr } = await (supabase as any).from("sales").insert({
         booking_id: booking.id,
         amount: amountToCharge,
-        original_price: originalPrice + prodTotal,
-        discount_amount: promoDiscount > 0 ? promoDiscount : 0,
-        promo_code_used: appliedPromo?.code || null,
         payment_method: "bank_transfer",
         status: "completed",
         client_name: booking.client_name || null,
         service_name: booking.service_name || null,
         client_id: booking.clients?.id || null,
         staff_id: selectedStaff || null,
-        notes: [notes || "Bank transfer payment", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "),
+        notes: bankNotes,
         payment_date: new Date().toISOString(),
       });
       if (bankSaleErr) throw bankSaleErr;
