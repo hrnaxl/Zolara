@@ -55,13 +55,7 @@ export default function PublicBooking() {
   const [step, setStep] = useState<Step>("form");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isFirstTimeBooker, setIsFirstTimeBooker] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 900);
 
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 900);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session));
@@ -337,7 +331,7 @@ export default function PublicBooking() {
   // ── STATES ────────────────────────────────────────────────────
 
   if (step === "verifying") return (
-    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(var(--sat,0px) + 24px) 24px calc(var(--sab,0px) + 24px)", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap'); @keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ textAlign: "center" }}>
         <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
@@ -359,7 +353,7 @@ export default function PublicBooking() {
   );
 
   if (step === "done") return (
-    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(var(--sat,0px) + 24px) 24px calc(var(--sab,0px) + 24px)", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&display=swap');`}</style>
       <div style={{ maxWidth: "500px", width: "100%", textAlign: "center" }}>
         <div style={{ width: "90px", height: "90px", borderRadius: "50%", background: "rgba(200,169,126,0.12)", border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
@@ -400,7 +394,7 @@ export default function PublicBooking() {
   );
 
   if (step === "failed") return (
-    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(var(--sat,0px) + 24px) 24px calc(var(--sab,0px) + 24px)", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap');`}</style>
       <div style={{ maxWidth: "440px", width: "100%", textAlign: "center" }}>
         <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: "rgba(239,68,68,0.08)", border: "2px solid #EF4444", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: "30px" }}>✗</div>
@@ -418,7 +412,7 @@ export default function PublicBooking() {
 
   // ── MAIN FORM ─────────────────────────────────────────────────
   return (
-    <div style={{ background: MID, minHeight: "100dvh", fontFamily: "'Cormorant Garamond',serif", paddingBottom: "var(--sab, 0px)" }}>
+    <div style={{ background: MID, minHeight: "100dvh", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(200,169,126,0.18); }
@@ -428,11 +422,19 @@ export default function PublicBooking() {
         .err { animation: errIn 0.25s ease; font-family: 'Montserrat',sans-serif; color: ${RED}; font-size: 11px; margin-top: 5px; }
         .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
         .svc-select:hover { border-color: ${GOLD} !important; }
-
+        @media screen and (max-width: 900px) {
+          .bk-grid { grid-template-columns: 1fr !important; gap: 20px !important; padding: 20px 16px 80px !important; }
+          .bk-sidebar { position: static !important; top: auto !important; }
+        }
+        @media screen and (max-width: 480px) {
+          .bk-grid { padding: 16px 12px 80px !important; }
+          .bk-form-grid { grid-template-columns: 1fr !important; }
+          .bk-time-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
       `}</style>
 
       {/* Topbar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(245,239,230,0.97)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(200,169,126,0.2)", paddingTop: "calc(var(--sat, 0px) + 14px)", paddingBottom: "14px", paddingLeft: "28px", paddingRight: "28px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 20px rgba(28,22,14,0.06)" }}>
+      <div className="pwa-header" style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(245,239,230,0.97)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(200,169,126,0.2)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 20px rgba(28,22,14,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: TXT_MID, fontSize: "13px", fontWeight: 500, fontFamily: "'Montserrat',sans-serif", transition: "color 0.15s", padding: 0 }}
             onMouseEnter={e => (e.currentTarget.style.color = GOLD_DARK)}
@@ -453,10 +455,10 @@ export default function PublicBooking() {
         </div>
       </div>
 
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: isMobile ? "20px 16px calc(60px + var(--sab,0px))" : "44px 24px 80px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "360px 1fr", gap: isMobile ? "20px" : "40px", alignItems: "start" }}>
+      <div className="bk-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "44px 24px 80px", display: "grid", gridTemplateColumns: "360px 1fr", gap: "40px", alignItems: "start" }}>
 
         {/* LEFT: Info panel */}
-        <div style={{ position: isMobile ? "static" : "sticky", top: isMobile ? "auto" : "90px" }}>
+        <div className="bk-sidebar" style={{ position: "sticky", top: "90px" }}>
           <div style={{ background: "linear-gradient(160deg, #241C0E 0%, #1A1208 55%, #201608 100%)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 28px 72px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.15)" }}>
 
             {/* Panel header */}
@@ -700,7 +702,7 @@ export default function PublicBooking() {
           {/* Date & Time */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>DATE AND TIME</p>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+            <div className="bk-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={lbl}>Date *</label>
                 <div style={{ position: "relative" }}>
@@ -734,7 +736,7 @@ export default function PublicBooking() {
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "6px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: "10px" }}>
+            <div className="bk-time-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
               {enabledPayments.map((m: any) => {
                 const sel = paymentPref === m.id;
                 return (

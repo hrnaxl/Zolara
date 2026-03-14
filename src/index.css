@@ -637,35 +637,38 @@ tbody td {
   }
 }
 
-/* ── PWA Safe Areas ─────────────────────────────────────────
-   SINGLE SOURCE OF TRUTH.
-   Only body left/right insets are applied globally.
-   Top and bottom are handled by individual components.
-   This avoids double-stacking with sticky headers.
-   ─────────────────────────────────────────────────────── */
-html, body {
+/* ================================================================
+   PWA / iOS SAFE AREA — Added to stylesheet (works reliably here)
+   env() in <style> sheets is processed by the browser CSS engine.
+   This is the single source of truth. Nothing else touches safe areas.
+   ================================================================ */
+
+/* Prevent horizontal overflow on all devices */
+html {
   overflow-x: hidden;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 body {
-  padding-left: var(--sal, 0px);
-  padding-right: var(--sar, 0px);
-  /* NO top/bottom padding on body — headers handle it */
+  overflow-x: hidden;
+  /* Side insets for landscape on notch phones */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
-/* Utility classes for components that need safe area */
-.pwa-safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
-}
-.pwa-safe-bottom {
+/* The app root — bottom padding for home bar */
+#root {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Sidebar safe area on mobile */
-@media (max-width: 768px) {
-  nav, aside {
-    max-width: 100% !important;
+/* Any element that is sticky/fixed at top: 0 needs safe-area-top.
+   We use a dedicated utility class applied in the component. */
+.top-safe {
+  padding-top: env(safe-area-inset-top, 0px) !important;
+}
+
+/* Sticky topbars — header content clears the status bar */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .pwa-header {
+    padding-top: env(safe-area-inset-top) !important;
   }
 }
