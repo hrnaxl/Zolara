@@ -1165,8 +1165,8 @@ No-show on ${bk.preferred_date || "unknown date"}.`
                   placeholder="Search services…"
                   style={{border:"1.5px solid #E5DDD3",borderRadius:"8px",padding:"8px 12px",fontSize:"13px",outline:"none",width:"100%"}} />
 
-                {/* Service list */}
-                <div style={{maxHeight:"180px",overflowY:"auto",border:"1px solid #E5DDD3",borderRadius:"8px",display:"flex",flexDirection:"column"}}>
+                {/* Service list — variants/addons inline below each selected service */}
+                <div style={{border:"1px solid #E5DDD3",borderRadius:"8px",display:"flex",flexDirection:"column"}}>
                   {services
                     .filter(s => (svcCat==="all" || s.category===svcCat) && (!svcSearch || s.name.toLowerCase().includes(svcSearch.toLowerCase())))
                     .map(s => {
@@ -1176,98 +1176,90 @@ No-show on ${bk.preferred_date || "unknown date"}.`
                       const priceLabel = vars.length===0
                         ? (svcBaseP>0?`GHS ${svcBaseP.toLocaleString()}`:"")
                         : prices.length===1?`GHS ${prices[0].toLocaleString()}`
-                        : `GHS ${Math.min(...prices).toLocaleString()} - ${Math.max(...prices).toLocaleString()}`;
+                        : `GHS ${Math.min(...prices).toLocaleString()} – ${Math.max(...prices).toLocaleString()}`;
                       const inCart = serviceCart.some(c=>c.serviceId===s.id);
+                      const cartItem = serviceCart.find(c=>c.serviceId===s.id);
                       return (
-                        <button key={s.id} type="button"
-                          onClick={() => inCart ? removeServiceFromCart(s.id) : addServiceToCart(s.id)}
-                          style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",textAlign:"left",
-                            borderBottom:"1px solid #F0EAE2",background:inCart?"#FBF6EE":"white",
-                            borderLeft: inCart?"3px solid #C8A97E":"3px solid transparent",
-                            cursor:"pointer",transition:"all 0.1s"}}>
-                          <div>
-                            <p style={{fontSize:"13px",fontWeight:600,color:"#1C160E",margin:0}}>{s.name}</p>
-                            <p style={{fontSize:"11px",color:"#A8A29E",margin:"2px 0 0"}}>{s.category}</p>
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
-                            <span style={{fontSize:"12px",fontWeight:700,color:"#8B6914"}}>{priceLabel}</span>
-                            <span style={{width:"18px",height:"18px",borderRadius:"50%",border:`2px solid ${inCart?"#C8A97E":"#D1C5B8"}`,
-                              background:inCart?"#C8A97E":"white",display:"flex",alignItems:"center",justifyContent:"center",
-                              fontSize:"10px",color:"white",fontWeight:700,flexShrink:0}}>
-                              {inCart?"✓":""}
-                            </span>
-                          </div>
-                        </button>
+                        <div key={s.id}>
+                          {/* Service row */}
+                          <button type="button"
+                            onClick={() => inCart ? removeServiceFromCart(s.id) : addServiceToCart(s.id)}
+                            style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",textAlign:"left",
+                              borderBottom:"1px solid #F0EAE2",background:inCart?"#FBF6EE":"white",
+                              borderLeft:inCart?"3px solid #C8A97E":"3px solid transparent",
+                              cursor:"pointer",transition:"all 0.1s"}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <p style={{fontSize:"13px",fontWeight:600,color:"#1C160E",margin:0}}>{s.name}</p>
+                              <p style={{fontSize:"11px",color:"#A8A29E",margin:"2px 0 0"}}>{s.category}</p>
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:"8px",flexShrink:0}}>
+                              <span style={{fontSize:"12px",fontWeight:700,color:"#8B6914"}}>{priceLabel}</span>
+                              <span style={{width:"18px",height:"18px",borderRadius:"50%",border:`2px solid ${inCart?"#C8A97E":"#D1C5B8"}`,
+                                background:inCart?"#C8A97E":"white",display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:"10px",color:"white",fontWeight:700,flexShrink:0}}>
+                                {inCart?"✓":""}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Inline variants + addons — only for selected service */}
+                          {inCart && cartItem && (cartItem.variants.length>0||cartItem.addons.length>0) && (
+                            <div style={{borderLeft:"3px solid #C8A97E",borderBottom:"1px solid #F0EAE2",background:"#FFFDF9",padding:"12px 14px",display:"flex",flexDirection:"column",gap:"12px"}}>
+
+                              {cartItem.variants.length > 0 && (
+                                <div>
+                                  <p style={{fontSize:"10px",fontWeight:700,letterSpacing:"0.12em",color:"#8B6914",margin:"0 0 8px",textTransform:"uppercase"}}>
+                                    Size / Length <span style={{color:"#EF4444"}}>*</span>
+                                  </p>
+                                  <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+                                    {cartItem.variants.map(v=>(
+                                      <button key={v.id} type="button" onClick={()=>setCartVariant(s.id, v.id)}
+                                        style={{padding:"6px 12px",borderRadius:"8px",border:"1.5px solid",cursor:"pointer",transition:"all 0.1s",
+                                          borderColor:cartItem.variantId===v.id?"#8B6914":"#E5DDD3",
+                                          background:cartItem.variantId===v.id?"#8B6914":"white",
+                                          color:cartItem.variantId===v.id?"white":"#1C160E"}}>
+                                        <span style={{fontSize:"12px",fontWeight:600,display:"block"}}>{v.name}</span>
+                                        <span style={{fontSize:"11px",fontWeight:700,display:"block",color:cartItem.variantId===v.id?"rgba(255,255,255,0.8)":"#8B6914"}}>{`GHS ${Number(v.price_adjustment).toLocaleString()}`}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {cartItem.addons.length > 0 && (
+                                <div>
+                                  <p style={{fontSize:"10px",fontWeight:700,letterSpacing:"0.12em",color:"#7C3AED",margin:"0 0 8px",textTransform:"uppercase"}}>Add-ons (optional)</p>
+                                  <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                                    {cartItem.addons.map(a=>{
+                                      const checked=cartItem.addonIds.includes(a.id);
+                                      return (
+                                        <button key={a.id} type="button" onClick={()=>toggleCartAddon(s.id, a.id)}
+                                          style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",
+                                            borderRadius:"8px",border:"1.5px solid",cursor:"pointer",transition:"all 0.1s",textAlign:"left",
+                                            borderColor:checked?"#A78BFA":"#E5DDD3",background:checked?"#F5F3FF":"white"}}>
+                                          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                                            <div style={{width:"15px",height:"15px",borderRadius:"4px",border:`2px solid ${checked?"#7C3AED":"#D1C5B8"}`,
+                                              background:checked?"#7C3AED":"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                              {checked&&<span style={{color:"white",fontSize:"9px",fontWeight:700}}>✓</span>}
+                                            </div>
+                                            <span style={{fontSize:"12px",fontWeight:600,color:"#1C160E"}}>{a.name}</span>
+                                          </div>
+                                          <span style={{fontSize:"12px",fontWeight:700,color:checked?"#7C3AED":"#A8A29E",marginLeft:"8px",flexShrink:0}}>+GHS {Number(a.price).toLocaleString()}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                 </div>
               </div>
 
-              {/* ── CART: variants + addons per selected service ── */}
-              {serviceCart.map(item => {
-                const svc = services.find(s=>s.id===item.serviceId);
-                if (!svc) return null;
-                return (
-                  <div key={item.serviceId} style={{border:"1.5px solid #E5DDD3",borderRadius:"10px",overflow:"hidden"}}>
-                    {/* Cart item header */}
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:"#FBF6EE",borderBottom:"1px solid #F0EAE2"}}>
-                      <p style={{margin:0,fontSize:"13px",fontWeight:700,color:"#1C160E"}}>{svc.name}</p>
-                      <button type="button" onClick={()=>removeServiceFromCart(item.serviceId)}
-                        style={{background:"none",border:"none",cursor:"pointer",color:"#A8A29E",fontSize:"16px",lineHeight:1}}>✕</button>
-                    </div>
-
-                    {/* Variants */}
-                    {item.variants.length > 0 && (
-                      <div style={{padding:"10px 14px",borderBottom: item.addons.length>0?"1px solid #F0EAE2":"none"}}>
-                        <p style={{fontSize:"10px",fontWeight:700,letterSpacing:"0.12em",color:"#8B6914",margin:"0 0 8px",textTransform:"uppercase"}}>
-                          Size / Length <span style={{color:"#EF4444"}}>*</span>
-                        </p>
-                        <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
-                          {item.variants.map(v=>(
-                            <button key={v.id} type="button" onClick={()=>setCartVariant(item.serviceId, v.id)}
-                              style={{padding:"6px 12px",borderRadius:"8px",border:"1.5px solid",cursor:"pointer",transition:"all 0.1s",
-                                borderColor:item.variantId===v.id?"#8B6914":"#E5DDD3",
-                                background:item.variantId===v.id?"#8B6914":"white",
-                                color:item.variantId===v.id?"white":"#1C160E"}}>
-                              <span style={{fontSize:"12px",fontWeight:600,display:"block"}}>{v.name}</span>
-                              <span style={{fontSize:"11px",fontWeight:700,display:"block",color:item.variantId===v.id?"rgba(255,255,255,0.8)":"#8B6914"}}>{`GHS ${Number(v.price_adjustment).toLocaleString()}`}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Add-ons */}
-                    {item.addons.length > 0 && (
-                      <div style={{padding:"10px 14px"}}>
-                        <p style={{fontSize:"10px",fontWeight:700,letterSpacing:"0.12em",color:"#7C3AED",margin:"0 0 8px",textTransform:"uppercase"}}>Add-ons (optional)</p>
-                        <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
-                          {item.addons.map(a=>{
-                            const checked=item.addonIds.includes(a.id);
-                            return (
-                              <button key={a.id} type="button" onClick={()=>toggleCartAddon(item.serviceId, a.id)}
-                                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",
-                                  borderRadius:"8px",border:"1.5px solid",cursor:"pointer",transition:"all 0.1s",textAlign:"left",
-                                  borderColor:checked?"#A78BFA":"#E5DDD3",background:checked?"#F5F3FF":"white"}}>
-                                <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                                  <div style={{width:"15px",height:"15px",borderRadius:"4px",border:`2px solid ${checked?"#7C3AED":"#D1C5B8"}`,
-                                    background:checked?"#7C3AED":"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                                    {checked&&<span style={{color:"white",fontSize:"9px",fontWeight:700}}>✓</span>}
-                                  </div>
-                                  <span style={{fontSize:"12px",fontWeight:600,color:"#1C160E"}}>{a.name}</span>
-                                </div>
-                                <span style={{fontSize:"12px",fontWeight:700,color:checked?"#7C3AED":"#A8A29E",marginLeft:"8px",flexShrink:0}}>+GHS {Number(a.price).toLocaleString()}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* ── PRICE TOTAL ── */}
+                            {/* ── PRICE TOTAL ── */}
               {serviceCart.length > 0 && (
                 <div style={{background:"#F9FAFB",border:"1px solid #E5DDD3",borderRadius:"10px",padding:"12px 16px"}}>
                   {serviceCart.map(item=>{
