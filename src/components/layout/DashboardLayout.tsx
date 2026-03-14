@@ -34,6 +34,7 @@ import {
   ShoppingBag,
   RefreshCw,
   MessageSquare,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
