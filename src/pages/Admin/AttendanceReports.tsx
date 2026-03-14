@@ -66,10 +66,11 @@ export default function Attendance() {
     const style = document.createElement("style");
     style.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
     document.head.appendChild(style);
+    fetchUserRole(); // ← was never called — this is why no data loaded
   }, []);
 
   useEffect(() => {
-    if (userRole === "owner" || userRole === "receptionist") {
+    if (userRole === "owner" || userRole === "admin" || userRole === "receptionist") {
       fetchStaff();
       fetchAttendance();
     }
@@ -77,7 +78,7 @@ export default function Attendance() {
 
   useEffect(() => {
     // refetch when filters change
-    if (userRole === "owner" || userRole === "receptionist") fetchAttendance();
+    if (userRole === "owner" || userRole === "admin" || userRole === "receptionist") fetchAttendance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStart, filterEnd, filterStaff, filterStatus]);
 
