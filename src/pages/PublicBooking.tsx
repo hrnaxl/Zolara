@@ -142,11 +142,14 @@ export default function PublicBooking() {
   // Helper: get display price range for a service
   const getPriceDisplay = (svc: any) => {
     const vars = allVariantsMap[svc.id] || [];
-    if (vars.length === 0) return `GHS ${base.toLocaleString()}`;
+    if (vars.length === 0) {
+      const p = Number(svc.price || 0);
+      return p > 0 ? `GHS ${p.toLocaleString()}` : "See pricing";
+    }
     const prices = vars.map(v => Number(v.price_adjustment));
     const min = Math.min(...prices);
     const max = Math.max(...prices);
-    return min === max ? `GHS ${min.toLocaleString()}` : `GHS ${min.toLocaleString()} – ${max.toLocaleString()}`;
+    return min === max ? `GHS ${min.toLocaleString()}` : `GHS ${min.toLocaleString()} - ${max.toLocaleString()}`;
   };
 
   const allCategories = ["all", ...Object.keys(grouped)];

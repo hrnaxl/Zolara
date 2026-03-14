@@ -1172,10 +1172,11 @@ No-show on ${bk.preferred_date || "unknown date"}.`
                     .map(s => {
                       const vars = allVariantsMap[s.id]||[];
                       const prices = vars.map(v=> Number(v.price_adjustment));
+                      const svcBaseP = Number(s.price || 0);
                       const priceLabel = vars.length===0
-                        ? (base>0?`GHS ${base.toLocaleString()}`:"")
+                        ? (svcBaseP>0?`GHS ${svcBaseP.toLocaleString()}`:"")
                         : prices.length===1?`GHS ${prices[0].toLocaleString()}`
-                        : `GHS ${Math.min(...prices).toLocaleString()} – ${Math.max(...prices).toLocaleString()}`;
+                        : `GHS ${Math.min(...prices).toLocaleString()} - ${Math.max(...prices).toLocaleString()}`;
                       const inCart = serviceCart.some(c=>c.serviceId===s.id);
                       return (
                         <button key={s.id} type="button"
