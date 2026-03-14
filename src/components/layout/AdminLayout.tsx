@@ -974,7 +974,8 @@ const AdminDashboard = () => {
 
         {/* Revenue trend — interactive */}
         {(() => {
-          const [hovIdx, setHovIdx] = React.useState<number|null>(null);
+          const hovIdx = chartHovIdx;
+          const setHovIdx = setChartHovIdx;
           const chartW = 380, chartH = 120, cPad = 16;
           const data7 = revenueData.slice(-7);
           const maxRev = Math.max(...data7.map(d => d.revenue), 1);
