@@ -60,6 +60,7 @@ const AdminDashboard = () => {
     todayRevenue: 0,
     todayServiceRevenue: 0,
     todayProductRevenue: 0,
+    todayGiftCardRevenue: 0,
     periodRevenue: 0,
     weeklyRevenue: 0,
     monthlyRevenue: 0,
@@ -214,7 +215,7 @@ const AdminDashboard = () => {
         // Only consider payments that are completed and are for bookings marked completed
         supabase
           .from("sales")
-          .select("amount, payment_method, status, booking_id, client_name, notes")
+          .select("amount, payment_method, status, booking_id, client_name, notes, service_name")
           .eq("status", "completed")
           .gte("created_at", todayStart)
           .lte("created_at", todayEnd),
@@ -332,15 +333,21 @@ const AdminDashboard = () => {
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
 
-      // Calculate stats — split service vs product revenue
+      // Calculate stats — split service vs product vs gift card revenue
       const todayPayments = todayPaymentsRes.data || [];
-      const todayServiceRevenue = todayPayments
-        .filter((p: any) => !p.notes || !p.notes.toLowerCase().includes("product sale"))
+      const todayGiftCardRevenue = todayPayments
+        .filter((p: any) => (p.service_name || "").toLowerCase().includes("gift card"))
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const todayProductRevenue = todayPayments
         .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
-      const todayRevenue = todayServiceRevenue + todayProductRevenue;
+      const todayServiceRevenue = todayPayments
+        .filter((p: any) =>
+          (!p.notes || !p.notes.toLowerCase().includes("product sale")) &&
+          !(p.service_name || "").toLowerCase().includes("gift card")
+        )
+        .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+      const todayRevenue = todayServiceRevenue + todayProductRevenue + todayGiftCardRevenue;
       const periodRevenue =
         periodPaymentsRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) ||
         0;
@@ -593,6 +600,7 @@ const AdminDashboard = () => {
         todayRevenue,
         todayServiceRevenue,
         todayProductRevenue,
+        todayGiftCardRevenue,
         periodRevenue,
         weeklyRevenue,
         monthlyRevenue,
@@ -834,7 +842,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── KPI ROW ──────────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"14px", marginBottom:"14px" }} className="admin-grid-4">
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:"12px", marginBottom:"14px" }} className="admin-grid-4">
         {[
           { label:"TODAY'S BOOKINGS", val: String(stats.todayBookings),
             pct: stats.bookingChangePercentage, note:"vs yesterday", color:"#4A90D9", bg:"#EFF6FF" },
@@ -842,6 +850,8 @@ const AdminDashboard = () => {
             pct: null, note:"today", color:"#8B6914", bg:"#FBF6EE" },
           { label:"PRODUCT REVENUE",  val:`GHS ${(stats.todayProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
             pct: null, note:"today", color:"#2563EB", bg:"#EFF6FF" },
+          { label:"GIFT CARD SALES",  val:`GHS ${(stats.todayGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+            pct: null, note:"today", color:"#7C3AED", bg:"#F5F3FF" },
           { label:"TOTAL REVENUE",    val:`GHS ${stats.todayRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
             pct: stats.todayRevenueChange, note:"vs yesterday", color:"#16A34A", bg:"#F0FDF4" },
         ].map((c, i) => (
@@ -974,84 +984,7 @@ const AdminDashboard = () => {
       <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-3fr-2fr">
 
         {/* Revenue trend — interactive */}
-        {(() => {
-          const hovIdx = chartHovIdx;
-          const setHovIdx = setChartHovIdx;
-          const chartW = 380, chartH = 120, cPad = 16;
-          const data7 = revenueData.slice(-7);
-          const maxRev = Math.max(...data7.map(d => d.revenue), 1);
-          const pts = data7.map((d, i) => ({
-            x: cPad + (i / Math.max(data7.length - 1, 1)) * (chartW - cPad * 2),
-            y: chartH - cPad - (d.revenue / maxRev) * (chartH - cPad * 2),
-            d,
-          }));
-          const line = pts.map((p, i) => i === 0 ? `M${p.x},${p.y}` : `C${(pts[i-1].x+p.x)/2},${pts[i-1].y} ${(pts[i-1].x+p.x)/2},${p.y} ${p.x},${p.y}`).join(" ");
-          const area = `${line} L${pts[pts.length-1]?.x||0},${chartH-cPad} L${pts[0]?.x||0},${chartH-cPad} Z`;
-          const totalTrend = data7.reduce((s,d)=>s+d.revenue,0);
-          const hovPt = hovIdx !== null ? pts[hovIdx] : null;
-          return (
-            <div className="zc au" style={{ animationDelay:"0.48s", padding:"24px 28px" }}>
-              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"16px" }}>
-                <div>
-                  <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color:TXT_SOFT, marginBottom:"4px" }}>REVENUE TREND</div>
-                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color:TXT }}>Last 7 Days</div>
-                  <div style={{ fontSize:"11px", color:TXT_SOFT, marginTop:"2px" }}>GHS {totalTrend.toLocaleString()} total</div>
-                </div>
-                {hovPt && (
-                  <div style={{ textAlign:"right", padding:"8px 14px", background:"#FBF6EE", borderRadius:"10px", border:"1px solid #F0E4CC", transition:"all 0.2s" }}>
-                    <div style={{ fontSize:"9px", fontWeight:700, color:G_D, letterSpacing:"0.1em" }}>{hovPt.d.name?.toUpperCase()}</div>
-                    <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:700, color:G_D, lineHeight:1.1 }}>GHS {hovPt.d.revenue.toLocaleString()}</div>
-                    <div style={{ fontSize:"9px", color:TXT_SOFT }}>{hovPt.d.bookings || 0} transactions</div>
-                  </div>
-                )}
-              </div>
-              <div style={{ position:"relative" }}>
-                <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} style={{ overflow:"visible", display:"block", cursor:"crosshair" }}
-                  onMouseLeave={() => setHovIdx(null)}>
-                  <defs>
-                    <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={G} stopOpacity="0.18"/>
-                      <stop offset="100%" stopColor={G} stopOpacity="0.01"/>
-                    </linearGradient>
-                  </defs>
-                  {/* Horizontal grid lines */}
-                  {[0.25,0.5,0.75,1].map(frac => {
-                    const y = chartH - cPad - frac * (chartH - cPad*2);
-                    return <line key={frac} x1={cPad} y1={y} x2={chartW-cPad} y2={y} stroke="#EDEBE5" strokeWidth="1" strokeDasharray="4,4"/>;
-                  })}
-                  {pts.length > 1 && (
-                    <>
-                      <path d={area} fill="url(#trendGrad)" />
-                      <path d={line} fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                        style={{ filter:"drop-shadow(0 2px 4px rgba(200,169,126,0.3))" }}/>
-                      {pts.map((p, i) => (
-                        <g key={i} onMouseEnter={() => setHovIdx(i)} style={{ cursor:"pointer" }}>
-                          <circle cx={p.x} cy={p.y} r="14" fill="transparent"/>
-                          <circle cx={p.x} cy={p.y} r={hovIdx===i ? 6 : 4} fill={hovIdx===i ? G_D : "#fff"} stroke={G} strokeWidth="2"
-                            style={{ transition:"all 0.15s" }}/>
-                          {hovIdx===i && <circle cx={p.x} cy={p.y} r="2" fill="#fff"/>}
-                          {/* Vertical hover line */}
-                          {hovIdx===i && <line x1={p.x} y1={cPad} x2={p.x} y2={chartH-cPad} stroke={G} strokeWidth="1" strokeDasharray="3,3" opacity="0.6"/>}
-                        </g>
-                      ))}
-                    </>
-                  )}
-                  {pts.length === 0 && <text x={chartW/2} y={chartH/2} textAnchor="middle" fill={TXT_SOFT} fontSize="11" fontFamily="Montserrat">No data yet</text>}
-                </svg>
-              </div>
-              {data7.length > 0 && (
-                <div style={{ display:"flex", justifyContent:"space-between", marginTop:"6px", paddingLeft:`${cPad}px`, paddingRight:`${cPad}px` }}>
-                  {data7.map((d, i) => (
-                    <span key={i} style={{ fontSize:"9px", color: hovIdx===i ? G_D : TXT_SOFT, fontWeight: hovIdx===i ? 700 : 400, transition:"color 0.15s", cursor:"pointer" }}
-                      onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(null)}>
-                      {d.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        <RevenueTrendChart data={revenueData} />
 
         {/* Booking status donut */}
         <div className="zc au" style={{ animationDelay:"0.54s", padding:"28px" }}>
@@ -1202,4 +1135,79 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default AdminDashboard// ── Revenue Trend Sub-component (isolated state, no parent re-render on hover) ──
+const RevenueTrendChart = ({ data }: { data: Array<{ name: string; revenue: number; bookings?: number }> }) => {
+  const [hovIdx, setHovIdx] = useState<number|null>(null);
+  const G = "#C8A97E", G_D = "#8B6914";
+  const TXT_SOFT = "#A8A29E";
+  const chartW = 380, chartH = 120, cPad = 16;
+  const data7 = data.slice(-7);
+  const maxRev = Math.max(...data7.map(d => d.revenue), 1);
+  const pts = data7.map((d, i) => ({
+    x: cPad + (i / Math.max(data7.length - 1, 1)) * (chartW - cPad * 2),
+    y: chartH - cPad - (d.revenue / maxRev) * (chartH - cPad * 2),
+    d,
+  }));
+  const line = pts.map((p, i) => i === 0 ? `M${p.x},${p.y}` : `C${(pts[i-1].x+p.x)/2},${pts[i-1].y} ${(pts[i-1].x+p.x)/2},${p.y} ${p.x},${p.y}`).join(" ");
+  const area = pts.length > 1 ? `${line} L${pts[pts.length-1].x},${chartH-cPad} L${pts[0].x},${chartH-cPad} Z` : "";
+  const totalTrend = data7.reduce((s, d) => s + d.revenue, 0);
+  const hovPt = hovIdx !== null ? pts[hovIdx] : null;
+  return (
+    <div className="zc au" style={{ animationDelay:"0.48s", padding:"24px 28px" }}>
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"16px" }}>
+        <div>
+          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color:TXT_SOFT, marginBottom:"4px" }}>REVENUE TREND</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color:"#1C160E" }}>Last 7 Days</div>
+          <div style={{ fontSize:"11px", color:TXT_SOFT, marginTop:"2px" }}>GHS {totalTrend.toLocaleString()} total</div>
+        </div>
+        {hovPt && (
+          <div style={{ textAlign:"right", padding:"8px 14px", background:"#FBF6EE", borderRadius:"10px", border:"1px solid #F0E4CC" }}>
+            <div style={{ fontSize:"9px", fontWeight:700, color:G_D, letterSpacing:"0.1em" }}>{hovPt.d.name?.toUpperCase()}</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color:G_D }}>GHS {hovPt.d.revenue.toLocaleString()}</div>
+            <div style={{ fontSize:"9px", color:TXT_SOFT }}>{hovPt.d.bookings || 0} transactions</div>
+          </div>
+        )}
+      </div>
+      <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} style={{ overflow:"visible", display:"block", cursor:"crosshair" }}
+        onMouseLeave={() => setHovIdx(null)}>
+        <defs>
+          <linearGradient id="trendGrad2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={G} stopOpacity="0.18"/>
+            <stop offset="100%" stopColor={G} stopOpacity="0.01"/>
+          </linearGradient>
+        </defs>
+        {[0.25,0.5,0.75].map(frac => {
+          const y = chartH - cPad - frac * (chartH - cPad*2);
+          return <line key={frac} x1={cPad} y1={y} x2={chartW-cPad} y2={y} stroke="#EDEBE5" strokeWidth="1" strokeDasharray="4,4"/>;
+        })}
+        {pts.length > 1 && (
+          <>
+            <path d={area} fill="url(#trendGrad2)"/>
+            <path d={line} fill="none" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{ filter:"drop-shadow(0 2px 4px rgba(200,169,126,0.3))" }}/>
+            {pts.map((p, i) => (
+              <g key={i} onMouseEnter={() => setHovIdx(i)}>
+                <circle cx={p.x} cy={p.y} r="14" fill="transparent"/>
+                <circle cx={p.x} cy={p.y} r={hovIdx===i ? 6 : 4} fill={hovIdx===i ? G_D : "#fff"} stroke={G} strokeWidth="2"/>
+                {hovIdx===i && <line x1={p.x} y1={cPad} x2={p.x} y2={chartH-cPad} stroke={G} strokeWidth="1" strokeDasharray="3,3" opacity="0.6"/>}
+              </g>
+            ))}
+          </>
+        )}
+        {pts.length === 0 && <text x={chartW/2} y={chartH/2} textAnchor="middle" fill={TXT_SOFT} fontSize="11" fontFamily="Montserrat">No data yet</text>}
+      </svg>
+      {data7.length > 0 && (
+        <div style={{ display:"flex", justifyContent:"space-between", marginTop:"6px", paddingLeft:`${cPad}px`, paddingRight:`${cPad}px` }}>
+          {data7.map((d, i) => (
+            <span key={i} style={{ fontSize:"9px", color: hovIdx===i ? G_D : TXT_SOFT, fontWeight: hovIdx===i ? 700 : 400, cursor:"pointer" }}
+              onMouseEnter={() => setHovIdx(i)} onMouseLeave={() => setHovIdx(null)}>
+              {d.name}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+;
