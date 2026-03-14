@@ -1068,8 +1068,8 @@ No-show on ${bk.preferred_date || "unknown date"}.`
           [data-radix-dialog-content].booking-dialog {
             position: fixed !important;
             inset: 0 !important;
-            width: 100vw !important;
-            max-width: 100vw !important;
+            width: 100% !important;
+            max-width: 100% !important;
             height: 100dvh !important;
             max-height: 100dvh !important;
             border-radius: 0 !important;
