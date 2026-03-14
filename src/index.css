@@ -637,68 +637,56 @@ tbody td {
   }
 }
 
-/* ── PWA / iOS Safe Area ──────────────────────────────────── */
+/* ── PWA Safe Areas ─────────────────────────────────────────
+   SINGLE SOURCE OF TRUTH.
+   Only body left/right insets are applied globally.
+   Top and bottom are handled by individual components.
+   This avoids double-stacking with sticky headers.
+   ─────────────────────────────────────────────────────── */
 html, body {
   overflow-x: hidden;
   max-width: 100%;
-}
-
-body {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* Prevent 100vw from causing horizontal overflow */
-* {
   box-sizing: border-box;
 }
 
-/* Sticky nav bars need safe area padding */
-.safe-area-top {
-  padding-top: max(env(safe-area-inset-top), 0px);
-}
-.safe-area-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom), 16px);
+body {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  /* NO top/bottom padding on body — headers handle it */
 }
 
-/* ── Sticky bars respect iOS notch/home bar ───────────────── */
-/* Top nav bars */
-[style*="position: sticky"][style*="top: 0"],
-[style*="position:sticky"][style*="top:0"],
-.sticky-top-bar {
-  padding-top: max(env(safe-area-inset-top), 0px) !important;
+/* Utility classes for components that need safe area */
+.pwa-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pwa-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Bottom navigation / floating buttons */
-.safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom), 16px) !important;
-}
-
-/* Dashboard sidebar on mobile — must not overflow */
+/* Sidebar safe area on mobile */
 @media (max-width: 768px) {
-  nav, aside, [class*="sidebar"] {
+  nav, aside {
     max-width: 100% !important;
   }
 }
 
-/* ── PWA Standalone: safe area only needed when running as installed app ── */
-@media (display-mode: standalone) {
-  /* Remove body top padding in standalone — sticky bars handle it themselves */
-  body {
+/* ── PWA topbar: adds safe area ONLY in standalone mode ─────
+   Outside of PWA mode (normal browser), this adds nothing.
+   Inside PWA mode (installed app), it adds the status bar
+   height to the topbar padding so content clears the notch.
+   ─────────────────────────────────────────────────────── */
+@media all {
+  .pwa-topbar {
+    /* In browser: env() resolves to 0, so this is a no-op */
+    padding-top: max(env(safe-area-inset-top, 0px), 12px);
+    /* 12px minimum ensures readable spacing even on devices
+       that don't support safe-area-inset-top */
+  }
+}
+
+@media (display-mode: browser) {
+  /* In normal browser: override back to no extra top padding */
+  .pwa-topbar {
     padding-top: 0 !important;
-  }
-  /* Add safe area to fixed/sticky top elements */
-  [style*="position: sticky"][style*="top: 0"],
-  [style*="position:sticky"][style*="top:0"],
-  [style*="position: fixed"][style*="top: 0"],
-  [style*="position:fixed"][style*="top:0"] {
-    padding-top: max(env(safe-area-inset-top, 0px), 0px);
-  }
-  /* Bottom safe area for floating elements */
-  [style*="position: fixed"][style*="bottom: 0"],
-  [style*="position:fixed"][style*="bottom:0"] {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
