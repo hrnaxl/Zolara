@@ -54,37 +54,38 @@ export default function ProductSale() {
     if (!paymentMethod) { toast.error("Select a payment method"); return; }
     setProcessing(true);
     try {
-      // Deduct stock + record each product sale
-      for (const item of cart) {
-        await (supabase as any).from("products").update({
-          stock_quantity: Math.max(0, item.stock_quantity - item.quantity)
-        }).eq("id", item.id);
+      const sb = supabase as any;
 
-        await supabase.from("sales").insert({
+      // 1. Record all product sales in sales table first
+      for (const item of cart) {
+        const { error: saleErr } = await sb.from("sales").insert({
           amount: item.price * item.quantity,
-          payment_method: paymentMethod as any,
+          payment_method: paymentMethod,
           status: "completed",
           client_name: clientName.trim() || null,
           service_name: item.name + (item.quantity > 1 ? " x" + item.quantity : ""),
-          notes: "Product sale" + (clientName.trim() ? " · " + clientName.trim() : ""),
-          booking_id: null,
-          client_id: null,
-          staff_id: null,
+          notes: "Product sale" + (clientName.trim() ? " for " + clientName.trim() : ""),
+          payment_date: new Date().toISOString(),
         } as any);
+        if (saleErr) { console.error("Sale insert error:", saleErr); toast.error("Failed to record sale: " + saleErr.message); setProcessing(false); return; }
+
+        // 2. Deduct stock
+        const { error: stockErr } = await sb.from("products").update({
+          stock_quantity: Math.max(0, item.stock_quantity - item.quantity)
+        }).eq("id", item.id);
+        if (stockErr) console.error("Stock deduct error:", stockErr);
       }
 
-      // Write checkout session + items
-      const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{
-        client_id: null,
-        staff_id: null,
-        booking_id: null,
-        total_amount: total,
-        payment_method: paymentMethod,
-        status: "completed",
+      // 3. Write checkout session
+      const { data: sess, error: sessErr } = await sb.from("checkout_sessions").insert([{
+        client_id: null, staff_id: null, booking_id: null,
+        total_amount: total, payment_method: paymentMethod, status: "completed",
       }]).select("id").single();
+      if (sessErr) console.error("Session error:", sessErr);
 
+      // 4. Write checkout_items for revenue split tracking
       if (sess?.id) {
-        await (supabase as any).from("checkout_items").insert(
+        const { error: ciErr } = await sb.from("checkout_items").insert(
           cart.map(item => ({
             checkout_session_id: sess.id,
             item_type: "product",
@@ -95,13 +96,14 @@ export default function ProductSale() {
             subtotal: item.price * item.quantity,
           }))
         );
+        if (ciErr) console.error("Checkout items error:", ciErr);
       }
 
       setTotalCharged(total);
       setCompleted(true);
       toast.success("Sale recorded!");
     } catch (err: any) {
-      console.error(err);
+      console.error("ProductSale error:", err);
       toast.error(err.message || "Sale failed");
     } finally { setProcessing(false); }
   };
