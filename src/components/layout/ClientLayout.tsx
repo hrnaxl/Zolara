@@ -183,7 +183,7 @@ const ClientDashboard = () => {
       <DashboardHeader
         title="My Dashboard"
         userName={userName}
-        subtitle="Track your beauty journey and appointments"
+        subtitle="Your beauty journey at Zolara"
       />
 
       {/* Stats Grid */}

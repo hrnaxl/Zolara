@@ -358,6 +358,17 @@ export default function PublicBooking() {
             Pay the remaining balance at the studio on the day of your appointment.
           </p>
         </div>
+        {!isLoggedIn && (
+          <div style={{ background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.25)", borderRadius: "14px", padding: "24px 28px", marginBottom: "24px", textAlign: "left" }}>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, marginBottom: "8px" }}>Want to track your bookings?</p>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_MID, lineHeight: 1.7, marginBottom: "16px" }}>
+              Create a free Zolara account to view your booking history, loyalty points, and upcoming appointments.
+            </p>
+            <a href="/app/auth" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, color: WHITE, fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "11px 22px", borderRadius: "8px", letterSpacing: "0.04em" }}>
+              Create Account →
+            </a>
+          </div>
+        )}
         <Link to="/" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
           Return to homepage
         </Link>
@@ -412,9 +423,11 @@ export default function PublicBooking() {
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <a href={isLoggedIn ? "/app/client/dashboard" : "/app/auth"} style={{ fontSize: 11, fontWeight: 700, color: "#8B6914", textDecoration: "none", letterSpacing: "0.06em", background: "rgba(200,169,126,0.1)", padding: "7px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
-            {isLoggedIn ? "My Dashboard →" : "Track My Bookings →"}
-          </a>
+          {isLoggedIn && (
+            <a href="/app/client/dashboard" style={{ fontSize: 11, fontWeight: 700, color: "#8B6914", textDecoration: "none", letterSpacing: "0.06em", background: "rgba(200,169,126,0.1)", padding: "7px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
+              My Dashboard →
+            </a>
+          )}
           <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
             <img src={LOGO} style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} alt="Zolara" />
             <div>
