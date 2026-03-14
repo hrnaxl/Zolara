@@ -129,6 +129,8 @@ const App = () => (
               <Route path="/app/receptionist/services" element={<ViewServices />} />
               <Route path="/app/receptionist/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/receptionist/loyalty" element={<Loyalty />} />
+              <Route path="/app/admin/products" element={<ProductsPage />} />
+              <Route path="/app/admin/product-sale" element={<ProductSale />} />
             </Route>
           </Route>
 
