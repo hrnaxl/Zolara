@@ -49,21 +49,15 @@ import { TodaysBookings } from "@/components/bookings/TodaysBookings";
 import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
 
 const bookingSchema = z.object({
-  client_id: z.string().optional(),
-  service_id: z.string().optional(),
-  staff_id: z
-    .string()
-    .uuid("Invalid staff selection")
-    .optional()
-    .or(z.literal("")),
+  client_id: z.string().nullable().optional(),
+  service_id: z.string().nullable().optional(),
+  staff_id: z.string().nullable().optional().or(z.literal("")),
   preferred_date: z.string().min(1, "Date is required"),
-  preferred_time: z
-    .string()
-    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format"),
+  preferred_time: z.string().min(1, "Time is required"),
   status: z
     .enum(["pending", "confirmed", "in_progress", "completed", "cancelled", "no_show"])
     .optional(),
-  notes: z.string().max(1000, "Notes too long").optional(),
+  notes: z.string().max(1000, "Notes too long").nullable().optional(),
 });
 
 const Bookings = () => {

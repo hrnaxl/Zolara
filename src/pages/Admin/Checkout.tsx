@@ -54,6 +54,7 @@ const Checkout = () => {
   const [giftCode, setGiftCode] = useState<string>("");
   const [redeeming, setRedeeming] = useState<boolean>(false);
   const [redeemedCard, setRedeemedCard] = useState<{ id: string; value: number } | null>(null);
+  const [finalAmountCharged, setFinalAmountCharged] = useState<number>(0);
   const [promoCode, setPromoCode] = useState<string>("");
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
@@ -352,6 +353,7 @@ const Checkout = () => {
           }
         } catch (itemErr) { console.error("Line items error:", itemErr); }
 
+        setFinalAmountCharged(amountToCharge);
         setCompleted(true);
         toast.success("Checkout completed!");
 
@@ -373,7 +375,7 @@ const Checkout = () => {
             const finalPts = Number(after?.loyalty_points || 0);
             if (clientPhone) {
               const earned = Math.max(0, finalPts - prevPts);
-              await sendSMS(clientPhone, SMS.checkoutComplete(booking.client_name || "Valued Client", booking.service_name || "service", spendable.toFixed(0), earned, finalPts, booking.booking_ref || booking.id.slice(0, 8).toUpperCase()));
+              await sendSMS(clientPhone, SMS.checkoutComplete(booking.client_name || "Valued Client", booking.service_name || "service", amountToCharge.toFixed(0), earned, finalPts, booking.booking_ref || booking.id.slice(0, 8).toUpperCase()));
               const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
               if (Math.floor(finalPts / stampsForReward) > Math.floor(prevPts / stampsForReward) && finalPts >= stampsForReward) {
                 setTimeout(() => sendSMS(clientPhone, SMS.loyaltyReward(booking.client_name || "Valued Client", finalPts)).catch(console.error), 3000);
@@ -447,7 +449,7 @@ const Checkout = () => {
             ))}
             <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0" }}>
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Paid</span>
-              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>GHS {lineItemsTotal.toFixed(2)}</span>
+              <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>GHS {finalAmountCharged.toFixed(2)}</span>
             </div>
             <div style={{ display: "flex", gap: "10px" }}>
               <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Back</button>

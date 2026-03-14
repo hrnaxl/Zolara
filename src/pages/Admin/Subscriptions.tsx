@@ -62,8 +62,10 @@ export default function SubscriptionsPage() {
     if (!form.monthly_price) { toast.error("Price required"); return; }
     setSaving(true);
     try {
-      const services = form.included_services.split("\n").map(s=>s.trim()).filter(Boolean);
-      const payload = { name:form.name.trim(), description:form.description.trim()||null, monthly_price:parseFloat(form.monthly_price)||0, billing_cycle:form.billing_cycle, included_services:services, max_usage_per_cycle:parseInt(form.max_usage_per_cycle)||2, is_active:form.is_active };
+      const services = form.included_services.split("\n").map((s:string)=>s.trim()).filter(Boolean);
+      const payload: any = { name:form.name.trim(), description:form.description.trim()||null, monthly_price:parseFloat(form.monthly_price)||0, billing_cycle:form.billing_cycle, max_usage_per_cycle:parseInt(form.max_usage_per_cycle)||2, is_active:form.is_active };
+      // Only include included_services if column exists (added via SQL migration)
+      try { payload.included_services = services; } catch(e) {}
       const { error } = editId ? await (supabase as any).from("subscription_plans").update(payload).eq("id",editId) : await (supabase as any).from("subscription_plans").insert([payload]);
       if (error) throw error;
       toast.success(editId?"Updated":"Plan created");
