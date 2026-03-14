@@ -25,20 +25,25 @@ const ProtectedRoute = ({ allowedRoles }) => {
         // user_metadata can be stale or spoofed. The DB row is what the Owner controls.
         const { data: roleData } = await supabase
           .from("user_roles")
-          .select("role")
+          .select("role, account_status")
           .eq("user_id", session.user.id)
           .maybeSingle();
 
         if (!roleData?.role) {
-          // No role row = no access. Treat as unauthenticated.
+          if (mounted) { setUserRole(null); setLoading(false); }
+          return;
+        }
+
+        // Check account_status — inactive users are blocked immediately
+        if (roleData.account_status === "inactive") {
+          await supabase.auth.signOut();
           if (mounted) { setUserRole(null); setLoading(false); }
           return;
         }
 
         let role = roleData.role;
 
-        // For staff/receptionist: validate they are still active in the staff registry
-        // This enforces revocation on every route access, not just login
+        // For staff/receptionist: also validate staff registry is_active
         if (role === "staff" || role === "receptionist") {
           const { data: staffRecord } = await supabase
             .from("staff")
@@ -47,9 +52,22 @@ const ProtectedRoute = ({ allowedRoles }) => {
             .maybeSingle();
 
           if (staffRecord && !staffRecord.is_active) {
-            // Revoked — downgrade immediately
             await supabase.from("user_roles").upsert({ user_id: session.user.id, role: "client" });
             role = "client";
+          }
+        }
+
+        // Single-session check: if another login happened, invalidate this session
+        const localKey = localStorage.getItem("zolara_session_key");
+        if (localKey) {
+          const { data: sessionRow } = await supabase.from("user_sessions")
+            .select("session_key").eq("user_id", session.user.id).maybeSingle();
+          if (sessionRow && sessionRow.session_key !== localKey) {
+            // A newer session exists elsewhere — sign out this one
+            localStorage.removeItem("zolara_session_key");
+            await supabase.auth.signOut();
+            if (mounted) { setUserRole(null); setLoading(false); }
+            return;
           }
         }
 

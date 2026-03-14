@@ -170,7 +170,7 @@ const DashboardLayout = () => {
         const allowed = [
           "Dashboard", "Bookings", "Clients", "Staff",
           "Services", "Gift Cards", "Checkout", "Loyalty",
-          "Promo Codes", "Attendance", "Products", "Sell Products",
+          "Promo Codes", "Attendance", "Products", "Sell Products", "Security",
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))
@@ -179,7 +179,7 @@ const DashboardLayout = () => {
 
       // ── STAFF: personal work only ───────────────────────────────
       case "staff": {
-        const allowed = ["Dashboard", "Bookings", "Services", "Attendance", "Promo Codes"];
+        const allowed = ["Dashboard", "Bookings", "Services", "Attendance", "Promo Codes", "Security"];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))
           .map((item) => ({ ...item, path: `/app/staff/${item.path}` }));

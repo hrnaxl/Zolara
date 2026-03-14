@@ -48,6 +48,7 @@ import GiftCardBatchGenerator from "./pages/Admin/GiftCardBatchGenerator";
 import AnalyticsPage from "./pages/Admin/Analytics";
 import ProductsPage from "./pages/Admin/Products";
 import ProductSale from "./pages/Admin/ProductSale";
+import SecuritySettings from "./pages/Admin/SecuritySettings";
 import SubscriptionsPage from "./pages/Admin/Subscriptions";
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
@@ -113,6 +114,7 @@ const App = () => (
               <Route path="/app/admin/product-sale" element={<ProductSale />} />
               <Route path="/app/admin/subscriptions" element={<SubscriptionsPage />} />
               <Route path="/app/admin/settings" element={<SettingsPage />} />
+              <Route path="/app/admin/security" element={<SecuritySettings />} />
             </Route>
           </Route>
 
@@ -131,6 +133,7 @@ const App = () => (
               <Route path="/app/receptionist/loyalty" element={<Loyalty />} />
               <Route path="/app/receptionist/products" element={<ProductsPage />} />
               <Route path="/app/receptionist/product-sale" element={<ProductSale />} />
+              <Route path="/app/receptionist/security" element={<SecuritySettings />} />
             </Route>
           </Route>
 
@@ -142,6 +145,7 @@ const App = () => (
               <Route path="/app/staff/services" element={<ViewServices />} />
               <Route path="/app/staff/attendance" element={<MyAttendance />} />
               <Route path="/app/staff/promo-codes" element={<PromoCodesPage />} />
+              <Route path="/app/staff/security" element={<SecuritySettings />} />
             </Route>
           </Route>
 
