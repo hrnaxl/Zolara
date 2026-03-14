@@ -590,7 +590,8 @@ const Bookings = () => {
         const svc = services.find((s: any) => s.id === item.serviceId);
         const variant = item.variants.find(v => v.id === item.variantId);
         const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
-        const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price || 0);
+        const hasVariants = item.variants && item.variants.length > 0;
+        const basePrice = variant ? Number(variant.price_adjustment) : hasVariants ? 0 : Number(svc?.price || 0);
         const addonTotal = chosenAddons.reduce((s: number, a: any) => s + Number(a.price), 0);
         return {
           service_id: item.serviceId,
@@ -1263,13 +1264,14 @@ No-show on ${bk.preferred_date || "unknown date"}.`
                   {serviceCart.map(item=>{
                     const svc=services.find(s=>s.id===item.serviceId);
                     const variant=item.variants.find(v=>v.id===item.variantId);
-                    const base=variant?Number(variant.price_adjustment):Number(svc?.price||0);
-                    const adds=item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0);
+                    const hasVariants=item.variants.length>0;
+                    const base=variant?Number(variant.price_adjustment):hasVariants?0:Number(svc?.price||0);
+                    const adds=item.addonIds.length>0?item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0):0;
                     if (!svc) return null;
                     return (
                       <div key={item.serviceId} style={{display:"flex",justifyContent:"space-between",fontSize:"12px",marginBottom:"4px"}}>
-                        <span style={{color:"#78716C"}}>{svc.name}{variant?` · ${variant.name}`:""}</span>
-                        <span style={{fontWeight:600,color:"#1C160E"}}>GHS {(base+adds).toLocaleString()}</span>
+                        <span style={{color:"#78716C"}}>{svc.name}{variant?` · ${variant.name}`:hasVariants?" · (select size)":""}</span>
+                        <span style={{fontWeight:600,color:hasVariants&&!variant?"#A8A29E":"#1C160E"}}>{hasVariants&&!variant?"Select size":"GHS " + (base+adds).toLocaleString()}</span>
                       </div>
                     );
                   })}
@@ -1278,8 +1280,9 @@ No-show on ${bk.preferred_date || "unknown date"}.`
                     <span style={{fontSize:"20px",fontWeight:700,color:"#8B6914"}}>GHS {serviceCart.reduce((total,item)=>{
                       const svc=services.find(s=>s.id===item.serviceId);
                       const variant=item.variants.find(v=>v.id===item.variantId);
-                      const base=variant?Number(variant.price_adjustment):Number(svc?.price||0);
-                      const adds=item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0);
+                      const hasVariants=item.variants.length>0;
+                      const base=variant?Number(variant.price_adjustment):hasVariants?0:Number(svc?.price||0);
+                      const adds=item.addonIds.length>0?item.addons.filter(a=>item.addonIds.includes(a.id)).reduce((s:number,a:any)=>s+Number(a.price),0):0;
                       return total+base+adds;
                     },0).toLocaleString()}</span>
                   </div>

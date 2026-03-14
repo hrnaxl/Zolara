@@ -155,7 +155,10 @@ export default function PublicBooking() {
     return matchCat && matchSearch;
   });
 
-  const basePrice = selectedVariant ? Number(selectedVariant.price_adjustment) : Number(selectedService?.price || 0);
+  const serviceHasVariants = variants.length > 0;
+  const basePrice = selectedVariant
+    ? Number(selectedVariant.price_adjustment)
+    : serviceHasVariants ? 0 : Number(selectedService?.price || 0);
   const variantAdj = 0;
   const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
   const subtotal = basePrice + variantAdj + addonTotal;
