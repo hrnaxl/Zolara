@@ -28,6 +28,8 @@ const Reports = () => {
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<string>("all");
   const [reportData, setReportData] = useState<any>(null);
   const [clients, setClients] = useState<any[]>([]);
+  const [salesPage, setSalesPage] = useState(0);
+  const SALES_PAGE_SIZE = 50;
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const { settings } = useSettings();
@@ -97,35 +99,30 @@ const Reports = () => {
         .select("item_type, price_at_time")
         .gte("created_at", startDate)
         .lte("created_at", endDate + "T23:59:59");
+      // Revenue split from checkout_items (covers all new checkouts)
       const ciItems = checkoutItemsData || [];
-      const serviceRevenue      = ciItems.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
-      const productRevenue      = ciItems.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
-      const subscriptionRevenue = ciItems.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.price_at_time || 0), 0);
+      const ciServiceRev = ciItems.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const ciProductRev = ciItems.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const subscriptionRevenue = ciItems.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      // Fallback: if checkout_items is empty, classify from sales table directly
+      // gift_card payment method = gift card revenue (counted in service revenue as it pays for services)
+      const serviceRevenue = ciServiceRev;
+      const productRevenue = ciProductRev;
 
+      // Fetch ALL sales for accurate totals/aggregations
       let query = supabase
         .from("sales")
         .select(
-          `
-        id,
-        amount,
-        payment_method,
-        status,
-        payment_date,
-        transaction_reference,
-        bookings:booking_id (
-          id,
-          preferred_date,
-          preferred_time,
-          status,
-          rating,
-          services:service_id (id, name, category, price),
-          staff:staff_id (id, name),
-          clients:client_id (id, name)
-        )
-      `
+          `id, amount, payment_method, status, payment_date, transaction_reference,
+          bookings:booking_id (
+            id, preferred_date, preferred_time, status, rating,
+            services:service_id (id, name, category, price),
+            staff:staff_id (id, name),
+            clients:client_id (id, name)
+          )`
         )
         .gte("payment_date", startDate)
-        .lte("payment_date", endDate)
+        .lte("payment_date", endDate + "T23:59:59")
         .order("payment_date", { ascending: false });
 
       // apply payment method/status filters only when the corresponding filter type is selected
@@ -729,6 +726,78 @@ const Reports = () => {
               ))}
             </div>
           )}
+
+
+          {/* Paginated Transaction Log */}
+          {(reportData.exportRows || []).length > 0 && (() => {
+            const allRows = reportData.exportRows || [];
+            const totalTx = allRows.length;
+            const totalPages = Math.ceil(totalTx / SALES_PAGE_SIZE);
+            const pageRows = allRows.slice(salesPage * SALES_PAGE_SIZE, (salesPage + 1) * SALES_PAGE_SIZE);
+            return (
+              <div style={card}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", margin: 0 }}>
+                    Transaction Log ({totalTx} records)
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "11px", color: TXT_SOFT }}>Page {salesPage + 1} of {totalPages}</span>
+                    <button onClick={() => setSalesPage(p => Math.max(0, p - 1))} disabled={salesPage === 0}
+                      style={{ padding: "4px 10px", borderRadius: "8px", border: "1px solid " + BORDER, background: WHITE, cursor: salesPage === 0 ? "not-allowed" : "pointer", fontSize: "12px", opacity: salesPage === 0 ? 0.4 : 1 }}>Prev</button>
+                    <button onClick={() => setSalesPage(p => Math.min(totalPages - 1, p + 1))} disabled={salesPage >= totalPages - 1}
+                      style={{ padding: "4px 10px", borderRadius: "8px", border: "1px solid " + BORDER, background: WHITE, cursor: salesPage >= totalPages - 1 ? "not-allowed" : "pointer", fontSize: "12px", opacity: salesPage >= totalPages - 1 ? 0.4 : 1 }}>Next</button>
+                  </div>
+                </div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                    <thead>
+                      <tr style={{ background: CREAM }}>
+                        {["Date", "Client", "Service", "Staff", "Method", "Amount", "Status"].map(h => (
+                          <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: "10px", fontWeight: 700, color: TXT_SOFT, letterSpacing: "0.08em", borderBottom: "1px solid " + BORDER, whiteSpace: "nowrap" }}>{h.toUpperCase()}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageRows.map((r: any, i: number) => (
+                        <tr key={r.PaymentID || i} style={{ borderBottom: "1px solid " + BORDER, background: i % 2 === 0 ? WHITE : CREAM }}>
+                          <td style={{ padding: "8px 10px", color: TXT_MID, whiteSpace: "nowrap" }}>{(r.PaymentDate || "").split(" ")[0]}</td>
+                          <td style={{ padding: "8px 10px", color: TXT, fontWeight: 600 }}>{r.Client || "Walk-in"}</td>
+                          <td style={{ padding: "8px 10px", color: TXT_MID }}>{r.Service || ""}</td>
+                          <td style={{ padding: "8px 10px", color: TXT_MID }}>{r.Staff || ""}</td>
+                          <td style={{ padding: "8px 10px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px",
+                              background: r.PaymentMethod === "cash" ? "#F0FDF4" : r.PaymentMethod === "mobile_money" ? "#EFF6FF" : r.PaymentMethod === "gift_card" ? "#FDF4FF" : "#FFFBEB",
+                              color: r.PaymentMethod === "cash" ? "#16A34A" : r.PaymentMethod === "mobile_money" ? "#2563EB" : r.PaymentMethod === "gift_card" ? "#9333EA" : "#D97706" }}>
+                              {(r.PaymentMethod || "").replace(/_/g, " ").toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={{ padding: "8px 10px", fontFamily: "'Cormorant Garamond',serif", fontWeight: 700, color: G_D, whiteSpace: "nowrap" }}>GHS {Number(r.Amount || 0).toLocaleString()}</td>
+                          <td style={{ padding: "8px 10px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px",
+                              background: r.BookingStatus === "completed" ? "#F0FDF4" : r.BookingStatus === "cancelled" ? "#FEF2F2" : "#FFFBEB",
+                              color: r.BookingStatus === "completed" ? "#16A34A" : r.BookingStatus === "cancelled" ? "#DC2626" : "#D97706" }}>
+                              {(r.BookingStatus || "pending").toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {totalPages > 1 && (
+                  <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginTop: "16px", flexWrap: "wrap" }}>
+                    {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => (
+                      <button key={i} onClick={() => setSalesPage(i)}
+                        style={{ width: "32px", height: "32px", borderRadius: "8px", border: "1px solid " + (salesPage === i ? G : BORDER),
+                          background: salesPage === i ? G : WHITE, color: salesPage === i ? WHITE : TXT_MID,
+                          fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>{i + 1}</button>
+                    ))}
+                    {totalPages > 10 && <span style={{ fontSize: "12px", color: TXT_SOFT, alignSelf: "center" }}>... {totalPages} total pages</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
