@@ -47,6 +47,7 @@ import BuyGiftCard from "./pages/Public/BuyGiftCard";
 import GiftCardBatchGenerator from "./pages/Admin/GiftCardBatchGenerator";
 import AnalyticsPage from "./pages/Admin/Analytics";
 import ProductsPage from "./pages/Admin/Products";
+import ProductSale from "./pages/Admin/ProductSale";
 import SubscriptionsPage from "./pages/Admin/Subscriptions";
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
@@ -109,6 +110,7 @@ const App = () => (
               <Route path="/app/admin/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/admin/analytics" element={<AnalyticsPage />} />
               <Route path="/app/admin/products" element={<ProductsPage />} />
+              <Route path="/app/admin/product-sale" element={<ProductSale />} />
               <Route path="/app/admin/subscriptions" element={<SubscriptionsPage />} />
               <Route path="/app/admin/settings" element={<SettingsPage />} />
             </Route>

@@ -140,6 +140,7 @@ const DashboardLayout = () => {
     { icon: Star,            label: "Loyalty",             path: "loyalty" },
     { icon: Tag,             label: "Promo Codes",         path: "promo-codes" },
     { icon: ShoppingBag,     label: "Products",            path: "products" },
+    { icon: ShoppingBag,     label: "Sell Products",        path: "product-sale" },
     { icon: RefreshCw,       label: "Subscriptions",       path: "subscriptions" },
     { icon: BarChart2,       label: "Analytics",           path: "analytics" },
     { icon: FileText,        label: "Reports",             path: "reports" },
@@ -169,7 +170,7 @@ const DashboardLayout = () => {
         const allowed = [
           "Dashboard", "Bookings", "Clients", "Staff",
           "Services", "Gift Cards", "Checkout", "Loyalty",
-          "Promo Codes", "Attendance", "Products",
+          "Promo Codes", "Attendance", "Products", "Sell Products",
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))

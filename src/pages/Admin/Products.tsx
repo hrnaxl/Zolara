@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const G = "#C8A97E", G_D = "#8B6914", W = "#FFFFFF", CREAM = "#FAFAF8";
@@ -53,6 +54,7 @@ export default function ProductsPage() {
   const toggle = async (p:Product) => { await (supabase as any).from("products").update({is_active:!p.is_active}).eq("id",p.id); load(); };
   const adj = async (p:Product,d:number) => { await (supabase as any).from("products").update({stock_quantity:Math.max(0,p.stock_quantity+d)}).eq("id",p.id); load(); };
 
+  const navigate = useNavigate();
   const [userRole, setUserRole] = useState("");
   const [actualProductRevenue, setActualProductRevenue] = useState(0);
   const [actualProductCost, setActualProductCost] = useState(0);
@@ -111,6 +113,10 @@ export default function ProductsPage() {
           <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(28px,4vw,42px)", fontWeight:700, color:TXT, margin:0, lineHeight:1 }}>Products</h1>
           <p style={{ fontSize:"12px", color:TXT_SOFT, marginTop:"6px" }}>Manage retail products and inventory</p>
         </div>
+        <button onClick={()=>navigate("/app/admin/product-sale")}
+          style={{ padding:"10px 20px", borderRadius:"12px", background:"linear-gradient(135deg," + G + "," + G_D + ")", color:W, border:"none", fontSize:"13px", fontWeight:600, cursor:"pointer", marginRight:"8px" }}>
+          + Sell Products
+        </button>
         <button onClick={()=>{ reset(); setShowForm(v=>!v); }} style={{ padding:"10px 20px", borderRadius:"12px", background:showForm&&!editId?W:G, color:showForm&&!editId?TXT_MID:W, border:`1px solid ${showForm&&!editId?BORDER:G}`, fontSize:"13px", fontWeight:600, cursor:"pointer" }}>
           {showForm && !editId ? "Cancel" : "+ New Product"}
         </button>

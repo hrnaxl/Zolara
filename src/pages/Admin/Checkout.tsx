@@ -334,10 +334,24 @@ const Checkout = () => {
           if (sess?.id && lineItems.length > 0) {
             await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: sess.id, booking_id: booking.id, item_type: item.type, item_id: item.id, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
           }
-          // Deduct product stock
+          // Deduct product stock + record product sales
           for (const pi of lineItems.filter(i => i.type === "product")) {
             const prod = products.find(p => p.id === pi.id);
-            if (prod) await (supabase as any).from("products").update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) }).eq("id", pi.id);
+            if (prod) {
+              await (supabase as any).from("products").update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) }).eq("id", pi.id);
+              // Record product sale in sales table
+              await supabase.from("sales").insert({
+                booking_id: booking.id,
+                amount: pi.unitPrice * pi.quantity,
+                payment_method: paymentMethod,
+                status: "completed",
+                client_name: booking.client_name || null,
+                service_name: pi.name + (pi.quantity > 1 ? " x" + pi.quantity : ""),
+                client_id: (booking as any).clients?.id || null,
+                staff_id: selectedStaff || null,
+                notes: "Product sale at checkout",
+              } as any);
+            }
           }
           // Log subscription usage
           if (clientSubscription) {
