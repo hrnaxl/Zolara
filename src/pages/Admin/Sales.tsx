@@ -26,6 +26,7 @@ type DateRange = "today" | "week" | "month" | "custom";
 
 export default function SalesRevenue() {
   const [payments, setPayments] = useState<any[]>([]);
+  const [revSplit, setRevSplit] = useState({ service: 0, product: 0, subscription: 0 });
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>("month");
   const [customStart, setCustomStart] = useState("");
@@ -64,6 +65,13 @@ export default function SalesRevenue() {
       const { data, error } = await q;
       if (error) throw error;
       setPayments(data || []);
+      // Revenue split from checkout_items
+      const ciQ = await (supabase as any).from("checkout_items").select("item_type, subtotal, price_at_time, quantity");
+      const ci = ciQ.data || [];
+      const sRev = ci.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const pRev = ci.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const subRev = ci.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      setRevSplit({ service: sRev > 0 ? sRev : (data || []).filter((p: any) => p.status === "completed" && p.payment_method !== "gift_card").reduce((s: number, p: any) => s + Number(p.amount || 0), 0) - pRev, product: pRev, subscription: subRev });
     } catch (e: any) { toast.error(e.message || "Failed to load sales"); }
     finally { setLoading(false); }
   };
@@ -160,6 +168,23 @@ export default function SalesRevenue() {
           </div>
         ))}
       </div>
+
+      {/* Revenue Split */}
+      {completedTotal > 0 && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"14px", marginBottom:"24px" }}>
+          {[
+            { l:"SERVICE REVENUE",      v: revSplit.service,      c:"#8B6914", bg:"#FBF6EE", bd:"#F0E4CC" },
+            { l:"PRODUCT REVENUE",       v: revSplit.product,      c:"#2563EB", bg:"#EFF6FF", bd:"#BFDBFE" },
+            { l:"SUBSCRIPTION REVENUE",  v: revSplit.subscription, c:"#7C3AED", bg:"#F5F3FF", bd:"#DDD6FE" },
+          ].map(k => (
+            <div key={k.l} style={{ background:k.bg, border:`1px solid ${k.bd}`, borderRadius:"14px", padding:"16px 20px" }}>
+              <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:k.c, margin:"0 0 6px" }}>{k.l}</p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"24px", fontWeight:700, color:TXT, margin:0 }}>GHS {Number(k.v||0).toLocaleString()}</p>
+              {completedTotal > 0 && <p style={{ fontSize:"10px", color:k.c, margin:"4px 0 0" }}>{((Number(k.v||0)/completedTotal)*100).toFixed(1)}% of total</p>}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"24px" }}>
         {/* Revenue by Method */}

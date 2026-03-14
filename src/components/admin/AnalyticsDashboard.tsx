@@ -173,12 +173,16 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Revenue by Type */}
-      {(revenueSplit.service > 0 || revenueSplit.product > 0 || revenueSplit.subscription > 0) && (
+      {totalRevenue > 0 && (() => {
+        const sRev = (revenueSplit.service > 0 || revenueSplit.product > 0) ? revenueSplit.service : totalRevenue;
+        const pRev = revenueSplit.product || 0;
+        const subRev = revenueSplit.subscription || 0;
+        return (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
           {[
-            { label: "SERVICE REVENUE",      value: revenueSplit.service,      color: "#8B6914", bg: "#FBF6EE", border: "#F0E4CC" },
-            { label: "PRODUCT REVENUE",       value: revenueSplit.product,      color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-            { label: "SUBSCRIPTION REVENUE",  value: revenueSplit.subscription, color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+            { label: "SERVICE REVENUE",      value: sRev,   color: "#8B6914", bg: "#FBF6EE", border: "#F0E4CC" },
+            { label: "PRODUCT REVENUE",       value: pRev,   color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
+            { label: "SUBSCRIPTION REVENUE",  value: subRev, color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
           ].map(k => (
             <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 14, padding: "16px 20px" }}>
               <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: k.color, margin: "0 0 6px" }}>{k.label}</p>
@@ -187,7 +191,8 @@ export default function AnalyticsDashboard() {
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
 
       {/* Revenue Chart */}
       <Card style={{ marginBottom: 24 }}>

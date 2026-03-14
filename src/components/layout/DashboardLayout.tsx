@@ -169,7 +169,7 @@ const DashboardLayout = () => {
         const allowed = [
           "Dashboard", "Bookings", "Clients", "Staff",
           "Services", "Gift Cards", "Checkout", "Loyalty",
-          "Promo Codes", "Attendance",
+          "Promo Codes", "Attendance", "Products",
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))

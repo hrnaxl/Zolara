@@ -53,9 +53,23 @@ export default function ProductsPage() {
   const toggle = async (p:Product) => { await (supabase as any).from("products").update({is_active:!p.is_active}).eq("id",p.id); load(); };
   const adj = async (p:Product,d:number) => { await (supabase as any).from("products").update({stock_quantity:Math.max(0,p.stock_quantity+d)}).eq("id",p.id); load(); };
 
+  const [userRole, setUserRole] = useState("");
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        (supabase as any).from("user_roles").select("role").eq("user_id", user.id).single()
+          .then(({ data }: any) => { if (data?.role) setUserRole(data.role); });
+      }
+    });
+  }, []);
+  const isFinancial = userRole === "owner" || userRole === "admin";
+
   const filtered = products.filter(p => { const s=search.toLowerCase(); return !s||p.name.toLowerCase().includes(s)||(p.category||"").toLowerCase().includes(s); });
   const lowStock = products.filter(p=>p.stock_quantity<=p.low_stock_threshold);
   const totalValue = products.reduce((s,p)=>s+p.price*p.stock_quantity,0);
+  const totalCost = products.reduce((s,p)=>s+p.cost_price*p.stock_quantity,0);
+  const potentialProfit = totalValue - totalCost;
+  const profitMargin = totalValue > 0 ? ((potentialProfit/totalValue)*100).toFixed(1) : "0.0";
 
   return (
     <div style={{ background:CREAM, minHeight:"100vh", padding:"clamp(16px,4vw,32px)", fontFamily:"Montserrat,sans-serif", color:TXT }}>
@@ -84,6 +98,12 @@ export default function ProductsPage() {
             <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:typeof k.v==="number"?"30px":"18px", fontWeight:700, color:TXT, margin:0 }}>{k.v}</p>
           </div>
         ))}
+        {/* Profit / Loss card — owner/admin only */}
+        {isFinancial && <div style={{ background: potentialProfit >= 0 ? "#F0FDF4" : "#FEF2F2", border:`1px solid ${potentialProfit >= 0 ? "#BBF7D0" : "#FECACA"}`, borderRadius:"14px", padding:"16px 18px" }}>
+          <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color: potentialProfit >= 0 ? "#16A34A" : "#DC2626", marginBottom:"6px" }}>POTENTIAL PROFIT</p>
+          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color:TXT, margin:0 }}>GHS {Math.abs(potentialProfit).toLocaleString()}</p>
+          <p style={{ fontSize:"10px", color: potentialProfit >= 0 ? "#16A34A" : "#DC2626", marginTop:"4px" }}>{profitMargin}% margin · Cost GHS {totalCost.toLocaleString()}</p>
+        </div>}
       </div>
 
       {lowStock.length > 0 && (

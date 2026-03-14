@@ -565,21 +565,28 @@ const Reports = () => {
           </div>
 
           {/* Revenue split by type */}
-          {(reportData.serviceRevenue > 0 || reportData.productRevenue > 0 || reportData.subscriptionRevenue > 0) && (
+          {reportData.totalRevenue > 0 && (() => {
+            // If no checkout_items data yet, all revenue is service revenue
+            const sRev = (reportData.serviceRevenue > 0 || reportData.productRevenue > 0 || reportData.subscriptionRevenue > 0)
+              ? reportData.serviceRevenue : reportData.totalRevenue;
+            const pRev = reportData.productRevenue || 0;
+            const subRev = reportData.subscriptionRevenue || 0;
+            return (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px" }}>
               {[
-                { l: "SERVICE REVENUE",      v: reportData.serviceRevenue,      c: G_D,      bg: "#FBF6EE", bd: "#F0E4CC" },
-                { l: "PRODUCT REVENUE",       v: reportData.productRevenue,      c: "#2563EB", bg: "#EFF6FF", bd: "#BFDBFE" },
-                { l: "SUBSCRIPTION REVENUE",  v: reportData.subscriptionRevenue, c: "#7C3AED", bg: "#F5F3FF", bd: "#DDD6FE" },
+                { l: "SERVICE REVENUE",       v: sRev,   c: G_D,      bg: "#FBF6EE", bd: "#F0E4CC" },
+                { l: "PRODUCT REVENUE",        v: pRev,   c: "#2563EB", bg: "#EFF6FF", bd: "#BFDBFE" },
+                { l: "SUBSCRIPTION REVENUE",   v: subRev, c: "#7C3AED", bg: "#F5F3FF", bd: "#DDD6FE" },
               ].map(k => (
                 <div key={k.l} style={{ background: k.bg, border: `1px solid ${k.bd}`, borderRadius: "14px", padding: "16px 20px" }}>
                   <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.12em", color: k.c, margin: "0 0 6px" }}>{k.l}</p>
-                  <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: TXT, margin: 0 }}>GH₵{Number(k.v || 0).toLocaleString()}</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: TXT, margin: 0 }}>GHS {Number(k.v || 0).toLocaleString()}</p>
                   {reportData.totalRevenue > 0 && <p style={{ fontSize: "10px", color: k.c, margin: "4px 0 0" }}>{((k.v / reportData.totalRevenue) * 100).toFixed(1)}% of total</p>}
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             {/* Revenue by Service */}
