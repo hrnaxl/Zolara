@@ -36,7 +36,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
         // Check account_status separately (column may not exist yet if migration pending)
         try {
-          const { data: statusData } = await (supabase as any)
+          const { data: statusData } = await supabase
             .from("user_roles")
             .select("account_status")
             .eq("user_id", session.user.id)
