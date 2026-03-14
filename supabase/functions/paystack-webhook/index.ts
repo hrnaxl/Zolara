@@ -70,6 +70,17 @@ Deno.serve(async (req) => {
         paid_at: new Date().toISOString(),
       }).select().maybeSingle().catch(() => null);
 
+      // Record gift card sale in sales table so it appears in revenue reports
+      await supabase.from("sales").insert({
+        amount: giftCard.amount,
+        payment_method: "mobile_money",
+        status: "completed",
+        client_name: giftCard.buyer_name || null,
+        service_name: (giftCard.tier || "Gift") + " Gift Card",
+        notes: "Gift card purchase online · ref:" + reference,
+        payment_date: new Date().toISOString(),
+      } as any).catch(() => null);
+
       return new Response(JSON.stringify({ received: true, action: "gift_card_paid" }), { headers: cors });
     }
 
