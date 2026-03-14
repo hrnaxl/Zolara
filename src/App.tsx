@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -183,7 +182,6 @@ const App = () => (
         </BrowserRouter>
       </SettingsProvider>
       </CatalogProvider>
-    <PWAInstallPrompt />
     </TooltipProvider>
   </QueryClientProvider>
 );

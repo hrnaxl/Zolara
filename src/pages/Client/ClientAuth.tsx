@@ -82,7 +82,7 @@ export default function ClientAuth() {
   };
 
   return (
-    <div style={{ minHeight:"100dvh", background:CREAM, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"'Montserrat',sans-serif" }}>
+    <div style={{ minHeight:"100vh", background:CREAM, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"'Montserrat',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap'); input:focus{border-color:${GOLD}!important;box-shadow:0 0 0 3px ${GOLD}22;}`}</style>
 
       {/* Logo */}

@@ -748,7 +748,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div style={{ background: CREAM, minHeight:"100dvh", padding:"32px 36px", fontFamily:"Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight:"100vh", padding:"32px 36px", fontFamily:"Montserrat,sans-serif", color: TXT }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}

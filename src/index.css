@@ -637,11 +637,6 @@ tbody td {
   }
 }
 
-/* ================================================================
-   PWA / iOS SAFE AREA — Added to stylesheet (works reliably here)
-   env() in <style> sheets is processed by the browser CSS engine.
-   This is the single source of truth. Nothing else touches safe areas.
-   ================================================================ */
 
 /* Prevent horizontal overflow on all devices */
 html {
@@ -656,33 +651,15 @@ body {
 }
 
 /* The app root — bottom padding for home bar */
-#root {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
 
 /* Any element that is sticky/fixed at top: 0 needs safe-area-top.
    We use a dedicated utility class applied in the component. */
-.top-safe {
-  padding-top: env(safe-area-inset-top, 0px) !important;
-}
+
 
 /* Sticky topbars — header content clears the status bar */
-@supports (padding-top: env(safe-area-inset-top)) {
-  .pwa-header {
-    padding-top: env(safe-area-inset-top) !important;
-  }
-}
+
 
 /* ── Booking page layout ───────────────────────────────────── */
-.bk-grid {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 40px;
-}
-.bk-sidebar {
-  position: sticky;
-  top: 90px;
-}
 @media (max-width: 900px) {
   .bk-grid {
     grid-template-columns: 1fr !important;
@@ -704,4 +681,34 @@ body {
   .bk-time-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+}
+
+/* ── Booking page responsive layout ───────────────────────── */
+.bk-grid {
+  grid-template-columns: 360px 1fr;
+  gap: 40px;
+}
+.bk-form-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.bk-time-grid {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .bk-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    padding: 20px 16px 80px !important;
+  }
+  .bk-sidebar {
+    position: static !important;
+    top: auto !important;
+  }
+}
+@media (max-width: 480px) {
+  .bk-grid { padding: 16px 12px 80px !important; }
+  .bk-form-grid { grid-template-columns: 1fr !important; }
+  .bk-time-grid { grid-template-columns: repeat(2, 1fr) !important; }
 }

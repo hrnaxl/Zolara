@@ -145,7 +145,7 @@ export default function ProductsPage() {
   const profitMargin = totalValue > 0 ? ((potentialProfit/totalValue)*100).toFixed(1) : "0.0";
 
   return (
-    <div style={{ background:CREAM, minHeight:"100dvh", padding:"clamp(16px,4vw,32px)", fontFamily:"Montserrat,sans-serif", color:TXT }}>
+    <div style={{ background:CREAM, minHeight:"100vh", padding:"clamp(16px,4vw,32px)", fontFamily:"Montserrat,sans-serif", color:TXT }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');*{box-sizing:border-box}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"28px", flexWrap:"wrap", gap:"12px" }}>

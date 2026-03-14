@@ -233,7 +233,7 @@ const DashboardLayout = () => {
   const BORDER    = "#EDE8E0";
 
   return (
-    <div style={{ minHeight: "100dvh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         .nav-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; text-decoration:none; transition:all 0.18s; font-family:'Montserrat',sans-serif; font-size:12px; font-weight:500; color:${WHITE_MID}; }
@@ -259,7 +259,7 @@ const DashboardLayout = () => {
 
       {/* ── SIDEBAR ─────────────────────────────────── */}
       <aside style={{
-        position: "fixed", top: 0, left: 0, height: "100dvh", width: "240px",
+        position: "fixed", top: 0, left: 0, height: "100vh", width: "240px",
         background: NAVY,
         zIndex: 50, display: "flex", flexDirection: "column",
         overflowY: "auto", WebkitOverflowScrolling: "touch",
@@ -370,7 +370,7 @@ const DashboardLayout = () => {
       </aside>
 
       {/* ── MAIN CONTENT ─────────────────────────────── */}
-      <div className="lg:ml-[240px]" style={{ minHeight: "100dvh" }}>
+      <div className="lg:ml-[240px]" style={{ minHeight: "100vh" }}>
         {/* Mobile top bar — only visible on phones, hidden on lg+ */}
         <div style={{display:"none"}} className="mobile-topbar">
         <div style={{
@@ -393,7 +393,7 @@ const DashboardLayout = () => {
           <div style={{ width: 30 }} />
         </div>
         </div>
-        <main style={{ background: CREAM, minHeight: "100dvh", overflowX: "hidden" }}>
+        <main style={{ background: CREAM, minHeight: "100vh", overflowX: "hidden" }}>
           <Outlet />
         </main>
       </div>

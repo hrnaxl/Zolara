@@ -252,7 +252,7 @@ export default function LandingPage() {
       </div>
 
       {/* HERO */}
-      <section ref={heroRef} style={{ minHeight: "100dvh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", padding: "0 clamp(24px,6vw,100px)" }}>
+      <section ref={heroRef} style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", overflow: "hidden", padding: "0 clamp(24px,6vw,100px)" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 65% 40%, rgba(200,169,126,0.17) 0%, transparent 55%), radial-gradient(ellipse at 15% 85%, rgba(200,169,126,0.10) 0%, transparent 45%)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 80px, rgba(200,169,126,0.018) 80px, rgba(200,169,126,0.018) 81px)", pointerEvents: "none" }} />
         <div className="orb-bg" style={{ top: "12%", right: "28%", width: "480px", height: "480px", background: "radial-gradient(circle, rgba(200,169,126,0.12) 0%, transparent 70%)", animation: "orb 14s ease-in-out infinite" }} />

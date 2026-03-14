@@ -57,7 +57,7 @@ export default function CleanerLayout() {
   const closeTime = (settings as any)?.close_time || "9:00 PM";
 
   return (
-    <div style={{ background: CREAM, minHeight: "100dvh", padding: "clamp(20px,4vw,40px) clamp(16px,4vw,32px)", fontFamily: "'Montserrat', sans-serif" }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(20px,4vw,40px) clamp(16px,4vw,32px)", fontFamily: "'Montserrat', sans-serif" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
         {/* Header */}

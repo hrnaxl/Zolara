@@ -130,7 +130,7 @@ export default function SalesRevenue() {
   const card: React.CSSProperties = { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "24px", boxShadow: SHADOW };
 
   return (
-    <div style={{ background: CREAM, minHeight: "100dvh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}.sr:hover{background:rgba(200,169,126,0.05)!important;cursor:pointer}`}</style>
 
       {/* Header */}

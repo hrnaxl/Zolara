@@ -219,7 +219,7 @@ export default function Auth() {
   );
 
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexWrap: "wrap", fontFamily: "Montserrat,sans-serif" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexWrap: "wrap", fontFamily: "Montserrat,sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}

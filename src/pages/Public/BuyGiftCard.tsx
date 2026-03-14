@@ -123,7 +123,7 @@ export default function BuyGiftCard() {
   };
 
   return (
-    <div style={{ minHeight: "100dvh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
       {/* Back to homepage */}
       <div style={{ position: "fixed", top: 16, left: 16, zIndex: 100 }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(15,30,53,0.85)", color: "white", textDecoration: "none", padding: "8px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, backdropFilter: "blur(8px)" }}>

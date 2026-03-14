@@ -1070,8 +1070,8 @@ No-show on ${bk.preferred_date || "unknown date"}.`
             inset: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
-            height: 100dvh !important;
-            max-height: 100dvh !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
             border-radius: 0 !important;
             transform: none !important;
             translate: none !important;

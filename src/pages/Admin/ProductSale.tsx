@@ -119,7 +119,7 @@ export default function ProductSale() {
 
   if (completed) {
     return (
-      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM, fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM, fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
         <div style={{ background: WHITE, border: "1px solid " + BORDER, borderRadius: "20px", overflow: "hidden", maxWidth: "420px", width: "100%" }}>
           <div style={{ background: "linear-gradient(135deg," + G + "," + G_D + ")", padding: "36px 28px", textAlign: "center", color: WHITE }}>
             <CheckCircle2 style={{ width: "48px", height: "48px", margin: "0 auto 12px" }} />
@@ -154,7 +154,7 @@ export default function ProductSale() {
   }
 
   return (
-    <div style={{ background: CREAM, minHeight: "100dvh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <div style={{ maxWidth: "960px", margin: "0 auto" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>

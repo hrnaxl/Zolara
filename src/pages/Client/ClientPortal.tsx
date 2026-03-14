@@ -178,7 +178,7 @@ export default function ClientPortal() {
   );
 
   return (
-    <div style={{ minHeight: "100dvh", background: CREAM }}>
+    <div style={{ minHeight: "100vh", background: CREAM }}>
       {sidebarOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }}
           onClick={() => setSidebarOpen(false)} />
@@ -186,7 +186,7 @@ export default function ClientPortal() {
       <Sidebar />
 
       {/* Main */}
-      <div className="lg-main" style={{ minHeight: "100dvh", transition: "margin 0.25s" }}>
+      <div className="lg-main" style={{ minHeight: "100vh", transition: "margin 0.25s" }}>
         {/* Mobile header */}
         <header className="lg-mheader" style={{
           position: "sticky", top: 0, zIndex: 30,
