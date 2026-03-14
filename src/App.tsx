@@ -109,8 +109,6 @@ const App = () => (
               <Route path="/app/admin/sms-test" element={<SMSTest />} />
               <Route path="/app/admin/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/admin/analytics" element={<AnalyticsPage />} />
-              <Route path="/app/admin/products" element={<ProductsPage />} />
-              <Route path="/app/admin/product-sale" element={<ProductSale />} />
               <Route path="/app/admin/subscriptions" element={<SubscriptionsPage />} />
               <Route path="/app/admin/settings" element={<SettingsPage />} />
             </Route>
@@ -129,6 +127,12 @@ const App = () => (
               <Route path="/app/receptionist/services" element={<ViewServices />} />
               <Route path="/app/receptionist/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/receptionist/loyalty" element={<Loyalty />} />
+            </Route>
+          </Route>
+
+          {/* SHARED: Products accessible by admin + receptionist */}
+          <Route element={<ProtectedRoute allowedRoles={["owner", "admin", "receptionist"]} />}>
+            <Route element={<DashboardLayout />}>
               <Route path="/app/admin/products" element={<ProductsPage />} />
               <Route path="/app/admin/product-sale" element={<ProductSale />} />
             </Route>
