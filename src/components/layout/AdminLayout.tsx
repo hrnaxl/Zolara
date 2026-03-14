@@ -231,19 +231,19 @@ const AdminDashboard = () => {
           .select("amount")
           .eq("status", "completed")
           .gte("payment_date", startOfThisWeek)
-          .lte("payment_date", endOfThisWeek),
+          .lte("payment_date", endOfThisWeek + "T23:59:59"),
         supabase
           .from("sales")
           .select("amount")
           .eq("status", "completed")
           .gte("payment_date", startOfThisMonth)
-          .lte("payment_date", endOfThisMonth),
+          .lte("payment_date", endOfThisMonth + "T23:59:59"),
         supabase
           .from("sales")
           .select("amount")
           .eq("status", "completed")
           .gte("payment_date", previousMonthStart)
-          .lte("payment_date", previousMonthEnd),
+          .lte("payment_date", previousMonthEnd + "T23:59:59"),
         // @ts-ignore
         supabase
           .from("clients")
@@ -278,7 +278,7 @@ const AdminDashboard = () => {
         supabase
           .from("sales")
           .select("amount, payment_date")
-          .gte("payment_date", format(subDays(today, 30), "yyyy-MM-dd"))
+          .gte("payment_date", format(subDays(today, 30), "yyyy-MM-dd") + "T00:00:00")
           .eq("status", "completed"),
         supabase
           .from("bookings")
@@ -320,9 +320,9 @@ const AdminDashboard = () => {
         // yesterday revenue
         supabase.from("sales").select("amount").eq("status", "completed").gte("payment_date", yesterdayStart).lte("payment_date", yesterdayEnd),
         // last week revenue
-        supabase.from("sales").select("amount").eq("status", "completed").gte("payment_date", lastWeekStart).lte("payment_date", lastWeekEnd),
+        supabase.from("sales").select("amount").eq("status", "completed").gte("payment_date", lastWeekStart).lte("payment_date", lastWeekEnd + "T23:59:59"),
         // this month sales by service_name for top service revenue
-        supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("payment_date", startOfThisMonth).lte("payment_date", endOfThisMonth),
+        supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("payment_date", startOfThisMonth).lte("payment_date", endOfThisMonth + "T23:59:59"),
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
         // deposits pending checkout (in hand, not yet revenue)
