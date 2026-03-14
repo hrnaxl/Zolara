@@ -297,13 +297,16 @@ const Checkout = () => {
       const name = staff.find(s => s.id === selectedStaff)?.name || "This staff member";
       if (!window.confirm(`${name} is marked absent today. Proceed anyway?`)) return;
     }
-    if (!amount || isNaN(parseFloat(amount))) { toast.error("Please enter a valid amount"); return; }
-
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
-    // effectivePrice = service price + products (full transaction value)
-    const effectivePrice = originalPrice > 0 ? (originalPrice + productTotal) : (lineItemsTotal > 0 ? lineItemsTotal : parseFloat(amount) || 0);
-    const paymentAmount = Math.max(0, effectivePrice - promoDiscount - giftValue - dep);
+    // effectivePrice = full transaction value (service + products) for DB records
+    const prodTotal = lineItems.filter(i => i.type === "product").reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+    const effectivePrice = (originalPrice > 0 ? originalPrice : 0) + prodTotal;
+    // amountToCharge = what client actually pays (after deposit, promo, gift card)
+    const afterDep = Math.max(0, originalPrice - dep) + prodTotal;
+    const afterPr = Math.max(0, afterDep - promoDiscount);
+    const amountToCharge = Math.max(0, afterPr - giftValue);
+    const paymentAmount = amountToCharge;
     setProcessing(true);
 
     try {
@@ -326,8 +329,8 @@ const Checkout = () => {
 
       if (paymentMethod !== "bank_transfer") {
         await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
-        const totalRev = effectivePrice - promoDiscount - giftValue;
-        const { error: saleErr } = await supabase.from("sales").insert({ booking_id: booking.id, amount: totalRev, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "), promo_code: appliedPromo?.code || null, promo_discount: promoDiscount > 0 ? promoDiscount : null });
+        // amount saved = what client actually paid (balance after deposit + discounts)
+        const { error: saleErr } = await supabase.from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "), promo_code: appliedPromo?.code || null, promo_discount: promoDiscount > 0 ? promoDiscount : null });
         if (saleErr) throw saleErr;
 
         // Write checkout session + line items
@@ -361,7 +364,8 @@ const Checkout = () => {
           const resolvedId = await findOrCreateClient({ name: clientName, phone: clientPhone, email: clientEmail });
           if (resolvedId) { clientId = resolvedId; await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id); }
           if (clientId) {
-            const spendable = lineItems.reduce((s, i) => s + (i.coveredBySubscription ? 0 : i.unitPrice * i.quantity), 0) || Number(originalPrice) || 0;
+            // Loyalty points on actual amount paid (after deposit/promo/gift deductions)
+            const spendable = amountToCharge > 0 ? amountToCharge : (lineItems.reduce((s, i) => s + (i.coveredBySubscription ? 0 : i.unitPrice * i.quantity), 0) || Number(originalPrice) || 0);
             const { data: before } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
             const prevPts = Number(before?.loyalty_points || 0);
             await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendable });
