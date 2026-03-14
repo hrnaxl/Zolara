@@ -377,7 +377,7 @@ const DashboardLayout = () => {
           position: "sticky", top: 0, zIndex: 30,
           background: NAVY, minHeight: 56, display: "flex", alignItems: "flex-end",
           justifyContent: "space-between",
-          paddingTop: "max(env(safe-area-inset-top,0px),12px)",
+          paddingTop: "calc(var(--sat, 0px) + 12px)",
           paddingBottom: "10px", paddingLeft: "16px", paddingRight: "16px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
         }}>

@@ -650,8 +650,8 @@ html, body {
 }
 
 body {
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: var(--sal, 0px);
+  padding-right: var(--sar, 0px);
   /* NO top/bottom padding on body — headers handle it */
 }
 
