@@ -604,7 +604,7 @@ export default function PublicBooking() {
                 </div>
               )}
 
-              {/* Service cards grid */}
+              {/* Service cards — variants/addons render inline below clicked service */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {filteredServices.filter(s => !isPackage(s.category)).length === 0 && (
                   <p style={{ textAlign: "center", color: TXT_SOFT, fontSize: "13px", padding: "24px 0" }}>No services found.</p>
@@ -612,90 +612,95 @@ export default function PublicBooking() {
                 {filteredServices.filter(s => !isPackage(s.category)).map((svc: any) => {
                   const active = serviceId === svc.id;
                   return (
-                    <button key={svc.id} onClick={() => setServiceId(svc.id)}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{svc.name}</p>
-                        <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{svc.description ? svc.description.slice(0, 60) + (svc.description.length > 60 ? "…" : "") : ""}</p>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: active ? GOLD_DARK : TXT_MID, whiteSpace: "nowrap", maxWidth: mob ? "80px" : "none", overflow: "hidden", textOverflow: "ellipsis" }}>{getPriceDisplay(svc)}</span>
-                        {active && <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: GOLD, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "11px", fontWeight: 700 }}>✓</span>}
-                      </div>
-                    </button>
+                    <div key={svc.id}>
+                      {/* Service row */}
+                      <button onClick={() => setServiceId(svc.id)}
+                        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: active ? "10px 10px 0 0" : "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{svc.name}</p>
+                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{svc.description ? svc.description.slice(0, 60) + (svc.description.length > 60 ? "…" : "") : ""}</p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: active ? GOLD_DARK : TXT_MID, whiteSpace: "nowrap" }}>{getPriceDisplay(svc)}</span>
+                          <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: active ? GOLD : BORDER, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "11px", fontWeight: 700, flexShrink: 0, transition: "all 0.15s" }}>{active ? "✓" : ""}</span>
+                        </div>
+                      </button>
+
+                      {/* Inline variants + addons — only shown for the selected service */}
+                      {active && (variants.length > 0 || addons.length > 0 || selectedService) && (
+                        <div style={{ border: `1.5px solid ${GOLD}`, borderTop: "none", borderRadius: "0 0 10px 10px", padding: "14px 16px", background: "#FFFDF9", display: "flex", flexDirection: "column", gap: "14px" }}>
+
+                          {/* Selected service summary */}
+                          {selectedService && (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_MID, margin: 0 }}>{selectedService.description ? selectedService.description.slice(0, 80) : "Selected"}</p>
+                              <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: GOLD_DARK, margin: 0, flexShrink: 0, marginLeft: 8 }}>GHS {total.toLocaleString()}</p>
+                            </div>
+                          )}
+
+                          {/* Variants */}
+                          {variants.length > 0 && (
+                            <div>
+                              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: GOLD_DARK, marginBottom: "8px" }}>
+                                SIZE / LENGTH <span style={{ color: "#C0392B", marginLeft: "2px" }}>*</span>
+                              </p>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                {variants.map((v: any) => {
+                                  const vPrice = Number(v.price_adjustment);
+                                  const vActive = selectedVariantId === v.id;
+                                  return (
+                                    <button key={v.id} onClick={() => setSelectedVariantId(v.id)}
+                                      style={{ background: vActive ? GOLD_DARK : "white", color: vActive ? "white" : DARK, border: `1.5px solid ${vActive ? GOLD_DARK : BORDER}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 600, transition: "all 0.15s" }}>
+                                      {v.name}
+                                      <span style={{ display: "block", fontSize: "11px", fontWeight: 700, color: vActive ? "rgba(255,255,255,0.85)" : GOLD_DARK, marginTop: "2px" }}>
+                                        GHS {vPrice.toLocaleString()}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {errors.variant && <p className="err" style={{ marginTop: "6px" }}>{errors.variant}</p>}
+                            </div>
+                          )}
+
+                          {/* Add-ons */}
+                          {addons.length > 0 && (
+                            <div>
+                              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#7C3AED", marginBottom: "8px" }}>
+                                ADD-ONS <span style={{ fontWeight: 400, color: TXT_SOFT }}>(optional)</span>
+                              </p>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                {addons.map((a: any) => {
+                                  const checked = selectedAddons.includes(a.id);
+                                  return (
+                                    <label key={a.id} onClick={() => setSelectedAddons(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])}
+                                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: checked ? "#F5F3FF" : "white", border: `1.5px solid ${checked ? "#A78BFA" : BORDER}`, borderRadius: "8px", padding: "10px 14px", cursor: "pointer", transition: "all 0.15s" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                        <div style={{ width: "16px", height: "16px", borderRadius: "4px", border: `2px solid ${checked ? "#7C3AED" : "#D1C5B8"}`, background: checked ? "#7C3AED" : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                          {checked && <span style={{ color: "white", fontSize: "10px", fontWeight: 700 }}>✓</span>}
+                                        </div>
+                                        <div>
+                                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, margin: 0 }}>{a.name}</p>
+                                          {a.description && <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: 0 }}>{a.description}</p>}
+                                        </div>
+                                      </div>
+                                      <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap", marginLeft: "12px" }}>
+                                        +GHS {Number(a.price).toLocaleString()}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
             </>)}
-            {selectedService && (
-              <div style={{ marginTop: "14px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "8px", padding: "14px 18px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: selectedService.description ? "10px" : "0" }}>
-                  <div>
-                    <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, marginBottom: "2px" }}>{selectedService.name}</p>
-                  </div>
-                  <p style={{ fontSize: "24px", fontWeight: 700, color: GOLD_DARK }}>GHS {total.toLocaleString()}</p>
-                </div>
-                {selectedService.description && (
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, lineHeight: 1.5, paddingTop: "10px", borderTop: "1px solid rgba(200,169,126,0.2)" }}>{selectedService.description}</p>
-                )}
-              </div>
-            )}
-
-            {/* Variants */}
-            {variants.length > 0 && (
-              <div style={{ marginTop: "16px" }}>
-                <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: GOLD_DARK, marginBottom: "10px" }}>
-                  SIZE / LENGTH <span style={{ color: "#C0392B", marginLeft: "2px" }}>*</span>
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {variants.map((v: any) => {
-                    const vPrice = Number(v.price_adjustment);
-                    const active = selectedVariantId === v.id;
-                    return (
-                      <button key={v.id} onClick={() => setSelectedVariantId(v.id)}
-                        style={{ background: active ? GOLD_DARK : "white", color: active ? "white" : DARK, border: `1.5px solid ${active ? GOLD_DARK : BORDER}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 600, transition: "all 0.15s" }}>
-                        {v.name}
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: 700, color: active ? "rgba(255,255,255,0.85)" : GOLD_DARK, marginTop: "2px" }}>
-                          GHS {vPrice.toLocaleString()}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {errors.variant && <p className="err" style={{ marginTop: "6px" }}>{errors.variant}</p>}
-              </div>
-            )}
-
-            {/* Add-ons */}
-            {addons.length > 0 && (
-              <div style={{ marginTop: "16px" }}>
-                <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#7C3AED", marginBottom: "10px" }}>
-                  ADD-ONS <span style={{ fontWeight: 400, color: TXT_SOFT }}>(optional)</span>
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {addons.map((a: any) => {
-                    const checked = selectedAddons.includes(a.id);
-                    return (
-                      <label key={a.id} onClick={() => setSelectedAddons(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: checked ? "#F5F3FF" : "white", border: `1.5px solid ${checked ? "#A78BFA" : BORDER}`, borderRadius: "8px", padding: "10px 14px", cursor: "pointer", transition: "all 0.15s" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ width: "16px", height: "16px", borderRadius: "4px", border: `2px solid ${checked ? "#7C3AED" : "#D1C5B8"}`, background: checked ? "#7C3AED" : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {checked && <span style={{ color: "white", fontSize: "10px", fontWeight: 700 }}>✓</span>}
-                          </div>
-                          <div>
-                            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: DARK, margin: 0 }}>{a.name}</p>
-                            {a.description && <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: 0 }}>{a.description}</p>}
-                          </div>
-                        </div>
-                        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap", marginLeft: "12px" }}>
-                          +GHS {Number(a.price).toLocaleString()}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
             {errors.service && <p className="err">{errors.service}</p>}
           </div>
 
