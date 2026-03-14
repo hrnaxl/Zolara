@@ -101,6 +101,7 @@ const AdminDashboard = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [absentStaff, setAbsentStaff] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chartHovIdx, setChartHovIdx] = useState<number|null>(null);
   const [bellOpen, setBellOpen] = useState(false);
   const { settings } = useSettings();
 
