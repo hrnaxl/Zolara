@@ -42,12 +42,22 @@ function addAlias(existing: string | null, value: string): string | null {
  */
 function parseAliases(notes: string | null): { baseNotes: string; otherNames: string | null; otherEmails: string | null } {
   if (!notes) return { baseNotes: "", otherNames: null, otherEmails: null };
-  const divider = "\n--- Aliases ---";
-  const idx = notes.indexOf(divider);
+  // Support both formats: with and without leading newline (older records were trimmed)
+  const MARKER = "--- Aliases ---";
+  const withNl = "\n" + MARKER;
+  let idx = notes.indexOf(withNl);
+  let divLen = withNl.length;
+  if (idx === -1) {
+    // Try without leading newline (trimmed records)
+    idx = notes.indexOf(MARKER);
+    divLen = MARKER.length;
+    // Only treat as divider if it's at the start or after a newline
+    if (idx > 0 && notes[idx - 1] !== "\n") idx = -1;
+  }
   if (idx === -1) return { baseNotes: notes, otherNames: null, otherEmails: null };
 
   const baseNotes = notes.slice(0, idx).trim();
-  const aliasSection = notes.slice(idx + divider.length);
+  const aliasSection = notes.slice(idx + divLen);
   const nameMatch  = aliasSection.match(/Other names?: ([^\n]+)/i);
   const emailMatch = aliasSection.match(/Other emails?: ([^\n]+)/i);
   return {
@@ -58,14 +68,13 @@ function parseAliases(notes: string | null): { baseNotes: string; otherNames: st
 }
 
 function buildNotes(baseNotes: string, otherNames: string | null, otherEmails: string | null): string {
-  let result = baseNotes || "";
-  if (otherNames || otherEmails) {
-    result = result.trim();
-    result += "\n--- Aliases ---";
-    if (otherNames)  result += `\nOther names: ${otherNames}`;
-    if (otherEmails) result += `\nOther emails: ${otherEmails}`;
-  }
-  return result.trim();
+  const base = (baseNotes || "").trim();
+  if (!otherNames && !otherEmails) return base;
+  // Use a blank line separator so the divider is never at position 0 after trim
+  let aliasBlock = "\n--- Aliases ---";
+  if (otherNames)  aliasBlock += `\nOther names: ${otherNames}`;
+  if (otherEmails) aliasBlock += `\nOther emails: ${otherEmails}`;
+  return base ? base + aliasBlock : aliasBlock.trimStart();
 }
 
 /**
