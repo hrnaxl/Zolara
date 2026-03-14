@@ -61,6 +61,7 @@ const ReceptionistDashboard = () => {
 
       const { data: todaySales = [] } = await supabase
         .from("sales").select("amount")
+        .eq("status", "completed")
         .gte("created_at", startOfDay(new Date()).toISOString())
         .lte("created_at", endOfDay(new Date()).toISOString());
 

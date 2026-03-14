@@ -58,6 +58,8 @@ const AdminDashboard = () => {
     todayBookings: 0,
     periodBookings: 0,
     todayRevenue: 0,
+    todayServiceRevenue: 0,
+    todayProductRevenue: 0,
     periodRevenue: 0,
     weeklyRevenue: 0,
     monthlyRevenue: 0,
@@ -211,7 +213,7 @@ const AdminDashboard = () => {
         // Only consider payments that are completed and are for bookings marked completed
         supabase
           .from("sales")
-          .select("amount, payment_method, status, booking_id, client_name")
+          .select("amount, payment_method, status, booking_id, client_name, notes")
           .eq("status", "completed")
           .gte("created_at", todayStart)
           .lte("created_at", todayEnd),
@@ -329,10 +331,15 @@ const AdminDashboard = () => {
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
       ]);
 
-      // Calculate stats
-      const todayRevenue =
-        todayPaymentsRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) ||
-        0;
+      // Calculate stats — split service vs product revenue
+      const todayPayments = todayPaymentsRes.data || [];
+      const todayServiceRevenue = todayPayments
+        .filter((p: any) => !p.notes || !p.notes.toLowerCase().includes("product sale"))
+        .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+      const todayProductRevenue = todayPayments
+        .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
+        .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+      const todayRevenue = todayServiceRevenue + todayProductRevenue;
       const periodRevenue =
         periodPaymentsRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) ||
         0;
@@ -583,6 +590,8 @@ const AdminDashboard = () => {
         todayBookings: todayBookingsRes.data?.length || 0,
         periodBookings: periodBookingsRes.data?.length || 0,
         todayRevenue,
+        todayServiceRevenue,
+        todayProductRevenue,
         periodRevenue,
         weeklyRevenue,
         monthlyRevenue,
@@ -824,16 +833,16 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── KPI ROW ──────────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"14px", marginBottom:"14px" }} className="admin-grid-4">
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"14px", marginBottom:"14px" }} className="admin-grid-4">
         {[
           { label:"TODAY'S BOOKINGS", val: String(stats.todayBookings),
             pct: stats.bookingChangePercentage, note:"vs yesterday", color:"#4A90D9", bg:"#EFF6FF" },
-          { label:"TODAY'S REVENUE",  val:`GHS ${stats.todayRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
+          { label:"SERVICE REVENUE",  val:`GHS ${(stats.todayServiceRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+            pct: null, note:"today", color:"#8B6914", bg:"#FBF6EE" },
+          { label:"PRODUCT REVENUE",  val:`GHS ${(stats.todayProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+            pct: null, note:"today", color:"#2563EB", bg:"#EFF6FF" },
+          { label:"TOTAL REVENUE",    val:`GHS ${stats.todayRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
             pct: stats.todayRevenueChange, note:"vs yesterday", color:"#16A34A", bg:"#F0FDF4" },
-          { label:"WEEKLY REVENUE",   val:`GHS ${stats.weeklyRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: stats.weeklyRevenueChange, note:"vs last week", color: G, bg: G_LIGHT },
-          { label:"MONTHLY REVENUE",  val:`GHS ${stats.monthlyRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: stats.monthChangePercentage, note:"vs last month", color:"#7C3AED", bg:"#F5F3FF" },
         ].map((c, i) => (
           <div key={i} className="zc au" style={{ animationDelay:`${i*0.06}s` }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
