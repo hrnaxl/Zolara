@@ -102,15 +102,17 @@ export default function AnalyticsDashboard() {
       setTopClients(clients);
       // Revenue split by type from line items
       const items = itemsRes.data || [];
-      const ciSvcRev  = items.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
-      const ciProdRev = items.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
-      const ciSubRev  = items.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const ciSvcRev  = items.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.subtotal || (i.price_at_time * (i.quantity || 1)) || 0), 0);
+      const ciProdRev = items.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.subtotal || (i.price_at_time * (i.quantity || 1)) || 0), 0);
+      const ciSubRev  = items.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.subtotal || (i.price_at_time * (i.quantity || 1)) || 0), 0);
       const hasCI = ciSvcRev > 0 || ciProdRev > 0;
-      // Fallback: when checkout_items empty, detect product sales from sales.notes
+      // Fallback when no checkout_items: detect product sales from sales.notes
       const allSales = salesRes.data || [];
-      const fallbackProd = allSales.filter((s: any) => s.notes && (s.notes.toLowerCase().includes("product sale") || s.notes.toLowerCase().includes("direct product")))
-        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      const fallbackSvc = (allSales.filter((s: any) => s.status === "completed").reduce((s: number, p: any) => s + Number(p.amount || 0), 0)) - fallbackProd;
+      const allCompleted = allSales.filter((s: any) => s.status === "completed");
+      const fallbackProd = allCompleted.filter((s: any) =>
+        s.notes && s.notes.toLowerCase().includes("product sale")
+      ).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      const fallbackSvc = allCompleted.reduce((s: number, p: any) => s + Number(p.amount || 0), 0) - fallbackProd;
       setRevenueSplit({
         service: hasCI ? ciSvcRev : fallbackSvc,
         product: hasCI ? ciProdRev : fallbackProd,

@@ -66,25 +66,35 @@ export default function ProductsPage() {
           .then(({ data }: any) => { if (data?.role) setUserRole(data.role); });
       }
     });
-    // Fetch actual product revenue from sales table (notes contains "Product sale")
-    (supabase as any).from("sales")
-      .select("amount, notes, status")
-      .eq("status", "completed")
-      .then(({ data }: any) => {
-        const productSales = (data || []).filter((s: any) =>
-          s.notes && (
-            s.notes.toLowerCase().includes("product sale") ||
-            s.notes.toLowerCase().includes("direct product")
-          )
-        );
-        const rev = productSales.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-        setActualProductRevenue(rev);
+    // Fetch product revenue — from checkout_items (most accurate) with sales fallback
+    (supabase as any).from("checkout_items")
+      .select("item_type, subtotal, price_at_time, quantity")
+      .eq("item_type", "product")
+      .then(({ data: ciData }: any) => {
+        const ciRev = (ciData || []).reduce((s: number, i: any) =>
+          s + Number(i.subtotal || (i.price_at_time * i.quantity) || 0), 0);
+        if (ciRev > 0) {
+          setActualProductRevenue(ciRev);
+          return;
+        }
+        // Fallback: use sales table notes
+        (supabase as any).from("sales")
+          .select("amount, notes, status")
+          .eq("status", "completed")
+          .then(({ data }: any) => {
+            const productSales = (data || []).filter((s: any) =>
+              s.notes && s.notes.toLowerCase().includes("product sale")
+            );
+            setActualProductRevenue(
+              productSales.reduce((s: number, p: any) => s + Number(p.amount || 0), 0)
+            );
+          });
       });
   }, []);
 
   // Recalculate actual cost when products load
   useEffect(() => {
-    if (actualProductRevenue === 0) return;
+    // Always recalculate cost when products load
     // Estimate cost from checkout_items if available, otherwise use average margin
     (supabase as any).from("checkout_items")
       .select("item_id, quantity, subtotal")

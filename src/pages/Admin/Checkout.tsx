@@ -325,7 +325,7 @@ const Checkout = () => {
       if (paymentMethod !== "bank_transfer") {
         await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
         // amount saved = what client actually paid (balance after deposit + discounts)
-        const { error: saleErr } = await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), promo_code: appliedPromo?.code || null, promo_discount: promoDiscount > 0 ? promoDiscount : null, payment_date: new Date().toISOString() });
+        const { error: saleErr } = await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), payment_date: new Date().toISOString() });
         if (saleErr) throw saleErr;
 
         // Write checkout session + line items
