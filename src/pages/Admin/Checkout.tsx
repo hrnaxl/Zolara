@@ -143,23 +143,18 @@ const Checkout = () => {
       if ((data as any).staff?.id) setSelectedStaff((data as any).staff.id);
       if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
 
-      // Price: use services.price as source of truth for the actual service cost
-      // Fetch service price directly (join may fail if no FK registered in Supabase)
-      const serviceId = (data as any).service_id;
-      let serviceBasePrice = Number((data as any).services?.price ?? 0);
-      if (serviceBasePrice === 0 && serviceId) {
-        const { data: svcData } = await supabase.from("services").select("price").eq("id", serviceId).single();
-        serviceBasePrice = Number((svcData as any)?.price ?? 0);
-      }
-      // booking.price includes variant + addon adjustments on top of base price
-      // If booking.price > serviceBasePrice, it has extras — use it
-      // If booking.price < serviceBasePrice, the variant stores a full price (not delta) — use serviceBasePrice
-      // If booking.price === 0, use serviceBasePrice
+      // booking.price is set at booking time with the correct total (variant price or service base + addons)
+      // Always trust booking.price — it is the source of truth
       const bookingStoredPrice = Number((data as any).price ?? 0);
-      const price = bookingStoredPrice >= serviceBasePrice && bookingStoredPrice > 0
-        ? bookingStoredPrice
-        : serviceBasePrice > 0 ? serviceBasePrice : bookingStoredPrice;
-      console.log("[CHECKOUT PRICE]", { serviceId, serviceBasePrice, bookingStoredPrice, price, servicesJoin: (data as any).services });
+      // Fallback: if booking.price is 0 (old bookings), fetch from services table
+      let price = bookingStoredPrice;
+      if (price === 0) {
+        const serviceId = (data as any).service_id;
+        if (serviceId) {
+          const { data: svcData } = await supabase.from("services").select("price").eq("id", serviceId).single();
+          price = Number((svcData as any)?.price ?? 0);
+        }
+      }
       setOriginalPrice(price);
       // Set service line item immediately with the correct price
       setLineItems([{
@@ -300,13 +295,13 @@ const Checkout = () => {
     }
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
-    // effectivePrice = full transaction value (service + products) for DB records
     const prodTotal = lineItems.filter(i => i.type === "product").reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-    const effectivePrice = (originalPrice > 0 ? originalPrice : 0) + prodTotal;
-    // amountToCharge = what client actually pays (after deposit, promo, gift card)
-    const afterDep = Math.max(0, originalPrice - dep) + prodTotal;
-    const afterPr = Math.max(0, afterDep - promoDiscount);
-    const amountToCharge = Math.max(0, afterPr - giftValue);
+    // effectivePrice = full service + products value (stored in DB for records)
+    const effectivePrice = originalPrice + prodTotal;
+    // amountToCharge = EXACTLY what the button shows (same formula as balanceDue in render)
+    const afterDep2 = Math.max(0, originalPrice - dep) + prodTotal;
+    const afterPr2 = Math.max(0, afterDep2 - promoDiscount);
+    const amountToCharge = Math.max(0, afterPr2 - giftValue);
     const paymentAmount = amountToCharge;
     setProcessing(true);
 

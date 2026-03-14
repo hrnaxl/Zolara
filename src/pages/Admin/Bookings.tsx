@@ -590,7 +590,7 @@ const Bookings = () => {
         const svc = services.find((s: any) => s.id === item.serviceId);
         const variant = item.variants.find(v => v.id === item.variantId);
         const chosenAddons = item.addons.filter(a => item.addonIds.includes(a.id));
-        const basePrice = variant ? (Number(svc?.price || 0) + Number(variant.price_adjustment)) : Number(svc?.price || 0);
+        const basePrice = variant ? Number(variant.price_adjustment) : Number(svc?.price || 0);
         const addonTotal = chosenAddons.reduce((s: number, a: any) => s + Number(a.price), 0);
         return {
           service_id: item.serviceId,
