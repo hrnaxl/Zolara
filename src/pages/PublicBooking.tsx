@@ -52,6 +52,15 @@ export default function PublicBooking() {
 
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const h = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  const mob = windowWidth < 900;
+  const sm  = windowWidth < 480;
+
   const [step, setStep] = useState<Step>("form");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isFirstTimeBooker, setIsFirstTimeBooker] = useState(false);
@@ -446,10 +455,10 @@ export default function PublicBooking() {
         </div>
       </div>
 
-      <div className="bk-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "44px 24px 80px", display: "grid", alignItems: "start" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: mob ? (sm ? "16px 12px 80px" : "20px 16px 80px") : "44px 24px 80px", display: "grid", gridTemplateColumns: mob ? "1fr" : "360px 1fr", gap: mob ? "20px" : "40px", alignItems: "start" }}>
 
         {/* LEFT: Info panel */}
-        <div className="bk-sidebar" style={{ position: "sticky", top: "90px" }}>
+        <div style={{ position: mob ? "static" : "sticky", top: mob ? "auto" : "90px" }}>
           <div style={{ background: "linear-gradient(160deg, #241C0E 0%, #1A1208 55%, #201608 100%)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 28px 72px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.15)" }}>
 
             {/* Panel header */}
@@ -522,7 +531,7 @@ export default function PublicBooking() {
           {/* Personal Details */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>YOUR DETAILS</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: sm ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
               <div>
                 <label style={lbl}>Full Name *</label>
                 <div style={{ position: "relative" }}>
@@ -693,7 +702,7 @@ export default function PublicBooking() {
           {/* Date & Time */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>DATE AND TIME</p>
-            <div className="bk-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: sm ? "1fr" : "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={lbl}>Date *</label>
                 <div style={{ position: "relative" }}>
@@ -727,7 +736,7 @@ export default function PublicBooking() {
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "6px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
-            <div className="bk-time-grid" style={{ display: "grid", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: sm ? "repeat(2,1fr)" : "repeat(3,1fr)", gap: "10px" }}>
               {enabledPayments.map((m: any) => {
                 const sel = paymentPref === m.id;
                 return (
