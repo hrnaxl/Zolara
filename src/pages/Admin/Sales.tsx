@@ -165,7 +165,7 @@ export default function SalesRevenue() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:"14px", marginBottom:"24px" }}>
         {[
           { label:"COMPLETED", value:`GH₵${completedTotal.toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${completed.length} transactions`, color:"#16A34A", bg:"#F0FDF4", border:"#BBF7D0" },
-          { label:"PENDING", value:`GH₵${pendingTotal.toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${pending.length} awaiting`, color:"#D97706", bg:"#FFFBEB", border:"#FDE68A" },
+          { label:"AWAITING CONFIRMATION", value:`GH₵${pendingTotal.toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${pending.length} bank transfer${pending.length !== 1 ? "s" : ""} pending`, color:"#D97706", bg:"#FFFBEB", border:"#FDE68A" },
           { label:"TOTAL RECORDS", value:String(filtered.length), sub:dateRangeLabel(), color:G_D, bg:"#FBF6EE", border:"#F0E4CC" },
         ].map(k => (
           <div key={k.label} style={{ background:k.bg, border:`1px solid ${k.border}`, borderRadius:"14px", padding:"20px" }}>
