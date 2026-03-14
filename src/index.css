@@ -672,3 +672,36 @@ body {
     padding-top: env(safe-area-inset-top) !important;
   }
 }
+
+/* ── Booking page layout ───────────────────────────────────── */
+.bk-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 40px;
+}
+.bk-sidebar {
+  position: sticky;
+  top: 90px;
+}
+@media (max-width: 900px) {
+  .bk-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    padding: 20px 16px 80px !important;
+  }
+  .bk-sidebar {
+    position: static !important;
+    top: auto !important;
+  }
+}
+@media (max-width: 480px) {
+  .bk-grid {
+    padding: 16px 12px 80px !important;
+  }
+  .bk-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .bk-time-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

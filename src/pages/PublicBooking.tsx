@@ -422,16 +422,6 @@ export default function PublicBooking() {
         .err { animation: errIn 0.25s ease; font-family: 'Montserrat',sans-serif; color: ${RED}; font-size: 11px; margin-top: 5px; }
         .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
         .svc-select:hover { border-color: ${GOLD} !important; }
-        .bk-grid { grid-template-columns: 360px 1fr; gap: 40px; }
-        @media screen and (max-width: 900px) {
-          .bk-grid { grid-template-columns: 1fr; gap: 20px; padding: 20px 16px 80px; }
-          .bk-sidebar { position: static !important; top: auto !important; }
-        }
-        @media screen and (max-width: 480px) {
-          .bk-grid { padding: 16px 12px 80px !important; }
-          .bk-form-grid { grid-template-columns: 1fr !important; }
-          .bk-time-grid { grid-template-columns: repeat(2, 1fr) !important; }
-        }
       `}</style>
 
       {/* Topbar */}
