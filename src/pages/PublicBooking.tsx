@@ -421,7 +421,7 @@ export default function PublicBooking() {
 
   // ── MAIN FORM ─────────────────────────────────────────────────
   return (
-    <div style={{ background: MID, minHeight: "100vh", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: MID, minHeight: "100vh", fontFamily: "'Cormorant Garamond',serif", overflowX: "hidden", width: "100%" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(200,169,126,0.18); }
@@ -434,7 +434,7 @@ export default function PublicBooking() {
       `}</style>
 
       {/* Topbar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(245,239,230,0.97)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(200,169,126,0.2)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 20px rgba(28,22,14,0.06)" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(245,239,230,0.97)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(200,169,126,0.2)", padding: mob ? "12px 16px" : "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", overflow: "hidden", boxShadow: "0 2px 20px rgba(28,22,14,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: TXT_MID, fontSize: "13px", fontWeight: 500, fontFamily: "'Montserrat',sans-serif", transition: "color 0.15s", padding: 0 }}
             onMouseEnter={e => (e.currentTarget.style.color = GOLD_DARK)}
@@ -457,8 +457,8 @@ export default function PublicBooking() {
 
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: mob ? (sm ? "16px 12px 80px" : "20px 16px 80px") : "44px 24px 80px", display: "grid", gridTemplateColumns: mob ? "1fr" : "360px 1fr", gap: mob ? "20px" : "40px", alignItems: "start" }}>
 
-        {/* LEFT: Info panel */}
-        <div style={{ position: mob ? "static" : "sticky", top: mob ? "auto" : "90px" }}>
+        {/* LEFT: Info panel — hidden on mobile */}
+        {!mob && <div style={{ position: "sticky", top: "90px" }}>
           <div style={{ background: "linear-gradient(160deg, #241C0E 0%, #1A1208 55%, #201608 100%)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 28px 72px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.15)" }}>
 
             {/* Panel header */}
@@ -518,7 +518,7 @@ export default function PublicBooking() {
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.32)", marginTop: "10px", fontWeight: 400 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* RIGHT: Form */}
         <div id="booking-form-top">
