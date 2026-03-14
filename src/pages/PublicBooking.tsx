@@ -422,8 +422,9 @@ export default function PublicBooking() {
         .err { animation: errIn 0.25s ease; font-family: 'Montserrat',sans-serif; color: ${RED}; font-size: 11px; margin-top: 5px; }
         .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
         .svc-select:hover { border-color: ${GOLD} !important; }
+        .bk-grid { grid-template-columns: 360px 1fr; gap: 40px; }
         @media screen and (max-width: 900px) {
-          .bk-grid { grid-template-columns: 1fr !important; gap: 20px !important; padding: 20px 16px 80px !important; }
+          .bk-grid { grid-template-columns: 1fr; gap: 20px; padding: 20px 16px 80px; }
           .bk-sidebar { position: static !important; top: auto !important; }
         }
         @media screen and (max-width: 480px) {
@@ -455,7 +456,7 @@ export default function PublicBooking() {
         </div>
       </div>
 
-      <div className="bk-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "44px 24px 80px", display: "grid", gridTemplateColumns: "360px 1fr", gap: "40px", alignItems: "start" }}>
+      <div className="bk-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "44px 24px 80px", display: "grid", alignItems: "start" }}>
 
         {/* LEFT: Info panel */}
         <div className="bk-sidebar" style={{ position: "sticky", top: "90px" }}>
