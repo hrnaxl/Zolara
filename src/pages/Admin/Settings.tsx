@@ -207,7 +207,7 @@ export default function Settings() {
       `}</style>
 
       {/* ── Top bar ── */}
-      <div style={{ background: WHITE, borderBottom: `1px solid ${BORDER}`, padding: "0 clamp(16px,4vw,40px)", position: "sticky", top: 0, zIndex: 10, boxShadow: "0 1px 0 rgba(0,0,0,0.04)" }}>
+      <div style={{ background: WHITE, borderBottom: `1px solid ${BORDER}`, paddingLeft: "clamp(16px,4vw,40px)", paddingRight: "clamp(16px,4vw,40px)", paddingTop: "max(env(safe-area-inset-top, 0px), 0px)", paddingBottom: 0, position: "sticky", top: 0, zIndex: 10, boxShadow: "0 1px 0 rgba(0,0,0,0.04)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg,${G},${G_D})`, display: "flex", alignItems: "center", justifyContent: "center" }}>

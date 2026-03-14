@@ -375,8 +375,10 @@ const DashboardLayout = () => {
         <div style={{display:"none"}} className="mobile-topbar">
         <div style={{
           position: "sticky", top: 0, zIndex: 30,
-          background: NAVY, height: 56, display: "flex", alignItems: "center",
-          justifyContent: "space-between", padding: "0 16px",
+          background: NAVY, minHeight: 56, display: "flex", alignItems: "flex-end",
+          justifyContent: "space-between",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)",
+          paddingBottom: "8px", paddingLeft: 16, paddingRight: 16,
           boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
         }}>
           <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: WHITE, padding: 4 }}>

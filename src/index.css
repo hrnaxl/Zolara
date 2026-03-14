@@ -682,3 +682,23 @@ body {
     max-width: 100% !important;
   }
 }
+
+/* ── PWA Standalone: safe area only needed when running as installed app ── */
+@media (display-mode: standalone) {
+  /* Remove body top padding in standalone — sticky bars handle it themselves */
+  body {
+    padding-top: 0 !important;
+  }
+  /* Add safe area to fixed/sticky top elements */
+  [style*="position: sticky"][style*="top: 0"],
+  [style*="position:sticky"][style*="top:0"],
+  [style*="position: fixed"][style*="top: 0"],
+  [style*="position:fixed"][style*="top:0"] {
+    padding-top: max(env(safe-area-inset-top, 0px), 0px);
+  }
+  /* Bottom safe area for floating elements */
+  [style*="position: fixed"][style*="bottom: 0"],
+  [style*="position:fixed"][style*="bottom:0"] {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
