@@ -455,14 +455,14 @@ export default function PublicBooking() {
         </div>
       </div>
 
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: mob ? (sm ? "16px 12px 80px" : "20px 16px 80px") : "44px 24px 80px", display: "grid", gridTemplateColumns: mob ? "1fr" : "360px 1fr", gap: mob ? "20px" : "40px", alignItems: "start" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: mob ? "16px 12px 80px" : "44px 24px 80px", display: "grid", gridTemplateColumns: mob ? "1fr" : "360px 1fr", gap: mob ? "20px" : "40px", alignItems: "start", width: "100%", boxSizing: "border-box" as any }}>
 
         {/* LEFT: Info panel */}
         <div style={{ position: mob ? "static" : "sticky", top: mob ? "auto" : "90px" }}>
           <div style={{ background: "linear-gradient(160deg, #241C0E 0%, #1A1208 55%, #201608 100%)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 28px 72px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.15)" }}>
 
             {/* Panel header */}
-            <div style={{ padding: "32px 28px 26px", borderBottom: "1px solid rgba(200,169,126,0.12)", position: "relative" }}>
+            <div style={{ padding: mob ? "20px 16px" : "32px 28px 26px", borderBottom: "1px solid rgba(200,169,126,0.12)", position: "relative" }}>
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 70% 0%, rgba(200,169,126,0.14) 0%, transparent 65%)", pointerEvents: "none" }} />
               <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
                 <div style={{ width: "46px", height: "46px", borderRadius: "50%", border: `2px solid ${GOLD}`, overflow: "hidden", flexShrink: 0, boxShadow: "0 0 0 4px rgba(200,169,126,0.12)" }}>
@@ -478,7 +478,7 @@ export default function PublicBooking() {
             </div>
 
             {/* Deposit highlight */}
-            <div style={{ padding: "22px 28px", background: "rgba(200,169,126,0.1)", borderBottom: "1px solid rgba(200,169,126,0.12)" }}>
+            <div style={{ padding: mob ? "14px 16px" : "22px 28px", background: "rgba(200,169,126,0.1)", borderBottom: "1px solid rgba(200,169,126,0.12)" }}>
               <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
                 <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "16px" }}>💳</div>
                 <div>
@@ -499,7 +499,7 @@ export default function PublicBooking() {
               { icon: "❋", title: "Loyalty Rewards", body: "1 stamp per GHS 100 spent. 20 stamps = GHS 50 discount. Double stamps in your birthday month." },
               { icon: "★", title: "Student Discount", body: "10% off all services Mon to Thu with a valid student ID. Present ID when booking." },
             ].map(({ icon, title, body }) => (
-              <div key={title} style={{ padding: "17px 28px", borderBottom: "1px solid rgba(200,169,126,0.08)", display: "flex", gap: "13px", alignItems: "flex-start" }}>
+              <div key={title} style={{ padding: mob ? "12px 16px" : "17px 28px", borderBottom: "1px solid rgba(200,169,126,0.08)", display: "flex", gap: "12px", alignItems: "flex-start" }}>
                 <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "rgba(200,169,126,0.14)", border: "1px solid rgba(200,169,126,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <span style={{ color: GOLD, fontSize: "13px" }}>{icon}</span>
                 </div>
@@ -511,7 +511,7 @@ export default function PublicBooking() {
             ))}
 
             {/* Contact */}
-            <div style={{ padding: "22px 28px" }}>
+            <div style={{ padding: mob ? "14px 16px" : "22px 28px" }}>
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9.5px", letterSpacing: "0.22em", color: GOLD, fontWeight: 700, marginBottom: "12px" }}>NEED HELP? CALL US</p>
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14.5px", color: "rgba(245,239,230,0.85)", fontWeight: 600, marginBottom: "4px" }}>059 436 5314</p>
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14.5px", color: "rgba(245,239,230,0.85)", fontWeight: 600 }}>020 884 8707</p>
@@ -521,16 +521,16 @@ export default function PublicBooking() {
         </div>
 
         {/* RIGHT: Form */}
-        <div id="booking-form-top">
-          <div style={{ marginBottom: "32px" }}>
+        <div id="booking-form-top" style={{ minWidth: 0, overflow: "hidden" }}>
+          <div style={{ marginBottom: mob ? "16px" : "32px" }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", letterSpacing: "0.26em", color: GOLD_DARK, fontWeight: 700, marginBottom: "8px" }}>BOOK YOUR APPOINTMENT</p>
             <h1 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 500, color: DARK, lineHeight: 1.15, marginBottom: "8px" }}>Reserve Your <em>Zolara</em> Experience</h1>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13.5px", color: TXT_MID, lineHeight: 1.75 }}>Fill in your details below. A GHS 50 deposit via Paystack is required to confirm your booking.</p>
           </div>
 
           {/* Personal Details */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>YOUR DETAILS</p>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: mob ? "20px 16px" : "32px", marginBottom: "16px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: mob ? "16px" : "24px" }}>YOUR DETAILS</p>
             <div style={{ display: "grid", gridTemplateColumns: sm ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
               <div>
                 <label style={lbl}>Full Name *</label>
@@ -559,7 +559,7 @@ export default function PublicBooking() {
           </div>
 
           {/* Service */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "24px 28px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: mob ? "16px" : "24px 28px", marginBottom: "16px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "16px" }}>SELECT A SERVICE</p>
             {loading ? (
               <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
@@ -619,7 +619,7 @@ export default function PublicBooking() {
                         <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, margin: "2px 0 0" }}>{svc.description ? svc.description.slice(0, 60) + (svc.description.length > 60 ? "…" : "") : ""}</p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: active ? GOLD_DARK : TXT_MID, whiteSpace: "nowrap" }}>{getPriceDisplay(svc)}</span>
+                        <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: active ? GOLD_DARK : TXT_MID, whiteSpace: "nowrap", maxWidth: mob ? "80px" : "none", overflow: "hidden", textOverflow: "ellipsis" }}>{getPriceDisplay(svc)}</span>
                         {active && <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: GOLD, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "11px", fontWeight: 700 }}>✓</span>}
                       </div>
                     </button>
@@ -700,8 +700,8 @@ export default function PublicBooking() {
           </div>
 
           {/* Date & Time */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>DATE AND TIME</p>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: mob ? "20px 16px" : "32px", marginBottom: "16px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: mob ? "16px" : "24px" }}>DATE AND TIME</p>
             <div style={{ display: "grid", gridTemplateColumns: sm ? "1fr" : "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={lbl}>Date *</label>
@@ -726,14 +726,14 @@ export default function PublicBooking() {
           </div>
 
           {/* Special Requests */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>SPECIAL REQUESTS</p>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: mob ? "20px 16px" : "32px", marginBottom: "16px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: mob ? "16px" : "24px" }}>SPECIAL REQUESTS</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Style references, allergies, or anything we should know..." rows={3} style={{ ...inp, resize: "vertical" }} />
           </div>
 
 
                     {/* Balance payment method */}
-          <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+          <div style={{ background: WHITE, borderRadius: "12px", padding: mob ? "20px 16px" : "32px", marginBottom: "16px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "6px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
             <div style={{ display: "grid", gridTemplateColumns: sm ? "repeat(2,1fr)" : "repeat(3,1fr)", gap: "10px" }}>
@@ -751,7 +751,7 @@ export default function PublicBooking() {
           </div>
 
           {/* Summary + CTA */}
-          <div style={{ background: "linear-gradient(155deg, #241C0E 0%, #1A1208 100%)", borderRadius: "12px", padding: "32px", boxShadow: "0 12px 40px rgba(28,22,14,0.22)" }}>
+          <div style={{ background: "linear-gradient(155deg, #241C0E 0%, #1A1208 100%)", borderRadius: "12px", padding: mob ? "20px 16px" : "32px", boxShadow: "0 12px 40px rgba(28,22,14,0.22)" }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: "rgba(200,169,126,0.75)", marginBottom: "20px" }}>BOOKING SUMMARY</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
               {[
