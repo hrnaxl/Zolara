@@ -86,6 +86,7 @@ const App = () => (
             <Route path="loyalty" element={<ClientLoyalty />} />
             <Route path="profile" element={<ClientProfile />} />
             <Route path="services" element={<ViewServices />} />
+            <Route path="security" element={<SecuritySettings />} />
           </Route>
 
           {/* =================== MANAGEMENT SYSTEM ROUTES =================== */}
@@ -154,6 +155,7 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/app/cleaner/dashboard" element={<CleanerLayout />} />
               <Route path="/app/cleaner/promo-codes" element={<PromoCodesPage />} />
+              <Route path="/app/cleaner/security" element={<SecuritySettings />} />
               <Route path="/app/cleaner/services" element={<ViewServices />} />
               <Route path="/app/cleaner/attendance" element={<MyAttendance />} />
             </Route>

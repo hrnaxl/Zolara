@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Shield, useEffect, useState } from "react";
 import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
@@ -26,6 +26,7 @@ const NAV = [
   { icon: Star,            label: "Loyalty",     path: "/app/client/loyalty" },
   { icon: Scissors,        label: "Services",    path: "/app/client/services" },
   { icon: User,            label: "My Profile",  path: "/app/client/profile" },
+  { icon: Shield,          label: "Security",     path: "/app/client/security" },
 ];
 
 export default function ClientPortal() {

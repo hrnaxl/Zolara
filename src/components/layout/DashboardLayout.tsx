@@ -147,6 +147,7 @@ const DashboardLayout = () => {
     { icon: Clock,           label: "Attendance",          path: "attendance" },
     { icon: FileText,        label: "Attendance Reports",  path: "attendance-reports" },
     { icon: MessageSquare,   label: "SMS Test",            path: "sms-test" },
+    { icon: Shield,          label: "Security",            path: "security" },
     { icon: Settings,        label: "Settings",            path: "settings" },
   ];
 
@@ -187,7 +188,7 @@ const DashboardLayout = () => {
 
       // ── CLEANER: view only + attendance ────────────────────────
       case "cleaner": {
-        const allowed = ["Dashboard", "Promo Codes", "Services", "Attendance"];
+        const allowed = ["Dashboard", "Promo Codes", "Services", "Attendance", "Security"];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))
           .map((item) => ({ ...item, path: `/app/cleaner/${item.path}` }));
