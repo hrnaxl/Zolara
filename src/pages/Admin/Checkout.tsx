@@ -316,7 +316,7 @@ const Checkout = () => {
         const orig = Number(originalPrice || (booking.services?.price ?? 0));
         const appliedGift = Math.min(Number(redeemedCard.value), orig);
         if (appliedGift > 0) {
-          const { error: giftErr } = await supabase.from("sales").insert([{ booking_id: booking.id, amount: appliedGift, payment_method: "gift_card", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, notes: notes || null }]);
+          const { error: giftErr } = await (supabase as any).from("sales").insert([{ booking_id: booking.id, amount: appliedGift, payment_method: "gift_card", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: notes || null, payment_date: new Date().toISOString() }]);
           if (giftErr) { toast.error("Failed to record gift card payment"); setProcessing(false); return; }
           await (supabase as any).from("gift_cards").update({ status: "redeemed", balance: 0, redeemed_by_client: booking.client_name || null }).eq("id", redeemedCard.id);
         }
@@ -325,7 +325,7 @@ const Checkout = () => {
       if (paymentMethod !== "bank_transfer") {
         await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
         // amount saved = what client actually paid (balance after deposit + discounts)
-        const { error: saleErr } = await supabase.from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | "), promo_code: appliedPromo?.code || null, promo_discount: promoDiscount > 0 ? promoDiscount : null });
+        const { error: saleErr } = await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: paymentMethod, status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Payment at checkout", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), promo_code: appliedPromo?.code || null, promo_discount: promoDiscount > 0 ? promoDiscount : null, payment_date: new Date().toISOString() });
         if (saleErr) throw saleErr;
 
         // Write checkout session + line items
@@ -340,7 +340,7 @@ const Checkout = () => {
             if (prod) {
               await (supabase as any).from("products").update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) }).eq("id", pi.id);
               // Record product sale in sales table
-              await supabase.from("sales").insert({
+              await (supabase as any).from("sales").insert({
                 booking_id: booking.id,
                 amount: pi.unitPrice * pi.quantity,
                 payment_method: paymentMethod,
@@ -350,7 +350,8 @@ const Checkout = () => {
                 client_id: (booking as any).clients?.id || null,
                 staff_id: selectedStaff || null,
                 notes: "Product sale at checkout",
-              } as any);
+                payment_date: new Date().toISOString(),
+              });
             }
           }
           // Log subscription usage
@@ -395,7 +396,7 @@ const Checkout = () => {
       }
 
       // Bank transfer
-      await supabase.from("sales").insert({ booking_id: booking.id, amount: paymentAmount + dep, payment_method: "bank_transfer", status: usePaystackForTransfer ? "pending" : "pending", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, notes: [notes || "Bank transfer - awaiting confirmation", dep > 0 ? `Includes GHS ${dep} deposit` : null].filter(Boolean).join(" | ") });
+      await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: paymentAmount + dep, payment_method: "bank_transfer", status: "pending", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Bank transfer - awaiting confirmation", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), payment_date: new Date().toISOString() });
       await supabase.from("bookings").update({ status: "confirmed" } as any).eq("id", booking.id);
       setPaymentMethod("bank_transfer"); setPending(true);
       toast.success("Bank transfer recorded. Awaiting confirmation.");
