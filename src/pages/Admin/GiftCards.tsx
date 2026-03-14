@@ -206,12 +206,12 @@ export default function GiftCards() {
   // ─── Physical Card POS ───────────────────────────────────────
   const searchPhysCard = async (code: string) => {
     if (!code.trim()) { setPhysPosCard(null); return; }
-    const { data } = await (supabase as any).from("gift_cards")
-      .select("*")
-      .or(`code.eq.${code.trim().toUpperCase()},serial_number.ilike.%${code.trim()}%`)
-      .eq("card_type", "physical")
-      .limit(1).maybeSingle();
-    setPhysPosCard(data || null);
+    const q = code.trim().toUpperCase();
+    // Try by code first, then by serial_number
+    const { data: byCode } = await (supabase as any).from("gift_cards").select("*").eq("code", q).maybeSingle();
+    if (byCode) { setPhysPosCard(byCode); return; }
+    const { data: bySerial } = await (supabase as any).from("gift_cards").select("*").ilike("serial_number", q).maybeSingle();
+    setPhysPosCard(bySerial || null);
   };
 
   const handleSellPhysCard = async () => {
@@ -221,14 +221,12 @@ export default function GiftCards() {
     if (physPosCard.payment_status === "voided") { toast.error("Card is voided"); return; }
     setPhysPosSaving(true);
     try {
-      // Mark card as paid/active
+      // Mark card as paid/active (only update columns that exist)
       const { error: cardErr } = await (supabase as any).from("gift_cards").update({
         payment_status: "paid",
         status: "active",
-        sold_at: new Date().toISOString(),
-        sold_by: "pos",
       }).eq("id", physPosCard.id);
-      if (cardErr) throw cardErr;
+      if (cardErr) { console.error("Card update error:", cardErr); throw new Error(cardErr.message); }
 
       // Record sale in sales table
       const { error: saleErr } = await (supabase as any).from("sales").insert({
@@ -237,10 +235,10 @@ export default function GiftCards() {
         status: "completed",
         client_name: null,
         service_name: (physPosCard.tier || "Physical") + " Gift Card (Physical)",
-        notes: "Physical gift card sale · code: " + (physPosCard.code || physPosCard.serial_number),
+        notes: "Physical gift card sale - code: " + (getCode(physPosCard)),
         payment_date: new Date().toISOString(),
       });
-      if (saleErr) console.error("Sale record error:", saleErr);
+      if (saleErr) { console.error("Sale insert error:", saleErr); throw new Error("Sale recorded but: " + saleErr.message); }
 
       toast.success("Gift card sold and activated!");
       setPhysPosCard(null);

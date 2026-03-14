@@ -65,15 +65,20 @@ export default function SalesRevenue() {
       const { data, error } = await q;
       if (error) throw error;
       setPayments(data || []);
-      // Revenue split from sales table — product sales have notes containing "Product sale"
       const completedSales = (data || []).filter((p: any) => p.status === "completed");
       const productSalesAmt = completedSales
         .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      const serviceSalesAmt = completedSales
-        .filter((p: any) => !p.notes || !p.notes.toLowerCase().includes("product sale"))
+      const giftCardAmt = completedSales
+        .filter((p: any) => (p.service_name || "").toLowerCase().includes("gift card"))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      setRevSplit({ service: serviceSalesAmt, product: productSalesAmt, subscription: 0 });
+      const serviceSalesAmt = completedSales
+        .filter((p: any) =>
+          (!p.notes || !p.notes.toLowerCase().includes("product sale")) &&
+          !(p.service_name || "").toLowerCase().includes("gift card")
+        )
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      setRevSplit({ service: serviceSalesAmt, product: productSalesAmt, subscription: giftCardAmt });
     } catch (e: any) { toast.error(e.message || "Failed to load sales"); }
     finally { setLoading(false); }
   };
@@ -177,7 +182,7 @@ export default function SalesRevenue() {
           {[
             { l:"SERVICE REVENUE",      v: revSplit.service,      c:"#8B6914", bg:"#FBF6EE", bd:"#F0E4CC" },
             { l:"PRODUCT REVENUE",       v: revSplit.product,      c:"#2563EB", bg:"#EFF6FF", bd:"#BFDBFE" },
-            { l:"SUBSCRIPTION REVENUE",  v: revSplit.subscription, c:"#7C3AED", bg:"#F5F3FF", bd:"#DDD6FE" },
+            { l:"GIFT CARDS & SUBS",     v: revSplit.subscription, c:"#7C3AED", bg:"#F5F3FF", bd:"#DDD6FE" },
           ].map(k => (
             <div key={k.l} style={{ background:k.bg, border:`1px solid ${k.bd}`, borderRadius:"14px", padding:"16px 20px" }}>
               <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:k.c, margin:"0 0 6px" }}>{k.l}</p>

@@ -102,19 +102,24 @@ export default function AnalyticsDashboard() {
       setTopClients(clients);
       // Revenue split by type from line items
       const items = itemsRes.data || [];
-      // Revenue split: product sales identified by notes, everything else is service
+      // Revenue split by type
       const allSales = salesRes.data || [];
       const completed = allSales.filter((s: any) => s.status === "completed");
       const prodRev = completed
         .filter((s: any) => s.notes && s.notes.toLowerCase().includes("product sale"))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      const svcRev = completed
-        .filter((s: any) => !s.notes || !s.notes.toLowerCase().includes("product sale"))
+      const giftCardRev = completed
+        .filter((s: any) => (s.service_name || "").toLowerCase().includes("gift card"))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      // Subscription revenue from checkout_items if available
+      const svcRev = completed
+        .filter((s: any) =>
+          (!s.notes || !s.notes.toLowerCase().includes("product sale")) &&
+          !(s.service_name || "").toLowerCase().includes("gift card")
+        )
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
       const ciSubRev = items.filter((i: any) => i.item_type === "subscription")
         .reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
-      setRevenueSplit({ service: svcRev, product: prodRev, subscription: ciSubRev });
+      setRevenueSplit({ service: svcRev, product: prodRev, subscription: ciSubRev + giftCardRev });
     } catch { toast.error("Failed to load analytics"); }
     finally { setLoading(false); }
   };
@@ -191,7 +196,7 @@ export default function AnalyticsDashboard() {
           {[
             { label: "SERVICE REVENUE",      value: sRev,   color: "#8B6914", bg: "#FBF6EE", border: "#F0E4CC" },
             { label: "PRODUCT REVENUE",       value: pRev,   color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-            { label: "SUBSCRIPTION REVENUE",  value: subRev, color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+            { label: "GIFT CARDS & SUBS",     value: subRev, color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
           ].map(k => (
             <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 14, padding: "16px 20px" }}>
               <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: k.color, margin: "0 0 6px" }}>{k.label}</p>
