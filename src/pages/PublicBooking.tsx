@@ -70,6 +70,7 @@ export default function PublicBooking() {
   const [email, setEmail] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [variants, setVariants] = useState<any[]>([]);
+  const [variantsLoading, setVariantsLoading] = useState(false);
   const [addons, setAddons] = useState<any[]>([]);
   const [selectedVariantId, setSelectedVariantId] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
@@ -114,7 +115,8 @@ export default function PublicBooking() {
   // Fetch variants + addons whenever service changes
   useEffect(() => {
     setVariants([]); setAddons([]); setSelectedVariantId(""); setSelectedAddons([]);
-    if (!serviceId) return;
+    if (!serviceId) { setVariantsLoading(false); return; }
+    setVariantsLoading(true);
     const fetchVariantsAndAddons = async () => {
       const [vRes, aRes] = await Promise.all([
         (supabase as any).from("service_variants").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order"),
@@ -124,6 +126,7 @@ export default function PublicBooking() {
       if (aRes.error) console.error("Addons fetch error:", aRes.error);
       setVariants(vRes.data || []);
       setAddons(aRes.data || []);
+      setVariantsLoading(false);
     };
     fetchVariantsAndAddons();
   }, [serviceId]);
@@ -155,7 +158,8 @@ export default function PublicBooking() {
     return matchCat && matchSearch;
   });
 
-  const serviceHasVariants = variants.length > 0;
+  // While loading variants OR when variants exist: show 0 until one is selected
+  const serviceHasVariants = variantsLoading || variants.length > 0;
   const basePrice = selectedVariant
     ? Number(selectedVariant.price_adjustment)
     : serviceHasVariants ? 0 : Number(selectedService?.price || 0);
