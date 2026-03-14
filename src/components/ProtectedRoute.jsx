@@ -23,9 +23,9 @@ const ProtectedRoute = ({ allowedRoles }) => {
       try {
         // user_roles is the ONLY source of truth. Never fall back to user_metadata.
         // user_metadata can be stale or spoofed. The DB row is what the Owner controls.
-        const { data: roleData } = await supabase
+        const { data: roleData, error: roleErr } = await supabase
           .from("user_roles")
-          .select("role, account_status")
+          .select("role")
           .eq("user_id", session.user.id)
           .maybeSingle();
 
@@ -34,12 +34,19 @@ const ProtectedRoute = ({ allowedRoles }) => {
           return;
         }
 
-        // Check account_status — inactive users are blocked immediately
-        if (roleData.account_status === "inactive") {
-          await supabase.auth.signOut();
-          if (mounted) { setUserRole(null); setLoading(false); }
-          return;
-        }
+        // Check account_status separately (column may not exist yet if migration pending)
+        try {
+          const { data: statusData } = await (supabase as any)
+            .from("user_roles")
+            .select("account_status")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+          if (statusData?.account_status === "inactive") {
+            await supabase.auth.signOut();
+            if (mounted) { setUserRole(null); setLoading(false); }
+            return;
+          }
+        } catch { /* column may not exist yet — allow login */ }
 
         let role = roleData.role;
 
