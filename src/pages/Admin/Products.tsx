@@ -134,13 +134,13 @@ export default function ProductsPage() {
           <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(28px,4vw,42px)", fontWeight:700, color:TXT, margin:0, lineHeight:1 }}>Products</h1>
           <p style={{ fontSize:"12px", color:TXT_SOFT, marginTop:"6px" }}>Manage retail products and inventory</p>
         </div>
-        <button onClick={()=>navigate("/app/admin/product-sale")}
+        <button onClick={()=>navigate(isFinancial ? "/app/admin/product-sale" : "/app/receptionist/product-sale")}
           style={{ padding:"10px 20px", borderRadius:"12px", background:"linear-gradient(135deg," + G + "," + G_D + ")", color:W, border:"none", fontSize:"13px", fontWeight:600, cursor:"pointer", marginRight:"8px" }}>
           + Sell Products
         </button>
-        <button onClick={()=>{ reset(); setShowForm(v=>!v); }} style={{ padding:"10px 20px", borderRadius:"12px", background:showForm&&!editId?W:G, color:showForm&&!editId?TXT_MID:W, border:`1px solid ${showForm&&!editId?BORDER:G}`, fontSize:"13px", fontWeight:600, cursor:"pointer" }}>
+        {isFinancial && <button onClick={()=>{ reset(); setShowForm(v=>!v); }} style={{ padding:"10px 20px", borderRadius:"12px", background:showForm&&!editId?W:G, color:showForm&&!editId?TXT_MID:W, border:`1px solid ${showForm&&!editId?BORDER:G}`, fontSize:"13px", fontWeight:600, cursor:"pointer" }}>
           {showForm && !editId ? "Cancel" : "+ New Product"}
-        </button>
+        </button>}
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:"12px", marginBottom:"20px" }}>

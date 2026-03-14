@@ -53,7 +53,7 @@ export default function Auth() {
     const timeout = setTimeout(() => {
       setLoading(false);
       setError("Login timed out. Check your connection and try again.");
-    }, 15000);
+    }, 25000);
 
     try {
       const { data, error: authErr } = await supabase.auth.signInWithPassword({
@@ -93,29 +93,11 @@ export default function Auth() {
       }
 
       if (!roleData?.role) {
-        // Role missing — try to auto-assign via DB function before giving up
-        const fixRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/get_user_id_by_email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY, "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({ p_email: email.trim().toLowerCase() }),
-        }).catch(() => null);
-
-        // Re-check role after attempting fix
-        const { data: retryRole } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
-        if (!retryRole?.role) {
-          // Last resort: assign client role so they can at least log in
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/link_staff_account`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY, "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
-            body: JSON.stringify({ p_user_id: userId, p_staff_id: null, p_role: "client" }),
-          }).catch(() => null);
-
-          clearTimeout(timeout);
-          setError("No role assigned to this account. Contact the salon owner.");
-          await supabase.auth.signOut();
-          return;
-        }
-        roleData!.role = retryRole.role;
+        clearTimeout(timeout);
+        setError("No role assigned to this account. Contact the salon owner.");
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
       }
 
       let role = roleData.role;
