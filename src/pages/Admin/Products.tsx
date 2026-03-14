@@ -58,6 +58,7 @@ export default function ProductsPage() {
   const [userRole, setUserRole] = useState("");
   const [actualProductRevenue, setActualProductRevenue] = useState(0);
   const [actualProductCost, setActualProductCost] = useState(0);
+  const [perProductRevenue, setPerProductRevenue] = useState<Record<string, { revenue: number; units: number; cost: number }>>({});
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -85,10 +86,29 @@ export default function ProductsPage() {
             const productSales = (data || []).filter((s: any) =>
               s.notes && s.notes.toLowerCase().includes("product sale")
             );
-            setActualProductRevenue(
-              productSales.reduce((s: number, p: any) => s + Number(p.amount || 0), 0)
-            );
+            const salesRev = productSales.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+            setActualProductRevenue(salesRev);
           });
+      });
+
+    // Per-product revenue from sales table by service_name matching product names
+    (supabase as any).from("sales")
+      .select("amount, service_name, notes, status")
+      .eq("status", "completed")
+      .then(({ data }: any) => {
+        const prodSales = (data || []).filter((s: any) =>
+          s.notes && s.notes.toLowerCase().includes("product sale")
+        );
+        const map: Record<string, { revenue: number; units: number; cost: number }> = {};
+        for (const s of prodSales) {
+          const name = (s.service_name || "").replace(/ x\d+$/, "").trim();
+          const xMatch = (s.service_name || "").match(/ x(\d+)$/);
+          const units = xMatch ? parseInt(xMatch[1]) : 1;
+          if (!map[name]) map[name] = { revenue: 0, units: 0, cost: 0 };
+          map[name].revenue += Number(s.amount || 0);
+          map[name].units += units;
+        }
+        setPerProductRevenue(map);
       });
   }, []);
 
@@ -184,6 +204,86 @@ export default function ProductsPage() {
           <div>
             <p style={{ fontSize:"12px", fontWeight:700, color:"#DC2626", margin:"0 0 2px" }}>LOW STOCK ALERT</p>
             <p style={{ fontSize:"12px", color:"#991B1B", margin:0 }}>{lowStock.map(p=>`${p.name} (${p.stock_quantity} left)`).join(" · ")}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Per-product revenue breakdown — owner/admin only */}
+      {isFinancial && Object.keys(perProductRevenue).length > 0 && (
+        <div style={{ background:W, border:`1px solid ${BORDER}`, borderRadius:"16px", overflow:"hidden", boxShadow:SHADOW, marginBottom:"20px" }}>
+          <div style={{ padding:"16px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div>
+              <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.12em", color:G, textTransform:"uppercase", margin:"0 0 3px" }}>Revenue Breakdown</p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color:TXT, margin:0 }}>Product Performance</p>
+            </div>
+            <p style={{ fontSize:"11px", color:TXT_SOFT, margin:0 }}>All time · sorted by revenue</p>
+          </div>
+          <div style={{ overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+              <thead>
+                <tr style={{ background:CREAM }}>
+                  {["Product","Units Sold","Revenue","Cost","Profit","Margin","Stock Left","Action"].map(h=>(
+                    <th key={h} style={{ padding:"10px 14px", textAlign:"left", fontSize:"10px", fontWeight:700, color:TXT_SOFT, letterSpacing:"0.08em", borderBottom:`1px solid ${BORDER}`, whiteSpace:"nowrap" }}>{h.toUpperCase()}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(perProductRevenue)
+                  .sort((a,b) => b[1].revenue - a[1].revenue)
+                  .map(([name, data], i) => {
+                    const prod = products.find(p => p.name === name);
+                    const cost = prod ? prod.cost_price * data.units : 0;
+                    const profit = data.revenue - cost;
+                    const margin = data.revenue > 0 ? ((profit/data.revenue)*100).toFixed(0) : "0";
+                    const isProfit = profit >= 0;
+                    return (
+                      <tr key={name} style={{ borderBottom:`1px solid ${BORDER}`, background: i%2===0?W:CREAM }}>
+                        <td style={{ padding:"10px 14px", fontWeight:600, color:TXT }}>{name}</td>
+                        <td style={{ padding:"10px 14px", color:TXT_MID, textAlign:"center" }}>{data.units}</td>
+                        <td style={{ padding:"10px 14px", fontFamily:"'Cormorant Garamond',serif", fontWeight:700, color:G_D }}>GHS {data.revenue.toLocaleString()}</td>
+                        <td style={{ padding:"10px 14px", color:TXT_SOFT }}>GHS {cost.toLocaleString()}</td>
+                        <td style={{ padding:"10px 14px", fontWeight:700, color:isProfit?"#16A34A":"#DC2626" }}>
+                          {isProfit?"+":""}GHS {profit.toLocaleString()}
+                        </td>
+                        <td style={{ padding:"10px 14px" }}>
+                          <span style={{ fontSize:"11px", fontWeight:700, padding:"2px 8px", borderRadius:"20px",
+                            background:isProfit?"#F0FDF4":"#FEF2F2", color:isProfit?"#16A34A":"#DC2626" }}>
+                            {margin}%
+                          </span>
+                        </td>
+                        <td style={{ padding:"10px 14px", color: prod && prod.stock_quantity <= prod.low_stock_threshold ? "#DC2626" : TXT_MID, fontWeight: prod && prod.stock_quantity <= prod.low_stock_threshold ? 700 : 400 }}>
+                          {prod ? prod.stock_quantity : "—"}
+                          {prod && prod.stock_quantity <= prod.low_stock_threshold ? " ⚠" : ""}
+                        </td>
+                        <td style={{ padding:"10px 14px" }}>
+                          {prod && prod.stock_quantity === 0
+                            ? <span style={{ fontSize:"10px", fontWeight:700, color:"#DC2626" }}>OUT OF STOCK</span>
+                            : data.units === 0
+                            ? <span style={{ fontSize:"10px", color:TXT_SOFT }}>No sales</span>
+                            : profit < 0
+                            ? <span style={{ fontSize:"10px", fontWeight:700, color:"#DC2626" }}>Review pricing</span>
+                            : prod && prod.stock_quantity <= prod.low_stock_threshold
+                            ? <span style={{ fontSize:"10px", fontWeight:700, color:"#D97706" }}>Restock soon</span>
+                            : <span style={{ fontSize:"10px", color:"#16A34A" }}>Good</span>
+                          }
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+              <tfoot>
+                <tr style={{ background:CREAM, borderTop:`2px solid ${BORDER}` }}>
+                  <td style={{ padding:"10px 14px", fontWeight:700, color:TXT }}>TOTAL</td>
+                  <td style={{ padding:"10px 14px", fontWeight:700, color:TXT, textAlign:"center" }}>
+                    {Object.values(perProductRevenue).reduce((s,d)=>s+d.units,0)}
+                  </td>
+                  <td style={{ padding:"10px 14px", fontFamily:"'Cormorant Garamond',serif", fontSize:"16px", fontWeight:700, color:G_D }}>
+                    GHS {Object.values(perProductRevenue).reduce((s,d)=>s+d.revenue,0).toLocaleString()}
+                  </td>
+                  <td colSpan={5} />
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
       )}
