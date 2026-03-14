@@ -330,7 +330,7 @@ export default function PublicBooking() {
   // ── STATES ────────────────────────────────────────────────────
 
   if (step === "verifying") return (
-    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(var(--sat,0px) + 24px) 24px calc(var(--sab,0px) + 24px)", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap'); @keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ textAlign: "center" }}>
         <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
@@ -341,7 +341,7 @@ export default function PublicBooking() {
   );
 
   if (step === "redirecting") return (
-    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Montserrat:wght@400;500&display=swap'); @keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ textAlign: "center" }}>
         <Loader2 size={48} style={{ color: GOLD, animation: "spin 1s linear infinite", marginBottom: "24px" }} />
@@ -352,7 +352,7 @@ export default function PublicBooking() {
   );
 
   if (step === "done") return (
-    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(var(--sat,0px) + 24px) 24px calc(var(--sab,0px) + 24px)", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&display=swap');`}</style>
       <div style={{ maxWidth: "500px", width: "100%", textAlign: "center" }}>
         <div style={{ width: "90px", height: "90px", borderRadius: "50%", background: "rgba(200,169,126,0.12)", border: `2px solid ${GOLD}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
@@ -393,7 +393,7 @@ export default function PublicBooking() {
   );
 
   if (step === "failed") return (
-    <div style={{ background: CREAM, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(var(--sat,0px) + 24px) 24px calc(var(--sab,0px) + 24px)", fontFamily: "'Cormorant Garamond',serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap');`}</style>
       <div style={{ maxWidth: "440px", width: "100%", textAlign: "center" }}>
         <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: "rgba(239,68,68,0.08)", border: "2px solid #EF4444", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: "30px" }}>✗</div>
@@ -411,7 +411,7 @@ export default function PublicBooking() {
 
   // ── MAIN FORM ─────────────────────────────────────────────────
   return (
-    <div style={{ background: MID, minHeight: "100vh", fontFamily: "'Cormorant Garamond',serif" }}>
+    <div style={{ background: MID, minHeight: "100dvh", fontFamily: "'Cormorant Garamond',serif", paddingBottom: "var(--sab, 0px)" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(200,169,126,0.18); }
@@ -422,11 +422,11 @@ export default function PublicBooking() {
         .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
         .svc-select:hover { border-color: ${GOLD} !important; }
         @media (max-width: 900px) {
-          .bk-grid { grid-template-columns: 1fr !important; gap: 24px !important; padding: 24px 16px 60px !important; }
+          .bk-grid { grid-template-columns: 1fr !important; gap: 24px !important; padding: 24px 16px calc(60px + var(--sab, 0px)) !important; }
           .bk-sidebar { position: static !important; top: auto !important; }
         }
         @media (max-width: 480px) {
-          .bk-grid { padding: 16px 12px 60px !important; gap: 20px !important; }
+          .bk-grid { padding: 16px 12px calc(60px + var(--sab, 0px)) !important; gap: 20px !important; }
           .bk-form-grid { grid-template-columns: 1fr !important; }
           .bk-time-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .bk-section { padding: 20px 16px !important; }

@@ -206,7 +206,7 @@ export default function EnhancedBookingForm() {
   const steps = ["Your Details", "Service & Time", "Review & Book"];
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "32px 16px 60px" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", padding: "32px 16px 60px" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px ${GOLD}22; }

@@ -498,7 +498,7 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif" }}>
+      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: "48px", height: "48px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
           <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout...</p>
@@ -509,7 +509,7 @@ const Checkout = () => {
 
   if (!bookingId || !booking) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
+      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", padding: "48px 40px", maxWidth: "400px", width: "100%", textAlign: "center" }}>
           <Receipt style={{ width: "32px", height: "32px", color: "#C8A97E", margin: "0 auto 16px" }} />
           <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#1C160E", margin: "0 0 8px" }}>No Booking Selected</h2>
@@ -522,7 +522,7 @@ const Checkout = () => {
 
   if (completed) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
+      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "520px", width: "100%" }}>
           <div style={{ background: "linear-gradient(135deg,#C8A97E,#8B6914)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
             <CheckCircle2 style={{ width: "48px", height: "48px", margin: "0 auto 16px" }} />
@@ -580,7 +580,7 @@ const Checkout = () => {
 
   if (pending) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
+      <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
         <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", overflow: "hidden", maxWidth: "480px", width: "100%" }}>
           <div style={{ background: "linear-gradient(135deg,#D97706,#92400E)", padding: "40px 32px", textAlign: "center", color: "#FFFFFF" }}>
             <CheckCircle2 style={{ width: "48px", height: "48px", margin: "0 auto 16px" }} />
@@ -625,7 +625,7 @@ const Checkout = () => {
   const btnCursor = checkoutDisabled ? "not-allowed" : "pointer";
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <div style={{ maxWidth: "960px", margin: "0 auto" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>

@@ -136,7 +136,7 @@ export default function AuthCallback() {
   const isConfirmed = status.includes("✓");
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Montserrat', sans-serif", background: "#FDFCF9", padding: 24 }}>
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Montserrat', sans-serif", background: "#FDFCF9", padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pop { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }`}</style>
       <img src="/logo.png" style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "2px solid #C8A97E", marginBottom: 24 }} alt="Zolara"
         onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />

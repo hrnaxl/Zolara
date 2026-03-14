@@ -191,7 +191,7 @@ export default function Settings() {
   };
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM }}>
+    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM }}>
       <Loader2 size={28} style={{ animation: "spin 0.8s linear infinite", color: G }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
@@ -200,7 +200,7 @@ export default function Settings() {
   const tab = (id: TabId, content: React.ReactNode) => activeTab === id ? content : null;
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
         @keyframes spin{to{transform:rotate(360deg)}}

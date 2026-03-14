@@ -152,7 +152,7 @@ const StaffDashboard = () => {
   }
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(14px,4vw,32px) clamp(12px,4vw,36px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", padding: "clamp(14px,4vw,32px) clamp(12px,4vw,36px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}

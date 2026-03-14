@@ -339,7 +339,7 @@ export default function Attendance() {
   };
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       {/* Header */}
       <div style={{ marginBottom: "28px" }}>
         <p style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.16em", color: G, textTransform: "uppercase", marginBottom: "4px" }}>Daily Operations</p>

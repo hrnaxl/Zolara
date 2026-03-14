@@ -166,7 +166,7 @@ export default function GiftCardBatchGenerator() {
   };
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,3vw,32px) clamp(12px,3vw,24px)", fontFamily: "'Montserrat', sans-serif" }}>
+    <div style={{ background: CREAM, minHeight: "100dvh", padding: "clamp(16px,3vw,32px) clamp(12px,3vw,24px)", fontFamily: "'Montserrat', sans-serif" }}>
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, color: NAVY, marginBottom: 4 }}>
           Physical Gift Card Generator

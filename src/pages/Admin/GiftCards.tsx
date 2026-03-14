@@ -297,7 +297,7 @@ export default function GiftCards() {
 
   // ─── Render ──────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif", padding: "28px 24px" }}>
+    <div style={{ minHeight: "100dvh", background: CREAM, fontFamily: "'Montserrat', sans-serif", padding: "28px 24px" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         .gc-card { background:${WHITE}; border:1px solid ${BORDER}; border-radius:14px; padding:18px 20px; transition:box-shadow 0.2s; }
