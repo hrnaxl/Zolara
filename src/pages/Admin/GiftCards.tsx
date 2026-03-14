@@ -345,7 +345,7 @@ export default function GiftCards() {
         {[
           { label:"TOTAL REVENUE COLLECTED", val:`GHS ${totalRevCollected.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${cards.filter(c=>isPaid(c)).length} cards sold all time`, icon:"💰", color:"#8B6914", bg:"#FBF6EE" },
           { label:"OUTSTANDING VALUE", val:`GHS ${outstandingValue.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${totalActive} active cards (unredeemed)`, icon:"🎁", color:"#6366F1", bg:"#EEF2FF" },
-          { label:"REDEEMED ALL TIME", val: totalRedeemed, sub:`GHS ${cards.filter(c=>c.status==="redeemed").reduce((s,c)=>s+getValue(c),0).toLocaleString()} redeemed`, icon:"✓", color:"#16A34A", bg:"#F0FDF4" },
+          { label:"REDEEMED ALL TIME", val: totalRedeemed, sub:"Gift cards fully used", icon:"✓", color:"#16A34A", bg:"#F0FDF4" },
           { label:"PENDING EMAIL SEND", val: totalPendingEmail, sub: totalPendingEmail > 0 ? "Sends within 5 minutes" : "All emails sent", icon:"📧", color: totalPendingEmail > 0 ? "#1D4ED8" : "#16A34A", bg: totalPendingEmail > 0 ? "#DBEAFE" : "#F0FDF4" },
         ].map((s, i) => (
           <div key={i} className="gc-card" style={{ padding:"20px", background: s.bg, border:`1px solid ${s.color}22` }}>

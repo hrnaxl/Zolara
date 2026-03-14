@@ -49,6 +49,7 @@ export default function ClientProfile() {
           phone:         form.phone.trim() || null,
           email:         form.email.trim() || null,
           date_of_birth: form.date_of_birth || null,
+          birthday:      form.date_of_birth || null,
         })
         .eq("id", client.id);
 

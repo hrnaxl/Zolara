@@ -863,7 +863,7 @@ const AdminDashboard = () => {
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(20px,2vw,28px)", fontWeight:700, color: TXT, lineHeight:1.1, marginBottom:"14px" }}>{c.val}</div>
             <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
               <span style={{ display:"inline-flex", alignItems:"center", gap:"3px", fontSize:"11px", fontWeight:700, padding:"2px 8px", borderRadius:"12px", background: c.bg, color: c.color }}>
-                {c.pct === 0 ? "—" : c.pct > 0 ? `↑ +${c.pct}%` : `↓ ${c.pct}%`}
+                {c.pct == null ? "—" : c.pct === 0 ? "—" : c.pct > 0 ? `↑ +${c.pct}%` : `↓ ${c.pct}%`}
               </span>
               <span style={{ fontSize:"10px", color: TXT_SOFT }}>{c.note}</span>
             </div>

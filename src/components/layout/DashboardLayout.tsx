@@ -133,7 +133,7 @@ const DashboardLayout = () => {
     { icon: Users,           label: "Clients",             path: "clients" },
     { icon: UserCog,         label: "Staff",               path: "staff" },
     { icon: Scissors,        label: "Services",            path: "services" },
-    { icon: CreditCard,      label: "Sales",               path: "sales" },
+    { icon: CreditCard,      label: "Sales & Revenue",     path: "sales" },
     { icon: Gift,            label: "Gift Cards",          path: "gift-cards" },
     { icon: Gift,            label: "Print Gift Cards",     path: "gift-card-batches" },
     { icon: CheckIcon,       label: "Checkout",            path: "checkout" },

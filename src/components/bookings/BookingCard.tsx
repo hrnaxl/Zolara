@@ -1,32 +1,11 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import {
-  Pencil,
-  Trash2,
-  CheckCircle2,
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  User,
-  DollarSign,
-} from "lucide-react";
+import { Pencil, Trash2, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BookingCardProps {
@@ -41,273 +20,178 @@ interface BookingCardProps {
   paymentStatus?: "pending" | "completed" | "refunded";
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "pending":      return "z-badge z-badge-blue";
-    case "confirmed":    return "z-badge z-badge-amber";
-    case "completed":    return "z-badge z-badge-green";
-    case "cancelled":    return "z-badge z-badge-red";
-    case "in_progress":  return "z-badge z-badge-purple";
-    case "no_show":      return "z-badge z-badge-gray";
-    default:             return "z-badge z-badge-gray";
-  }
-};
-
-const getPaymentStatusBadge = (status?: string) => {
-  switch (status) {
-    case "paid":
-      return (
-        <Badge className="z-badge z-badge-green  text-xs">
-          <DollarSign className="w-3 h-3 mr-0.5" />
-          Paid
-        </Badge>
-      );
-    case "partial":
-      return (
-        <Badge className="z-badge z-badge-amber  text-xs">
-          <DollarSign className="w-3 h-3 mr-0.5" />
-          Partial
-        </Badge>
-      );
-    default:
-      return (
-        <Badge className="z-badge z-badge-red  text-xs">
-          <DollarSign className="w-3 h-3 mr-0.5" />
-          Unpaid
-        </Badge>
-      );
-  }
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  pending:     { bg: "#EFF6FF", color: "#2563EB" },
+  confirmed:   { bg: "#FFFBEB", color: "#D97706" },
+  completed:   { bg: "#F0FDF4", color: "#16A34A" },
+  cancelled:   { bg: "#FEF2F2", color: "#DC2626" },
+  in_progress: { bg: "#F5F3FF", color: "#7C3AED" },
+  no_show:     { bg: "#F3F4F6", color: "#6B7280" },
 };
 
 export const BookingCard = ({
-  booking,
-  staff,
-  isSelected,
-  onSelect,
-  onEdit,
-  onDelete,
-  onStatusUpdate,
-  onQuickAssign,
-  paymentStatus = "pending",
+  booking, staff, isSelected, onSelect, onEdit, onDelete, onStatusUpdate, onQuickAssign,
 }: BookingCardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [notesOpen, setNotesOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const isCompleted = booking.status === "completed" || booking.status === "cancelled" || booking.status === "no_show";
   const isUnassigned = !booking.staff_id;
+  const ss = STATUS_STYLES[booking.status] || STATUS_STYLES.pending;
+  const G = "#C8A97E", G_D = "#8B6914";
 
   return (
-    <Card
-      className={cn(
-        "rounded-2xl border shadow-sm hover:shadow-lg transition-all",
-        isSelected && "ring-2 ring-primary border-primary",
-        isUnassigned && "border-l-4 border-l-warning",
-      )}
+    <div
+      style={{
+        background: "#fff",
+        border: `1px solid ${isSelected ? G : isUnassigned && !isCompleted ? "#F59E0B55" : "#EDEBE5"}`,
+        borderLeft: isUnassigned && !isCompleted ? "3px solid #F59E0B" : isSelected ? `3px solid ${G}` : "1px solid #EDEBE5",
+        borderRadius: 14,
+        overflow: "hidden",
+        transition: "box-shadow 0.15s, border-color 0.15s",
+        boxShadow: isSelected ? `0 0 0 2px ${G}33` : "0 1px 3px rgba(0,0,0,0.04)",
+        fontFamily: "Montserrat, sans-serif",
+      }}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-start gap-3">
-          {/* Selection Checkbox */}
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onSelect(booking.id)}
-            className="mt-1"
-          />
-
-          <div className="flex-1">
-            <div className="flex justify-between items-start gap-2">
-              <div>
-                <CardTitle className="text-lg font-semibold">
-                  {booking.client_name || "Unknown Client"}
-                </CardTitle>
-                {/* Multi-service display */}
-                {Array.isArray((booking as any).services_cart) && (booking as any).services_cart.length > 1 ? (
-                  <div className="mt-0.5 space-y-0.5">
-                    {(booking as any).services_cart.map((item: any, i: number) => (
-                      <p key={i} className="text-xs text-muted-foreground">
-                        · {item.service_name}{item.variant_name ? ` (${item.variant_name})` : ""}
-                        <span className="text-amber-700 font-semibold ml-1">GHS {Number(item.price).toLocaleString()}</span>
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {booking.service_name || "No service"}
-                  </p>
-                )}
-                {(booking as any).variant_name && !(Array.isArray((booking as any).services_cart) && (booking as any).services_cart.length > 1) && (
-                  <p className="text-xs mt-0.5 text-amber-700 dark:text-amber-400 font-medium">
-                    ↳ {(booking as any).variant_name}
-                  </p>
-                )}
-                {Array.isArray((booking as any).addon_names) && (booking as any).addon_names.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(booking as any).addon_names.map((a: any, i: number) => (
-                      <span key={i} className="inline-flex items-center gap-0.5 text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5">
-                        + {typeof a === "string" ? a : a.name}
-                        {typeof a === "object" && a.price ? ` (GHS ${a.price})` : ""}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1 items-end">
-                <Badge
-                  className={cn(
-                    getStatusColor(booking.status),
-                    "text-xs px-3 py-1 rounded-full",
-                  )}
-                >
-                  {booking.status.charAt(0).toUpperCase() +
-                    booking.status.slice(1)}
-                </Badge>
-                {/* {getPaymentStatusBadge(paymentStatus)} */}
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3 text-sm">
-        <div className="grid grid-cols-2 gap-4">
-          {/* Staff Assignment */}
-          <div>
-            <p className="text-muted-foreground text-xs mb-1">Staff</p>
-            {isUnassigned ? (
-              <div className="space-y-1">
-                <Badge
-                  variant="outline"
-                  className="bg-warning/10 text-warning border-warning/30 text-xs"
-                >
-                  <AlertTriangle className="w-3 h-3 mr-1" />
-                  Unassigned
-                </Badge>
-                <Select
-                  onValueChange={(value) => onQuickAssign(booking.id, value)}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Quick assign" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {staff.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <User className="w-3 h-3 text-muted-foreground" />
-                <span className="font-medium">{booking.staff_name}</span>
-              </div>
-            )}
-          </div>
-
-          <div>\n            <p className="text-muted-foreground text-xs">Date & Time</p>
-            <p className="font-medium">
-              {format(new Date(booking.preferred_date), "MMM dd, yyyy")} at{" "}
-              {booking.preferred_time}
-            </p>
-            {booking.price != null && (
-              <p className="text-sm font-semibold mt-1">
-                GHS {Number(booking.price).toLocaleString()}
-                {(booking as any).addon_total > 0 && (
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
-                    (incl. GHS {(booking as any).addon_total} enhancements)
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
+      {/* ── Compact row (always visible) ── */}
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: isCompleted ? "10px 14px" : "14px 16px", cursor: isCompleted ? "pointer" : "default" }}
+        onClick={() => isCompleted && setExpanded(v => !v)}
+      >
+        <div onClick={e => { e.stopPropagation(); onSelect(booking.id); }}>
+          <Checkbox checked={isSelected} onCheckedChange={() => onSelect(booking.id)} />
         </div>
 
-        {/* Expandable Notes */}
-        {booking.notes && (
-          <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
-            <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              {notesOpen ? (
-                <ChevronUp className="w-3 h-3" />
-              ) : (
-                <ChevronDown className="w-3 h-3" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: isCompleted ? 13 : 14, fontWeight: 600, color: "#1C160E" }}>
+              {booking.client_name || "Unknown Client"}
+            </span>
+            <span style={{ fontSize: 11, color: "#78716C" }}>·</span>
+            <span style={{ fontSize: isCompleted ? 11 : 12, color: "#78716C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>
+              {booking.service_name || "No service"}
+            </span>
+            {(booking as any).variant_name && (
+              <span style={{ fontSize: 10, color: G_D, background: "#FBF6EE", padding: "1px 6px", borderRadius: 10 }}>
+                {(booking as any).variant_name}
+              </span>
+            )}
+          </div>
+          {!isCompleted && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: "#78716C" }}>
+                {format(new Date(booking.preferred_date), "MMM d")} · {(booking.preferred_time || "").slice(0, 5)}
+              </span>
+              {booking.staff_name && (
+                <span style={{ fontSize: 11, color: "#78716C", display: "flex", alignItems: "center", gap: 3 }}>
+                  <User size={11} /> {booking.staff_name}
+                </span>
               )}
-              {notesOpen ? "Hide notes" : "Show notes"}
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2">
-              <div className="text-sm italic border-l-4 border-muted pl-3 py-1 bg-muted/30 rounded-r">
-                {booking.notes}
-                {booking.note_source && (
-                  <span className="block text-xs text-muted-foreground mt-1">
-                    — Added by{" "}
-                    {booking.note_source === "client" ? "Client" : "Staff"}
-                  </span>
-                )}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
-
-        {/* Status update */}
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground text-sm font-medium">
-            Update status
-          </span>
-          <Select
-            value={booking.status}
-            onValueChange={(value) => onStatusUpdate(booking.id, value)}
-          >
-            <SelectTrigger className="w-[140px] h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">Scheduled</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="no_show">No Show</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex justify-end gap-2 pt-2 flex-wrap">
-          {["pending", "confirmed"].includes(booking.status) && (
-            <Button
-              size="sm"
-              className="rounded-xl flex items-center gap-1 gradient-green text-white"
-              style={{ background: "linear-gradient(90deg,#10b981,#059669)" }}
-              onClick={() => {
-                const basePath = location.pathname.includes("/receptionist/")
-                  ? "/app/receptionist/checkout"
-                  : "/app/admin/checkout";
-                navigate(`${basePath}?booking=${booking.id}`);
-              }}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Check Out
-            </Button>
+              {booking.price != null && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: G_D }}>GHS {Number(booking.price).toLocaleString()}</span>
+              )}
+            </div>
           )}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-xl"
-            onClick={() => onEdit(booking)}
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-xl text-destructive border-destructive/30 hover:bg-destructive/10"
-            onClick={() => onDelete(booking.id)}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
         </div>
-      </CardContent>
-    </Card>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 10px", borderRadius: 20, background: ss.bg, color: ss.color }}>
+            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace("_", " ")}
+          </span>
+          {isCompleted
+            ? <ChevronDown size={14} style={{ color: "#A8A29E", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+            : (
+              <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
+                {["pending", "confirmed"].includes(booking.status) && (
+                  <button
+                    onClick={() => navigate((location.pathname.includes("/receptionist/") ? "/app/receptionist/checkout" : "/app/admin/checkout") + `?booking=${booking.id}`)}
+                    style={{ padding: "5px 12px", borderRadius: 8, background: `linear-gradient(135deg,${G},${G_D})`, color: "#fff", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    <CheckCircle2 size={12} /> Out
+                  </button>
+                )}
+                <button onClick={() => onEdit(booking)} style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid #EDEBE5", background: "#fff", cursor: "pointer" }}>
+                  <Pencil size={13} color="#78716C" />
+                </button>
+                <button onClick={() => onDelete(booking.id)} style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid #FECACA", background: "#FEF2F2", cursor: "pointer" }}>
+                  <Trash2 size={13} color="#DC2626" />
+                </button>
+              </div>
+            )
+          }
+        </div>
+      </div>
+
+      {/* ── Expanded details (completed/cancelled only) ── */}
+      {isCompleted && expanded && (
+        <div style={{ borderTop: "1px solid #F5F0EA", padding: "12px 16px", background: "#FAFAF8" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div>
+              <p style={{ fontSize: 10, color: "#A8A29E", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 3 }}>DATE & TIME</p>
+              <p style={{ fontSize: 12, color: "#1C160E", fontWeight: 600 }}>
+                {format(new Date(booking.preferred_date), "MMM d, yyyy")} · {(booking.preferred_time || "").slice(0, 5)}
+              </p>
+            </div>
+            <div>
+              <p style={{ fontSize: 10, color: "#A8A29E", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 3 }}>STAFF</p>
+              <p style={{ fontSize: 12, color: "#1C160E", fontWeight: 600 }}>{booking.staff_name || "—"}</p>
+            </div>
+            {booking.price != null && (
+              <div>
+                <p style={{ fontSize: 10, color: "#A8A29E", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 3 }}>AMOUNT</p>
+                <p style={{ fontSize: 13, color: G_D, fontFamily: "'Cormorant Garamond',serif", fontWeight: 700 }}>GHS {Number(booking.price).toLocaleString()}</p>
+              </div>
+            )}
+            {(booking as any).addon_names?.length > 0 && (
+              <div>
+                <p style={{ fontSize: 10, color: "#A8A29E", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 3 }}>ADD-ONS</p>
+                <p style={{ fontSize: 11, color: "#78716C" }}>{((booking as any).addon_names as any[]).map((a: any) => typeof a === "string" ? a : a.name).join(", ")}</p>
+              </div>
+            )}
+          </div>
+          {booking.notes && (
+            <div style={{ fontSize: 11, color: "#78716C", fontStyle: "italic", borderLeft: `3px solid ${G}`, paddingLeft: 10, paddingTop: 4, paddingBottom: 4 }}>
+              {booking.notes}
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => onEdit(booking)} style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #EDEBE5", background: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <Pencil size={12} /> Edit
+            </button>
+            <button onClick={() => onDelete(booking.id)} style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #FECACA", background: "#FEF2F2", fontSize: 11, color: "#DC2626", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <Trash2 size={12} /> Delete
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Active booking full controls ── */}
+      {!isCompleted && (
+        <div style={{ borderTop: "1px solid #F5F0EA", padding: "10px 16px", background: "#FAFAF8", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {isUnassigned ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangle size={13} color="#F59E0B" />
+              <Select onValueChange={(value) => onQuickAssign(booking.id, value)}>
+                <SelectTrigger style={{ height: 30, fontSize: 11, width: 160 }}><SelectValue placeholder="Assign staff" /></SelectTrigger>
+                <SelectContent>{staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          ) : null}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 10, color: "#A8A29E" }}>Status</span>
+            <Select value={booking.status} onValueChange={(value) => onStatusUpdate(booking.id, value)}>
+              <SelectTrigger style={{ height: 30, fontSize: 11, width: 130 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Scheduled</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="no_show">No Show</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

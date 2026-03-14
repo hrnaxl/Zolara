@@ -59,12 +59,17 @@ const ReceptionistDashboard = () => {
       const { count: clientCount } = await supabase
         .from("clients").select("*", { count: "exact", head: true });
 
-      const { data: todaySales = [] } = await supabase
-        .from("sales").select("amount")
+      const { data: todaySalesRaw = [] } = await supabase
+        .from("sales").select("amount, notes, service_name")
         .eq("status", "completed")
         .gte("created_at", startOfDay(new Date()).toISOString())
         .lte("created_at", endOfDay(new Date()).toISOString());
 
+      // Receptionist sees: services + products + physical gift cards (NOT online gift card purchases)
+      const todaySales = (todaySalesRaw as any[]).filter((s: any) =>
+        !(s.notes && s.notes.toLowerCase().includes("gift card purchase online")) &&
+        !(s.notes && s.notes.toLowerCase().includes("gift card purchase online"))
+      );
       const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0);
       const checkedIn = bookings.filter((b: any) => b.status === "confirmed").length;
       // Staff clocked in today

@@ -117,11 +117,10 @@ export default function Loyalty() {
 
   const progress = (stamps: number) => Math.min((stamps % STAMPS_PER_REWARD) / STAMPS_PER_REWARD * 100, 100);
   const stampsToNext = (stamps: number) => STAMPS_PER_REWARD - (stamps % STAMPS_PER_REWARD);
-  const tier = (stamps: number) => {
-    const total = stamps + 0;
-    if (total >= 50) return { name: "Diamond", color: "#60A5FA", icon: "💎" };
-    if (total >= 30) return { name: "Gold", color: G.gold, icon: "👑" };
-    if (total >= 15) return { name: "Silver", color: "#9CA3AF", icon: "⭐" };
+  const tier = (points: number) => {
+    if (points >= 3000) return { name: "Diamond", color: "#60A5FA", icon: "💎" };
+    if (points >= 1500) return { name: "Gold",    color: G.gold,    icon: "👑" };
+    if (points >= 500)  return { name: "Silver",  color: "#9CA3AF", icon: "⭐" };
     return { name: "Bronze", color: "#CD7F32", icon: "🌟" };
   };
 

@@ -13,10 +13,10 @@ const WHITE  = "#FFFFFF";
 const BORDER = "#EDE8E0";
 
 const TIERS = [
-  { min: 0,    name: "Bronze",   color: "#CD7F32", bg: "rgba(205,127,50,0.15)" },
-  { min: 200,  name: "Silver",   color: "#A0A0A0", bg: "rgba(160,160,160,0.15)" },
-  { min: 500,  name: "Gold",     color: G,          bg: "rgba(200,169,126,0.15)" },
-  { min: 1000, name: "Platinum", color: "#B9F2FF",  bg: "rgba(185,242,255,0.15)" },
+  { min: 0,    name: "Bronze",  color: "#CD7F32", bg: "rgba(205,127,50,0.15)" },
+  { min: 500,  name: "Silver",  color: "#A0A0A0", bg: "rgba(160,160,160,0.15)" },
+  { min: 1500, name: "Gold",    color: G,          bg: "rgba(200,169,126,0.15)" },
+  { min: 3000, name: "Diamond", color: "#60A5FA",  bg: "rgba(96,165,250,0.15)" },
 ];
 const getTier = (pts: number) => [...TIERS].reverse().find(t => pts >= t.min) || TIERS[0];
 
