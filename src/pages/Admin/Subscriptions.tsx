@@ -9,7 +9,7 @@ const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
 const inp: React.CSSProperties = { width:"100%", border:`1.5px solid ${BORDER}`, borderRadius:"10px", padding:"9px 12px", fontSize:"13px", color:TXT, outline:"none", background:W, fontFamily:"Montserrat,sans-serif" };
 const lbl: React.CSSProperties = { fontSize:"11px", fontWeight:600, color:TXT_SOFT, textTransform:"uppercase", letterSpacing:"0.1em", display:"block", marginBottom:"6px" };
 
-const emptyPlan = { name:"", description:"", monthly_price:"", billing_cycle:"monthly", included_services:"", max_usage_per_cycle:"2", is_active:true };
+const emptyPlan = { name:"", description:"", price:"", billing_cycle:"monthly", included_services:"", max_usage_per_cycle:"2", is_active:true };
 
 export default function SubscriptionsPage() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -27,7 +27,7 @@ export default function SubscriptionsPage() {
     setLoading(true);
     try {
       const [plansRes, clientsRes] = await Promise.all([
-        (supabase as any).from("subscription_plans").select("*").order("monthly_price"),
+        (supabase as any).from("subscription_plans").select("*").order("price"),
         (supabase as any).from("clients").select("id,name,phone").order("name"),
       ]);
       if (plansRes.error) throw plansRes.error;
@@ -59,11 +59,11 @@ export default function SubscriptionsPage() {
 
   const savePlan = async () => {
     if (!form.name.trim()) { toast.error("Name required"); return; }
-    if (!form.monthly_price) { toast.error("Price required"); return; }
+    if (!form.price) { toast.error("Price required"); return; }
     setSaving(true);
     try {
       const services = form.included_services.split("\n").map((s:string)=>s.trim()).filter(Boolean);
-      const payload: any = { name:form.name.trim(), description:form.description.trim()||null, monthly_price:parseFloat(form.monthly_price)||0, billing_cycle:form.billing_cycle, max_usage_per_cycle:parseInt(form.max_usage_per_cycle)||2, is_active:form.is_active };
+      const payload: any = { name:form.name.trim(), description:form.description.trim()||null, price:parseFloat(form.price)||0, billing_cycle:form.billing_cycle, max_usage_per_cycle:parseInt(form.max_usage_per_cycle)||2, is_active:form.is_active };
       // Only include included_services if column exists (added via SQL migration)
       try { payload.included_services = services; } catch(e) {}
       const { error } = editId ? await (supabase as any).from("subscription_plans").update(payload).eq("id",editId) : await (supabase as any).from("subscription_plans").insert([payload]);
@@ -104,7 +104,7 @@ export default function SubscriptionsPage() {
   };
 
   const activeSubs = subs.filter(s=>s.status==="active");
-  const mrr = activeSubs.reduce((t,s)=>t+Number(s.subscription_plans?.monthly_price||0),0);
+  const mrr = activeSubs.reduce((t,s)=>t+Number(s.subscription_plans?.price||0),0);
 
   const STATUS_COLOR: Record<string,{bg:string;color:string}> = {
     active:{bg:"#F0FDF4",color:"#16A34A"},
@@ -153,7 +153,7 @@ export default function SubscriptionsPage() {
               <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color:TXT, marginBottom:"20px" }}>{editId?"Edit Plan":"New Plan"}</p>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }}>
                 <div><label style={lbl}>Plan Name *</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} style={inp} placeholder="e.g. VIP Monthly" /></div>
-                <div><label style={lbl}>Monthly Price (GHS) *</label><input type="number" min="0" value={form.monthly_price} onChange={e=>setForm(f=>({...f,monthly_price:e.target.value}))} style={inp} placeholder="0" /></div>
+                <div><label style={lbl}>Monthly Price (GHS) *</label><input type="number" min="0" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))} style={inp} placeholder="0" /></div>
                 <div><label style={lbl}>Billing Cycle</label>
                   <select value={form.billing_cycle} onChange={e=>setForm(f=>({...f,billing_cycle:e.target.value}))} style={inp}>
                     <option value="monthly">Monthly</option>
@@ -199,7 +199,7 @@ export default function SubscriptionsPage() {
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px" }}>
                     <div>
                       <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color:TXT, margin:"0 0 4px" }}>{p.name}</p>
-                      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"28px", fontWeight:700, color:G_D, margin:0 }}>GHS {Number(p.monthly_price).toFixed(0)}<span style={{ fontSize:"12px", fontWeight:500, color:TXT_SOFT }}>/{p.billing_cycle==="monthly"?"mo":p.billing_cycle==="quarterly"?"qtr":"yr"}</span></p>
+                      <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"28px", fontWeight:700, color:G_D, margin:0 }}>GHS {Number(p.price).toFixed(0)}<span style={{ fontSize:"12px", fontWeight:500, color:TXT_SOFT }}>/{p.billing_cycle==="monthly"?"mo":p.billing_cycle==="quarterly"?"qtr":"yr"}</span></p>
                     </div>
                     <span style={{ fontSize:"9px", padding:"3px 10px", borderRadius:"20px", fontWeight:700, background:p.is_active?"#F0FDF4":"#F5F5F5", color:p.is_active?"#16A34A":"#999" }}>{p.is_active?"ACTIVE":"OFF"}</span>
                   </div>
@@ -209,7 +209,7 @@ export default function SubscriptionsPage() {
                     <p key={i} style={{ fontSize:"12px", color:TXT_MID, margin:"2px 0" }}>• {s}</p>
                   ))}
                   <div style={{ display:"flex", gap:"8px", marginTop:"16px" }}>
-                    <button onClick={()=>{ setForm({ name:p.name, description:p.description||"", monthly_price:p.monthly_price.toString(), billing_cycle:p.billing_cycle, included_services:Array.isArray(p.included_services)?p.included_services.join("\n"):"", max_usage_per_cycle:p.max_usage_per_cycle.toString(), is_active:p.is_active }); setEditId(p.id); setShowForm(true); window.scrollTo({top:0,behavior:"smooth"}); }} style={{ flex:1, padding:"7px", borderRadius:"8px", border:`1px solid ${BORDER}`, background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:TXT_MID }}>Edit</button>
+                    <button onClick={()=>{ setForm({ name:p.name, description:p.description||"", price:p.price.toString(), billing_cycle:p.billing_cycle, included_services:Array.isArray(p.included_services)?p.included_services.join("\n"):"", max_usage_per_cycle:p.max_usage_per_cycle.toString(), is_active:p.is_active }); setEditId(p.id); setShowForm(true); window.scrollTo({top:0,behavior:"smooth"}); }} style={{ flex:1, padding:"7px", borderRadius:"8px", border:`1px solid ${BORDER}`, background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:TXT_MID }}>Edit</button>
                     <button onClick={()=>deletePlan(p.id)} style={{ padding:"7px 12px", borderRadius:"8px", border:"1px solid #FECACA", background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:"#DC2626" }}>Delete</button>
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export default function SubscriptionsPage() {
               <label style={lbl}>Subscription Plan</label>
               <select value={assignForm.subscription_id} onChange={e=>setAssignForm(f=>({...f,subscription_id:e.target.value}))} style={inp}>
                 <option value="">Select plan...</option>
-                {plans.filter(p=>p.is_active).map(p=><option key={p.id} value={p.id}>{p.name} — GHS {Number(p.monthly_price).toFixed(0)}/mo</option>)}
+                {plans.filter(p=>p.is_active).map(p=><option key={p.id} value={p.id}>{p.name} — GHS {Number(p.price).toFixed(0)}/mo</option>)}
               </select>
             </div>
             <button onClick={assignSub} disabled={saving||!assignForm.client_id||!assignForm.subscription_id}

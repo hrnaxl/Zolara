@@ -103,7 +103,7 @@ export default function LineItemsPanel(props: Props) {
           <div style={{ marginTop: "14px", padding: "10px 14px", borderRadius: "10px", background: "#F5F3FF", border: "1px solid #DDD6FE", display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{ fontSize: "10px", fontWeight: 700, color: "#7C3AED", letterSpacing: "0.1em" }}>ACTIVE PLAN</span>
             <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{clientSubscription.subscription_plans?.name}</span>
-            <span style={{ fontSize: "11px", color: TXT_SOFT, marginLeft: "auto" }}>GHS {Number(clientSubscription.subscription_plans?.monthly_price || 0).toFixed(0)}/mo</span>
+            <span style={{ fontSize: "11px", color: TXT_SOFT, marginLeft: "auto" }}>GHS {Number(clientSubscription.subscription_plans?.price || 0).toFixed(0)}/mo</span>
             <span style={{ fontSize: "10px", color: "#7C3AED" }}>{clientSubscription.subscription_plans?.max_usage_per_cycle || 2} uses/cycle</span>
           </div>
         )}

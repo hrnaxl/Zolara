@@ -80,6 +80,7 @@ const Staff = () => {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
+  const canManageStaff = userRole === "owner" || userRole === "admin";
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -453,12 +454,14 @@ const Staff = () => {
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          {canManageStaff && (
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
               Add Staff / Receptionist
             </Button>
           </DialogTrigger>
+          )}
 
           <DialogContent className="max-w-md grid gap-4 p-6">
             <DialogHeader>
@@ -696,14 +699,16 @@ const Staff = () => {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", paddingTop: "12px", borderTop: "1px solid #F0EBE2" }}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleEditMember(member); }}
-                  style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #EDE8E0", background: "#fff", color: "#57534E", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.15s" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#C8A97E"; (e.currentTarget as HTMLElement).style.color = "#8B6914"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#EDE8E0"; (e.currentTarget as HTMLElement).style.color = "#57534E"; }}
-                >
-                  <Pencil style={{ width: "12px", height: "12px" }} /> Edit
-                </button>
+                {(userRole === "owner" || userRole === "admin") && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleEditMember(member); }}
+                    style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #EDE8E0", background: "#fff", color: "#57534E", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.15s" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#C8A97E"; (e.currentTarget as HTMLElement).style.color = "#8B6914"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#EDE8E0"; (e.currentTarget as HTMLElement).style.color = "#57534E"; }}
+                  >
+                    <Pencil style={{ width: "12px", height: "12px" }} /> Edit
+                  </button>
+                )}
                 <button
                   onClick={(e) => { e.stopPropagation(); setSelectedStaff(member); setProfileOpen(true); fetchStaffProfile(member.id).then(() => setAssignDialogOpen(true)); }}
                   style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", border: "1.5px solid #EDE8E0", background: "#fff", color: "#57534E", cursor: "pointer", transition: "all 0.15s" }}

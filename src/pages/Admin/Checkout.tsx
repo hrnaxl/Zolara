@@ -126,7 +126,7 @@ const Checkout = () => {
   };
 
   const fetchClientSubscription = async (clientId: string) => {
-    const { data } = await (supabase as any).from("client_subscriptions").select("*, subscription_plans(name,monthly_price,included_services,max_usage_per_cycle)").eq("client_id", clientId).eq("status", "active").maybeSingle();
+    const { data } = await (supabase as any).from("client_subscriptions").select("*, subscription_plans(name,price,included_services,max_usage_per_cycle)").eq("client_id", clientId).eq("status", "active").maybeSingle();
     setClientSubscription(data || null);
   };
 
@@ -444,9 +444,27 @@ const Checkout = () => {
             {lineItems.map((item, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EDEBE5" }}>
                 <span style={{ fontSize: "12px", color: "#78716C" }}>{item.type === "service" ? "Service" : item.type === "product" ? "Product" : "Plan"}: {item.name}{item.quantity > 1 ? (" x" + item.quantity) : ""}</span>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : "#1C160E" }}>{item.coveredBySubscription ? "Included" : `GHS ${(item.unitPrice * item.quantity).toFixed(2)}`}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: item.coveredBySubscription ? "#16A34A" : "#1C160E" }}>{item.coveredBySubscription ? "Included" : ("GHS " + (item.unitPrice * item.quantity).toFixed(2))}</span>
               </div>
             ))}
+            {depositPaid && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EDEBE5" }}>
+                <span style={{ fontSize: "12px", color: "#16A34A" }}>Deposit Paid</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#16A34A" }}>- GHS {depositAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {promoDiscount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EDEBE5" }}>
+                <span style={{ fontSize: "12px", color: "#16A34A" }}>Promo Savings {appliedPromo ? ("(" + appliedPromo.code + ")") : ""}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#16A34A" }}>- GHS {promoDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            {redeemedCard && redeemedCard.value > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EDEBE5" }}>
+                <span style={{ fontSize: "12px", color: "#16A34A" }}>Gift Card Applied</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#16A34A" }}>- GHS {redeemedCard.value.toFixed(2)}</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0" }}>
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Paid</span>
               <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>GHS {finalAmountCharged.toFixed(2)}</span>
