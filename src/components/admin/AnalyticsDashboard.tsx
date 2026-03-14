@@ -90,7 +90,7 @@ export default function AnalyticsDashboard() {
     try {
       const { start, end } = getRangeDates(range);
       const [salesRes, bookingsRes, itemsRes, svc, clients] = await Promise.all([
-        supabase.from("sales").select("amount, created_at, payment_method, service_name, client_name, notes, status").eq("status", "completed").gte("created_at", start).lte("created_at", end + "T23:59:59"),
+        supabase.from("sales").select("amount, payment_date, payment_method, service_name, client_name, notes, status").eq("status", "completed").gte("payment_date", start).lte("payment_date", end + "T23:59:59"),
         supabase.from("bookings").select("status, preferred_date, service_name, client_name, staff_name, price").gte("preferred_date", start).lte("preferred_date", end),
         (supabase as any).from("checkout_items").select("item_type, price_at_time, subtotal, quantity").gte("created_at", start).lte("created_at", end + "T23:59:59"),
         getTopServices(),

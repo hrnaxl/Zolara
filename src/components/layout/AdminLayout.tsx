@@ -166,7 +166,7 @@ const AdminDashboard = () => {
       const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0).toISOString();
       const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999).toISOString();
 
-      // Timestamp versions of period for sales table (uses created_at not preferred_date)
+      // Timestamp versions of period for sales table (uses payment_date — financial transaction time)
       const periodStartTs = new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), dateRange.start.getDate(), 0, 0, 0).toISOString();
       const periodEndTs = new Date(dateRange.end.getFullYear(), dateRange.end.getMonth(), dateRange.end.getDate(), 23, 59, 59, 999).toISOString();
 
@@ -217,33 +217,33 @@ const AdminDashboard = () => {
           .from("sales")
           .select("amount, payment_method, status, booking_id, client_name, notes, service_name")
           .eq("status", "completed")
-          .gte("created_at", todayStart)
-          .lte("created_at", todayEnd),
+          .gte("payment_date", todayStart)
+          .lte("payment_date", todayEnd),
 
         supabase
           .from("sales")
           .select("amount, payment_method, status, booking_id, client_name")
           .eq("status", "completed")
-          .gte("created_at", periodStart)
-          .lte("created_at", periodEnd),
+          .gte("payment_date", periodStart)
+          .lte("payment_date", periodEnd),
         supabase
           .from("sales")
           .select("amount")
           .eq("status", "completed")
-          .gte("created_at", startOfThisWeek)
-          .lte("created_at", endOfThisWeek),
+          .gte("payment_date", startOfThisWeek)
+          .lte("payment_date", endOfThisWeek),
         supabase
           .from("sales")
           .select("amount")
           .eq("status", "completed")
-          .gte("created_at", startOfThisMonth)
-          .lte("created_at", endOfThisMonth),
+          .gte("payment_date", startOfThisMonth)
+          .lte("payment_date", endOfThisMonth),
         supabase
           .from("sales")
           .select("amount")
           .eq("status", "completed")
-          .gte("created_at", previousMonthStart)
-          .lte("created_at", previousMonthEnd),
+          .gte("payment_date", previousMonthStart)
+          .lte("payment_date", previousMonthEnd),
         // @ts-ignore
         supabase
           .from("clients")
@@ -272,13 +272,13 @@ const AdminDashboard = () => {
           .limit(5),
         supabase
           .from("sales")
-          .select("id, amount, created_at, payment_method, client_name")
-          .order("created_at", { ascending: false })
+          .select("id, amount, payment_date, payment_method, client_name")
+          .order("payment_date", { ascending: false })
           .limit(5),
         supabase
           .from("sales")
-          .select("amount, created_at")
-          .gte("created_at", format(subDays(today, 30), "yyyy-MM-dd"))
+          .select("amount, payment_date")
+          .gte("payment_date", format(subDays(today, 30), "yyyy-MM-dd"))
           .eq("status", "completed"),
         supabase
           .from("bookings")
@@ -318,11 +318,11 @@ const AdminDashboard = () => {
         // yesterday bookings count
         supabase.from("bookings").select("id", { count: "exact", head: true }).eq("preferred_date", yesterdayStr),
         // yesterday revenue
-        supabase.from("sales").select("amount").eq("status", "completed").gte("created_at", yesterdayStart).lte("created_at", yesterdayEnd),
+        supabase.from("sales").select("amount").eq("status", "completed").gte("payment_date", yesterdayStart).lte("payment_date", yesterdayEnd),
         // last week revenue
-        supabase.from("sales").select("amount").eq("status", "completed").gte("created_at", lastWeekStart).lte("created_at", lastWeekEnd),
+        supabase.from("sales").select("amount").eq("status", "completed").gte("payment_date", lastWeekStart).lte("payment_date", lastWeekEnd),
         // this month sales by service_name for top service revenue
-        supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("created_at", startOfThisMonth).lte("created_at", endOfThisMonth),
+        supabase.from("sales").select("amount, service_name").eq("status", "completed").gte("payment_date", startOfThisMonth).lte("payment_date", endOfThisMonth),
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
         // deposits pending checkout (in hand, not yet revenue)
@@ -330,7 +330,7 @@ const AdminDashboard = () => {
         // deposits from checked-out bookings (real revenue already collected)
         supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).eq("status", "completed"),
         // promo savings this period
-        (supabase as any).from("sales").select("promo_code, promo_discount").gte("created_at", periodStartTs).lte("created_at", periodEndTs).not("promo_discount", "is", null),
+        (supabase as any).from("sales").select("promo_code, promo_discount").gte("payment_date", periodStartTs).lte("payment_date", periodEndTs).not("promo_discount", "is", null),
       ]);
 
       // Calculate stats — split service vs product vs gift card revenue
@@ -463,7 +463,7 @@ const AdminDashboard = () => {
 
       const revenueByDay = last30DaysPaymentsRes.data?.reduce(
         (acc: any, p: any) => {
-          const day = format(new Date(p.created_at), "yyyy-MM-dd");
+          const day = format(new Date(p.payment_date || p.created_at), "yyyy-MM-dd");
           acc[day] = (acc[day] || 0) + Number(p.amount);
           return acc;
         },
@@ -652,7 +652,7 @@ const AdminDashboard = () => {
         recentPaymentsRes.data?.map((p) => ({
           id: p.id,
           title: (p.bookings as any)?.services?.name || "Payment",
-          date: p.created_at,
+          date: p.payment_date || p.created_at,
           amount: Number(p.amount),
         })) || []
       );

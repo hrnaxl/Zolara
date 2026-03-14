@@ -62,8 +62,8 @@ const ReceptionistDashboard = () => {
       const { data: todaySalesRaw = [] } = await supabase
         .from("sales").select("amount, notes, service_name")
         .eq("status", "completed")
-        .gte("created_at", startOfDay(new Date()).toISOString())
-        .lte("created_at", endOfDay(new Date()).toISOString());
+        .gte("payment_date", startOfDay(new Date()).toISOString())
+        .lte("payment_date", endOfDay(new Date()).toISOString());
 
       // Receptionist sees: services + products + physical gift cards (NOT online gift card purchases)
       const todaySales = (todaySalesRaw as any[]).filter((s: any) =>
