@@ -114,17 +114,6 @@ export default function Auth() {
 
       clearTimeout(timeout);
 
-      // Single-session enforcement: stamp this login so any previous session is invalidated
-      const sessionKey = crypto.randomUUID();
-      try {
-        await (supabase as any).from("user_sessions").upsert({
-          user_id: data.user.id,
-          session_key: sessionKey,
-          updated_at: new Date().toISOString(),
-        });
-        localStorage.setItem("zolara_session_key", sessionKey);
-      } catch { /* non-fatal */ }
-
       redirectByRole(role);
     } catch (e: any) {
       clearTimeout(timeout);

@@ -64,20 +64,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
           }
         }
 
-        // Single-session check: if another login happened, invalidate this session
-        const localKey = localStorage.getItem("zolara_session_key");
-        if (localKey) {
-          const { data: sessionRow } = await supabase.from("user_sessions")
-            .select("session_key").eq("user_id", session.user.id).maybeSingle();
-          if (sessionRow && sessionRow.session_key !== localKey) {
-            // A newer session exists elsewhere — sign out this one
-            localStorage.removeItem("zolara_session_key");
-            await supabase.auth.signOut();
-            if (mounted) { setUserRole(null); setLoading(false); }
-            return;
-          }
-        }
-
         if (mounted) { setUserRole(role); setLoading(false); }
       } catch {
         // On error, deny access — never grant by default
