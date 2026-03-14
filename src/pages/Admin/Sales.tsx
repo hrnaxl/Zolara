@@ -65,13 +65,22 @@ export default function SalesRevenue() {
       const { data, error } = await q;
       if (error) throw error;
       setPayments(data || []);
-      // Revenue split from checkout_items
-      const ciQ = await (supabase as any).from("checkout_items").select("item_type, subtotal, price_at_time, quantity");
+      // Revenue split — use payment_method from sales as fallback
+      // product sales = payment_method contains product context OR checkout_items
+      const completedSales = (data || []).filter((p: any) => p.status === "completed");
+      const allCompleted = completedSales.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      // checkout_items gives precise split when available
+      const ciQ = await (supabase as any).from("checkout_items").select("item_type, subtotal, price_at_time");
       const ci = ciQ.data || [];
-      const sRev = ci.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
-      const pRev = ci.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
-      const subRev = ci.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
-      setRevSplit({ service: sRev > 0 ? sRev : (data || []).filter((p: any) => p.status === "completed" && p.payment_method !== "gift_card").reduce((s: number, p: any) => s + Number(p.amount || 0), 0) - pRev, product: pRev, subscription: subRev });
+      const ciSvcRev = ci.filter((i: any) => i.item_type === "service").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const ciProdRev = ci.filter((i: any) => i.item_type === "product").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const ciSubRev = ci.filter((i: any) => i.item_type === "subscription").reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+      const hasCheckoutItems = ciSvcRev > 0 || ciProdRev > 0;
+      setRevSplit({
+        service: hasCheckoutItems ? ciSvcRev : allCompleted,
+        product: hasCheckoutItems ? ciProdRev : 0,
+        subscription: ciSubRev,
+      });
     } catch (e: any) { toast.error(e.message || "Failed to load sales"); }
     finally { setLoading(false); }
   };

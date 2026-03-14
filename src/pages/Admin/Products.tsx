@@ -54,6 +54,9 @@ export default function ProductsPage() {
   const adj = async (p:Product,d:number) => { await (supabase as any).from("products").update({stock_quantity:Math.max(0,p.stock_quantity+d)}).eq("id",p.id); load(); };
 
   const [userRole, setUserRole] = useState("");
+  const [actualProductRevenue, setActualProductRevenue] = useState(0);
+  const [actualProductCost, setActualProductCost] = useState(0);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
@@ -61,7 +64,34 @@ export default function ProductsPage() {
           .then(({ data }: any) => { if (data?.role) setUserRole(data.role); });
       }
     });
+    // Fetch actual product revenue from checkout_items
+    (supabase as any).from("checkout_items")
+      .select("item_id, price_at_time, subtotal, quantity")
+      .eq("item_type", "product")
+      .then(({ data }: any) => {
+        const rev = (data || []).reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
+        setActualProductRevenue(rev);
+      });
   }, []);
+
+  // Recalculate actual cost when products load
+  useEffect(() => {
+    if (actualProductRevenue === 0) return;
+    // Fetch checkout_items with product cost lookup
+    (supabase as any).from("checkout_items")
+      .select("item_id, quantity")
+      .eq("item_type", "product")
+      .then(async ({ data }: any) => {
+        const items = data || [];
+        let totalCostSold = 0;
+        for (const item of items) {
+          const { data: prod } = await (supabase as any).from("products").select("cost_price").eq("id", item.item_id).single();
+          if (prod?.cost_price) totalCostSold += Number(prod.cost_price) * Number(item.quantity || 1);
+        }
+        setActualProductCost(totalCostSold);
+      });
+  }, [actualProductRevenue]);
+
   const isFinancial = userRole === "owner" || userRole === "admin";
 
   const filtered = products.filter(p => { const s=search.toLowerCase(); return !s||p.name.toLowerCase().includes(s)||(p.category||"").toLowerCase().includes(s); });
@@ -98,12 +128,27 @@ export default function ProductsPage() {
             <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:typeof k.v==="number"?"30px":"18px", fontWeight:700, color:TXT, margin:0 }}>{k.v}</p>
           </div>
         ))}
-        {/* Profit / Loss card — owner/admin only */}
-        {isFinancial && <div style={{ background: potentialProfit >= 0 ? "#F0FDF4" : "#FEF2F2", border:`1px solid ${potentialProfit >= 0 ? "#BBF7D0" : "#FECACA"}`, borderRadius:"14px", padding:"16px 18px" }}>
-          <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color: potentialProfit >= 0 ? "#16A34A" : "#DC2626", marginBottom:"6px" }}>POTENTIAL PROFIT</p>
-          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color:TXT, margin:0 }}>GHS {Math.abs(potentialProfit).toLocaleString()}</p>
-          <p style={{ fontSize:"10px", color: potentialProfit >= 0 ? "#16A34A" : "#DC2626", marginTop:"4px" }}>{profitMargin}% margin · Cost GHS {totalCost.toLocaleString()}</p>
-        </div>}
+        {/* Actual Profit / Loss from sales — owner/admin only */}
+        {isFinancial && (() => {
+          const profit = actualProductRevenue - actualProductCost;
+          const isP = profit >= 0;
+          const mg = actualProductRevenue > 0 ? ((profit/actualProductRevenue)*100).toFixed(1) : "0.0";
+          return (
+            <div style={{ background: actualProductRevenue===0?"#FAFAF8":isP?"#F0FDF4":"#FEF2F2", border:"1px solid "+(actualProductRevenue===0?"#EDEBE5":isP?"#BBF7D0":"#FECACA"), borderRadius:"14px", padding:"16px 18px" }}>
+              <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:actualProductRevenue===0?"#A8A29E":isP?"#16A34A":"#DC2626", marginBottom:"6px" }}>
+                {actualProductRevenue===0?"PRODUCT P&L":isP?"PRODUCT PROFIT":"PRODUCT LOSS"}
+              </p>
+              {actualProductRevenue===0
+                ? <p style={{ fontSize:"12px", color:"#A8A29E", margin:0 }}>No product sales yet</p>
+                : <>
+                    <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:700, color:TXT, margin:0 }}>GHS {Math.abs(profit).toLocaleString()}</p>
+                    <p style={{ fontSize:"10px", color:isP?"#16A34A":"#DC2626", marginTop:"4px" }}>{mg}% margin</p>
+                    <p style={{ fontSize:"10px", color:"#A8A29E", marginTop:"2px" }}>Revenue GHS {actualProductRevenue.toLocaleString()} · Cost GHS {actualProductCost.toLocaleString()}</p>
+                  </>
+              }
+            </div>
+          );
+        })()}
       </div>
 
       {lowStock.length > 0 && (
