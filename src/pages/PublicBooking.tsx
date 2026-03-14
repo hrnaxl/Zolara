@@ -54,6 +54,7 @@ export default function PublicBooking() {
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>("form");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isFirstTimeBooker, setIsFirstTimeBooker] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session));
@@ -293,7 +294,19 @@ export default function PublicBooking() {
             )).catch(console.error);
           }
 
-          // Client record created at checkout only — not here
+          // Check if this is their first booking (phone has only 1 booking = this one)
+          // If so, show the Create Account CTA on the success screen
+          if (!isLoggedIn && cleanPhone) {
+            try {
+              const { count } = await (supabase as any)
+                .from("bookings")
+                .select("id", { count: "exact", head: true })
+                .or(`client_phone.eq.${cleanPhone},client_phone.eq.${phone.trim()}`);
+              // count === 1 means only this booking exists for this phone = first time
+              setIsFirstTimeBooker((count || 0) <= 1);
+            } catch { setIsFirstTimeBooker(true); } // default show if check fails
+          }
+
           setBookingRef(bRef);
           setBookedService(selectedService?.name || "");
           setBookedDate(preferredDate);
@@ -361,14 +374,14 @@ export default function PublicBooking() {
             Pay the remaining balance at the studio on the day of your appointment.
           </p>
         </div>
-        {!isLoggedIn && (
+        {!isLoggedIn && isFirstTimeBooker && (
           <div style={{ background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.25)", borderRadius: "14px", padding: "24px 28px", marginBottom: "24px", textAlign: "left" }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, marginBottom: "8px" }}>Want to track your bookings?</p>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, marginBottom: "8px" }}>Welcome to Zolara 🎉</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_MID, lineHeight: 1.7, marginBottom: "16px" }}>
-              Create a free Zolara account to view your booking history, loyalty points, and upcoming appointments.
+              Create a free account to track your bookings, earn loyalty points, and manage your appointments — all in one place.
             </p>
             <a href="/app/auth" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, color: WHITE, fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "11px 22px", borderRadius: "8px", letterSpacing: "0.04em" }}>
-              Create Account →
+              Create Your Account →
             </a>
           </div>
         )}
@@ -419,18 +432,10 @@ export default function PublicBooking() {
             onMouseLeave={e => (e.currentTarget.style.color = TXT_MID)}>
             <ArrowLeft size={16} /> Back to homepage
           </button>
-          {isLoggedIn && (
-            <a href="/app/client/dashboard" style={{ fontSize: 11, fontWeight: 700, color: GOLD_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "6px 12px", borderRadius: 16, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
-              ← My Account
-            </a>
-          )}
+
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          {isLoggedIn && (
-            <a href="/app/client/dashboard" style={{ fontSize: 11, fontWeight: 700, color: "#8B6914", textDecoration: "none", letterSpacing: "0.06em", background: "rgba(200,169,126,0.1)", padding: "7px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)", whiteSpace: "nowrap" }}>
-              My Dashboard →
-            </a>
-          )}
+
           <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
             <img src={LOGO} style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} alt="Zolara" />
             <div>
