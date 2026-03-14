@@ -15,6 +15,15 @@ type PayMethod = "cash" | "mobile_money" | "card" | "bank_transfer";
 export default function ProductSale() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string>("");
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        (supabase as any).from("user_roles").select("role").eq("user_id", user.id).single()
+          .then(({ data }: any) => { if (data?.role) setUserRole(data.role); });
+      }
+    });
+  }, []);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [clientName, setClientName] = useState("");
@@ -133,7 +142,7 @@ export default function ProductSale() {
                 style={{ flex: 1, padding: "11px", borderRadius: "12px", background: CREAM, color: TXT_MID, border: "1px solid " + BORDER, fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                 New Sale
               </button>
-              <button onClick={() => navigate("/app/admin/products")}
+              <button onClick={() => navigate(userRole === "receptionist" ? "/app/receptionist/products" : "/app/admin/products")}
                 style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg," + G + "," + G_D + ")", color: WHITE, border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
                 Done
               </button>

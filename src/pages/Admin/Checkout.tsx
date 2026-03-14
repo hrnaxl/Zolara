@@ -395,11 +395,27 @@ const Checkout = () => {
         return;
       }
 
-      // Bank transfer
-      await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: paymentAmount + dep, payment_method: "bank_transfer", status: "pending", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Bank transfer - awaiting confirmation", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), payment_date: new Date().toISOString() });
-      await supabase.from("bookings").update({ status: "confirmed" } as any).eq("id", booking.id);
-      setPaymentMethod("bank_transfer"); setPending(true);
-      toast.success("Bank transfer recorded. Awaiting confirmation.");
+      // Bank transfer — mark booking completed, record sale, show completed screen
+      await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
+      const { error: bankSaleErr } = await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: amountToCharge, payment_method: "bank_transfer", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: [notes || "Bank transfer payment", dep > 0 ? ("Includes GHS " + dep + " deposit") : null].filter(Boolean).join(" | "), payment_date: new Date().toISOString() });
+      if (bankSaleErr) throw bankSaleErr;
+      // Write checkout session + line items for bank transfer too
+      try {
+        const { data: bSess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff, booking_id: booking.id, total_amount: effectivePrice, payment_method: "bank_transfer", status: "completed" }]).select("id").single();
+        if (bSess?.id && lineItems.length > 0) {
+          await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: bSess.id, booking_id: booking.id, item_type: item.type, item_id: item.id, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
+        }
+        for (const pi of lineItems.filter(i => i.type === "product")) {
+          const prod = products.find(p => p.id === pi.id);
+          if (prod) {
+            await (supabase as any).from("products").update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) }).eq("id", pi.id);
+            await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: pi.unitPrice * pi.quantity, payment_method: "bank_transfer", status: "completed", client_name: booking.client_name || null, service_name: pi.name + (pi.quantity > 1 ? " x" + pi.quantity : ""), client_id: (booking as any).clients?.id || null, staff_id: selectedStaff || null, notes: "Product sale at checkout", payment_date: new Date().toISOString() });
+          }
+        }
+      } catch (itemErr) { console.error("Bank transfer items error:", itemErr); }
+      setFinalAmountCharged(amountToCharge);
+      setCompleted(true);
+      toast.success("Bank transfer checkout completed!");
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast.error(error.message || "Failed to complete checkout");
