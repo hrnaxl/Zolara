@@ -346,16 +346,18 @@ const Checkout = () => {
 
         // If a deposit was previously collected, record it as revenue now (checkout = confirmed revenue)
         if (dep > 0) {
-          await (supabase as any).from("sales").insert({
-            booking_id: booking.id,
-            amount: dep,
-            payment_method: "mobile_money", // deposit was paid online via Paystack
-            status: "completed",
-            client_name: booking.client_name || null,
-            service_name: booking.service_name || null,
-            notes: "Deposit collected - confirmed at checkout",
-            payment_date: new Date().toISOString(),
-          }).catch((e: any) => console.error("Deposit revenue record failed:", e));
+          try {
+            await (supabase as any).from("sales").insert({
+              booking_id: booking.id,
+              amount: dep,
+              payment_method: "mobile_money",
+              status: "completed",
+              client_name: booking.client_name || null,
+              service_name: booking.service_name || null,
+              notes: "Deposit collected - confirmed at checkout",
+              payment_date: new Date().toISOString(),
+            });
+          } catch (depErr) { console.error("Deposit revenue record failed:", depErr); }
         }
 
         // Write checkout session + line items
@@ -446,13 +448,15 @@ const Checkout = () => {
 
       // Record deposit as confirmed revenue at checkout (bank transfer path)
       if (dep > 0) {
-        await (supabase as any).from("sales").insert({
-          booking_id: booking.id, amount: dep,
-          payment_method: "mobile_money", status: "completed",
-          client_name: booking.client_name || null, service_name: booking.service_name || null,
-          notes: "Deposit collected - confirmed at checkout",
-          payment_date: new Date().toISOString(),
-        }).catch((e: any) => console.error("Deposit revenue record failed:", e));
+        try {
+          await (supabase as any).from("sales").insert({
+            booking_id: booking.id, amount: dep,
+            payment_method: "mobile_money", status: "completed",
+            client_name: booking.client_name || null, service_name: booking.service_name || null,
+            notes: "Deposit collected - confirmed at checkout",
+            payment_date: new Date().toISOString(),
+          });
+        } catch (depErr) { console.error("Deposit revenue record failed:", depErr); }
       }
 
       // Write checkout session + line items for bank transfer too

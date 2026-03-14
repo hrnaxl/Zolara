@@ -876,7 +876,7 @@ const AdminDashboard = () => {
         {[
           { label:"TOTAL CLIENTS",   val: stats.totalClients.toLocaleString(), sub:`${stats.clientChangePercentage >= 0 ? "+" : ""}${stats.clientChangePercentage}% this month` },
           { label:"ACTIVE STAFF",    val: stats.activeStaff, sub:"On roster" },
-          { label:"PENDING",         val: stats.pendingBookings + stats.pendingRequests, sub:"Need attention" },
+          { label:"PENDING",         val: stats.pendingRequests, sub:"Need attention" },
         ].map((c, i) => (
           <div key={i} className="zc-flat au" style={{ animationDelay:`${0.24 + i*0.06}s`, display:"flex", alignItems:"center", gap:"18px" }}>
             <div style={{ width:"48px", height:"48px", borderRadius:"14px", background: G_LIGHT, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
