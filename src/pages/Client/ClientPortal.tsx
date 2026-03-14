@@ -1,4 +1,5 @@
-import { Shield, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { Shield } from "lucide-react";
 import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
