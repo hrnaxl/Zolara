@@ -55,6 +55,13 @@ export default function PublicBooking() {
   const [step, setStep] = useState<Step>("form");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isFirstTimeBooker, setIsFirstTimeBooker] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 900);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 900);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session));
@@ -421,16 +428,7 @@ export default function PublicBooking() {
         .err { animation: errIn 0.25s ease; font-family: 'Montserrat',sans-serif; color: ${RED}; font-size: 11px; margin-top: 5px; }
         .svc-select { appearance: none; -webkit-appearance: none; cursor: pointer; }
         .svc-select:hover { border-color: ${GOLD} !important; }
-        @media (max-width: 900px) {
-          .bk-grid { grid-template-columns: 1fr !important; gap: 24px !important; padding: 24px 16px calc(60px + var(--sab, 0px)) !important; }
-          .bk-sidebar { position: static !important; top: auto !important; }
-        }
-        @media (max-width: 480px) {
-          .bk-grid { padding: 16px 12px calc(60px + var(--sab, 0px)) !important; gap: 20px !important; }
-          .bk-form-grid { grid-template-columns: 1fr !important; }
-          .bk-time-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .bk-section { padding: 20px 16px !important; }
-        }
+
       `}</style>
 
       {/* Topbar */}
@@ -455,10 +453,10 @@ export default function PublicBooking() {
         </div>
       </div>
 
-      <div className="bk-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "44px 24px 80px", display: "grid", gridTemplateColumns: "360px 1fr", gap: "40px", alignItems: "start" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: isMobile ? "20px 16px calc(60px + var(--sab,0px))" : "44px 24px 80px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "360px 1fr", gap: isMobile ? "20px" : "40px", alignItems: "start" }}>
 
         {/* LEFT: Info panel */}
-        <div className="bk-sidebar" style={{ position: "sticky", top: "90px" }}>
+        <div style={{ position: isMobile ? "static" : "sticky", top: isMobile ? "auto" : "90px" }}>
           <div style={{ background: "linear-gradient(160deg, #241C0E 0%, #1A1208 55%, #201608 100%)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 28px 72px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.15)" }}>
 
             {/* Panel header */}
@@ -702,7 +700,7 @@ export default function PublicBooking() {
           {/* Date & Time */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "24px" }}>DATE AND TIME</p>
-            <div className="bk-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={lbl}>Date *</label>
                 <div style={{ position: "relative" }}>
@@ -736,7 +734,7 @@ export default function PublicBooking() {
           <div style={{ background: WHITE, borderRadius: "12px", padding: "32px", marginBottom: "20px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "6px" }}>BALANCE PAYMENT METHOD</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_SOFT, marginBottom: "20px" }}>How will you pay the remaining balance when you arrive?</p>
-            <div className="bk-time-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: "10px" }}>
               {enabledPayments.map((m: any) => {
                 const sel = paymentPref === m.id;
                 return (
