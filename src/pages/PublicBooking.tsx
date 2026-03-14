@@ -457,8 +457,8 @@ export default function PublicBooking() {
 
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: mob ? (sm ? "16px 12px 80px" : "20px 16px 80px") : "44px 24px 80px", display: "grid", gridTemplateColumns: mob ? "1fr" : "360px 1fr", gap: mob ? "20px" : "40px", alignItems: "start" }}>
 
-        {/* LEFT: Info panel — hidden on mobile */}
-        {!mob && <div style={{ position: "sticky", top: "90px" }}>
+        {/* LEFT: Info panel */}
+        <div style={{ position: mob ? "static" : "sticky", top: mob ? "auto" : "90px" }}>
           <div style={{ background: "linear-gradient(160deg, #241C0E 0%, #1A1208 55%, #201608 100%)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 28px 72px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.15)" }}>
 
             {/* Panel header */}
@@ -518,7 +518,7 @@ export default function PublicBooking() {
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.32)", marginTop: "10px", fontWeight: 400 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
             </div>
           </div>
-        </div>}
+        </div>
 
         {/* RIGHT: Form */}
         <div id="booking-form-top">
