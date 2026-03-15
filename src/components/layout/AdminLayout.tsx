@@ -335,22 +335,25 @@ const AdminDashboard = () => {
         supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).eq("status", "completed"),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("payment_date", periodStartTs).lte("payment_date", periodEndTs).not("promo_discount", "is", null),
-        // gift card liability — total balance of all active/unredeemed cards (money we hold)
-        (supabase as any).from("gift_cards").select("balance, amount, tier, status").in("status", ["active", "available", "pending_send", "pending_pickup"]),
+        // gift card liability — only cards where payment was received (paid/pending_pickup)
+        // Excludes pre-printed unsold cards (payment_status=pending, no money received yet)
+        (supabase as any).from("gift_cards").select("balance, amount, tier, status, payment_status")
+          .in("status", ["active", "available", "pending_send", "pending_pickup"])
+          .in("payment_status", ["paid", "pending_pickup", "pending_send"]),
       ]);
 
       // Calculate stats — split service vs product vs gift card revenue
       const todayPayments = todayPaymentsRes.data || [];
       const todayGiftCardRevenue = todayPayments
-        .filter((p: any) => (p.service_name || "").toLowerCase().includes("gift card"))
+        .filter((p: any) => p.payment_method === "gift_card")
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const todayProductRevenue = todayPayments
         .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const todayServiceRevenue = todayPayments
         .filter((p: any) =>
-          (!p.notes || !p.notes.toLowerCase().includes("product sale")) &&
-          !(p.service_name || "").toLowerCase().includes("gift card")
+          p.payment_method !== "gift_card" &&
+          (!p.notes || !p.notes.toLowerCase().includes("product sale"))
         )
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const todayRevenue = todayServiceRevenue + todayProductRevenue + todayGiftCardRevenue;
@@ -358,15 +361,15 @@ const AdminDashboard = () => {
       // Period split (same logic, uses periodPaymentsRes which respects the filter)
       const periodPayments = periodPaymentsRes.data || [];
       const periodGiftCardRevenue = periodPayments
-        .filter((p: any) => (p.service_name || "").toLowerCase().includes("gift card"))
+        .filter((p: any) => p.payment_method === "gift_card")
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const periodProductRevenue = periodPayments
         .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const periodServiceRevenue = periodPayments
         .filter((p: any) =>
-          (!p.notes || !p.notes.toLowerCase().includes("product sale")) &&
-          !(p.service_name || "").toLowerCase().includes("gift card")
+          p.payment_method !== "gift_card" &&
+          (!p.notes || !p.notes.toLowerCase().includes("product sale"))
         )
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const periodRevenue =
