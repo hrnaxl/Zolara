@@ -36,10 +36,10 @@ export default function BuyGiftCard() {
 
   const handleProceed = () => {
     if (!form.buyerName || !form.buyerPhone) { toast.error("Enter your name and phone number"); return; }
+    if (!form.buyerEmail) { toast.error("Enter your email address — we'll send you a purchase receipt"); return; }
     if (deliveryType === "email" && (!form.recipientName || !form.recipientEmail)) {
       toast.error("Enter the recipient's name and email"); return;
     }
-    if (deliveryType === "email" && !form.buyerEmail) { toast.error("Enter your email address"); return; }
     setStep("confirm");
   };
 
@@ -127,8 +127,7 @@ export default function BuyGiftCard() {
                 .select("id, code, serial_number, batch_id")
                 .eq("tier", selectedTier)
                 .eq("card_type", "physical")
-                .not("payment_status", "in", '("paid","voided","expired","pending_pickup")')
-                .is("buyer_name", null)
+                .eq("payment_status", "pending")
                 .limit(1)
                 .maybeSingle();
 
@@ -338,9 +337,7 @@ export default function BuyGiftCard() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <Field label="Your Name" value={form.buyerName} onChange={v => setForm(p => ({ ...p, buyerName: v }))} placeholder="Full name" />
               <Field label="Your Phone Number" value={form.buyerPhone} onChange={v => setForm(p => ({ ...p, buyerPhone: v }))} placeholder="0XX XXX XXXX" type="tel" />
-              {deliveryType === "email" && (
-                <Field label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com" type="email" />
-              )}
+              <Field label="Your Email *" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — receipt will be sent here" type="email" />
 
               {deliveryType === "email" && (
                 <>
