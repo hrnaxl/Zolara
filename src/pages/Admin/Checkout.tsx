@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useSettings } from "@/context/SettingsContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Calendar, Clock, User, Sparkles, CreditCard, Banknote, Smartphone, Building, CheckCircle2, ArrowLeft, Receipt, UserCheck } from "lucide-react";
+import { Loader2, Calendar, Clock, User, Sparkles, CreditCard, Banknote, Smartphone, Building, CheckCircle2, ArrowLeft, Receipt, UserCheck, Search } from "lucide-react";
 import { format } from "date-fns";
 import { sendSMS, SMS } from "@/lib/sms";
 import LineItemsPanel from "@/components/checkout/LineItemsPanel";
