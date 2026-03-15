@@ -95,10 +95,10 @@ const Checkout = () => {
   useEffect(() => {
     const fetchUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+      if (!user) return;
       const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id).single();
       setUserRole(roleData?.role || user.user_metadata.role);
-      setLoading(false);
+      // Do NOT set loading(false) here — loading is controlled by bookingId effect only
     };
     fetchUserRole();
   }, []);

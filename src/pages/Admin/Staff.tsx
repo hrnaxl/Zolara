@@ -110,14 +110,10 @@ const Staff = () => {
 
   // Specializations list (if you have a settings-managed list use it, otherwise fallback to empty)
   const SPECIALIZATIONS: string[] = (settings as any)?.staff_roles || [];
-  const STAFF_SPECIALTIES = [
-    "Braider",
-    "Lash Tech",
-    "Nail Tech",
-    "Wig & Hair Stylist",
-    "Makeup Artist",
-    "Pedicurist & Manicurist",
-  ];
+  // Read specialties from settings — editable in Settings → Categories → Staff Specialties
+  const STAFF_SPECIALTIES: string[] = (settings as any)?.staff_specialties?.length
+    ? (settings as any).staff_specialties
+    : ["Braider", "Lash Tech", "Nail Tech", "Wig & Hair Stylist", "Makeup Artist", "Pedicurist & Manicurist"];
 
   useEffect(() => {
     fetchStaff();

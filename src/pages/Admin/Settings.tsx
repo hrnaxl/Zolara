@@ -26,7 +26,7 @@ interface PaymentMethod { id: string; name: string; enabled: boolean; }
 interface Settings {
   id?: string;
   business_name: string; logo_url: string; open_time: string; close_time: string;
-  currency: string; staff_roles: string[]; service_categories: string[];
+  currency: string; staff_roles: string[]; service_categories: string[]; staff_specialties: string[];
   use_24_hour_format: boolean; business_phone: string; business_email: string;
   business_address: string; payment_methods: PaymentMethod[];
   closed_dates?: string[]; deposit_amount?: number;
@@ -36,7 +36,7 @@ interface Settings {
 
 const defaultSettings: Settings = {
   business_name: "", logo_url: "", open_time: "8:30", close_time: "21:00",
-  currency: "GH₵", staff_roles: ["Hairdresser", "Barber", "Receptionist"],
+  currency: "GH₵", staff_roles: ["Hairdresser", "Barber", "Receptionist"], staff_specialties: ["Braider", "Lash Tech", "Nail Tech", "Wig & Hair Stylist", "Makeup Artist", "Pedicurist & Manicurist"],
   service_categories: ["Hair", "Nails", "Makeup"], use_24_hour_format: false,
   business_phone: "", business_email: "", business_address: "",
   payment_methods: [], closed_dates: [], deposit_amount: 50,
@@ -275,13 +275,25 @@ export default function Settings() {
             <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW }}>
               <div style={{ padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, background: "linear-gradient(135deg,rgba(200,169,126,0.08),rgba(200,169,126,0.02))" }}>
                 <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 700, color: TXT, margin: "0 0 2px" }}>Staff Roles</h2>
-                <p style={{ fontSize: 11, color: TXT_SOFT, margin: 0 }}>Drag to reorder. These appear in staff management.</p>
+                <p style={{ fontSize: 11, color: TXT_SOFT, margin: 0 }}>System access roles (Receptionist, Cleaner, Staff). These control login permissions.</p>
               </div>
               <div style={{ padding: 20 }}>
                 <DraggableListSection title="" items={settings.staff_roles}
                   onItemsChange={items => setSettings(p => ({ ...p, staff_roles: items }))} addButtonText="Add Role" />
               </div>
             </div>
+            {/* Staff Specialties */}
+            <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW }}>
+              <div style={{ padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, background: "linear-gradient(135deg,rgba(200,169,126,0.08),rgba(200,169,126,0.02))" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 700, color: TXT, margin: "0 0 2px" }}>Staff Specialties</h2>
+                <p style={{ fontSize: 11, color: TXT_SOFT, margin: 0 }}>Service skills that can be assigned to staff members. Used for smart booking assignment.</p>
+              </div>
+              <div style={{ padding: 20 }}>
+                <DraggableListSection title="staff-specialties" items={settings.staff_specialties || []}
+                  onItemsChange={items => setSettings(p => ({ ...p, staff_specialties: items }))} addButtonText="Add Specialty" />
+              </div>
+            </div>
+
             <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW }}>
               <div style={{ padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, background: "linear-gradient(135deg,rgba(200,169,126,0.08),rgba(200,169,126,0.02))" }}>
                 <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 700, color: TXT, margin: "0 0 2px" }}>Service Categories</h2>

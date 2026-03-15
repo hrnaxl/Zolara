@@ -49,8 +49,9 @@ export default function Bookings() {
   const [selected, setSelected] = useState<any>(null);
 
   // Cancel dialog
-  const { userRole } = useSettings();
+  const { userRole, settings } = useSettings();
   const canManage = userRole === "owner" || userRole === "admin";
+  const canConfirmAll = ["owner","admin","receptionist"].includes(userRole || "");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<any>(null);
 
@@ -299,7 +300,7 @@ export default function Bookings() {
                 <button onClick={() => { fetchBookings(page, filter, search); fetchCounts(); }} style={{ padding: "8px 10px", borderRadius: 10, border: `1.5px solid ${BORDER}`, background: WHITE, cursor: "pointer" }}>
                   <RefreshCw size={14} color={TXT_SOFT} />
                 </button>
-                {canManage && counts["pending"] > 0 && (
+                {canConfirmAll && counts["pending"] > 0 && (
                   <button onClick={handleConfirmAll} disabled={confirming}
                     style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: confirming ? BORDER : "#0F1E35", color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: confirming ? "not-allowed" : "pointer" }}>
                     {confirming ? "Confirming…" : `✓ Confirm All (${counts["pending"] || 0})`}
