@@ -253,7 +253,15 @@ const Checkout = () => {
       if (fetchErr) throw fetchErr;
       const card = cards?.[0];
       if (!card) { toast.error("Gift card not found. Check the code and try again."); return; }
-      if (card.status === "redeemed") { toast.error("This gift card has already been used."); return; }
+      if (card.status === "redeemed") {
+        const isDiamond = card.tier === "Diamond";
+        const hasBalance = Number(card.balance || 0) > 0;
+        const underLimit = (card.redemption_count || 0) < 3;
+        if (!isDiamond || !hasBalance || !underLimit) {
+          toast.error("This gift card has already been fully used.");
+          return;
+        }
+      }
       if (card.status === "expired" || (card.expire_at && new Date(card.expire_at) < new Date())) { toast.error("This gift card has expired."); return; }
       if (!["active","available","pending_send"].includes(card.status || "")) { toast.error("Gift card is not available (status: " + card.status + ")."); return; }
       const value = Number(card.balance || 0);
@@ -261,7 +269,7 @@ const Checkout = () => {
       // Apply after deposit deduction
       const dep2 = depositPaid ? depositAmount : 0;
       const baseAfterDeposit = Math.max(0, originalPrice - dep2);
-      setRedeemedCard({ id: card.id, value: Math.min(value, baseAfterDeposit) });
+      setRedeemedCard({ id: card.id, value: Math.min(value, baseAfterDeposit), tier: card.tier, fullBalance: value });
       toast.success("Gift card applied: GHS " + Math.min(value, baseAfterDeposit).toFixed(2) + " off");
       toast.success("Gift card applied: GHS " + value.toFixed(2) + " off");
     } catch (err: any) {
@@ -318,7 +326,20 @@ const Checkout = () => {
         if (appliedGift > 0) {
           const { error: giftErr } = await (supabase as any).from("sales").insert([{ booking_id: booking.id, amount: appliedGift, payment_method: "gift_card", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: notes || null, payment_date: new Date().toISOString() }]);
           if (giftErr) { toast.error("Failed to record gift card payment"); setProcessing(false); return; }
-          await (supabase as any).from("gift_cards").update({ status: "redeemed", balance: 0, redeemed_by_client: booking.client_name || null }).eq("id", redeemedCard.id);
+          // Diamond cards: deduct balance and increment redemption_count (max 3 uses)
+          const isDiamond = (redeemedCard as any).tier === "Diamond";
+          const currentBalance = (redeemedCard as any).fullBalance ?? appliedGift;
+          const newBalance = Math.max(0, currentBalance - appliedGift);
+          const { data: cardData } = await (supabase as any).from("gift_cards").select("redemption_count").eq("id", redeemedCard.id).single();
+          const redemptionCount = (cardData?.redemption_count || 0) + 1;
+          const fullyUsed = !isDiamond || newBalance <= 0 || redemptionCount >= 3;
+          await (supabase as any).from("gift_cards").update({
+            status: fullyUsed ? "redeemed" : "active",
+            balance: newBalance,
+            redeemed_by_client: booking.client_name || null,
+            redemption_count: redemptionCount,
+            ...(fullyUsed ? { redeemed_at: new Date().toISOString() } : {}),
+          }).eq("id", redeemedCard.id);
         }
       }
 
