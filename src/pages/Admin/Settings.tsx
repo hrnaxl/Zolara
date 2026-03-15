@@ -10,6 +10,7 @@ import { DataManagementSection } from "@/components/settings/DataManagementSecti
 import { BackupRestoreSection } from "@/components/settings/BackupRestoreSection";
 import { TemporaryClosuresSection } from "@/components/settings/TemporaryClosuresSection";
 import { BusinessRulesSection } from "@/components/settings/BusinessRulesSection";
+import { GiftCardPricingSection } from "@/components/settings/GiftCardPricingSection";
 import { ReviewsSettingsSection } from "@/components/settings/ReviewsManagement";
 import {
   Settings as SettingsIcon, Save, RefreshCw, Building2, Clock, CreditCard,
@@ -301,6 +302,7 @@ export default function Settings() {
 
         {tab("loyalty", (
           <div>
+            <GiftCardPricingSection />
             <BusinessRulesSection
               depositAmount={settings.deposit_amount ?? 50}
               loyaltyStampPerGhs={settings.loyalty_stamp_per_ghs ?? 100}

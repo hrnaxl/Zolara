@@ -599,6 +599,10 @@ const Services = () => {
                   )}
                 </div>
                 <div className="space-y-2">
+                  <Label>Base Price (GHS) <span style={{fontWeight:400,color:"#A8A29E",fontSize:"11px"}}>— leave 0 if using variants</span></Label>
+                  <Input type="number" min="0" step="0.01" placeholder="e.g. 120" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} />
+                </div>
+                <div className="space-y-2">
                   <Label>Description</Label>
                   <Textarea placeholder="Short description shown to clients" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>

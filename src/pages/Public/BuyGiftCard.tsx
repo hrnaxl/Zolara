@@ -26,6 +26,16 @@ export default function BuyGiftCard() {
   const [step, setStep] = useState<Step>("select");
   const [selectedTier, setSelectedTier] = useState<GiftCardTier | null>(null);
   const [deliveryType, setDeliveryType] = useState<"email" | "physical">("email");
+  const [tierPrices, setTierPrices] = useState<Record<string,number>>({});
+
+  useEffect(() => {
+    import("@/integrations/supabase/client").then(({ supabase: sb }) => {
+      (sb as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
+        .then(({ data }: any) => { if (data?.gift_card_prices) setTierPrices(data.gift_card_prices); });
+    });
+  }, []);
+
+  const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
   const [form, setForm] = useState({
     buyerName: "", buyerEmail: "", buyerPhone: "",
     recipientName: "", recipientEmail: "", message: "",
@@ -67,7 +77,7 @@ export default function BuyGiftCard() {
         },
         onSuccess: async (paymentRef: string) => {
           try {
-            const tierValue = GIFT_CARD_TIERS[selectedTier!].value;
+            const tierValue = getTierValue(selectedTier!);
             const { supabase: sb } = await import("@/integrations/supabase/client");
 
             if (isEmail) {
@@ -238,7 +248,7 @@ export default function BuyGiftCard() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
-                const t = GIFT_CARD_TIERS[tier];
+                const t = { ...GIFT_CARD_TIERS[tier], value: getTierValue(tier) };
                 const s = TIER_STYLES[tier];
                 const selected = selectedTier === tier;
                 return (
