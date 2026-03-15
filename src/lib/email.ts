@@ -1,7 +1,4 @@
 // Direct Resend email utility — no edge function needed
-const RESEND_API_KEY = "re_ihUNevoc_8cu2FmjzUevtnEpxD6aBTTK3";
-const FROM = "Zolara Beauty Studio <hello@noreply.zolarasalon.com>";
-
 const TIER_COLORS: Record<string, string> = {
   Bronze:   "#CD7F32",
   Silver:   "#9CA3AF",
@@ -73,20 +70,19 @@ export async function sendGiftCardEmail(card: {
   message?: string;
 }): Promise<boolean> {
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    // Call our Vercel API route — runs server-side, no CORS issues
+    const res = await fetch("/api/send-email", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: FROM,
-        to: [card.recipient_email],
+        to: card.recipient_email,
         subject: `Your Zolara ${card.tier} Gift Card — GH₵${card.amount}`,
         html: buildGiftCardHtml(card),
       }),
     });
-    return res.ok;
+    const data = await res.json();
+    if (!res.ok) { console.error("Email API error:", data); return false; }
+    return true;
   } catch (err) {
     console.error("Gift card email error:", err);
     return false;
