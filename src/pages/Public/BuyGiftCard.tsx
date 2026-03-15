@@ -27,6 +27,11 @@ export default function BuyGiftCard() {
   const [selectedTier, setSelectedTier] = useState<GiftCardTier | null>(null);
   const [deliveryType, setDeliveryType] = useState<"email" | "physical">("email");
   const [tierPrices, setTierPrices] = useState<Record<string,number>>({});
+  const [form, setForm] = useState({
+    buyerName: "", buyerEmail: "", buyerPhone: "",
+    recipientName: "", recipientEmail: "", message: "",
+  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     import("@/integrations/supabase/client").then(({ supabase: sb }) => {
@@ -34,12 +39,6 @@ export default function BuyGiftCard() {
         .then(({ data }: any) => { if (data?.gift_card_prices) setTierPrices(data.gift_card_prices); });
     });
   }, []);
-
-  const [form, setForm] = useState({
-    buyerName: "", buyerEmail: "", buyerPhone: "",
-    recipientName: "", recipientEmail: "", message: "",
-  });
-  const [loading, setLoading] = useState(false);
 
   const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
 

@@ -263,7 +263,9 @@ const Checkout = () => {
         }
       }
       if (card.status === "expired" || (card.expire_at && new Date(card.expire_at) < new Date())) { toast.error("This gift card has expired."); return; }
-      if (!["active","available","pending_send"].includes(card.status || "")) { toast.error("Gift card is not available (status: " + card.status + ")."); return; }
+      // Allow Diamond cards that passed the redeemed check above (still have balance + uses left)
+      const isDiamondPartial = card.tier === "Diamond" && card.status === "redeemed" && Number(card.balance || 0) > 0 && (card.redemption_count || 0) < 3;
+      if (!isDiamondPartial && !["active","available","pending_send"].includes(card.status || "")) { toast.error("Gift card is not available (status: " + card.status + ")."); return; }
       const value = Number(card.balance || 0);
       if (value <= 0) { toast.error("This gift card has no remaining balance."); return; }
       // Apply after deposit deduction
