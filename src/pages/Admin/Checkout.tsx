@@ -239,7 +239,11 @@ const Checkout = () => {
 
   const removeLineItem = (idx: number) => setLineItems(prev => prev.filter((_, i) => i !== idx));
   const updateQty = (idx: number, qty: number) => { if (qty < 1) { removeLineItem(idx); return; } setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: qty } : item)); };
-  const toggleSub = (idx: number) => setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item));
+  const canToggleSub = userRole === "owner" || userRole === "admin";
+  const toggleSub = (idx: number) => {
+    if (!canToggleSub) { toast.error("Only the owner or admin can mark items as included."); return; }
+    setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item));
+  };
 
   const handleRedeemGiftCard = async () => {
     if (!booking) return;

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSettings } from "@/context/SettingsContext";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { toast } from "sonner";
 import { CSVLink } from "react-csv";
@@ -27,6 +28,8 @@ type DateRange = "today" | "week" | "month" | "custom";
 export default function SalesRevenue() {
   const [payments, setPayments] = useState<any[]>([]);
   const [revSplit, setRevSplit] = useState({ service: 0, product: 0, subscription: 0 });
+  const { userRole } = useSettings();
+  const canRefund = userRole === "owner" || userRole === "admin";
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>("month");
   const [customStart, setCustomStart] = useState("");
@@ -263,7 +266,7 @@ export default function SalesRevenue() {
           </div>
           <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_SOFT, textTransform:"uppercase", marginBottom:"10px" }}>Filter by Status</p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:"7px" }}>
-            {[null,"completed","pending","refunded"].map(s => (
+            {[null,"completed","pending",...(canRefund ? ["refunded"] : [])].map(s => (
               <button key={s||"all"} onClick={()=>setFilterStatus(s)} style={{ padding:"5px 12px", borderRadius:"20px", border:`1.5px solid ${filterStatus===s ? G : BORDER}`, background:filterStatus===s ? G : WHITE, color:filterStatus===s ? WHITE : TXT_MID, fontSize:"11px", fontWeight:600, cursor:"pointer" }}>
                 {s ? s.charAt(0).toUpperCase()+s.slice(1) : "All"}
               </button>
@@ -333,7 +336,7 @@ export default function SalesRevenue() {
           {selected.notes && <p style={{ fontSize:"12px", color:TXT_MID, marginBottom:"16px" }}>Note: {selected.notes}</p>}
           <div style={{ display:"flex", gap:"8px" }}>
             {selected.status !== "completed" && <button onClick={()=>updateStatus(selected.id,"completed")} style={{ padding:"8px 18px", borderRadius:"10px", background:G, color:WHITE, border:"none", fontSize:"12px", fontWeight:600, cursor:"pointer" }}>Mark Completed</button>}
-            {selected.status !== "refunded" && <button onClick={()=>updateStatus(selected.id,"refunded")} style={{ padding:"8px 18px", borderRadius:"10px", background:WHITE, color:"#DC2626", border:`1px solid #FECACA`, fontSize:"12px", fontWeight:600, cursor:"pointer" }}>Mark Refunded</button>}
+            {canRefund && selected.status !== "refunded" && <button onClick={()=>updateStatus(selected.id,"refunded")} style={{ padding:"8px 18px", borderRadius:"10px", background:WHITE, color:"#DC2626", border:`1px solid #FECACA`, fontSize:"12px", fontWeight:600, cursor:"pointer" }}>Mark Refunded</button>}
           </div>
         </div>
       )}

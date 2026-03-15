@@ -183,8 +183,7 @@ const DashboardLayout = () => {
           "Promo Codes", "Products", "Sell Products", "Waitlist",
           // Attendance management
           "Attendance", "Attendance Reports",
-          // Security (own password)
-          "Security",
+          // Security — removed, receptionist uses /app/receptionist/security directly if needed
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))

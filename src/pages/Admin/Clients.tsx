@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { normalizePhone } from "@/lib/clientDedup";
@@ -39,6 +40,8 @@ export default function Clients() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", birthday: "", notes: "" });
   const [saving, setSaving] = useState(false);
 
+  const { userRole } = useSettings();
+  const canDelete = userRole === "owner" || userRole === "admin";
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const fetchClients = useCallback(async (p = 1, s = search) => {
@@ -364,11 +367,11 @@ export default function Clients() {
                 </div>
               )}
 
-              {/* Delete */}
-              <button onClick={() => handleDelete(selected.id)}
+              {/* Delete — owner/admin only */}
+              {canDelete && <button onClick={() => handleDelete(selected.id)}
                 style={{ marginTop: 20, width: "100%", padding: "9px", borderRadius: 10, background: WHITE, border: `1.5px solid #FECACA`, color: "#DC2626", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <Trash2 size={13} /> Delete Client
-              </button>
+              </button>}
             </div>
           </div>
         )}

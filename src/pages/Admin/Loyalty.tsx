@@ -298,8 +298,10 @@ export default function Loyalty() {
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 600, color: G.warmGrey, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "Jost, sans-serif", display: "block", marginBottom: 6 }}>Add Stamps by Amount (GHS)</label>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input value={stampAmount} onChange={e => setStampAmount(e.target.value)} placeholder="e.g. 250 = 2 stamps" type="number" style={{ flex: 1, padding: "10px 12px", border: `1px solid ${G.border}`, borderRadius: 8, fontSize: 13, outline: "none", color: G.charcoal }} />
-                  <button onClick={() => addStamp(selected, 0)} disabled={issuing || !stampAmount} style={{ padding: "10px 16px", background: `linear-gradient(135deg, ${G.gold}, ${G.goldLight})`, border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, color: G.charcoal, opacity: !stampAmount ? 0.5 : 1, fontFamily: "Jost, sans-serif" }}>
+                  <input value={stampAmount} onChange={e => setStampAmount(e.target.value)} placeholder="e.g. 250 = 2 stamps" type="number"
+                    disabled={!["owner","admin"].includes((settings as any)?._userRole || userRole || "")}
+                    style={{ flex: 1, padding: "10px 12px", border: `1px solid ${G.border}`, borderRadius: 8, fontSize: 13, outline: "none", color: G.charcoal }} />
+                  <button onClick={() => addStamp(selected, 0)} disabled={issuing || !stampAmount || !["owner","admin"].includes(userRole || "")} style={{ padding: "10px 16px", background: `linear-gradient(135deg, ${G.gold}, ${G.goldLight})`, border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, color: G.charcoal, opacity: !stampAmount ? 0.5 : 1, fontFamily: "Jost, sans-serif" }}>
                     {issuing ? "..." : "ADD"}
                   </button>
                 </div>
@@ -319,7 +321,7 @@ export default function Loyalty() {
 
               <button
                 onClick={() => redeemReward(selected)}
-                disabled={issuing || (selected.loyalty_points || 0) < STAMPS_PER_REWARD}
+                disabled={issuing || (selected.loyalty_points || 0) < STAMPS_PER_REWARD || !["owner","admin"].includes(userRole || "")}
                 style={{ width: "100%", padding: "14px", background: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? `linear-gradient(135deg, ${G.charcoal}, #2D2D2D)` : G.border, border: "none", borderRadius: 8, cursor: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? "pointer" : "not-allowed", color: (selected.loyalty_points || 0) >= STAMPS_PER_REWARD ? G.white : G.warmGrey, fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "Jost, sans-serif" }}>
                 <Gift size={16} />
                 {(selected.loyalty_points || 0) >= STAMPS_PER_REWARD

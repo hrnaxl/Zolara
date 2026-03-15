@@ -49,6 +49,8 @@ export default function Bookings() {
   const [selected, setSelected] = useState<any>(null);
 
   // Cancel dialog
+  const { userRole } = useSettings();
+  const canManage = userRole === "owner" || userRole === "admin";
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<any>(null);
 
