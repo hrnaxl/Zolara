@@ -669,7 +669,7 @@ export default function LandingPage() {
           </div>
           <div>
             <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "20px" }}>SOCIAL</p>
-            {[["https://www.instagram.com/zolarastudio","Instagram"],["https://www.tiktok.com/@zolarastudio","TikTok"],["https://x.com/zolarastudio","X (Twitter)"]].map(([href,label]) => (
+            {[["https://www.instagram.com/zolarastudio","Instagram"],["https://www.tiktok.com/@zolarastudio","TikTok"],["https://x.com/zolarastudio","X (Twitter)"],["https://www.threads.net/@zolarastudio","Threads"],["https://www.facebook.com/zolarastudio","Facebook"]].map(([href,label]) => (
               <div key={label} style={{ marginBottom: "12px" }}>
                 <a href={href} target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "13px", color: "rgba(245,239,230,0.55)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
                   onMouseEnter={e => (e.target as HTMLElement).style.color = gold}
