@@ -31,13 +31,11 @@ interface Client {
   email?: string;
 }
 
-const STAMPS_PER_REWARD = 20;
-// REWARD_DISCOUNT now comes from settings
-const STAMP_EARN_RATE = 100; // GHS per stamp
-
 export default function Loyalty() {
   const { settings } = useSettings();
-  const REWARD_DISCOUNT = (settings as any)?.loyalty_reward_discount ?? 50;
+  const REWARD_DISCOUNT   = Number((settings as any)?.loyalty_reward_discount   ?? 50);
+  const STAMPS_PER_REWARD = Number((settings as any)?.loyalty_stamps_for_reward  ?? STAMPS_PER_REWARD_DEFAULT);
+  const STAMP_EARN_RATE   = Number((settings as any)?.loyalty_stamp_per_ghs      ?? STAMP_EARN_RATE_DEFAULT);
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);

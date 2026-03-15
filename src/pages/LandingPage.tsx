@@ -554,12 +554,12 @@ export default function LandingPage() {
                 body: "Digital cards land in their inbox within minutes. Physical pickup also available at the studio.",
               },
               {
-                icon: "◇", title: "A Little Extra on Us",
-                body: "If the service total slightly exceeds the card value (up to GHS 50 on Diamond cards), the difference is on Zolara.",
+                icon: "◇", title: "A Generous Buffer on Every Card",
+                body: "Your card covers the full service even if it slightly exceeds the card value. Silver: GHS 20 buffer. Gold: GHS 40. Platinum: GHS 70. Diamond: GHS 100. That extra is on us.",
               },
               {
-                icon: "❋", title: "Four Tiers. One for Everyone.",
-                body: "Silver GHS 220, Gold GHS 450, Platinum GHS 650, Diamond GHS 1,000. From a treat to a full luxury day.",
+                icon: "❋", title: "Five Tiers. One for Everyone.",
+                body: "Bronze GHS 10, Silver GHS 220, Gold GHS 450, Platinum GHS 650, Diamond GHS 1,000. From a quick treat to a full luxury day.",
               },
             ].map(({ icon, title, body }) => (
               <div key={title} className="kpi-card" style={{ background: cream, border: "1px solid rgba(200,169,126,0.2)", borderRadius: "4px", padding: "22px 24px", display: "flex", gap: "16px", alignItems: "flex-start", boxShadow: "0 4px 20px rgba(28,22,14,0.05)" }}>
@@ -572,6 +572,17 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
+
+            {/* Diamond 3x redemption card */}
+            <div className="kpi-card" style={{ background: "linear-gradient(135deg, #1E1B4B, #312E81)", border: "1px solid rgba(99,102,241,0.4)", borderRadius: "4px", padding: "22px 24px", display: "flex", gap: "16px", alignItems: "flex-start", boxShadow: "0 8px 32px rgba(99,102,241,0.2)" }}>
+              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #4F46E5, #818CF8)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ color: "#fff", fontSize: "14px" }}>◆</span>
+              </div>
+              <div>
+                <p className="sans" style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.06em", color: "#C7D2FE", marginBottom: "6px" }}>Diamond Cards: Redeem Up to 3 Times</p>
+                <p className="sans" style={{ fontSize: "13px", color: "rgba(199,210,254,0.8)", lineHeight: 1.75, fontWeight: 400 }}>The Diamond Luxury Pass (GHS 1,000) is the only card redeemable across multiple visits. Use it up to 3 times. The remaining balance carries forward each visit until the card is fully used.</p>
+              </div>
+            </div>
 
             <Link to="/buy-gift-card" className="btn-primary" style={{
               textDecoration: "none", display: "inline-block",
@@ -586,10 +597,10 @@ export default function LandingPage() {
           {/* RIGHT: Gift card tiers */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px", paddingTop: "12px" }}>
             {[
-              { amount: "GH₵ 220", tier: "Silver", desc: "Perfect for a treat. Covers a wash, nail set, or cluster lashes.", gradient: "linear-gradient(145deg, #a8a8a8, #f0f0f0, #8a8a8a)" },
-              { amount: "GH₵ 450", tier: "Gold", desc: "A full pampering session. Braids, manicure and more.", gradient: "linear-gradient(145deg, #8B6914, #C8A97E, #A07030)" },
-              { amount: "GH₵ 650", tier: "Platinum", desc: "Premium luxury experience. A day of indulgence.", gradient: "linear-gradient(145deg, #3D4852, #8B9BAB, #2D3740)" },
-              { amount: "GH₵ 1,000", tier: "Diamond Luxury Pass", desc: "The ultimate gift. Bridal prep, full styling and more.", gradient: "linear-gradient(145deg, #2D2570, #7C6FD4, #1E1860)" },
+              { amount: "GH₵ 220", tier: "Silver", buffer: "+GHS 20 buffer", desc: "Perfect for a treat. Covers a wash, nail set, or cluster lashes.", gradient: "linear-gradient(145deg, #a8a8a8, #f0f0f0, #8a8a8a)" },
+              { amount: "GH₵ 450", tier: "Gold", buffer: "+GHS 40 buffer", desc: "A full pampering session. Braids, manicure and more.", gradient: "linear-gradient(145deg, #8B6914, #C8A97E, #A07030)" },
+              { amount: "GH₵ 650", tier: "Platinum", buffer: "+GHS 70 buffer", desc: "Premium luxury experience. A day of indulgence.", gradient: "linear-gradient(145deg, #3D4852, #8B9BAB, #2D3740)" },
+              { amount: "GH₵ 1,000", tier: "Diamond Luxury Pass", buffer: "+GHS 100 buffer · 3 redemptions", desc: "The ultimate gift. Bridal prep, full styling and more.", gradient: "linear-gradient(145deg, #2D2570, #7C6FD4, #1E1860)" },
             ].map(({ amount, tier, desc, gradient }) => (
               <div key={tier} className="gift-card-tile" style={{ background: gradient, borderRadius: "10px", padding: "28px 28px", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: -14, right: -14, width: 70, height: 70, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
@@ -604,6 +615,7 @@ export default function LandingPage() {
                     <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                 </div>
+                {(tier as any).buffer && <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.1)", padding: "3px 8px", borderRadius: 20, display: "inline-block", marginBottom: 8 }}>{(tier as any).buffer}</span>}
                 <p className="sans" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.72)", lineHeight: 1.65, fontWeight: 400, maxWidth: "280px" }}>{desc}</p>
               </div>
             ))}
