@@ -91,6 +91,20 @@ export default function BuyGiftCard() {
               .select("id")
               .single();
 
+            // Record sale in revenue — always, regardless of email/physical
+            if (!error && card?.id) {
+              const supabaseClient = (await import("@/integrations/supabase/client")).supabase;
+              await (supabaseClient as any).from("sales").insert({
+                amount: tierValue,
+                payment_method: "mobile_money", // Paystack = mobile money / card online
+                status: "completed",
+                client_name: form.buyerName || null,
+                service_name: `Gift Card (${selectedTier} – GHS ${tierValue})`,
+                notes: `Online gift card purchase. Recipient: ${isEmail ? (form.recipientName || form.recipientEmail) : "Physical card"}. Ref: ${code}`,
+                payment_date: new Date().toISOString(),
+              });
+            }
+
             // If digital, trigger email immediately
             if (!error && card?.id && isEmail) {
               await fetch(
