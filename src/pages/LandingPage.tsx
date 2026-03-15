@@ -14,7 +14,8 @@ const services = [
   { name: "Wig Styling", icon: "◈", desc: "Custom wig fitting, installation and transformation for any occasion.", price: "From GHS 150", color: "#A0825A" },
 ];
 
-const reviews = [
+// Reviews are loaded from DB — fallback shown until DB loads
+const FALLBACK_REVIEWS = [
   { name: "Abena K.", text: "Zolara is in a class of its own. The atmosphere, the staff, the results. I've never felt more pampered in Tamale.", stars: 5 },
   { name: "Fatima A.", text: "My lashes were absolutely perfect. The attention to detail is incredible. I won't go anywhere else.", stars: 5 },
   { name: "Priscilla M.", text: "The loyalty program is a game changer. Free water, WiFi, and they even spray you with perfume on your way out. Elite.", stars: 5 },
@@ -35,6 +36,7 @@ export default function LandingPage() {
     }
   }, []);
   const [activeReview, setActiveReview] = useState(0);
+  const [dbReviews, setDbReviews] = useState<any[]>([]);
   const [reviewVisible, setReviewVisible] = useState(false);
   const [expVisible, setExpVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -52,9 +54,13 @@ export default function LandingPage() {
   useEffect(() => {
     supabase.from("settings").select("open_time, close_time, closed_dates").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
+    // Load visible reviews from DB
+    (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
+      .then(({ data }: any) => { if (data && data.length > 0) setDbReviews(data); });
   }, []);
 
   useEffect(() => {
+    const reviews = dbReviews.length > 0 ? dbReviews.map((r: any) => ({ name: r.name, text: r.comment, stars: r.rating })) : FALLBACK_REVIEWS;
     const iv = setInterval(() => setActiveReview(r => (r + 1) % reviews.length), 4500);
     return () => clearInterval(iv);
   }, []);
@@ -472,7 +478,7 @@ export default function LandingPage() {
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", maxWidth: "1100px", margin: "0 auto 60px" }}>
-            {reviews.map((r, i) => (
+            {(() => { const reviews = dbReviews.length > 0 ? dbReviews.map((r: any) => ({ name: r.name, text: r.comment, stars: r.rating })) : FALLBACK_REVIEWS; return reviews.map((r, i) => (
               <div key={r.name} className={`review-card review-card-anim`}
                 style={{
                   background: i === activeReview ? "rgba(200,169,126,0.13)" : "rgba(255,255,255,0.04)",
@@ -492,18 +498,18 @@ export default function LandingPage() {
                   <p className="sans" style={{ fontSize: "13px", fontWeight: 600, color: gold }}>{r.name}</p>
                 </div>
               </div>
-            ))}
+            )); })()}
           </div>
 
           {/* Active indicator dots */}
           <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "40px" }}>
-            {reviews.map((_, i) => (
+            {(() => { const reviews = dbReviews.length > 0 ? dbReviews.map((r: any) => ({ name: r.name, text: r.comment, stars: r.rating })) : FALLBACK_REVIEWS; return reviews.map((_, i) => (
               <div key={i} onClick={() => setActiveReview(i)} style={{
                 width: i === activeReview ? "24px" : "8px", height: "8px", borderRadius: "4px",
                 background: i === activeReview ? gold : "rgba(200,169,126,0.3)",
                 cursor: "pointer", transition: "all 0.4s ease",
               }} />
-            ))}
+            )); })()}
           </div>
 
           <Link to="/book" className="btn-primary" style={{
