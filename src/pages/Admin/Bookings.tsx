@@ -84,6 +84,13 @@ export default function Bookings() {
   const fetchStaff = async () => {
     const { data } = await supabase.from("staff").select("id, name, role").eq("is_active", true);
     setStaff((data || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || "")));
+    // Fetch today's attendance
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: att } = await supabase.from("attendance").select("staff_id, status, check_in").eq("date", today);
+    const present = new Set<string>((att || []).filter((a: any) => a.check_in && a.status !== "absent").map((a: any) => a.staff_id));
+    const absent = new Set<string>((att || []).filter((a: any) => a.status === "absent").map((a: any) => a.staff_id));
+    setPresentStaffIds(present);
+    setAbsentStaffIds2(absent);
   };
 
   useEffect(() => {
@@ -187,17 +194,22 @@ export default function Bookings() {
 
   const [confirming, setConfirming] = useState(false);
   const [confirmResult, setConfirmResult] = useState<{done:number;skipped:number;noStaff:number} | null>(null);
+  const [presentStaffIds, setPresentStaffIds] = useState<Set<string>>(new Set());
+  const [absentStaffIds2, setAbsentStaffIds2] = useState<Set<string>>(new Set());
 
   const handleConfirmAll = async () => {
-    if (!confirm(`Auto-assign and confirm all pending bookings? Staff will be assigned based on specialty and availability.`)) return;
+    if (!confirm(`Auto-assign and confirm all pending bookings? Staff will be assigned based on specialty, attendance and availability.`)) return;
     setConfirming(true);
     setConfirmResult(null);
     try {
+      const today = new Date().toISOString().slice(0, 10);
+
       // 1. Fetch all pending bookings
       const { data: pending } = await supabase.from("bookings")
         .select("id, service_name, preferred_date, preferred_time, client_name")
         .eq("status", "pending")
-        .order("preferred_date", { ascending: true });
+        .order("preferred_date", { ascending: true })
+        .order("preferred_time", { ascending: true });
 
       if (!pending || pending.length === 0) { toast.info("No pending bookings to confirm"); setConfirming(false); return; }
 
@@ -207,37 +219,78 @@ export default function Bookings() {
         .eq("is_active", true);
       const opStaff = (allStaff || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || ""));
 
-      // 3. Fetch existing bookings to check conflicts
+      // 3. Fetch today's attendance — only staff who checked in are available for TODAY's bookings
+      const { data: attendanceToday } = await supabase.from("attendance")
+        .select("staff_id, status, check_in")
+        .eq("date", today);
+
+      // Staff who are present today (checked in and not marked absent)
+      const presentTodayIds = new Set(
+        (attendanceToday || [])
+          .filter((a: any) => a.check_in && a.status !== "absent")
+          .map((a: any) => a.staff_id)
+      );
+      // Staff marked explicitly absent today
+      const absentTodayIds = new Set(
+        (attendanceToday || [])
+          .filter((a: any) => a.status === "absent")
+          .map((a: any) => a.staff_id)
+      );
+
+      // 4. Fetch existing confirmed bookings to check time conflicts
       const { data: existingBookings } = await supabase.from("bookings")
         .select("staff_id, preferred_date, preferred_time")
         .in("status", ["confirmed","in_progress"])
         .not("staff_id", "is", null);
 
       const isStaffBusy = (staffId: string, date: string, time: string) =>
-        (existingBookings || []).some((b: any) => b.staff_id === staffId && b.preferred_date === date && b.preferred_time === time);
+        (existingBookings || []).some((b: any) =>
+          b.staff_id === staffId && b.preferred_date === date && b.preferred_time === time
+        );
 
-      let done = 0, skipped = 0, noStaff = 0;
-      // Track assignments made this session to avoid double-booking in bulk
+      let done = 0, skipped = 0, noStaff = 0, absentSkipped = 0;
       const sessionAssignments: Array<{staffId:string; date:string; time:string}> = [];
 
       for (const booking of pending) {
+        const isToday = booking.preferred_date === today;
         const specialty = getRequiredSpecialty(booking.service_name);
-        
-        // Find eligible staff
+
+        // Filter staff by specialty
         const eligible = opStaff.filter((s: any) => {
-          if (!specialty) return true; // no specialty needed — any staff
+          if (!specialty) return true;
           return (s.specialties || []).includes(specialty);
         });
 
-        // Find one who isn't busy
-        const available = eligible.find((s: any) =>
+        // For today: only consider staff who have checked in
+        // For future dates: any active staff with the right specialty (attendance unknown yet)
+        const availablePool = eligible.filter((s: any) => {
+          if (isToday) {
+            // Must be present (checked in) — not absent and not unchecked
+            if (absentTodayIds.has(s.id)) return false;
+            if (!presentTodayIds.has(s.id)) return false; // not checked in yet
+          } else {
+            // Future booking — exclude only if explicitly known absent today
+            // (future attendance unknown, don't restrict)
+          }
+          return true;
+        });
+
+        // Find one who isn't already booked at that time
+        const available = availablePool.find((s: any) =>
           !isStaffBusy(s.id, booking.preferred_date, booking.preferred_time) &&
-          !sessionAssignments.some(a => a.staffId === s.id && a.date === booking.preferred_date && a.time === booking.preferred_time)
+          !sessionAssignments.some(a =>
+            a.staffId === s.id && a.date === booking.preferred_date && a.time === booking.preferred_time
+          )
         );
 
         if (!available) {
-          if (eligible.length === 0) noStaff++;
-          else skipped++; // eligible staff exist but all busy at that time
+          if (eligible.length === 0) {
+            noStaff++;
+          } else if (isToday && availablePool.length === 0) {
+            absentSkipped++;
+          } else {
+            skipped++;
+          }
           continue;
         }
 
@@ -249,15 +302,20 @@ export default function Bookings() {
 
         if (!error) {
           done++;
-          sessionAssignments.push({ staffId: available.id, date: booking.preferred_date, time: booking.preferred_time });
+          sessionAssignments.push({
+            staffId: available.id,
+            date: booking.preferred_date,
+            time: booking.preferred_time,
+          });
         } else skipped++;
       }
 
-      setConfirmResult({ done, skipped, noStaff });
+      setConfirmResult({ done, skipped: skipped + absentSkipped, noStaff });
       toast.success(`${done} bookings confirmed and assigned`);
-      if (skipped > 0) toast.warning(`${skipped} skipped — staff fully booked at that time`);
-      if (noStaff > 0) toast.error(`${noStaff} couldn't be assigned — no staff with the right specialty`);
-      
+      if (absentSkipped > 0) toast.warning(`${absentSkipped} today's bookings skipped — no checked-in staff with the right specialty`);
+      if (skipped > 0) toast.warning(`${skipped} skipped — all eligible staff booked at that time`);
+      if (noStaff > 0) toast.error(`${noStaff} couldn't be assigned — no staff with the right specialty exists`);
+
       fetchBookings(1, filter, search);
       fetchCounts();
     } catch (e: any) {
@@ -474,11 +532,26 @@ export default function Bookings() {
               {staff.length > 0 && !["completed","cancelled"].includes(selected.status) && (
                 <div style={{ marginBottom: 16 }}>
                   <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", margin: "0 0 6px" }}>Assign Staff</p>
-                  <select value={selected.staff_id || ""} onChange={e => handleAssignStaff(selected.id, e.target.value)}
-                    style={{ width: "100%", padding: "8px 10px", border: `1.5px solid ${BORDER}`, borderRadius: 10, fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif" }}>
-                    <option value="">Unassigned</option>
-                    {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
+                  {(() => {
+                    const isToday = selected.preferred_date === new Date().toISOString().slice(0,10);
+                    return (
+                      <select value={selected.staff_id || ""} onChange={e => handleAssignStaff(selected.id, e.target.value)}
+                        style={{ width: "100%", padding: "8px 10px", border: `1.5px solid ${BORDER}`, borderRadius: 10, fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif" }}>
+                        <option value="">Unassigned</option>
+                        {staff.map(s => {
+                          const isAbsent = absentStaffIds2.has(s.id);
+                          const isPresent = presentStaffIds.has(s.id);
+                          let label = s.name;
+                          if (isToday) {
+                            if (isAbsent) label += " — Absent";
+                            else if (isPresent) label += " ✓ Present";
+                            else label += " — Not checked in";
+                          }
+                          return <option key={s.id} value={s.id} disabled={isToday && isAbsent}>{label}</option>;
+                        })}
+                      </select>
+                    );
+                  })()}
                 </div>
               )}
 
