@@ -82,8 +82,8 @@ export default function Bookings() {
   };
 
   const fetchStaff = async () => {
-    const { data } = await supabase.from("staff").select("id, name").eq("is_active", true);
-    setStaff(data || []);
+    const { data } = await supabase.from("staff").select("id, name, role").eq("is_active", true);
+    setStaff((data || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || "")));
   };
 
   useEffect(() => {
@@ -393,7 +393,7 @@ export default function Bookings() {
 
               {/* Checkout button */}
               {["confirmed","in_progress"].includes(selected.status) && (
-                <button onClick={() => navigate(`/app/admin/checkout?bookingId=${selected.id}`)} className="panel-btn"
+                <button onClick={() => navigate(`/app/admin/checkout?booking=${selected.id}`)} className="panel-btn"
                   style={{ width: "100%", background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                   Checkout <ArrowRight size={13} />
                 </button>
