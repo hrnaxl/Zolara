@@ -172,9 +172,19 @@ const DashboardLayout = () => {
       //     Add-ons, SMS Campaigns, Subscriptions, Products
       case "receptionist": {
         const allowed = [
+          // Core operations
           "Dashboard", "Bookings", "Clients", "Staff",
-          "Services", "Gift Cards", "Checkout", "Loyalty",
-          "Promo Codes", "Attendance", "Products", "Sell Products", "Security", "Waitlist",
+          "Services", "Checkout", "Loyalty",
+          // Gift cards — full access including honoring pickups
+          "Gift Cards", "Print Gift Cards",
+          // Sales & revenue visibility (read daily takings)
+          "Sales",
+          // Promo, products, waitlist
+          "Promo Codes", "Products", "Sell Products", "Waitlist",
+          // Attendance management
+          "Attendance", "Attendance Reports",
+          // Security (own password)
+          "Security",
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))

@@ -57,6 +57,7 @@ type Tab = "all" | "digital" | "physical";
 export default function GiftCards() {
   const { userRole, roleReady } = useSettings();
   const isOwner = roleReady && userRole === "owner";
+  const canOperate = roleReady && ["owner", "admin", "receptionist"].includes(userRole || ""); // day-to-day gift card ops
 
   // ─── State ───────────────────────────────────────────────────
   const [cards, setCards]           = useState<any[]>([]);
@@ -522,17 +523,17 @@ export default function GiftCards() {
                     {/* Right: actions */}
                     <div style={{ display:"flex", gap:"6px", alignItems:"center", flexShrink:0 }}>
                       {/* Resend email — only for digital pending_send or active with recipient_email */}
-                      {isOwner && digital && (status === "pending_send" || (status !== "redeemed" && status !== "void" && card.recipient_email)) && (
+                      {canOperate && digital && (status === "pending_send" || (status !== "redeemed" && status !== "void" && card.recipient_email)) && (
                         <button className="gc-btn" style={{ background:"#DBEAFE", color:"#1D4ED8", fontSize:"10px", padding:"6px 12px" }}
                           onClick={() => { setConfirmCard(card); setConfirmAct("resend"); }}>
                           {status === "pending_send" ? "📧 Resend" : "📧 Resend Code"}
                         </button>
                       )}
                       {/* Mark as sold — physical available cards */}
-                      {isOwner && !digital && (status === "unused" || status === "available") && card.payment_status !== "paid" && (
+                      {canOperate && !digital && (status === "unused" || status === "available" || status === "pending_pickup" || card.payment_status === "pending_pickup") && card.payment_status !== "paid" && (
                         <button className="gc-btn" style={{ background:"#DCFCE7", color:"#166534", fontSize:"10px", padding:"6px 12px" }}
                           onClick={() => { setConfirmCard(card); setConfirmAct("sold"); }}>
-                          ✓ Mark Sold
+                          {card.payment_status === "pending_pickup" ? "✓ Hand Over" : "✓ Mark Sold"}
                         </button>
                       )}
                       {/* Expand */}
