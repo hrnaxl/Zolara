@@ -101,6 +101,25 @@ export default function PublicBooking() {
   // Check slot availability whenever date or time changes
   useEffect(() => {
     if (!preferredDate || !preferredTime) { setSlotStatus("idle"); setWaitlistJoined(false); return; }
+
+    // Check operating hours first — no need to hit DB for invalid times
+    const openTime  = (settings as any)?.open_time  || "08:30";
+    const closeTime = (settings as any)?.close_time || "21:00";
+    const normalized = normalizeTimeTo24(preferredTime);
+    if (!isTimeWithinRange(normalized, openTime, closeTime)) {
+      setSlotStatus("idle"); // clear any previous status, let form validation catch it
+      setWaitlistJoined(false);
+      return;
+    }
+
+    // Check if date is a closed day
+    const closedDates: string[] = (settings as any)?.closed_dates || [];
+    if (closedDates.some((d: string) => d.split("|")[0] === preferredDate)) {
+      setSlotStatus("idle");
+      setWaitlistJoined(false);
+      return;
+    }
+
     let cancelled = false;
     setSlotStatus("checking");
     setWaitlistJoined(false);
@@ -109,15 +128,15 @@ export default function PublicBooking() {
         const { data, error } = await (supabase as any).rpc("get_available_staff", {
           p_service_id: serviceId || "00000000-0000-0000-0000-000000000000",
           p_date: preferredDate,
-          p_time: preferredTime,
+          p_time: normalized,
         });
         if (cancelled) return;
-        if (error) { setSlotStatus("available"); return; } // fail open — let them book
+        if (error) { setSlotStatus("available"); return; }
         setSlotStatus(!data || data.length === 0 ? "full" : "available");
-      } catch { if (!cancelled) setSlotStatus("available"); } // fail open
+      } catch { if (!cancelled) setSlotStatus("available"); }
     })();
     return () => { cancelled = true; };
-  }, [preferredDate, preferredTime, serviceId]);
+  }, [preferredDate, preferredTime, serviceId, settings]);
 
   // allVariantsMap: serviceId -> variants[] (for price range display in picker)
   const [allVariantsMap, setAllVariantsMap] = useState<Record<string, any[]>>({});
