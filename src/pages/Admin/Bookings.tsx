@@ -578,7 +578,10 @@ export default function Bookings() {
 
               {/* Checkout button */}
               {["confirmed","in_progress"].includes(selected.status) && (
-                <button onClick={() => navigate(`/app/admin/checkout?booking=${selected.id}`)} className="panel-btn"
+                <button onClick={() => {
+                  const base = (userRole === "receptionist") ? "/app/receptionist/checkout" : "/app/admin/checkout";
+                  navigate(`${base}?booking=${selected.id}`);
+                }} className="panel-btn"
                   style={{ width: "100%", background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                   Checkout <ArrowRight size={13} />
                 </button>

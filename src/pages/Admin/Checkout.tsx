@@ -346,7 +346,7 @@ const Checkout = () => {
         toast.error("Please select a payment method"); setProcessing(false); return;
       }
 
-      await supabase.from("bookings").update({ staff_id: selectedStaff, notes: notes || booking.notes, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
+      await supabase.from("bookings").update({ staff_id: selectedStaff || null, notes: notes || booking.notes, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
 
       if (redeemedCard && Number(redeemedCard.value) > 0) {
         const orig = Number(originalPrice || (booking.services?.price ?? 0));
@@ -377,7 +377,7 @@ const Checkout = () => {
       }
 
       if (paymentMethod !== "bank_transfer") {
-        await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
+        await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff || null, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
         // amount saved = what client actually paid (balance after deposit + discounts)
         // amount = actual cash received (balance after deposit + promo + gift deductions)
         // original_price = full service price, discount_amount = promo discount given
@@ -422,7 +422,7 @@ const Checkout = () => {
 
         // Write checkout session + line items
         try {
-          const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff, booking_id: booking.id, total_amount: effectivePrice, payment_method: paymentMethod, status: "completed" }]).select("id").single();
+          const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff || null, booking_id: booking.id, total_amount: effectivePrice, payment_method: paymentMethod, status: "completed" }]).select("id").single();
           if (sess?.id && lineItems.length > 0) {
             await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: sess.id, booking_id: booking.id, item_type: item.type, item_id: item.id, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
           }
@@ -500,7 +500,7 @@ const Checkout = () => {
       }
 
       // Bank transfer — mark booking completed, record sale, show completed screen
-      await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
+      await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff || null, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
       const bankNotes = [
         notes || "Bank transfer payment",
         dep > 0 ? ("Deposit GHS " + dep + " included") : null,
@@ -538,7 +538,7 @@ const Checkout = () => {
 
       // Write checkout session + line items for bank transfer too
       try {
-        const { data: bSess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff, booking_id: booking.id, total_amount: effectivePrice, payment_method: "bank_transfer", status: "completed" }]).select("id").single();
+        const { data: bSess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff || null, booking_id: booking.id, total_amount: effectivePrice, payment_method: "bank_transfer", status: "completed" }]).select("id").single();
         if (bSess?.id && lineItems.length > 0) {
           await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: bSess.id, booking_id: booking.id, item_type: item.type, item_id: item.id, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
         }
