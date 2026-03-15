@@ -4,7 +4,6 @@ const genId = () => crypto.randomUUID();
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSMS, SMS } from "@/lib/sms";
-import { useSlotLock } from "@/hooks/useSlotLock";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { openPaystackPopup } from "@/lib/payment";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
@@ -62,13 +61,10 @@ export default function PublicBooking() {
   const mob = windowWidth < 900;
   const sm  = windowWidth < 480;
 
-  const { lockState, secondsLeft, formattedTime, claimSlot, release } = useSlotLock();
-  const [availableStaff, setAvailableStaff] = useState<any[]>([]);
-  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
-  const [showWaitlist, setShowWaitlist] = useState(false);
+  // Waitlist / availability
+  const [slotStatus, setSlotStatus] = useState<"idle"|"checking"|"available"|"full">("idle");
   const [waitlistJoined, setWaitlistJoined] = useState(false);
-  const [waitlistPref, setWaitlistPref] = useState({ staffId: "", notes: "" });
-  const [checkingSlot, setCheckingSlot] = useState(false);
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
 
   const [step, setStep] = useState<Step>("form");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -101,6 +97,27 @@ export default function PublicBooking() {
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   const today = new Date().toISOString().split("T")[0];
+
+  // Check slot availability whenever date or time changes
+  useEffect(() => {
+    if (!preferredDate || !preferredTime) { setSlotStatus("idle"); setWaitlistJoined(false); return; }
+    let cancelled = false;
+    setSlotStatus("checking");
+    setWaitlistJoined(false);
+    ;(async () => {
+      try {
+        const { data, error } = await (supabase as any).rpc("get_available_staff", {
+          p_service_id: serviceId || "00000000-0000-0000-0000-000000000000",
+          p_date: preferredDate,
+          p_time: preferredTime,
+        });
+        if (cancelled) return;
+        if (error) { setSlotStatus("available"); return; } // fail open — let them book
+        setSlotStatus(!data || data.length === 0 ? "full" : "available");
+      } catch { if (!cancelled) setSlotStatus("available"); } // fail open
+    })();
+    return () => { cancelled = true; };
+  }, [preferredDate, preferredTime, serviceId]);
 
   // allVariantsMap: serviceId -> variants[] (for price range display in picker)
   const [allVariantsMap, setAllVariantsMap] = useState<Record<string, any[]>>({});
@@ -766,6 +783,89 @@ export default function PublicBooking() {
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, marginTop: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
               <Sparkles size={11} style={{ color: GOLD }} /> Open Mon to Sat · 8:30 AM to 9:00 PM · Closed Sundays
             </p>
+
+            {/* Slot availability feedback */}
+            {slotStatus === "checking" && (
+              <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: TXT_MID, fontFamily: "'Montserrat',sans-serif" }}>
+                <span style={{ width: 12, height: 12, border: `2px solid ${GOLD}`, borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite", flexShrink: 0 }} />
+                Checking availability…
+              </div>
+            )}
+
+            {slotStatus === "available" && (
+              <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, fontFamily: "'Montserrat',sans-serif" }}>
+                <span style={{ fontSize: 14 }}>✅</span>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#15803D", margin: 0 }}>This time slot is available</p>
+              </div>
+            )}
+
+            {slotStatus === "full" && !waitlistJoined && (
+              <div style={{ marginTop: 12, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "16px", fontFamily: "'Montserrat',sans-serif" }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: "0 0 6px" }}>😔 All stylists are booked at this time</p>
+                <p style={{ fontSize: 12, color: "#B45309", margin: "0 0 14px", lineHeight: 1.6 }}>
+                  You can still try to book — or join the waitlist and we'll SMS you the moment a slot opens up. You'll have 10 minutes to claim it.
+                </p>
+                <button
+                  type="button"
+                  disabled={joiningWaitlist}
+                  onClick={async () => {
+                    if (!name.trim() || !phone.trim()) {
+                      toast.error("Please fill in your name and phone number first");
+                      document.getElementById("booking-form-top")?.scrollIntoView({ behavior: "smooth" });
+                      return;
+                    }
+                    setJoiningWaitlist(true);
+                    try {
+                      const { error } = await (supabase as any).from("waitlist").insert({
+                        client_name: name.trim(),
+                        client_phone: phone.trim(),
+                        client_email: email.trim() || null,
+                        service_id: serviceId || null,
+                        service_name: selectedService?.name || null,
+                        preferred_date: preferredDate,
+                        preferred_time: preferredTime || null,
+                        staff_id: null,
+                        status: "active",
+                      });
+                      if (error) throw error;
+                      setWaitlistJoined(true);
+                      // SMS client confirming waitlist
+                      if (phone.trim()) {
+                        sendSMS(phone.trim(), [
+                          `Hi ${name.split(" ")[0]}! You're on the Zolara waitlist. 🌸`,
+                          ``,
+                          `💆 Service: ${selectedService?.name || "Your requested service"}`,
+                          `📅 Date: ${preferredDate}`,
+                          `🕐 Time: ${preferredTime}`,
+                          ``,
+                          `We'll SMS you immediately when a slot opens up.`,
+                          `You'll have 10 minutes to confirm your booking.`,
+                          ``,
+                          `Zolara Beauty Studio 💛`,
+                          `0594365314 / 0208848707`,
+                        ].join("\n")).catch(console.error);
+                      }
+                      toast.success("You're on the waitlist! We'll SMS you when a slot opens.");
+                    } catch (e: any) {
+                      toast.error("Failed to join waitlist. Please try again or call us directly.");
+                      console.error(e);
+                    } finally {
+                      setJoiningWaitlist(false);
+                    }
+                  }}
+                  style={{ padding: "10px 24px", borderRadius: 10, background: joiningWaitlist ? "#FDE68A" : "#D97706", color: "white", border: "none", fontSize: 12, fontWeight: 700, cursor: joiningWaitlist ? "not-allowed" : "pointer", fontFamily: "'Montserrat',sans-serif" }}>
+                  {joiningWaitlist ? "Joining…" : "Join Waitlist"}
+                </button>
+                <p style={{ fontSize: 11, color: "#B45309", margin: "10px 0 0" }}>Or pick a different date or time above.</p>
+              </div>
+            )}
+
+            {waitlistJoined && (
+              <div style={{ marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "14px 16px", fontFamily: "'Montserrat',sans-serif" }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#15803D", margin: "0 0 4px" }}>✅ You're on the waitlist!</p>
+                <p style={{ fontSize: 12, color: "#16A34A", margin: 0 }}>We'll SMS you at {phone} the moment a slot opens up.</p>
+              </div>
+            )}
           </div>
 
           {/* Special Requests */}
