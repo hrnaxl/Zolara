@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
 import { sendGiftCardEmail, sendPickupReceiptEmail, sendPurchaseReceiptEmail } from "@/lib/email";
