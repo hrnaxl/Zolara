@@ -254,6 +254,34 @@ export const SMS = {
     ].join("\n");
   },
 
+  // 11. New Booking Alert (for staff/admin)
+  newBookingAlert: (
+    clientName: string,
+    service: string,
+    date: string,
+    time: string,
+    ref: string,
+    clientPhone: string,
+  ) => {
+    const dayDate = date.includes("-") ? dayDateLabel(date) : date;
+    const cleanTime = time.slice(0, 5);
+    return [
+      `🔔 New booking received at Zolara!`,
+      ``,
+      `👤 Client: ${clientName}`,
+      `💆 Service: ${service}`,
+      `📅 Date: ${dayDate}`,
+      `🕐 Time: ${cleanTime}`,
+      `📞 Phone: ${clientPhone}`,
+      `🔖 Ref: ${ref}`,
+      ``,
+      `💳 GHS 50 deposit paid via Paystack.`,
+      ``,
+      `Login to confirm or manage:`,
+      `🔗 zolarasalon.com/app`,
+    ].join("\n");
+  },
+
   // Legacy alias
   bookingConfirmation: (name: string, service: string, date: string, time: string) =>
     SMS.bookingReceived(name, service, date, time, "", false),

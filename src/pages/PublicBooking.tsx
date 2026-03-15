@@ -292,7 +292,7 @@ export default function PublicBooking() {
             toast.error("Payment received but booking confirmation failed. Please contact us.");
           }
 
-          // Send deposit-confirmed follow-up SMS
+          // Send deposit-confirmed follow-up SMS to client
           if (cleanPhone) {
             sendSMS(cleanPhone, SMS.bookingReceived(
               name || "Valued Client",
@@ -303,6 +303,34 @@ export default function PublicBooking() {
               true, // deposit now paid
             )).catch(console.error);
           }
+
+          // Notify staff — send to business phone + all admin/receptionist/owner phones
+          try {
+            const alertMsg = SMS.newBookingAlert(
+              name || "Valued Client",
+              selectedService?.name || "service",
+              preferredDate,
+              normalizedTime,
+              bRef,
+              cleanPhone || "N/A",
+            );
+            // Notify business phone from settings
+            const bizPhone = (settings as any)?.business_phone;
+            if (bizPhone) sendSMS(bizPhone, alertMsg).catch(console.error);
+            // Also notify all owner/admin/receptionist users via their staff phone
+            const { data: staffRoles } = await (supabase as any)
+              .from("user_roles")
+              .select("staff:staff_id(phone, name)")
+              .in("role", ["owner", "admin", "receptionist"]);
+            if (staffRoles) {
+              for (const row of staffRoles) {
+                const phone = row.staff?.phone;
+                if (phone && phone !== bizPhone) {
+                  sendSMS(phone, alertMsg).catch(console.error);
+                }
+              }
+            }
+          } catch (notifyErr) { console.error("Staff notification failed:", notifyErr); }
 
           // Check if this is their first booking (phone has only 1 booking = this one)
           // If so, show the Create Account CTA on the success screen
