@@ -315,6 +315,7 @@ export default function PublicBooking() {
           normalizedTime,
           bRef,
           false, // deposit not yet paid
+          depositAmount,
         )).catch(console.error);
       }
 
@@ -347,6 +348,7 @@ export default function PublicBooking() {
               normalizedTime,
               bRef,
               true, // deposit now paid
+              depositAmount,
             )).catch(console.error);
           }
 

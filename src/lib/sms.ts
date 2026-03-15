@@ -46,12 +46,13 @@ export const SMS = {
     time: string,
     ref: string,
     depositPaid = true,
+    depositAmount = 50,
   ) => {
     const first = firstName(name);
     const dayDate = date.includes("-") ? dayDateLabel(date) : date;
     const cleanTime = time.slice(0, 5);
     const depositLine = depositPaid
-      ? "💳 Deposit: GHS 50 received."
+      ? `💳 Deposit: GHS ${depositAmount} received.`
       : "💳 Deposit: Not recorded.";
     const statusLine = depositPaid
       ? "Your appointment is being reviewed by our team. We'll send a confirmation shortly. 🌸"
@@ -275,7 +276,7 @@ export const SMS = {
       `📞 Phone: ${clientPhone}`,
       `🔖 Ref: ${ref}`,
       ``,
-      `💳 GHS 50 deposit paid via Paystack.`,
+      `💳 GHS ${depositAmount || 50} deposit paid via Paystack.`,
       ``,
       `Login to confirm or manage:`,
       `🔗 zolarasalon.com/app`,
