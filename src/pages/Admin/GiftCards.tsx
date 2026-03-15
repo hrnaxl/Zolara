@@ -486,6 +486,25 @@ export default function GiftCards() {
                       <div style={{ display:"flex", alignItems:"center", gap:"16px", flexWrap:"wrap" }}>
                         <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"22px", fontWeight:600, color:TXT }}>GHS {value.toLocaleString()}</span>
                         {exp && <span style={{ fontSize:"10px", color: new Date(exp) < new Date() ? "#991B1B" : TXT_S }}>Expires {new Date(exp).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}</span>}
+                        {/* Diamond balance tracker — shown inline */}
+                        {tier === "Diamond" && (() => {
+                          const originalAmt = Number(card.amount || 1000);
+                          const remaining = Number(card.balance ?? originalAmt);
+                          const used = originalAmt - remaining;
+                          const pct = Math.min(100, (remaining / originalAmt) * 100);
+                          const uses = card.redemption_count || 0;
+                          return (
+                            <div style={{ display:"flex", flexDirection:"column", gap:4, minWidth:180 }}>
+                              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, fontWeight:600 }}>
+                                <span style={{ color:"#6366F1" }}>◆ GHS {remaining.toLocaleString()} remaining</span>
+                                <span style={{ color:TXT_S }}>GHS {used.toLocaleString()} used · {uses}/3 uses</span>
+                              </div>
+                              <div style={{ height:6, borderRadius:3, background:"#E0E7FF", overflow:"hidden" }}>
+                                <div style={{ height:"100%", width:`${pct}%`, background:"linear-gradient(90deg,#6366F1,#818CF8)", borderRadius:3, transition:"width 0.4s" }} />
+                              </div>
+                            </div>
+                          );
+                        })()}
                         {card.serial_number && <span style={{ fontSize:"10px", color:TXT_S, fontFamily:"monospace" }}>S/N: {card.serial_number}</span>}
                         {card.batch_id && <span style={{ fontSize:"10px", color:TXT_S }}>Batch: {card.batch_id}</span>}
                       </div>
@@ -546,10 +565,16 @@ export default function GiftCards() {
                           { l:"Payment Status",v:card.payment_status || "—" },
                           { l:"Payment Ref",   v:card.payment_ref || "—" },
                           { l:"Created",       v:card.created_at ? new Date(card.created_at).toLocaleDateString("en-GB") : "—" },
-                          { l:"Redeemed At",   v:"—" },
+                          { l:"Redeemed At",   v:card.redeemed_at ? new Date(card.redeemed_at).toLocaleDateString("en-GB") : "—" },
                           { l:"Redeemed By",   v:card.redeemed_by_client || "—" },
                           { l:"Message",       v:card.message || "—" },
                           { l:"Buyer Phone",   v:card.buyer_phone || "—" },
+                          ...(tier === "Diamond" ? [
+                            { l:"Original Value",  v:`GHS ${Number(card.amount||1000).toLocaleString()}` },
+                            { l:"Balance Remaining", v:`GHS ${Number(card.balance ?? card.amount ?? 1000).toLocaleString()}` },
+                            { l:"Balance Used",    v:`GHS ${(Number(card.amount||1000) - Number(card.balance ?? card.amount ?? 1000)).toLocaleString()}` },
+                            { l:"Redemptions Used", v:`${card.redemption_count || 0} of 3` },
+                          ] : []),
                         ].map(f => (
                           <div key={f.l}>
                             <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.1em", color:TXT_S, marginBottom:"2px" }}>{f.l}</div>
