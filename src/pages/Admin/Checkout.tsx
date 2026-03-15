@@ -344,6 +344,8 @@ const Checkout = () => {
           client_id: booking.clients?.id || null,
           staff_id: selectedStaff || null,
           notes: saleNotes,
+          promo_code: appliedPromo?.code || null,
+          promo_discount: promoDiscount > 0 ? promoDiscount : null,
           payment_date: new Date().toISOString(),
         });
         if (saleErr) throw saleErr;
@@ -461,6 +463,8 @@ const Checkout = () => {
         client_id: booking.clients?.id || null,
         staff_id: selectedStaff || null,
         notes: bankNotes,
+        promo_code: appliedPromo?.code || null,
+        promo_discount: promoDiscount > 0 ? promoDiscount : null,
         payment_date: new Date().toISOString(),
       });
       if (bankSaleErr) throw bankSaleErr;
