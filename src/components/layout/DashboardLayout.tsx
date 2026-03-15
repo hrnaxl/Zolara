@@ -35,6 +35,7 @@ import {
   RefreshCw,
   MessageSquare,
   Shield,
+  ListOrdered,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -143,6 +144,7 @@ const DashboardLayout = () => {
     { icon: ShoppingBag,     label: "Products",            path: "products" },
     { icon: ShoppingBag,     label: "Sell Products",        path: "product-sale" },
     { icon: RefreshCw,       label: "Subscriptions",       path: "subscriptions" },
+    { icon: ListOrdered,     label: "Waitlist",            path: "waitlist" },
     { icon: BarChart2,       label: "Analytics",           path: "analytics" },
     { icon: FileText,        label: "Reports",             path: "reports" },
     { icon: Clock,           label: "Attendance",          path: "attendance" },
@@ -172,7 +174,7 @@ const DashboardLayout = () => {
         const allowed = [
           "Dashboard", "Bookings", "Clients", "Staff",
           "Services", "Gift Cards", "Checkout", "Loyalty",
-          "Promo Codes", "Attendance", "Products", "Sell Products", "Security",
+          "Promo Codes", "Attendance", "Products", "Sell Products", "Security", "Waitlist",
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))

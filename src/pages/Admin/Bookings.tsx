@@ -892,6 +892,44 @@ No-show on ${bk.preferred_date || "unknown date"}.`
 
       toast.success("Booking cancelled");
       setCancelDialogOpen(false);
+
+      // Check waitlist for matching requests and notify them
+      try {
+        const b = bookingToCancel;
+        const { data: waiting } = await (supabase as any)
+          .from("waitlist")
+          .select("*")
+          .eq("status", "active")
+          .eq("preferred_date", b.preferred_date)
+          .or(`preferred_time.is.null,preferred_time.eq.${b.preferred_time}`)
+          .or(`staff_id.is.null,staff_id.eq.${b.staff_id || "00000000-0000-0000-0000-000000000000"}`);
+
+        if (waiting && waiting.length > 0) {
+          const { sendSMS, SMS } = await import("@/lib/sms");
+          for (const entry of waiting.slice(0, 3)) { // notify top 3
+            const msg = [
+              `Hi ${entry.client_name.split(" ")[0]}! 🌸 A slot opened at Zolara!`,
+              ``,
+              `💆 Service: ${entry.service_name || "Your requested service"}`,
+              `📅 Date: ${b.preferred_date}`,
+              `🕐 Time: ${b.preferred_time}`,
+              ``,
+              `⏰ Claim this slot in the next 10 minutes:`,
+              `🔗 zolarasalon.com/book`,
+              ``,
+              `Zolara Beauty Studio 💛`,
+            ].join("\n");
+            sendSMS(entry.client_phone, msg).catch(console.error);
+            await (supabase as any).from("waitlist").update({
+              status: "notified",
+              notified_at: new Date().toISOString(),
+              claim_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+            }).eq("id", entry.id);
+          }
+          if (waiting.length > 0) toast.info(`${waiting.length} waitlist client${waiting.length > 1 ? "s" : ""} notified`);
+        }
+      } catch (wErr) { console.error("Waitlist notify error:", wErr); }
+
       setBookingToCancel(null);
       fetchBookings();
       fetchAllBookings();

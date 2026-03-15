@@ -49,6 +49,7 @@ import AnalyticsPage from "./pages/Admin/Analytics";
 import ProductsPage from "./pages/Admin/Products";
 import ProductSale from "./pages/Admin/ProductSale";
 import SecuritySettings from "./pages/Admin/SecuritySettings";
+import WaitlistPage from "./pages/Admin/Waitlist";
 import SubscriptionsPage from "./pages/Admin/Subscriptions";
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
@@ -116,6 +117,7 @@ const App = () => (
               <Route path="/app/admin/subscriptions" element={<SubscriptionsPage />} />
               <Route path="/app/admin/settings" element={<SettingsPage />} />
               <Route path="/app/admin/security" element={<SecuritySettings />} />
+              <Route path="/app/admin/waitlist" element={<WaitlistPage />} />
             </Route>
           </Route>
 
