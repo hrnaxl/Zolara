@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { validatePromoCode } from "@/lib/promoCodes";
+import { validatePromoCode, incrementPromoUsage } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -274,7 +274,7 @@ const Checkout = () => {
     if (!promoCode.trim()) return;
     setValidatingPromo(true);
     try {
-      const result = await validatePromoCode(promoCode.trim());
+      const result = await validatePromoCode(promoCode.trim(), base);
       if (!result.valid) { toast.error(result.message); return; }
       const promo = result.promo;
       const dep3 = depositPaid ? depositAmount : 0;
@@ -433,6 +433,9 @@ const Checkout = () => {
             }
           }
         } catch (loyErr) { console.error("Client/loyalty error:", loyErr); }
+
+        // Increment promo code usage count
+        if (appliedPromo?.id) { incrementPromoUsage(appliedPromo.id).catch(console.error); }
 
         setFinalAmountCharged(amountToCharge);
         setCompleted(true);

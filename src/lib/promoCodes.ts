@@ -39,11 +39,23 @@ export const deletePromoCode = async (id: string) => {
   if (error) throw error;
 };
 
-export const validatePromoCode = async (code: string): Promise<{ valid: boolean; message: string; promo?: any }> => {
+export const validatePromoCode = async (code: string, orderAmount?: number): Promise<{ valid: boolean; message: string; promo?: any }> => {
   const { data, error } = await supabase.from("promo_codes")
     .select("*").eq("code", code.toUpperCase()).eq("is_active", true).single();
-  if (error || !data) return { valid: false, message: "Invalid promo code" };
-  if (data.expires_at && new Date(data.expires_at) < new Date()) return { valid: false, message: "Promo code expired" };
-  if (data.max_uses && data.used_count >= data.max_uses) return { valid: false, message: "Promo code usage limit reached" };
+  if (error || !data) return { valid: false, message: "Invalid or unrecognised promo code" };
+  if (data.expires_at && new Date(data.expires_at) < new Date()) return { valid: false, message: "This promo code has expired" };
+  if (data.max_uses && data.used_count >= data.max_uses) return { valid: false, message: "This promo code has reached its usage limit" };
+  if (data.minimum_amount && orderAmount !== undefined && orderAmount < data.minimum_amount) {
+    return { valid: false, message: `Minimum order of GHS ${data.minimum_amount} required for this code` };
+  }
   return { valid: true, message: "Valid", promo: data };
+};
+
+export const incrementPromoUsage = async (id: string) => {
+  await supabase.from("promo_codes").update({ used_count: supabase.rpc("increment" as any) } as any).eq("id", id);
+  // Simpler approach — read then increment
+  const { data } = await supabase.from("promo_codes").select("used_count").eq("id", id).single();
+  if (data) {
+    await supabase.from("promo_codes").update({ used_count: (data.used_count || 0) + 1 } as any).eq("id", id);
+  }
 };

@@ -4,6 +4,7 @@ const genId = () => crypto.randomUUID();
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { sendSMS, SMS } from "@/lib/sms";
+import { validatePromoCode, incrementPromoUsage } from "@/lib/promoCodes";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { openPaystackPopup } from "@/lib/payment";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
@@ -97,6 +98,20 @@ export default function PublicBooking() {
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   const today = new Date().toISOString().split("T")[0];
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true); setPromoError("");
+    const result = await validatePromoCode(promoCode.trim(), subtotal);
+    setPromoLoading(false);
+    if (!result.valid) { setPromoError(result.message); return; }
+    const promo = result.promo;
+    const disc = promo.discount_type === "percentage"
+      ? (subtotal * promo.discount_value) / 100
+      : Math.min(promo.discount_value, subtotal);
+    setAppliedPromo(promo);
+    setPromoDiscount(disc);
+  };
   const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
 
   // Check slot availability whenever date or time changes
@@ -226,8 +241,13 @@ export default function PublicBooking() {
   const variantAdj = 0;
   const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
   const subtotal = basePrice + variantAdj + addonTotal;
-  const discount = 0;
-  const total = Math.max(0, subtotal - discount);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoError, setPromoError] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  const total = Math.max(0, subtotal - promoDiscount);
 
   const enabledPayments = (settings as any)?.payment_methods?.filter((m: any) => m.enabled)
     || [{ id: "mobile_money", name: "Mobile Money" }, { id: "cash", name: "Cash" }];
@@ -379,6 +399,9 @@ export default function PublicBooking() {
               }
             }
           } catch (notifyErr) { console.error("Staff notification failed:", notifyErr); }
+
+          // Increment promo code usage
+          if (appliedPromo?.id) { incrementPromoUsage(appliedPromo.id).catch(console.error); }
 
           // Check if this is their first booking (phone has only 1 booking = this one)
           // If so, show the Create Account CTA on the success screen
@@ -890,6 +913,33 @@ export default function PublicBooking() {
             )}
           </div>
 
+          {/* Promo Code */}
+          {selectedService && (
+            <div style={{ background: WHITE, borderRadius: "12px", padding: mob ? "16px" : "24px 28px", marginBottom: "16px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: "12px" }}>PROMO CODE</p>
+              {appliedPromo ? (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "10px 14px" }}>
+                  <div>
+                    <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: 700, color: "#15803D", margin: 0 }}>✓ {appliedPromo.code}</p>
+                    <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, color: "#16A34A", margin: "2px 0 0" }}>GHS {promoDiscount.toFixed(2)} off</p>
+                  </div>
+                  <button type="button" onClick={() => { setAppliedPromo(null); setPromoDiscount(0); setPromoCode(""); setPromoError(""); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#DC2626", fontWeight: 600, fontFamily: "'Montserrat',sans-serif" }}>Remove</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={promoCode} onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(""); }}
+                    placeholder="Enter promo code" style={{ ...inp, flex: 1 }} />
+                  <button type="button" onClick={handleApplyPromo} disabled={promoLoading || !promoCode.trim()}
+                    style={{ padding: "10px 18px", borderRadius: 10, background: promoLoading || !promoCode.trim() ? "#E8E0D4" : `linear-gradient(135deg,${GOLD_DARK},${GOLD})`, color: promoLoading || !promoCode.trim() ? "#A8A29E" : "white", border: "none", fontSize: 12, fontWeight: 700, cursor: promoLoading ? "not-allowed" : "pointer", fontFamily: "'Montserrat',sans-serif", whiteSpace: "nowrap" }}>
+                    {promoLoading ? "…" : "Apply"}
+                  </button>
+                </div>
+              )}
+              {promoError && <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, color: "#DC2626", marginTop: 6 }}>{promoError}</p>}
+            </div>
+          )}
+
           {/* Special Requests */}
           <div style={{ background: WHITE, borderRadius: "12px", padding: mob ? "20px 16px" : "32px", marginBottom: "16px", boxShadow: "0 2px 16px rgba(28,22,14,0.05)", border: `1px solid ${BORDER}` }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", color: GOLD_DARK, marginBottom: mob ? "16px" : "24px" }}>SPECIAL REQUESTS</p>
@@ -937,10 +987,10 @@ export default function PublicBooking() {
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#C4B5FD" }}>+GHS {Number(a.price).toLocaleString()}</span>
                 </div>
               ))}
-              {discount > 0 && (
+              {promoDiscount > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Discount</span>
-                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: GREEN }}>GHS {discount.toFixed(0)} off</span>
+                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: GREEN }}>- GHS {promoDiscount.toFixed(0)} ({appliedPromo?.code})</span>
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "6px" }}>
