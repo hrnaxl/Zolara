@@ -61,6 +61,9 @@ const AdminDashboard = () => {
     todayServiceRevenue: 0,
     todayProductRevenue: 0,
     todayGiftCardRevenue: 0,
+    periodServiceRevenue: 0,
+    periodProductRevenue: 0,
+    periodGiftCardRevenue: 0,
     periodRevenue: 0,
     weeklyRevenue: 0,
     monthlyRevenue: 0,
@@ -222,7 +225,7 @@ const AdminDashboard = () => {
 
         supabase
           .from("sales")
-          .select("amount, payment_method, status, booking_id, client_name")
+          .select("amount, payment_method, status, booking_id, client_name, notes, service_name")
           .eq("status", "completed")
           .gte("payment_date", periodStart)
           .lte("payment_date", periodEnd),
@@ -347,6 +350,21 @@ const AdminDashboard = () => {
         )
         .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const todayRevenue = todayServiceRevenue + todayProductRevenue + todayGiftCardRevenue;
+
+      // Period split (same logic, uses periodPaymentsRes which respects the filter)
+      const periodPayments = periodPaymentsRes.data || [];
+      const periodGiftCardRevenue = periodPayments
+        .filter((p: any) => (p.service_name || "").toLowerCase().includes("gift card"))
+        .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+      const periodProductRevenue = periodPayments
+        .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
+        .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+      const periodServiceRevenue = periodPayments
+        .filter((p: any) =>
+          (!p.notes || !p.notes.toLowerCase().includes("product sale")) &&
+          !(p.service_name || "").toLowerCase().includes("gift card")
+        )
+        .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
       const periodRevenue =
         periodPaymentsRes.data?.reduce((sum, p) => sum + Number(p.amount), 0) ||
         0;
@@ -592,6 +610,9 @@ const AdminDashboard = () => {
         todayServiceRevenue,
         todayProductRevenue,
         todayGiftCardRevenue,
+        periodServiceRevenue,
+        periodProductRevenue,
+        periodGiftCardRevenue,
         periodRevenue,
         weeklyRevenue,
         monthlyRevenue,
@@ -842,12 +863,12 @@ const AdminDashboard = () => {
           return [
             { label: dateFilter === "today" ? "TODAY'S BOOKINGS" : dateFilter === "week" ? "WEEK BOOKINGS" : "MONTH BOOKINGS",
               val: String(bookingsVal), pct: stats.bookingChangePercentage, note: dateFilter === "today" ? "vs yesterday" : periodLabel, color:"#4A90D9", bg:"#EFF6FF" },
-            { label:"SERVICE REVENUE",  val:`GHS ${(stats.todayServiceRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
-              pct: null, note:"today", color:"#8B6914", bg:"#FBF6EE" },
-            { label:"PRODUCT REVENUE",  val:`GHS ${(stats.todayProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
-              pct: null, note:"today", color:"#2563EB", bg:"#EFF6FF" },
-            { label:"GIFT CARD SALES",  val:`GHS ${(stats.todayGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
-              pct: null, note:"today", color:"#7C3AED", bg:"#F5F3FF" },
+            { label:"SERVICE REVENUE",  val:`GHS ${(dateFilter==="today"?stats.todayServiceRevenue:stats.periodServiceRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+              pct: null, note: periodLabel, color:"#8B6914", bg:"#FBF6EE" },
+            { label:"PRODUCT REVENUE",  val:`GHS ${(dateFilter==="today"?stats.todayProductRevenue:stats.periodProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+              pct: null, note: periodLabel, color:"#2563EB", bg:"#EFF6FF" },
+            { label:"GIFT CARD SALES",  val:`GHS ${(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+              pct: null, note: periodLabel, color:"#7C3AED", bg:"#F5F3FF" },
             { label: dateFilter === "today" ? "TODAY'S REVENUE" : dateFilter === "week" ? "WEEKLY REVENUE" : "MONTHLY REVENUE",
               val:`GHS ${revenueVal.toLocaleString("en",{minimumFractionDigits:2})}`,
               pct: dateFilter === "today" ? stats.todayRevenueChange : dateFilter === "week" ? stats.weeklyRevenueChange : stats.monthChangePercentage,
