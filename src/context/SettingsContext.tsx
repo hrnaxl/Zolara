@@ -22,6 +22,7 @@ interface Settings {
   currency: string;
   staff_roles: string[];
   service_categories: string[];
+  staff_specialties: string[];
   use_24_hour_format: boolean;
   business_phone: string;
   business_email: string;
@@ -47,6 +48,7 @@ const defaultSettings: Settings = {
   currency: "GH₵",
   staff_roles: ["Hairdresser", "Barber", "Receptionist"],
   service_categories: ["Hair", "Nails", "Massage"],
+  staff_specialties: ["Braider", "Lash Tech", "Nail Tech", "Wig & Hair Stylist", "Makeup Artist", "Pedicurist & Manicurist"],
   use_24_hour_format: true,
   business_phone: "",
   business_email: "",

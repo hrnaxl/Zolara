@@ -170,6 +170,10 @@ export default function Settings() {
         loyalty_stamp_per_ghs: settings.loyalty_stamp_per_ghs ?? 100,
         loyalty_stamps_for_reward: settings.loyalty_stamps_for_reward ?? 20,
         loyalty_reward_discount: settings.loyalty_reward_discount ?? 50,
+        service_categories: settings.service_categories ?? [],
+        staff_roles: settings.staff_roles ?? [],
+        staff_specialties: (settings as any).staff_specialties ?? [],
+        gift_card_prices: (settings as any).gift_card_prices ?? {},
       };
       const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("id").limit(1).maybeSingle();
       if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;

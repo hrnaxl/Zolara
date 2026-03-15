@@ -37,7 +37,7 @@ const Checkout = () => {
   const bookingId = searchParams.get("booking");
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!searchParams.get("booking"));
   const [processing, setProcessing] = useState(false);
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -562,6 +562,7 @@ const Checkout = () => {
   if (loading) {
     return (
       <div style={{ padding: "60px 24px", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Montserrat,sans-serif" }}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: "40px", height: "40px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
           <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout...</p>
