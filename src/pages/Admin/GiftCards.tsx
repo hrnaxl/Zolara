@@ -154,7 +154,7 @@ export default function GiftCards() {
     if (statusFilter !== "all") {
       // "void" filter matches voided, "active" matches all active-like states
       if (statusFilter === "void" && effectiveStatus !== "voided") return false;
-      if (statusFilter === "active" && !["active","available","pending_send"].includes(effectiveStatus)) return false;
+      if (statusFilter === "active" && !["active","available","pending_send","pending_pickup"].includes(effectiveStatus)) return false;
       if (statusFilter !== "void" && statusFilter !== "active" && effectiveStatus !== statusFilter) return false;
     }
     if (search) {
@@ -452,7 +452,8 @@ export default function GiftCards() {
             const value    = getValue(card);
             const tier     = card.tier || "Gold";
             // payment_status overrides for voided/expired (avoids DB enum constraint)
-            const status = card.payment_status === "voided" ? "voided"
+            const status = card.payment_status === "pending_pickup" ? "pending_pickup"
+                         : card.payment_status === "voided" ? "voided"
                          : card.payment_status === "expired" ? "expired"
                          : card.status || "active";
             const ss       = STATUS_STYLE[status] || { bg:"#F3F4F6", color:"#374151", label: status };

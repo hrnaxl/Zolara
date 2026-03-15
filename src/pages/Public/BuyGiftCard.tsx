@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
-import { sendGiftCardEmail } from "@/lib/email";
+import { sendGiftCardEmail, sendPickupReceiptEmail, sendPurchaseReceiptEmail } from "@/lib/email";
 import { openPaystackPopup } from "@/lib/payment";
 import { toast } from "sonner";
 
@@ -65,74 +65,136 @@ export default function BuyGiftCard() {
           recipient_email: isEmail ? form.recipientEmail : form.buyerEmail || "",
           message: form.message || (isEmail ? "" : "Physical card pickup"),
         },
-        onSuccess: async () => {
+        onSuccess: async (paymentRef: string) => {
           try {
-            // Generate gift card code
-            const code = `ZGC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
             const tierValue = GIFT_CARD_TIERS[selectedTier!].value;
             const { supabase: sb } = await import("@/integrations/supabase/client");
 
-            // Create gift card record in DB
-            const { data: card, error } = await (sb as any)
-              .from("gift_cards")
-              .insert({
-                code,
-                tier: selectedTier,
-                amount: tierValue,
-                balance: tierValue,
-                status: isEmail ? "pending_send" : "active",
-                payment_status: isEmail ? "pending_send" : "paid",
-                card_type: isEmail ? "digital" : "physical",
-                buyer_name: form.buyerName || null,
-                buyer_email: form.buyerEmail || null,
-                buyer_phone: form.buyerPhone || null,
-                recipient_name: isEmail ? (form.recipientName || form.buyerName) : form.buyerName,
-                recipient_email: isEmail ? form.recipientEmail : null,
-                message: form.message || null,
-              })
-              .select("id")
-              .single();
+            if (isEmail) {
+              // ── DIGITAL: create new card + send gift email ─────────────
+              const code = `ZGC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
+              const { data: card, error } = await (sb as any)
+                .from("gift_cards")
+                .insert({
+                  code, tier: selectedTier, amount: tierValue, balance: tierValue,
+                  status: "pending_send", payment_status: "pending_send", card_type: "digital",
+                  buyer_name: form.buyerName || null, buyer_email: form.buyerEmail || null,
+                  buyer_phone: form.buyerPhone || null,
+                  recipient_name: form.recipientName || form.buyerName,
+                  recipient_email: form.recipientEmail, message: form.message || null,
+                })
+                .select("id").single();
 
-            if (error) {
-              console.error("Gift card DB insert failed:", error);
-              // Still show success since payment went through — staff will reconcile
-            }
+              if (error) console.error("Digital card insert failed:", error);
 
-            // Record sale — even if card insert had an issue, still try
-            if (card?.id) {
-              const { error: saleErr } = await (sb as any).from("sales").insert({
-                amount: tierValue,
-                payment_method: "card",
-                status: "completed",
+              // Record sale
+              await (sb as any).from("sales").insert({
+                amount: tierValue, payment_method: "card", status: "completed",
                 client_name: form.buyerName || null,
                 service_name: `Gift Card - ${selectedTier} GHS ${tierValue}`,
-                notes: `Online gift card purchase via Paystack. Recipient: ${isEmail ? (form.recipientName || form.recipientEmail || "email") : "Physical card"}. Code: ${code}`,
+                notes: `Online digital gift card. Recipient: ${form.recipientName || form.recipientEmail}. Code: ${code}`,
                 payment_date: new Date().toISOString(),
               });
-              if (saleErr) console.error("Sales record failed:", saleErr);
-            }
 
-            // If digital, send email directly via Resend
-            if (!error && card?.id && isEmail && form.recipientEmail) {
-              const emailSent = await sendGiftCardEmail({
-                id: card.id,
-                tier: selectedTier!,
-                amount: tierValue,
-                code,
-                recipient_name: form.recipientName || form.buyerName,
-                recipient_email: form.recipientEmail,
-                buyer_name: form.buyerName,
-                message: form.message || undefined,
-              });
-              // Update gift card status to active after email sent
-              if (emailSent && card?.id) {
-                await (sb as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", card.id);
+              // Send gift card email
+              if (!error && card?.id && form.recipientEmail) {
+                const emailSent = await sendGiftCardEmail({
+                  id: card.id, tier: selectedTier!, amount: tierValue, code,
+                  recipient_name: form.recipientName || form.buyerName,
+                  recipient_email: form.recipientEmail, buyer_name: form.buyerName,
+                  message: form.message || undefined,
+                });
+                if (emailSent && card?.id) {
+                  await (sb as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", card.id);
+                }
+              }
+
+              // Send purchase receipt to buyer
+              if (form.buyerEmail) {
+                sendPurchaseReceiptEmail({
+                  buyerName: form.buyerName, buyerEmail: form.buyerEmail,
+                  tier: selectedTier!, amount: tierValue, cardCode: code,
+                  paymentRef: paymentRef || "", isDigital: true,
+                  recipientName: form.recipientName, recipientEmail: form.recipientEmail,
+                }).catch(console.error);
+              }
+
+            } else {
+              // ── PHYSICAL PICKUP: claim a pre-printed card ──────────────
+              // Find an available pre-printed physical card of this tier
+              const { data: available } = await (sb as any)
+                .from("gift_cards")
+                .select("id, code, serial_number, batch_id")
+                .eq("tier", selectedTier)
+                .eq("card_type", "physical")
+                .not("payment_status", "in", '("paid","voided","expired","pending_pickup")')
+                .is("buyer_name", null)
+                .limit(1)
+                .maybeSingle();
+
+              let claimedCard: any = null;
+              let claimedCode = "";
+
+              if (available) {
+                // Claim this pre-printed card
+                const { data: updated } = await (sb as any)
+                  .from("gift_cards")
+                  .update({
+                    payment_status: "pending_pickup",
+                    buyer_name: form.buyerName || null,
+                    buyer_email: form.buyerEmail || null,
+                    buyer_phone: form.buyerPhone || null,
+                    recipient_name: form.buyerName,
+                    notes: `Online pickup purchase. Buyer: ${form.buyerName} / ${form.buyerPhone}. Payment ref: ${paymentRef || "N/A"}`,
+                  })
+                  .eq("id", available.id)
+                  .select("id, code, serial_number, batch_id")
+                  .single();
+                claimedCard = updated;
+                claimedCode = available.code;
               } else {
-                console.error("Gift card email failed to send — will retry via cron");
+                // No pre-printed card available — notify admin, still record sale
+                console.warn(`No available ${selectedTier} physical cards in inventory`);
+                // Will need manual assignment — create a placeholder so nothing is lost
+                const { data: placeholder } = await (sb as any)
+                  .from("gift_cards")
+                  .insert({
+                    code: `PENDING-${Date.now()}`,
+                    tier: selectedTier, amount: tierValue, balance: tierValue,
+                    status: "active", payment_status: "pending_pickup",
+                    card_type: "physical",
+                    buyer_name: form.buyerName || null,
+                    buyer_email: form.buyerEmail || null,
+                    buyer_phone: form.buyerPhone || null,
+                    recipient_name: form.buyerName,
+                    notes: `⚠️ No pre-printed card available at purchase time. Assign manually. Buyer: ${form.buyerName} / ${form.buyerPhone}. Payment ref: ${paymentRef || "N/A"}`,
+                  })
+                  .select("id, code").single();
+                claimedCard = placeholder;
+                claimedCode = placeholder?.code || "";
+              }
+
+              // Record sale
+              await (sb as any).from("sales").insert({
+                amount: tierValue, payment_method: "card", status: "completed",
+                client_name: form.buyerName || null,
+                service_name: `Gift Card - ${selectedTier} GHS ${tierValue}`,
+                notes: `Online physical gift card pickup. Buyer: ${form.buyerName}. Card: ${claimedCode}`,
+                payment_date: new Date().toISOString(),
+              });
+
+              // Send pickup receipt to buyer
+              if (form.buyerEmail) {
+                sendPickupReceiptEmail({
+                  buyerName: form.buyerName, buyerEmail: form.buyerEmail,
+                  tier: selectedTier!, amount: tierValue, cardCode: claimedCode,
+                  serialNumber: claimedCard?.serial_number || claimedCard?.batch_id || undefined,
+                  paymentRef: paymentRef || "",
+                }).catch(console.error);
               }
             }
           } catch (e) {
-            console.error("Gift card creation error:", e);
+            console.error("Gift card processing error:", e);
           }
           setStep("done");
           setLoading(false);
