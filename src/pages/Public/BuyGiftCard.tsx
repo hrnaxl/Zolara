@@ -127,21 +127,23 @@ export default function BuyGiftCard() {
             } else {
               // ── PHYSICAL PICKUP: claim a pre-printed card ──────────────
               // Find an available pre-printed physical card of this tier
-              const { data: available } = await (sb as any)
+              const { data: available, error: findErr } = await (sb as any)
                 .from("gift_cards")
-                .select("id, code, serial_number, batch_id")
+                .select("id, code, serial_number, batch_id, tier, payment_status")
                 .eq("tier", selectedTier)
                 .eq("card_type", "physical")
                 .eq("payment_status", "pending")
                 .limit(1)
                 .maybeSingle();
 
+              console.log("Physical card search:", { selectedTier, available, findErr });
+
               let claimedCard: any = null;
               let claimedCode = "";
 
               if (available) {
                 // Claim this pre-printed card
-                const { data: updated } = await (sb as any)
+                const { data: updated, error: claimErr } = await (sb as any)
                   .from("gift_cards")
                   .update({
                     payment_status: "pending_pickup",
@@ -154,6 +156,7 @@ export default function BuyGiftCard() {
                   .eq("id", available.id)
                   .select("id, code, serial_number, batch_id")
                   .single();
+                console.log("Claim result:", { updated, claimErr });
                 claimedCard = updated;
                 claimedCode = available.code;
               } else {
