@@ -37,7 +37,8 @@ const Checkout = () => {
   const bookingId = searchParams.get("booking");
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(!!searchParams.get("booking"));
+  const [loading, setLoading] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -88,8 +89,7 @@ const Checkout = () => {
   }, []);
 
   useEffect(() => {
-    if (bookingId) { fetchBookingDetails(); fetchStaff(); fetchProducts(); }
-    else { setLoading(false); }
+    if (bookingId) { setBookingLoading(true); setBooking(null); fetchBookingDetails(); fetchStaff(); fetchProducts(); }
   }, [bookingId]);
 
   useEffect(() => {
@@ -186,7 +186,7 @@ const Checkout = () => {
       console.error("Booking load error:", err);
       toast.error("Failed to load booking details");
     } finally {
-      setLoading(false);
+      setBookingLoading(false);
     }
   };
 
@@ -559,7 +559,7 @@ const Checkout = () => {
     } finally { setProcessing(false); }
   };
 
-  if (loading) {
+  if (bookingLoading) {
     return (
       <div style={{ padding: "60px 24px", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Montserrat,sans-serif" }}>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
