@@ -35,12 +35,13 @@ export default function BuyGiftCard() {
     });
   }, []);
 
-  const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
   const [form, setForm] = useState({
     buyerName: "", buyerEmail: "", buyerPhone: "",
     recipientName: "", recipientEmail: "", message: "",
   });
   const [loading, setLoading] = useState(false);
+
+  const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
 
   const tierConfig = selectedTier ? GIFT_CARD_TIERS[selectedTier] : null;
 
