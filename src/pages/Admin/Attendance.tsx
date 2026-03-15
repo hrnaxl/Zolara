@@ -189,6 +189,13 @@ export default function Attendance() {
 
   const handleCheckIn = async (staffId: string) => {
     try {
+      // Block check-in on Sundays
+      const checkDate = new Date(selectedDate + "T00:00:00");
+      if (checkDate.getDay() === 0) {
+        toast.error("Zolara is closed on Sundays. Staff cannot be checked in.");
+        return;
+      }
+
       const { data: existing } = await supabase
         .from("attendance")
         .select("*")

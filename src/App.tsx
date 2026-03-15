@@ -50,6 +50,7 @@ import ProductsPage from "./pages/Admin/Products";
 import ProductSale from "./pages/Admin/ProductSale";
 import SecuritySettings from "./pages/Admin/SecuritySettings";
 import WaitlistPage from "./pages/Admin/Waitlist";
+import Feedback from "./pages/Public/Feedback";
 import SubscriptionsPage from "./pages/Admin/Subscriptions";
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
@@ -75,6 +76,7 @@ const App = () => (
           {/* Staff Login Page */}
           <Route path="/app/auth" element={<Auth />} />
           <Route path="/buy-gift-card" element={<BuyGiftCard />} />
+          <Route path="/feedback" element={<Feedback />} />
 
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app/auth/callback" element={<AuthCallback />} />
@@ -137,6 +139,7 @@ const App = () => (
               <Route path="/app/receptionist/products" element={<ProductsPage />} />
               <Route path="/app/receptionist/product-sale" element={<ProductSale />} />
               <Route path="/app/receptionist/security" element={<SecuritySettings />} />
+              <Route path="/app/receptionist/waitlist" element={<WaitlistPage />} />
             </Route>
           </Route>
 
