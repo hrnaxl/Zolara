@@ -240,6 +240,28 @@ const Checkout = () => {
   const removeLineItem = (idx: number) => setLineItems(prev => prev.filter((_, i) => i !== idx));
   const updateQty = (idx: number, qty: number) => { if (qty < 1) { removeLineItem(idx); return; } setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: qty } : item)); };
   const canToggleSub = userRole === "owner" || userRole === "admin";
+
+  // ── Booking picker state (always at top level — never inside conditionals) ──
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [pickerBookings, setPickerBookings] = useState<any[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+
+  useEffect(() => {
+    if (bookingId) return;
+    const load = async () => {
+      setPickerLoading(true);
+      let q = (supabase as any).from("bookings")
+        .select("id,client_name,client_phone,service_name,preferred_date,preferred_time,status,deposit_paid,booking_ref,price")
+        .in("status", ["confirmed","pending","in_progress"])
+        .order("preferred_date", { ascending: true }).limit(30);
+      if (pickerSearch.trim()) q = q.or(`client_name.ilike.%${pickerSearch}%,booking_ref.ilike.%${pickerSearch}%,service_name.ilike.%${pickerSearch}%`);
+      const { data } = await q;
+      setPickerBookings(data || []);
+      setPickerLoading(false);
+    };
+    const t = setTimeout(load, pickerSearch ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [bookingId, pickerSearch]);
   const toggleSub = (idx: number) => {
     if (!canToggleSub) { toast.error("Only the owner or admin can mark items as included."); return; }
     setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item));
@@ -547,27 +569,6 @@ const Checkout = () => {
       </div>
     );
   }
-
-  // ── Booking picker (when no booking selected) ─────────────────────────────
-  const [pickerSearch, setPickerSearch] = React.useState("");
-  const [pickerBookings, setPickerBookings] = React.useState<any[]>([]);
-  const [pickerLoading, setPickerLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    if (bookingId) return;
-    const load = async () => {
-      setPickerLoading(true);
-      let q = (supabase as any).from("bookings").select("id,client_name,client_phone,service_name,preferred_date,preferred_time,status,deposit_paid,booking_ref,price")
-        .in("status", ["confirmed","pending","in_progress"])
-        .order("preferred_date", { ascending: true }).limit(30);
-      if (pickerSearch.trim()) q = q.or(`client_name.ilike.%${pickerSearch}%,booking_ref.ilike.%${pickerSearch}%,service_name.ilike.%${pickerSearch}%`);
-      const { data } = await q;
-      setPickerBookings(data || []);
-      setPickerLoading(false);
-    };
-    const t = setTimeout(load, pickerSearch ? 300 : 0);
-    return () => clearTimeout(t);
-  }, [bookingId, pickerSearch]);
 
   if (!bookingId || !booking) {
     const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
