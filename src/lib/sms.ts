@@ -218,6 +218,42 @@ export const SMS = {
     ].join("\n");
   },
 
+  // 9. Post-Visit Feedback Request
+  feedbackRequest: (name: string, service: string) => {
+    const first = firstName(name);
+    return [
+      `Hi ${first}, thank you for visiting Zolara today! 💛`,
+      ``,
+      `We hope you loved your ${service} experience.`,
+      ``,
+      `We'd love to hear your thoughts — it only takes a moment:`,
+      `🔗 zolarasalon.com/feedback`,
+      ``,
+      `Your feedback helps us serve you better. 🌸`,
+      ``,
+      `Zolara Beauty Studio`,
+      CONTACT,
+    ].join("\n");
+  },
+
+  // 10. Birthday Greeting
+  birthdayGreeting: (name: string) => {
+    const first = firstName(name);
+    return [
+      `Happy Birthday, ${first}! 🎂`,
+      ``,
+      `The entire Zolara team is wishing you a wonderful day filled with joy and beauty. 💛`,
+      ``,
+      `🎁 As a birthday gift, enjoy DOUBLE loyalty points on any visit this month!`,
+      ``,
+      `Book your birthday treat:`,
+      `🔗 zolarasalon.com`,
+      ``,
+      `With love, Zolara Beauty Studio 🌸`,
+      CONTACT,
+    ].join("\n");
+  },
+
   // Legacy alias
   bookingConfirmation: (name: string, service: string, date: string, time: string) =>
     SMS.bookingReceived(name, service, date, time, "", false),

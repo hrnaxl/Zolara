@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSettings } from "@/context/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Gift, Award, Search, Plus, Minus, RefreshCw, Crown, Calendar, Phone } from "lucide-react";
+import { Star, Gift, Award, Search, Plus, Minus, RefreshCw, Crown, Calendar, Phone, Send } from "lucide-react";
+import { sendSMS, SMS } from "@/lib/sms";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -62,6 +63,24 @@ export default function Loyalty() {
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
     c.phone?.includes(search)
   );
+
+  const [sendingBirthdaySMS, setSendingBirthdaySMS] = useState(false);
+
+  const sendBirthdaySMSToAll = async () => {
+    const birthdayClients = clients.filter(c => isBirthdayMonth(c.birthday) && c.phone);
+    if (birthdayClients.length === 0) { toast.info("No clients with birthdays this month"); return; }
+    setSendingBirthdaySMS(true);
+    let sent = 0;
+    for (const client of birthdayClients) {
+      try {
+        await sendSMS(client.phone!, SMS.birthdayGreeting(client.name));
+        sent++;
+        await new Promise(r => setTimeout(r, 400)); // rate limit
+      } catch (e) { console.error("Birthday SMS failed for", client.name, e); }
+    }
+    setSendingBirthdaySMS(false);
+    toast.success(`Birthday SMS sent to ${sent} client${sent !== 1 ? "s" : ""}`);
+  };
 
   const isBirthdayMonth = (bday?: string) => {
     if (!bday) return false;
@@ -161,6 +180,25 @@ export default function Loyalty() {
           </div>
         ))}
       </div>
+
+      {/* Birthday SMS blast */}
+      {clients.filter(c => isBirthdayMonth(c.birthday) && c.phone).length > 0 && (
+        <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 22 }}>🎂</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: 0 }}>
+                {clients.filter(c => isBirthdayMonth(c.birthday) && c.phone).length} client{clients.filter(c => isBirthdayMonth(c.birthday) && c.phone).length !== 1 ? "s" : ""} celebrating a birthday this month
+              </p>
+              <p style={{ fontSize: 11, color: "#B45309", margin: "2px 0 0" }}>Send them a birthday greeting with double points reminder</p>
+            </div>
+          </div>
+          <button onClick={sendBirthdaySMSToAll} disabled={sendingBirthdaySMS}
+            style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 10, background: sendingBirthdaySMS ? "#FDE68A" : "#D97706", color: "white", border: "none", fontSize: 12, fontWeight: 700, cursor: sendingBirthdaySMS ? "not-allowed" : "pointer" }}>
+            <Send size={14} /> {sendingBirthdaySMS ? "Sending…" : "Send Birthday SMS"}
+          </button>
+        </div>
+      )}
 
       <div className="admin-grid-2" style={{ display: "grid", gridTemplateColumns: selected ? "1fr 360px" : "1fr", gap: 20 }}>
         {/* Client List */}

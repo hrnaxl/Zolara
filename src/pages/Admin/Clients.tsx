@@ -132,7 +132,8 @@ const Clients = () => {
     email: "",
     address: "",
     notes: "",
-    image: null, // NEW
+    birthday: "",
+    image: null,
   });
 
   useEffect(() => {
@@ -337,6 +338,7 @@ const Clients = () => {
         phone: normalizePhone(validated.phone),
         ...(validated.email && { email: validated.email.toLowerCase().trim() }),
         ...(validated.notes && { notes: validated.notes }),
+        ...(formData.birthday && { birthday: formData.birthday }),
       };
 
       if (validated.image) {
@@ -485,6 +487,14 @@ const Clients = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, address: e.target.value })
                   }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Birthday (optional)</Label>
+                <Input
+                  type="date"
+                  value={formData.birthday}
+                  onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -976,6 +986,15 @@ const Clients = () => {
                     </div>
 
                     <div>
+                      <h4 className="font-medium text-sm text-gray-600">Birthday</h4>
+                      <p className="mt-1 text-sm text-gray-800">
+                        {(selectedClient as any).birthday
+                          ? new Date((selectedClient as any).birthday + "T12:00:00").toLocaleDateString("en-GH", { day: "numeric", month: "long" })
+                          : "Not set"}
+                      </p>
+                    </div>
+
+                    <div>
                       <h4 className="font-medium text-sm text-gray-600">
                         Contact & Address
                       </h4>
@@ -1117,6 +1136,7 @@ const Clients = () => {
                         email: selectedClient.email || "",
                         address: selectedClient.address || "",
                         notes: selectedClient.notes || "",
+        birthday: (selectedClient as any).birthday || "",
                         image: null,
                       });
                       setDialogOpen(true);
