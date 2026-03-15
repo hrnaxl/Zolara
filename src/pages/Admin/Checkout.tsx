@@ -559,19 +559,8 @@ const Checkout = () => {
     } finally { setProcessing(false); }
   };
 
-  if (bookingLoading) {
-    return (
-      <div style={{ padding: "60px 24px", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Montserrat,sans-serif" }}>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: "40px", height: "40px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-          <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!bookingId || !booking) {
+  // No booking selected → show picker
+  if (!bookingId) {
     const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
     const STATUS_COLORS: Record<string, {bg:string;color:string}> = {
       pending:    { bg:"#FEF9C3", color:"#A16207" },
@@ -652,6 +641,19 @@ const Checkout = () => {
               );
             })}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // bookingId set but booking not loaded yet → spinner
+  if (bookingId && !booking) {
+    return (
+      <div style={{ padding: "80px 24px", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Montserrat,sans-serif" }}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "40px", height: "40px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+          <p style={{ fontSize: "13px", color: "#78716C", fontWeight: 500 }}>Loading booking...</p>
         </div>
       </div>
     );
