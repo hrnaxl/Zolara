@@ -30,7 +30,6 @@ type Filter = typeof FILTERS[number];
 const PAGE_SIZE = 20;
 
 export default function Bookings() {
-  const { settings } = useSettings();
   const navigate = useNavigate();
 
   // Data
