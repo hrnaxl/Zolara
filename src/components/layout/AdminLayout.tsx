@@ -292,14 +292,13 @@ const AdminDashboard = () => {
           .order("preferred_date", { ascending: true })
           .order("preferred_time", { ascending: true })
           .limit(5),
-        supabase
-          .from("bookings")
-          .select(
-            "staff_id, staff(name, specialties), services(price)"
-          )
-          .gte("preferred_date", periodStart)
-          .lte("preferred_date", periodEnd)
-          .eq("status", "completed"),
+        (supabase as any)
+          .from("sales")
+          .select("amount, booking_id, bookings:booking_id(staff_id, staff:staff_id(name))")
+          .eq("status", "completed")
+          .gte("payment_date", periodStartTs)
+          .lte("payment_date", periodEndTs)
+          .not("booking_id", "is", null),
         // Fetch completed bookings with nested payments to compute pending revenue (completed but unpaid)
         supabase
           .from("bookings")
@@ -508,30 +507,22 @@ const AdminDashboard = () => {
 
       console.log("Payment method breakdown", paymentMethodBreakdown);
 
-      // Top performing staff — attribute revenue only from completed payments tied to bookings
-      const staffPerformance = staffBookingsRes.data?.reduce(
-        (acc: any, booking: any) => {
-          if (!booking.staff_id || !booking.staff) return acc;
+      // Top performing staff — from sales table using payment_date (not preferred_date)
+      const staffPerformance = (staffBookingsRes.data || []).reduce(
+        (acc: any, sale: any) => {
+          const booking = Array.isArray(sale.bookings) ? sale.bookings[0] : sale.bookings;
+          if (!booking?.staff_id || !booking?.staff) return acc;
           const staffId = booking.staff_id;
           if (!acc[staffId]) {
             acc[staffId] = {
               id: staffId,
-              name: booking.staff?.name,
-              specialization: booking.staff?.specialization,
+              name: booking.staff?.name || "Unknown",
               bookings: 0,
               revenue: 0,
             };
           }
           acc[staffId].bookings += 1;
-          // Sum only completed payments with a payment_method to ensure accurate sales attribution
-          const payments: any[] = booking.payments || [];
-          const paidAmount = payments.reduce((s, p) => {
-            if (p && p.status === "completed" && p.payment_method) {
-              return s + Number(p.amount || 0);
-            }
-            return s;
-          }, 0);
-          acc[staffId].revenue += paidAmount;
+          acc[staffId].revenue += Number(sale.amount || 0);
           return acc;
         },
         {}
@@ -843,18 +834,27 @@ const AdminDashboard = () => {
 
       {/* ── KPI ROW ──────────────────────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:"12px", marginBottom:"14px" }} className="admin-grid-4">
-        {[
-          { label:"TODAY'S BOOKINGS", val: String(stats.todayBookings),
-            pct: stats.bookingChangePercentage, note:"vs yesterday", color:"#4A90D9", bg:"#EFF6FF" },
-          { label:"SERVICE REVENUE",  val:`GHS ${(stats.todayServiceRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: null, note:"today", color:"#8B6914", bg:"#FBF6EE" },
-          { label:"PRODUCT REVENUE",  val:`GHS ${(stats.todayProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: null, note:"today", color:"#2563EB", bg:"#EFF6FF" },
-          { label:"GIFT CARD SALES",  val:`GHS ${(stats.todayGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: null, note:"today", color:"#7C3AED", bg:"#F5F3FF" },
-          { label:"TOTAL REVENUE",    val:`GHS ${stats.todayRevenue.toLocaleString("en",{minimumFractionDigits:2})}`,
-            pct: stats.todayRevenueChange, note:"vs yesterday", color:"#16A34A", bg:"#F0FDF4" },
-        ].map((c, i) => (
+        {(() => {
+          const periodLabel = dateFilter === "today" ? "today" : dateFilter === "week" ? "this week" : "this month";
+          const bookingsVal = dateFilter === "today" ? stats.todayBookings : (stats.periodBookings || stats.todayBookings);
+          const revenueVal  = dateFilter === "today" ? stats.todayRevenue : dateFilter === "week" ? stats.weeklyRevenue : stats.monthlyRevenue;
+          const svcRev      = dateFilter === "today" ? (stats.todayServiceRevenue||0) : revenueVal;
+          return [
+            { label: dateFilter === "today" ? "TODAY'S BOOKINGS" : dateFilter === "week" ? "WEEK BOOKINGS" : "MONTH BOOKINGS",
+              val: String(bookingsVal), pct: stats.bookingChangePercentage, note: dateFilter === "today" ? "vs yesterday" : periodLabel, color:"#4A90D9", bg:"#EFF6FF" },
+            { label:"SERVICE REVENUE",  val:`GHS ${(stats.todayServiceRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+              pct: null, note:"today", color:"#8B6914", bg:"#FBF6EE" },
+            { label:"PRODUCT REVENUE",  val:`GHS ${(stats.todayProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+              pct: null, note:"today", color:"#2563EB", bg:"#EFF6FF" },
+            { label:"GIFT CARD SALES",  val:`GHS ${(stats.todayGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+              pct: null, note:"today", color:"#7C3AED", bg:"#F5F3FF" },
+            { label: dateFilter === "today" ? "TODAY'S REVENUE" : dateFilter === "week" ? "WEEKLY REVENUE" : "MONTHLY REVENUE",
+              val:`GHS ${revenueVal.toLocaleString("en",{minimumFractionDigits:2})}`,
+              pct: dateFilter === "today" ? stats.todayRevenueChange : dateFilter === "week" ? stats.weeklyRevenueChange : stats.monthChangePercentage,
+              note: dateFilter === "today" ? "vs yesterday" : dateFilter === "week" ? "vs last week" : "vs last month",
+              color:"#16A34A", bg:"#F0FDF4" },
+          ];
+        })().map((c, i) => (
           <div key={i} className="zc au" style={{ animationDelay:`${i*0.06}s` }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
               <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>{c.label}</span>
