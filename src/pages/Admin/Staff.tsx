@@ -104,6 +104,7 @@ const Staff = () => {
   const [staffBookings, setStaffBookings] = useState<any[]>([]);
   const [staffAttendance, setStaffAttendance] = useState<any[]>([]);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [todayBookingCounts, setTodayBookingCounts] = useState<Record<string, number>>({});
   const [staffRatings, setStaffRatings] = useState<
     Record<string, number | null>
   >({});
@@ -176,6 +177,20 @@ const Staff = () => {
 
       // Staff ratings feature disabled - rating column doesn't exist on bookings table
       setStaffRatings({});
+
+      // Fetch today's booking counts per staff
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: todayBk } = await supabase
+        .from("bookings")
+        .select("staff_id")
+        .eq("preferred_date", today)
+        .not("staff_id", "is", null)
+        .in("status", ["confirmed", "in_progress", "pending"]);
+      const counts: Record<string, number> = {};
+      for (const b of (todayBk || [])) {
+        if (b.staff_id) counts[b.staff_id] = (counts[b.staff_id] || 0) + 1;
+      }
+      setTodayBookingCounts(counts);
     } catch (error) {
       console.error("Error fetching staff:", error);
       toast.error("Failed to load staff");
@@ -707,16 +722,28 @@ const Staff = () => {
                     )}
                   </div>
                 </div>
-                <span style={{
-                  fontFamily: "'Montserrat',sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em",
-                  padding: "4px 10px", borderRadius: "20px",
-                  background: (member.status ? member.status === "active" : member.is_active) ? "rgba(16,185,129,0.1)" : "rgba(107,114,128,0.1)",
-                  color: (member.status ? member.status === "active" : member.is_active) ? "#10B981" : "#6B7280",
-                  border: `1px solid ${(member.status ? member.status === "active" : member.is_active) ? "rgba(16,185,129,0.25)" : "rgba(107,114,128,0.25)"}`,
-                  textTransform: "uppercase",
-                }}>
-                  {member.status ? member.status.replace("_", " ") : (member.is_active ? "Active" : "Inactive")}
-                </span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                  <span style={{
+                    fontFamily: "'Montserrat',sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em",
+                    padding: "4px 10px", borderRadius: "20px",
+                    background: (member.status ? member.status === "active" : member.is_active) ? "rgba(16,185,129,0.1)" : "rgba(107,114,128,0.1)",
+                    color: (member.status ? member.status === "active" : member.is_active) ? "#10B981" : "#6B7280",
+                    border: `1px solid ${(member.status ? member.status === "active" : member.is_active) ? "rgba(16,185,129,0.25)" : "rgba(107,114,128,0.25)"}`,
+                    textTransform: "uppercase",
+                  }}>
+                    {member.status ? member.status.replace("_", " ") : (member.is_active ? "Active" : "Inactive")}
+                  </span>
+                  {(todayBookingCounts[member.id] || 0) > 0 && (
+                    <span style={{
+                      fontFamily: "'Montserrat',sans-serif", fontSize: "9px", fontWeight: 700,
+                      padding: "3px 8px", borderRadius: "12px",
+                      background: "rgba(200,169,126,0.15)", color: "#8B6914",
+                      border: "1px solid rgba(200,169,126,0.35)",
+                    }}>
+                      {todayBookingCounts[member.id]} today
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
@@ -855,6 +882,41 @@ const Staff = () => {
               </div>
 
               <div className="md:col-span-2">
+                {/* Today's Bookings */}
+                {(() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  const todayBks = staffBookings.filter((b: any) => b.preferred_date === today);
+                  const STATUS_BG: Record<string,string> = { confirmed:"#DCFCE7", pending:"#FEF9C3", in_progress:"#DBEAFE", completed:"#F0FDF4", cancelled:"#FEE2E2" };
+                  const STATUS_CL: Record<string,string> = { confirmed:"#15803D", pending:"#A16207", in_progress:"#1D4ED8", completed:"#166534", cancelled:"#B91C1C" };
+                  return (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: 10 }}>
+                        <h4 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontWeight:700, color:"#1C160E", margin:0 }}>Today's Bookings</h4>
+                        <span style={{ padding:"2px 10px", borderRadius:12, fontSize:11, fontWeight:700, background: todayBks.length > 0 ? "rgba(200,169,126,0.15)" : "#F3F4F6", color: todayBks.length > 0 ? "#8B6914" : "#6B7280" }}>
+                          {todayBks.length} {todayBks.length === 1 ? "booking" : "bookings"}
+                        </span>
+                      </div>
+                      {todayBks.length === 0 ? (
+                        <p style={{ fontSize:12, color:"#A8A29E", margin:0, fontStyle:"italic" }}>No bookings scheduled for today</p>
+                      ) : (
+                        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                          {todayBks.sort((a:any,b:any) => (a.preferred_time||"").localeCompare(b.preferred_time||"")).map((b: any) => (
+                            <div key={b.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderRadius:10, background:"#FAFAF8", border:"1px solid #EDEBE5" }}>
+                              <div>
+                                <p style={{ fontSize:13, fontWeight:600, color:"#1C160E", margin:"0 0 2px" }}>{b.client_name || "Client"}</p>
+                                <p style={{ fontSize:11, color:"#78716C", margin:0 }}>{b.service_name || "Service"} · {(b.preferred_time||"").slice(0,5)}</p>
+                              </div>
+                              <span style={{ padding:"3px 10px", borderRadius:12, fontSize:9, fontWeight:700, background: STATUS_BG[b.status]||"#F3F4F6", color: STATUS_CL[b.status]||"#6B7280" }}>
+                                {(b.status||"pending").toUpperCase()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <h4 className="text-lg font-semibold mb-3">Booking History</h4>
                 <div className="space-y-3 max-h-56 overflow-auto">
                   {staffBookings.length === 0 ? (
@@ -869,7 +931,7 @@ const Staff = () => {
                       >
                         <div>
                           <div className="text-sm font-medium">
-                            {b.services?.name || "Service"}
+                            {b.service_name || b.services?.name || "Service"}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {b.client_name || "Client"} •{" "}
@@ -881,7 +943,7 @@ const Staff = () => {
                         <div className="text-right">
                           <div className="font-semibold">{b.status || "-"}</div>
                           <div className="text-xs text-muted-foreground">
-                            GH₵{Number(b.services?.price || 0).toFixed(2)}
+                            GH₵{Number(b.price || b.services?.price || 0).toFixed(2)}
                           </div>
                         </div>
                       </div>
