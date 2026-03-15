@@ -86,6 +86,7 @@ const Staff = () => {
     phone: "",
     email: "",
     specialization: "",
+    specialties: [] as string[],
     role: "staff",
     is_active: true,
     image: null as File | string | null,
@@ -109,6 +110,14 @@ const Staff = () => {
 
   // Specializations list (if you have a settings-managed list use it, otherwise fallback to empty)
   const SPECIALIZATIONS: string[] = (settings as any)?.staff_roles || [];
+  const STAFF_SPECIALTIES = [
+    "Braider",
+    "Lash Tech",
+    "Nail Tech",
+    "Wig & Hair Stylist",
+    "Makeup Artist",
+    "Pedicurist & Manicurist",
+  ];
 
   useEffect(() => {
     fetchStaff();
@@ -186,6 +195,7 @@ const Staff = () => {
       phone: member.phone,
       email: member.email || "",
       role: member.role || "staff",
+      specialties: member.specialties || [],
       is_active: member.status ? member.status === "active" : member.is_active ?? true,
       image: member.image || null,
       emergency_contact: member.emergency_contact || "",
@@ -272,6 +282,7 @@ const Staff = () => {
         ...(validated.email && { email: validated.email }),
         role: validated.role,
         is_active: formData.is_active,
+        specialties: (formData as any).specialties || [],
       };
 
       // Upload image if selected
@@ -337,6 +348,8 @@ const Staff = () => {
         phone: "",
         email: "",
         specialization: "",
+        specialties: [],
+    specialties: [] as string[],
         role: "staff",
         is_active: true,
         image: null,
@@ -550,6 +563,34 @@ const Staff = () => {
                 </Select>
               </div>
 
+              {/* Specialties */}
+              <div className="space-y-2" style={{ marginBottom: 8 }}>
+                <Label>Service Specialties</Label>
+                <p style={{ fontSize: 11, color: "#78716C", margin: "0 0 8px" }}>Select all services this staff member can perform</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {STAFF_SPECIALTIES.map((sp: string) => {
+                    const isSelected = ((formData as any).specialties || []).includes(sp);
+                    return (
+                      <button key={sp} type="button"
+                        onClick={() => {
+                          const curr: string[] = (formData as any).specialties || [];
+                          const next = isSelected ? curr.filter((s: string) => s !== sp) : [...curr, sp];
+                          setFormData({ ...formData, specialties: next } as any);
+                        }}
+                        style={{
+                          padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                          cursor: "pointer", border: "1.5px solid",
+                          borderColor: isSelected ? "#8B6914" : "#EDEBE5",
+                          background: isSelected ? "#FBF6EE" : "#FFFFFF",
+                          color: isSelected ? "#8B6914" : "#78716C",
+                        }}>
+                        {isSelected ? "✓ " : ""}{sp}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Status</Label> 
                 {/* @ts-ignore */}
@@ -660,6 +701,13 @@ const Staff = () => {
                     <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: "#1C160E", lineHeight: 1.2 }}>{member.name}</div>
                     {member.role && (
                       <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.14em", color: "#C8A97E", marginTop: "3px", textTransform: "uppercase" }}>{member.role}</div>
+                    )}
+                    {member.specialties && member.specialties.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                        {member.specialties.map((sp: string) => (
+                          <span key={sp} style={{ padding: "2px 8px", borderRadius: 12, fontSize: 9, fontWeight: 700, background: "#F5EFE6", color: "#8B6914", border: "1px solid #E8D8C4" }}>{sp}</span>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

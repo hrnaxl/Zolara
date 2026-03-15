@@ -166,6 +166,105 @@ export default function Bookings() {
     } catch { return { label: d, color: TXT_MID }; }
   };
 
+
+  // ── Specialty → service keyword mapping ─────────────────────────────────
+  const SPECIALTY_MAP: Record<string, string[]> = {
+    "Braider":                ["braid", "cornrow", "twist", "loc", "feed-in", "knotless", "box braid"],
+    "Lash Tech":              ["lash", "extension", "cluster", "volume lash"],
+    "Nail Tech":              ["nail", "acrylic", "gel polish", "nail art", "manicure", "french"],
+    "Wig & Hair Stylist":     ["wig", "hair", "blow dry", "scalp", "wash"],
+    "Makeup Artist":          ["makeup", "make up", "glam", "bridal", "brow", "contour"],
+    "Pedicurist & Manicurist":["pedicure", "manicure", "feet", "foot"],
+  };
+
+  const getRequiredSpecialty = (serviceName: string): string | null => {
+    const lower = (serviceName || "").toLowerCase();
+    for (const [specialty, keywords] of Object.entries(SPECIALTY_MAP)) {
+      if (keywords.some(kw => lower.includes(kw))) return specialty;
+    }
+    return null;
+  };
+
+  const [confirming, setConfirming] = useState(false);
+  const [confirmResult, setConfirmResult] = useState<{done:number;skipped:number;noStaff:number} | null>(null);
+
+  const handleConfirmAll = async () => {
+    if (!confirm(`Auto-assign and confirm all pending bookings? Staff will be assigned based on specialty and availability.`)) return;
+    setConfirming(true);
+    setConfirmResult(null);
+    try {
+      // 1. Fetch all pending bookings
+      const { data: pending } = await supabase.from("bookings")
+        .select("id, service_name, preferred_date, preferred_time, client_name")
+        .eq("status", "pending")
+        .order("preferred_date", { ascending: true });
+
+      if (!pending || pending.length === 0) { toast.info("No pending bookings to confirm"); setConfirming(false); return; }
+
+      // 2. Fetch all active operational staff with specialties
+      const { data: allStaff } = await supabase.from("staff")
+        .select("id, name, specialties, role")
+        .eq("is_active", true);
+      const opStaff = (allStaff || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || ""));
+
+      // 3. Fetch existing bookings to check conflicts
+      const { data: existingBookings } = await supabase.from("bookings")
+        .select("staff_id, preferred_date, preferred_time")
+        .in("status", ["confirmed","in_progress"])
+        .not("staff_id", "is", null);
+
+      const isStaffBusy = (staffId: string, date: string, time: string) =>
+        (existingBookings || []).some((b: any) => b.staff_id === staffId && b.preferred_date === date && b.preferred_time === time);
+
+      let done = 0, skipped = 0, noStaff = 0;
+      // Track assignments made this session to avoid double-booking in bulk
+      const sessionAssignments: Array<{staffId:string; date:string; time:string}> = [];
+
+      for (const booking of pending) {
+        const specialty = getRequiredSpecialty(booking.service_name);
+        
+        // Find eligible staff
+        const eligible = opStaff.filter((s: any) => {
+          if (!specialty) return true; // no specialty needed — any staff
+          return (s.specialties || []).includes(specialty);
+        });
+
+        // Find one who isn't busy
+        const available = eligible.find((s: any) =>
+          !isStaffBusy(s.id, booking.preferred_date, booking.preferred_time) &&
+          !sessionAssignments.some(a => a.staffId === s.id && a.date === booking.preferred_date && a.time === booking.preferred_time)
+        );
+
+        if (!available) {
+          if (eligible.length === 0) noStaff++;
+          else skipped++; // eligible staff exist but all busy at that time
+          continue;
+        }
+
+        const { error } = await supabase.from("bookings").update({
+          status: "confirmed",
+          staff_id: available.id,
+          staff_name: available.name,
+        } as any).eq("id", booking.id);
+
+        if (!error) {
+          done++;
+          sessionAssignments.push({ staffId: available.id, date: booking.preferred_date, time: booking.preferred_time });
+        } else skipped++;
+      }
+
+      setConfirmResult({ done, skipped, noStaff });
+      toast.success(`${done} bookings confirmed and assigned`);
+      if (skipped > 0) toast.warning(`${skipped} skipped — staff fully booked at that time`);
+      if (noStaff > 0) toast.error(`${noStaff} couldn't be assigned — no staff with the right specialty`);
+      
+      fetchBookings(1, filter, search);
+      fetchCounts();
+    } catch (e: any) {
+      toast.error("Confirm all failed: " + e.message);
+    } finally { setConfirming(false); }
+  };
+
   return (
     <div style={{ background: CREAM, minHeight: "100vh", fontFamily: "Montserrat, sans-serif", color: TXT }}>
       <style>{`
@@ -200,6 +299,12 @@ export default function Bookings() {
                 <button onClick={() => { fetchBookings(page, filter, search); fetchCounts(); }} style={{ padding: "8px 10px", borderRadius: 10, border: `1.5px solid ${BORDER}`, background: WHITE, cursor: "pointer" }}>
                   <RefreshCw size={14} color={TXT_SOFT} />
                 </button>
+                {canManage && counts["pending"] > 0 && (
+                  <button onClick={handleConfirmAll} disabled={confirming}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: confirming ? BORDER : "#0F1E35", color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: confirming ? "not-allowed" : "pointer" }}>
+                    {confirming ? "Confirming…" : `✓ Confirm All (${counts["pending"] || 0})`}
+                  </button>
+                )}
                 <button onClick={() => navigate("/app/admin/bookings/new")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   <Plus size={14} /> New Booking
                 </button>
@@ -214,6 +319,13 @@ export default function Bookings() {
               {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer" }}><X size={13} color={TXT_SOFT} /></button>}
             </div>
 
+            {/* Confirm result */}
+            {confirmResult && (
+              <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", fontSize: 12, color: "#15803D", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>✓ {confirmResult.done} confirmed · {confirmResult.skipped} skipped (time conflict) · {confirmResult.noStaff} no matching staff</span>
+                <button onClick={() => setConfirmResult(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#15803D", fontSize: 14, fontWeight: 700 }}>×</button>
+              </div>
+            )}
             {/* Filter pills */}
             <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12 }}>
               {FILTERS.map(f => {
