@@ -95,15 +95,16 @@ export default function BuyGiftCard() {
             // Record sale in revenue — always, regardless of email/physical
             if (!error && card?.id) {
               const supabaseClient = (await import("@/integrations/supabase/client")).supabase;
-              await (supabaseClient as any).from("sales").insert({
+              const { error: saleErr } = await (supabaseClient as any).from("sales").insert({
                 amount: tierValue,
-                payment_method: "mobile_money", // Paystack = mobile money / card online
+                payment_method: "card",
                 status: "completed",
                 client_name: form.buyerName || null,
-                service_name: `Gift Card (${selectedTier} – GHS ${tierValue})`,
-                notes: `Online gift card purchase. Recipient: ${isEmail ? (form.recipientName || form.recipientEmail) : "Physical card"}. Ref: ${code}`,
+                service_name: `Gift Card - ${selectedTier} GHS ${tierValue}`,
+                notes: `Online gift card purchase via Paystack. Recipient: ${isEmail ? (form.recipientName || form.recipientEmail || "email") : "Physical card"}. Code: ${code}`,
                 payment_date: new Date().toISOString(),
               });
+              if (saleErr) console.error("Sales record failed:", saleErr);
             }
 
             // If digital, send email directly via Resend
