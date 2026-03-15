@@ -105,20 +105,13 @@ export default function BuyGiftCard() {
               });
             }
 
-            // If digital, trigger email immediately
+            // If digital, trigger email immediately via supabase.functions.invoke
             if (!error && card?.id && isEmail) {
-              await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-gift-card-email`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-                    "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-                  },
-                  body: JSON.stringify({ card_id: card.id }),
-                }
-              ).catch(() => null);
+              const supabaseInvoke = (await import("@/integrations/supabase/client")).supabase;
+              const { error: fnErr } = await (supabaseInvoke as any).functions.invoke("send-gift-card-email", {
+                body: { card_id: card.id },
+              });
+              if (fnErr) console.error("Gift card email function error:", fnErr);
             }
           } catch (e) {
             console.error("Gift card creation error:", e);
