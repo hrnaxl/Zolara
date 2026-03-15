@@ -339,7 +339,7 @@ export default function LandingPage() {
           </div>
 
           <div className="fade-up delay-5" style={{ display: "flex", gap: "44px", marginTop: "60px", paddingTop: "40px", borderTop: "1px solid rgba(200,169,126,0.3)" }}>
-            {[["500+","Happy Clients"],["7","Expert Stylists"],["4+","Years of Excellence"]].map(([n,l]) => (
+            {[["500+","Happy Clients"],["7+","Expert Stylists"],["4+","Years of Excellence"]].map(([n,l]) => (
               <div key={l}>
                 <p style={{ fontSize: "clamp(28px,3vw,42px)", fontWeight: 600, color: goldDark, lineHeight: 1 }}>{n}</p>
                 <p className="sans" style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "#6B5740", marginTop: "6px", fontWeight: 500 }}>{l}</p>
@@ -681,7 +681,7 @@ export default function LandingPage() {
         </div>
         <div style={{ borderTop: "1px solid rgba(200,169,126,0.1)", paddingTop: "28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.28)", fontWeight: 400 }}>© {new Date().getFullYear()} Zolara Beauty Studio. All rights reserved.</p>
-          <Link to="/app/auth" className="sans" style={{ fontSize: "12px", color: "rgba(200,169,126,0.5)", textDecoration: "none" }}>Staff Login</Link>
+          <Link to="/app/auth" className="sans" style={{ fontSize: "11px", fontWeight: 600, color: "rgba(200,169,126,0.7)", textDecoration: "none", letterSpacing: "0.12em", padding: "6px 14px", border: "1px solid rgba(200,169,126,0.25)", borderRadius: "20px", transition: "all 0.2s", background: "rgba(200,169,126,0.06)" }} onMouseEnter={e => { (e.target as any).style.color="rgba(200,169,126,1)"; (e.target as any).style.borderColor="rgba(200,169,126,0.5)"; (e.target as any).style.background="rgba(200,169,126,0.12)"; }} onMouseLeave={e => { (e.target as any).style.color="rgba(200,169,126,0.7)"; (e.target as any).style.borderColor="rgba(200,169,126,0.25)"; (e.target as any).style.background="rgba(200,169,126,0.06)"; }}>⚿ Staff Login</Link>
         </div>
       </footer>
       <AmandaWidget />

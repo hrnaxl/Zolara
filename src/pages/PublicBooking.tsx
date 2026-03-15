@@ -97,6 +97,7 @@ export default function PublicBooking() {
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   const today = new Date().toISOString().split("T")[0];
+  const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
 
   // Check slot availability whenever date or time changes
   useEffect(() => {
@@ -443,7 +444,7 @@ export default function PublicBooking() {
         </div>
         <h2 style={{ fontSize: "38px", fontWeight: 600, color: DARK, marginBottom: "12px" }}>Booking Confirmed</h2>
         <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_MID, fontSize: "14px", lineHeight: 1.8, marginBottom: "8px" }}>
-          Your GHS 50 deposit has been received. We will confirm your appointment via SMS shortly. Please arrive 5 to 10 minutes early.
+          `Your GHS ${depositAmount} deposit has been received. We will confirm your appointment via SMS shortly. Please arrive 5 to 10 minutes early.`
         </p>
         <p style={{ fontFamily: "'Montserrat',sans-serif", color: TXT_SOFT, fontSize: "13px", marginBottom: "32px" }}>
           {bookedService}{bookedDate ? ` · ${bookedDate}` : ""}{bookedTime ? ` · ${bookedTime}` : ""}
@@ -557,7 +558,7 @@ export default function PublicBooking() {
                 <div>
                   <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", color: GOLD, marginBottom: "7px" }}>GHS 50 DEPOSIT: HOW IT WORKS</p>
                   <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12.5px", color: "rgba(245,239,230,0.82)", lineHeight: 1.8, fontWeight: 400 }}>
-                    A GHS 50 deposit is required to confirm your slot. It is fully counted toward your service total. You pay only the remaining balance at the studio after your service.
+                    `A GHS ${depositAmount} deposit is required to confirm your slot. It is fully counted toward your service total. You pay only the remaining balance at the studio after your service.`
                   </p>
                 </div>
               </div>
@@ -963,7 +964,7 @@ export default function PublicBooking() {
 
             <button onClick={handlePayDeposit}
               style={{ width: "100%", padding: "20px", borderRadius: "10px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, border: "none", color: WHITE, fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "'Montserrat',sans-serif", boxShadow: "0 10px 36px rgba(139,105,20,0.42)", transition: "all 0.3s ease" }}>
-              PAY GHS 50 DEPOSIT TO BOOK
+              {`PAY GHS ${depositAmount} DEPOSIT TO BOOK`}
             </button>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", textAlign: "center", marginTop: "12px" }}>
               Secured by Paystack. Card, MoMo, and Bank Transfer accepted.
