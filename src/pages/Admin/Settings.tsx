@@ -276,16 +276,7 @@ export default function Settings() {
 
         {tab("categories", (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW }}>
-              <div style={{ padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, background: "linear-gradient(135deg,rgba(200,169,126,0.08),rgba(200,169,126,0.02))" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, fontWeight: 700, color: TXT, margin: "0 0 2px" }}>Staff Roles</h2>
-                <p style={{ fontSize: 11, color: TXT_SOFT, margin: 0 }}>System access roles (Receptionist, Cleaner, Staff). These control login permissions.</p>
-              </div>
-              <div style={{ padding: 20 }}>
-                <DraggableListSection title="" items={settings.staff_roles}
-                  onItemsChange={items => setSettings(p => ({ ...p, staff_roles: items }))} addButtonText="Add Role" />
-              </div>
-            </div>
+
             {/* Staff Specialties */}
             <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: "hidden", boxShadow: SHADOW }}>
               <div style={{ padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, background: "linear-gradient(135deg,rgba(200,169,126,0.08),rgba(200,169,126,0.02))" }}>

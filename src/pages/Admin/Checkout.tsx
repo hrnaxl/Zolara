@@ -762,7 +762,7 @@ const Checkout = () => {
   const btnCursor = checkoutDisabled ? "not-allowed" : "pointer";
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(16px,4vw,32px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
+    <div style={{ background: CREAM, padding: "clamp(16px,4vw,28px)", fontFamily: "Montserrat,sans-serif", color: TXT }}>
       <div style={{ maxWidth: "960px", margin: "0 auto" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
