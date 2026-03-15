@@ -34,6 +34,7 @@ export default function SalesRevenue() {
   const [filterMethod, setFilterMethod] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [selected, setSelected] = useState<any | null>(null);
+  const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
 
   useEffect(() => { fetchPayments(); }, [dateRange, customStart, customEnd]);
 
@@ -65,6 +66,16 @@ export default function SalesRevenue() {
       const { data, error } = await q;
       if (error) throw error;
       setPayments(data || []);
+
+      // Fetch bookings with deposit_paid=true that haven't been checked out yet
+      // These are real pending revenue — deposit received but service not yet completed
+      const { data: depositBookings } = await (supabase as any)
+        .from("bookings")
+        .select("id, client_name, service_name, deposit_amount, preferred_date, preferred_time, booking_ref, created_at")
+        .eq("deposit_paid", true)
+        .not("status", "in", "(completed,cancelled,no_show)")
+        .order("created_at", { ascending: false });
+      setPendingDeposits(depositBookings || []);
       const completedSales = (data || []).filter((p: any) => p.status === "completed");
       const productSalesAmt = completedSales
         .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
@@ -165,7 +176,7 @@ export default function SalesRevenue() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:"14px", marginBottom:"24px" }}>
         {[
           { label:"COMPLETED", value:`GH₵${completedTotal.toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${completed.length} transactions`, color:"#16A34A", bg:"#F0FDF4", border:"#BBF7D0" },
-          { label:"AWAITING CONFIRMATION", value:`GH₵${pendingTotal.toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${pending.length} bank transfer${pending.length !== 1 ? "s" : ""} pending`, color:"#D97706", bg:"#FFFBEB", border:"#FDE68A" },
+          { label:"PENDING DEPOSITS", value:`GH₵${(pendingDeposits.reduce((s,b) => s + Number(b.deposit_amount || 50), 0)).toLocaleString("en",{minimumFractionDigits:2})}`, sub:`${pendingDeposits.length} booking${pendingDeposits.length !== 1 ? "s" : ""} awaiting checkout`, color:"#D97706", bg:"#FFFBEB", border:"#FDE68A" },
           { label:"TOTAL RECORDS", value:String(filtered.length), sub:dateRangeLabel(), color:G_D, bg:"#FBF6EE", border:"#F0E4CC" },
         ].map(k => (
           <div key={k.label} style={{ background:k.bg, border:`1px solid ${k.border}`, borderRadius:"14px", padding:"20px" }}>
@@ -190,6 +201,32 @@ export default function SalesRevenue() {
               {completedTotal > 0 && <p style={{ fontSize:"10px", color:k.c, margin:"4px 0 0" }}>{((Number(k.v||0)/completedTotal)*100).toFixed(1)}% of total</p>}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pending Deposits — bookings with deposit paid but not yet checked out */}
+      {pendingDeposits.length > 0 && (
+        <div style={{ ...card, marginBottom:"24px" }}>
+          <p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:"#D97706", textTransform:"uppercase", marginBottom:"16px" }}>
+            Pending Deposits — Awaiting Checkout
+          </p>
+          <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+            {pendingDeposits.map((b: any) => (
+              <div key={b.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:"#FFFBEB", border:"1px solid #FDE68A", borderRadius:"10px" }}>
+                <div>
+                  <p style={{ fontSize:"13px", fontWeight:600, color:TXT, margin:0 }}>{b.client_name || "Client"}</p>
+                  <p style={{ fontSize:"11px", color:TXT_SOFT, margin:"2px 0 0" }}>{b.service_name || "Service"} · {b.preferred_date} {b.preferred_time ? `· ${b.preferred_time}` : ""}</p>
+                  {b.booking_ref && <p style={{ fontSize:"10px", color:TXT_SOFT, margin:"2px 0 0", letterSpacing:"0.06em" }}>Ref: {b.booking_ref}</p>}
+                </div>
+                <span style={{ fontSize:"15px", fontWeight:700, color:"#D97706", flexShrink:0, marginLeft:"12px" }}>
+                  GH₵{Number(b.deposit_amount || 50).toLocaleString("en", { minimumFractionDigits:2 })}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize:"11px", color:TXT_SOFT, marginTop:"12px", fontStyle:"italic" }}>
+            These deposits will move to completed revenue after checkout.
+          </p>
         </div>
       )}
 
