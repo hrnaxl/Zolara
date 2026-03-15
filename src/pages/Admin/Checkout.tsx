@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode, incrementPromoUsage } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
@@ -33,7 +33,7 @@ interface StaffMember { id: string; name: string; specialties: string[] | null }
 interface LineItem { type: "service" | "product" | "subscription"; id: string; name: string; quantity: number; unitPrice: number; coveredBySubscription: boolean }
 
 const Checkout = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const bookingId = searchParams.get("booking");
   const navigate = useNavigate();
 
@@ -561,9 +561,9 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif" }}>
+      <div style={{ padding: "60px 24px", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Montserrat,sans-serif" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: "48px", height: "48px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
+          <div style={{ width: "40px", height: "40px", border: "3px solid #F0E4CC", borderTopColor: "#C8A97E", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
           <p style={{ fontSize: "12px", color: "#78716C", letterSpacing: "0.08em", fontWeight: 500 }}>Loading checkout...</p>
         </div>
       </div>
@@ -578,20 +578,16 @@ const Checkout = () => {
       in_progress:{ bg:"#DBEAFE", color:"#1D4ED8" },
     };
     return (
-      <div style={{ minHeight:"100vh", background:CREAM, fontFamily:"Montserrat,sans-serif", color:TXT }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
-          .pk-row{cursor:pointer;transition:background 0.12s;border-bottom:1px solid ${BORDER};}
-          .pk-row:hover{background:#F5EFE6;}
-        `}</style>
+      <div style={{ background:CREAM, fontFamily:"Montserrat,sans-serif", color:TXT, padding:"clamp(16px,3vw,32px)" }}>
+        <style>{`.pk-row{cursor:pointer;transition:background 0.12s;border-bottom:1px solid ${BORDER};}.pk-row:hover{background:#F5EFE6;}`}</style>
 
         {/* Header */}
-        <div style={{ background:WHITE, borderBottom:`1px solid ${BORDER}`, padding:"20px 32px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 1px 3px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06)" }}>
+        <div style={{ marginBottom:24 }}>
           <div>
             <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.18em", color:G, textTransform:"uppercase", margin:"0 0 2px" }}>Zolara</p>
             <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:700, color:TXT, margin:0 }}>Checkout</h1>
             <p style={{ fontSize:12, color:TXT_SOFT, margin:"2px 0 0" }}>Select a booking to begin</p>
           </div>
-          <button onClick={() => navigate(-1)} style={{ padding:"8px 18px", borderRadius:10, border:`1.5px solid ${BORDER}`, background:WHITE, fontSize:12, fontWeight:600, color:TXT_MID, cursor:"pointer" }}>← Back</button>
         </div>
 
         <div style={{ maxWidth:720, margin:"32px auto", padding:"0 24px" }}>
@@ -629,7 +625,7 @@ const Checkout = () => {
               } catch {}
               return (
                 <div key={b.id} className="pk-row"
-                  onClick={() => navigate(`?booking=${b.id}`, { replace: true })}
+                  onClick={() => setSearchParams({ booking: b.id })}
                   style={{ padding:"16px 20px", display:"flex", alignItems:"center", gap:16 }}>
                   {/* Date badge */}
                   <div style={{ width:52, height:52, borderRadius:12, background:`${G}18`, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
