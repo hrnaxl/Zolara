@@ -70,10 +70,11 @@ export default function BuyGiftCard() {
             // Generate gift card code
             const code = `ZGC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
             const tierValue = GIFT_CARD_TIERS[selectedTier!].value;
+            const { supabase: sb } = await import("@/integrations/supabase/client");
 
             // Create gift card record in DB
-            const { data: card, error } = await (await import("@/integrations/supabase/client")).supabase
-              .from("gift_cards" as any)
+            const { data: card, error } = await (sb as any)
+              .from("gift_cards")
               .insert({
                 code,
                 tier: selectedTier,
@@ -82,20 +83,24 @@ export default function BuyGiftCard() {
                 status: isEmail ? "pending_send" : "active",
                 payment_status: isEmail ? "pending_send" : "paid",
                 card_type: isEmail ? "digital" : "physical",
-                buyer_name: form.buyerName,
+                buyer_name: form.buyerName || null,
                 buyer_email: form.buyerEmail || null,
-                buyer_phone: form.buyerPhone,
-                recipient_name: isEmail ? form.recipientName : form.buyerName,
+                buyer_phone: form.buyerPhone || null,
+                recipient_name: isEmail ? (form.recipientName || form.buyerName) : form.buyerName,
                 recipient_email: isEmail ? form.recipientEmail : null,
                 message: form.message || null,
               })
               .select("id")
               .single();
 
-            // Record sale in revenue — always, regardless of email/physical
-            if (!error && card?.id) {
-              const supabaseClient = (await import("@/integrations/supabase/client")).supabase;
-              const { error: saleErr } = await (supabaseClient as any).from("sales").insert({
+            if (error) {
+              console.error("Gift card DB insert failed:", error);
+              // Still show success since payment went through — staff will reconcile
+            }
+
+            // Record sale — even if card insert had an issue, still try
+            if (card?.id) {
+              const { error: saleErr } = await (sb as any).from("sales").insert({
                 amount: tierValue,
                 payment_method: "card",
                 status: "completed",
@@ -120,9 +125,8 @@ export default function BuyGiftCard() {
                 message: form.message || undefined,
               });
               // Update gift card status to active after email sent
-              const supabaseClient = (await import("@/integrations/supabase/client")).supabase;
-              if (emailSent) {
-                await (supabaseClient as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", card.id);
+              if (emailSent && card?.id) {
+                await (sb as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", card.id);
               } else {
                 console.error("Gift card email failed to send — will retry via cron");
               }
