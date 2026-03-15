@@ -274,11 +274,11 @@ const Checkout = () => {
     if (!promoCode.trim()) return;
     setValidatingPromo(true);
     try {
+      const dep3 = depositPaid ? depositAmount : 0;
+      const base = Math.max(0, originalPrice - dep3 - (redeemedCard?.value ?? 0));
       const result = await validatePromoCode(promoCode.trim(), base);
       if (!result.valid) { toast.error(result.message); return; }
       const promo = result.promo;
-      const dep3 = depositPaid ? depositAmount : 0;
-      const base = Math.max(0, originalPrice - dep3 - (redeemedCard?.value ?? 0));
       const discount = promo.discount_type === "percentage" ? (base * promo.discount_value) / 100 : Math.min(promo.discount_value, base);
       setAppliedPromo(promo); setPromoDiscount(discount);
       toast.success(`Promo applied: GHS ${discount.toFixed(2)} off`);
