@@ -125,61 +125,23 @@ export default function BuyGiftCard() {
               }
 
             } else {
-              // ── PHYSICAL PICKUP: claim a pre-printed card ──────────────
-              // Find an available pre-printed physical card of this tier
-              const { data: available, error: findErr } = await (sb as any)
-                .from("gift_cards")
-                .select("id, code, serial_number, batch_id, tier, payment_status")
-                .eq("tier", selectedTier)
-                .eq("card_type", "physical")
-                .eq("payment_status", "pending")
-                .limit(1)
-                .maybeSingle();
+              // ── PHYSICAL PICKUP: claim via server-side API (bypasses RLS) ──
+              const claimRes = await fetch("/api/claim-gift-card", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  tier: selectedTier,
+                  buyerName: form.buyerName,
+                  buyerEmail: form.buyerEmail,
+                  buyerPhone: form.buyerPhone,
+                  paymentRef,
+                }),
+              });
+              const claimData = await claimRes.json();
+              console.log("Claim API response:", claimData);
 
-              console.log("Physical card search:", { selectedTier, available, findErr });
-
-              let claimedCard: any = null;
-              let claimedCode = "";
-
-              if (available) {
-                // Claim this pre-printed card
-                const { data: updated, error: claimErr } = await (sb as any)
-                  .from("gift_cards")
-                  .update({
-                    payment_status: "pending_pickup",
-                    buyer_name: form.buyerName || null,
-                    buyer_email: form.buyerEmail || null,
-                    buyer_phone: form.buyerPhone || null,
-                    recipient_name: form.buyerName,
-                    notes: `Online pickup purchase. Buyer: ${form.buyerName} / ${form.buyerPhone}. Payment ref: ${paymentRef || "N/A"}`,
-                  })
-                  .eq("id", available.id)
-                  .select("id, code, serial_number, batch_id")
-                  .single();
-                console.log("Claim result:", { updated, claimErr });
-                claimedCard = updated;
-                claimedCode = available.code;
-              } else {
-                // No pre-printed card available — notify admin, still record sale
-                console.warn(`No available ${selectedTier} physical cards in inventory`);
-                // Will need manual assignment — create a placeholder so nothing is lost
-                const { data: placeholder } = await (sb as any)
-                  .from("gift_cards")
-                  .insert({
-                    code: `PENDING-${Date.now()}`,
-                    tier: selectedTier, amount: tierValue, balance: tierValue,
-                    status: "active", payment_status: "pending_pickup",
-                    card_type: "physical",
-                    buyer_name: form.buyerName || null,
-                    buyer_email: form.buyerEmail || null,
-                    buyer_phone: form.buyerPhone || null,
-                    recipient_name: form.buyerName,
-                    notes: `⚠️ No pre-printed card available at purchase time. Assign manually. Buyer: ${form.buyerName} / ${form.buyerPhone}. Payment ref: ${paymentRef || "N/A"}`,
-                  })
-                  .select("id, code").single();
-                claimedCard = placeholder;
-                claimedCode = placeholder?.code || "";
-              }
+              const claimedCard = claimData.card;
+              const claimedCode = claimedCard?.code || "";
 
               // Gift card purchase is NOT recorded as revenue — liability until service is delivered.
 
