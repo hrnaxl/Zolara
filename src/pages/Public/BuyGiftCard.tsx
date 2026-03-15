@@ -145,14 +145,17 @@ export default function BuyGiftCard() {
 
               // Gift card purchase is NOT recorded as revenue — liability until service is delivered.
 
-              // Send pickup receipt to buyer
+              // Send pickup receipt to buyer with card details
               if (form.buyerEmail) {
                 sendPickupReceiptEmail({
                   buyerName: form.buyerName, buyerEmail: form.buyerEmail,
                   tier: selectedTier!, amount: tierValue, cardCode: claimedCode,
-                  serialNumber: claimedCard?.serial_number || claimedCard?.batch_id || undefined,
+                  serialNumber: claimedCard?.serial_number || claimedCard?.code || undefined,
                   paymentRef: paymentRef || "",
                 }).catch(console.error);
+              }
+              if (!claimData.claimed) {
+                console.warn("No pre-printed card in stock — placeholder created. Assign manually.");
               }
             }
           } catch (e) {

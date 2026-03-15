@@ -544,14 +544,112 @@ const Checkout = () => {
     );
   }
 
+  // ── Booking picker (when no booking selected) ─────────────────────────────
+  const [pickerSearch, setPickerSearch] = React.useState("");
+  const [pickerBookings, setPickerBookings] = React.useState<any[]>([]);
+  const [pickerLoading, setPickerLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (bookingId) return;
+    const load = async () => {
+      setPickerLoading(true);
+      let q = (supabase as any).from("bookings").select("id,client_name,client_phone,service_name,preferred_date,preferred_time,status,deposit_paid,booking_ref,price")
+        .in("status", ["confirmed","pending","in_progress"])
+        .order("preferred_date", { ascending: true }).limit(30);
+      if (pickerSearch.trim()) q = q.or(`client_name.ilike.%${pickerSearch}%,booking_ref.ilike.%${pickerSearch}%,service_name.ilike.%${pickerSearch}%`);
+      const { data } = await q;
+      setPickerBookings(data || []);
+      setPickerLoading(false);
+    };
+    const t = setTimeout(load, pickerSearch ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [bookingId, pickerSearch]);
+
   if (!bookingId || !booking) {
+    const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+    const STATUS_COLORS: Record<string, {bg:string;color:string}> = {
+      pending:    { bg:"#FEF9C3", color:"#A16207" },
+      confirmed:  { bg:"#DCFCE7", color:"#15803D" },
+      in_progress:{ bg:"#DBEAFE", color:"#1D4ED8" },
+    };
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
-        <div style={{ background: "#FFFFFF", border: "1px solid #EDEBE5", borderRadius: "20px", padding: "48px 40px", maxWidth: "400px", width: "100%", textAlign: "center" }}>
-          <Receipt style={{ width: "32px", height: "32px", color: "#C8A97E", margin: "0 auto 16px" }} />
-          <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#1C160E", margin: "0 0 8px" }}>No Booking Selected</h2>
-          <p style={{ fontSize: "13px", color: "#78716C", margin: "0 0 24px" }}>Select a booking from the bookings page to proceed.</p>
-          <button onClick={() => navigate(-1)} style={{ padding: "10px 24px", borderRadius: "12px", background: "#C8A97E", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Go Back</button>
+      <div style={{ minHeight:"100vh", background:CREAM, fontFamily:"Montserrat,sans-serif", color:TXT }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+          .pk-row{cursor:pointer;transition:background 0.12s;border-bottom:1px solid ${BORDER};}
+          .pk-row:hover{background:#F5EFE6;}
+        `}</style>
+
+        {/* Header */}
+        <div style={{ background:WHITE, borderBottom:`1px solid ${BORDER}`, padding:"20px 32px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 1px 3px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06)" }}>
+          <div>
+            <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.18em", color:G, textTransform:"uppercase", margin:"0 0 2px" }}>Zolara</p>
+            <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:700, color:TXT, margin:0 }}>Checkout</h1>
+            <p style={{ fontSize:12, color:TXT_SOFT, margin:"2px 0 0" }}>Select a booking to begin</p>
+          </div>
+          <button onClick={() => navigate(-1)} style={{ padding:"8px 18px", borderRadius:10, border:`1.5px solid ${BORDER}`, background:WHITE, fontSize:12, fontWeight:600, color:TXT_MID, cursor:"pointer" }}>← Back</button>
+        </div>
+
+        <div style={{ maxWidth:720, margin:"32px auto", padding:"0 24px" }}>
+          {/* Search */}
+          <div style={{ position:"relative", marginBottom:20 }}>
+            <Search style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", width:14, height:14, color:TXT_SOFT }} />
+            <input value={pickerSearch} onChange={e => setPickerSearch(e.target.value)}
+              placeholder="Search by client name, booking ref or service…"
+              style={{ width:"100%", padding:"12px 14px 12px 38px", border:`1.5px solid ${BORDER}`, borderRadius:12, fontSize:14, color:TXT, outline:"none", background:WHITE, fontFamily:"Montserrat,sans-serif", boxSizing:"border-box" as any, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }} />
+          </div>
+
+          {/* Bookings list */}
+          <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:16, overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06)" }}>
+            <div style={{ padding:"12px 20px", borderBottom:`1px solid ${BORDER}`, background:"linear-gradient(135deg,rgba(200,169,126,0.08),rgba(200,169,126,0.02))" }}>
+              <p style={{ fontSize:10, fontWeight:700, letterSpacing:"0.14em", color:G_D, textTransform:"uppercase", margin:0 }}>Upcoming & Active Bookings</p>
+            </div>
+            {pickerLoading ? (
+              <div style={{ padding:40, textAlign:"center", color:TXT_SOFT, fontSize:13 }}>Loading…</div>
+            ) : pickerBookings.length === 0 ? (
+              <div style={{ padding:48, textAlign:"center" }}>
+                <Receipt style={{ width:32, height:32, color:TXT_SOFT, margin:"0 auto 12px", display:"block" }} />
+                <p style={{ fontSize:14, fontWeight:600, color:TXT_MID, margin:0 }}>No bookings found</p>
+                <p style={{ fontSize:12, color:TXT_SOFT, margin:"4px 0 0" }}>Confirmed and pending bookings will appear here</p>
+              </div>
+            ) : pickerBookings.map(b => {
+              const ss = STATUS_COLORS[b.status] || STATUS_COLORS.pending;
+              let dateLabel = b.preferred_date;
+              try {
+                const d = new Date(b.preferred_date + "T00:00:00");
+                const today = new Date(); today.setHours(0,0,0,0);
+                const tom = new Date(today); tom.setDate(tom.getDate()+1);
+                if (d.getTime() === today.getTime()) dateLabel = "Today";
+                else if (d.getTime() === tom.getTime()) dateLabel = "Tomorrow";
+                else dateLabel = d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+              } catch {}
+              return (
+                <div key={b.id} className="pk-row"
+                  onClick={() => navigate(`?booking=${b.id}`, { replace: true })}
+                  style={{ padding:"16px 20px", display:"flex", alignItems:"center", gap:16 }}>
+                  {/* Date badge */}
+                  <div style={{ width:52, height:52, borderRadius:12, background:`${G}18`, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <p style={{ fontSize:11, fontWeight:700, color:G_D, margin:0, lineHeight:1 }}>{dateLabel}</p>
+                    <p style={{ fontSize:10, color:TXT_SOFT, margin:"2px 0 0" }}>{b.preferred_time?.slice(0,5) || "—"}</p>
+                  </div>
+                  {/* Info */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                      <p style={{ fontSize:14, fontWeight:700, color:TXT, margin:0 }}>{b.client_name || "Client"}</p>
+                      <span style={{ padding:"2px 10px", borderRadius:20, fontSize:9, fontWeight:700, background:ss.bg, color:ss.color }}>{b.status?.toUpperCase()}</span>
+                      {b.deposit_paid && <span style={{ fontSize:9, fontWeight:700, color:"#15803D" }}>✓ DEPOSIT</span>}
+                    </div>
+                    <p style={{ fontSize:12, color:TXT_MID, margin:"3px 0 0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.service_name || "Service"}</p>
+                    <p style={{ fontSize:10, color:TXT_SOFT, margin:"1px 0 0" }}>Ref: {b.booking_ref || b.id?.slice(0,8)}</p>
+                  </div>
+                  {/* Price */}
+                  <div style={{ textAlign:"right", flexShrink:0 }}>
+                    <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, color:G_D, margin:0 }}>GHS {Number(b.price || 0).toLocaleString()}</p>
+                    <p style={{ fontSize:10, color:TXT_SOFT, margin:"2px 0 0" }}>→ Select</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
