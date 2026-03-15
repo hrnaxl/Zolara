@@ -61,7 +61,7 @@ export default function BuyGiftCard() {
       const isEmail = deliveryType === "email";
       const ref = `GC-${Date.now().toString(36).toUpperCase()}`;
       await openPaystackPopup({
-        amount: GIFT_CARD_TIERS[selectedTier].value,
+        amount: getTierValue(selectedTier),
         email: form.buyerEmail || `${form.buyerPhone}@zolara.com`,
         reference: ref,
         metadata: {

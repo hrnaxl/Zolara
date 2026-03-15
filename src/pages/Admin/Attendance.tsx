@@ -247,6 +247,12 @@ export default function Attendance() {
 
   const handleMarkAbsent = async (staffId: string) => {
     try {
+      // Block absent marking on Sundays
+      const checkDate = new Date(selectedDate + "T00:00:00");
+      if (checkDate.getDay() === 0) {
+        toast.error("Zolara is closed on Sundays. No attendance records needed.");
+        return;
+      }
       // Insert an absent record for the day if none exists
       const { data: existing } = await supabase
         .from("attendance")
