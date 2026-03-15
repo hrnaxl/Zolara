@@ -140,7 +140,6 @@ const App = () => (
               <Route path="/app/receptionist/product-sale" element={<ProductSale />} />
               <Route path="/app/receptionist/security" element={<SecuritySettings />} />
               <Route path="/app/receptionist/waitlist" element={<WaitlistPage />} />
-              <Route path="/app/receptionist/gift-card-batches" element={<GiftCardBatchGenerator />} />
               <Route path="/app/receptionist/sales" element={<Sales />} />
               <Route path="/app/receptionist/attendance-reports" element={<AttendanceReports />} />
             </Route>

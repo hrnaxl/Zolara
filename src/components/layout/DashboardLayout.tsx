@@ -175,8 +175,8 @@ const DashboardLayout = () => {
           // Core operations
           "Dashboard", "Bookings", "Clients", "Staff",
           "Services", "Checkout", "Loyalty",
-          // Gift cards — full access including honoring pickups
-          "Gift Cards", "Print Gift Cards",
+          // Gift cards — honor pickups and sell only (no printing — owner controls stock)
+          "Gift Cards",
           // Sales & revenue visibility (read daily takings)
           "Sales",
           // Promo, products, waitlist
