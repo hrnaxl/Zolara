@@ -230,17 +230,8 @@ export default function GiftCards() {
       }).eq("id", physPosCard.id);
       if (cardErr) { console.error("Card update error:", cardErr); throw new Error(cardErr.message); }
 
-      // Record sale in sales table
-      const { error: saleErr } = await (supabase as any).from("sales").insert({
-        amount: getValue(physPosCard),
-        payment_method: physPosMethod,
-        status: "completed",
-        client_name: null,
-        service_name: (physPosCard.tier || "Physical") + " Gift Card (Physical)",
-        notes: "Physical gift card sale - code: " + (getCode(physPosCard)),
-        payment_date: new Date().toISOString(),
-      });
-      if (saleErr) { console.error("Sale insert error:", saleErr); throw new Error("Sale recorded but: " + saleErr.message); }
+      // Gift card sale is NOT recorded as revenue at point of sale.
+      // Revenue is recorded when the card is redeemed at checkout (service delivered).
 
       toast.success("Gift card sold and activated!");
       setPhysPosCard(null);

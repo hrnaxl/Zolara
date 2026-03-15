@@ -97,14 +97,9 @@ export default function BuyGiftCard() {
 
               if (error) console.error("Digital card insert failed:", error);
 
-              // Record sale
-              await (sb as any).from("sales").insert({
-                amount: tierValue, payment_method: "card", status: "completed",
-                client_name: form.buyerName || null,
-                service_name: `Gift Card - ${selectedTier} GHS ${tierValue}`,
-                notes: `Online digital gift card. Recipient: ${form.recipientName || form.recipientEmail}. Code: ${code}`,
-                payment_date: new Date().toISOString(),
-              });
+              // Gift card purchase is NOT recorded as revenue — it's a liability until redeemed.
+              // Revenue is recorded per-service when the card is used at checkout.
+              // The outstanding balance is visible in the Gift Cards dashboard KPI.
 
               // Send gift card email
               if (!error && card?.id && form.recipientEmail) {
@@ -183,14 +178,7 @@ export default function BuyGiftCard() {
                 claimedCode = placeholder?.code || "";
               }
 
-              // Record sale
-              await (sb as any).from("sales").insert({
-                amount: tierValue, payment_method: "card", status: "completed",
-                client_name: form.buyerName || null,
-                service_name: `Gift Card - ${selectedTier} GHS ${tierValue}`,
-                notes: `Online physical gift card pickup. Buyer: ${form.buyerName}. Card: ${claimedCode}`,
-                payment_date: new Date().toISOString(),
-              });
+              // Gift card purchase is NOT recorded as revenue — liability until service is delivered.
 
               // Send pickup receipt to buyer
               if (form.buyerEmail) {

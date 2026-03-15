@@ -61,6 +61,7 @@ const AdminDashboard = () => {
     todayServiceRevenue: 0,
     todayProductRevenue: 0,
     todayGiftCardRevenue: 0,
+    giftCardLiability: 0,  // total outstanding value of unredeemed gift cards
     periodServiceRevenue: 0,
     periodProductRevenue: 0,
     periodGiftCardRevenue: 0,
@@ -203,6 +204,7 @@ const AdminDashboard = () => {
         depositsRes,
         depositsPendingCheckoutRes,
         promoSavingsRes,
+        giftCardLiabilityRes,
       ] = await Promise.all([
         supabase
           .from("bookings")
@@ -333,6 +335,8 @@ const AdminDashboard = () => {
         supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).eq("status", "completed"),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("payment_date", periodStartTs).lte("payment_date", periodEndTs).not("promo_discount", "is", null),
+        // gift card liability — total balance of all active/unredeemed cards (money we hold)
+        (supabase as any).from("gift_cards").select("balance, amount, tier, status").in("status", ["active", "available", "pending_send", "pending_pickup"]),
       ]);
 
       // Calculate stats — split service vs product vs gift card revenue
@@ -610,6 +614,7 @@ const AdminDashboard = () => {
         todayServiceRevenue,
         todayProductRevenue,
         todayGiftCardRevenue,
+        giftCardLiability: (giftCardLiabilityRes.data || []).reduce((s: number, gc: any) => s + Number(gc.balance ?? gc.amount ?? 0), 0),
         periodServiceRevenue,
         periodProductRevenue,
         periodGiftCardRevenue,
@@ -867,7 +872,7 @@ const AdminDashboard = () => {
               pct: null, note: periodLabel, color:"#8B6914", bg:"#FBF6EE" },
             { label:"PRODUCT REVENUE",  val:`GHS ${(dateFilter==="today"?stats.todayProductRevenue:stats.periodProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
               pct: null, note: periodLabel, color:"#2563EB", bg:"#EFF6FF" },
-            { label:"GIFT CARD SALES",  val:`GHS ${(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
+            { label:"GIFT CARDS REDEEMED",  val:`GHS ${(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
               pct: null, note: periodLabel, color:"#7C3AED", bg:"#F5F3FF" },
             { label: dateFilter === "today" ? "TODAY'S REVENUE" : dateFilter === "week" ? "WEEKLY REVENUE" : "MONTHLY REVENUE",
               val:`GHS ${revenueVal.toLocaleString("en",{minimumFractionDigits:2})}`,
@@ -911,6 +916,21 @@ const AdminDashboard = () => {
           </div>
         ))}
       </div>
+
+      {/* ── GIFT CARD LIABILITY ──────────────────────────── */}
+      {stats.giftCardLiability > 0 && (
+        <div style={{ background: "linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
+          <div>
+            <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(199,210,254,0.6)", textTransform:"uppercase", margin:"0 0 4px" }}>◆ GIFT CARD LIABILITY</p>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2.5vw,30px)", fontWeight:700, color:"white", margin:0 }}>GHS {stats.giftCardLiability.toLocaleString("en",{minimumFractionDigits:2})}</p>
+            <p style={{ fontSize:10, color:"rgba(199,210,254,0.55)", margin:"4px 0 0" }}>Cash held in active unredeemed gift cards. Becomes revenue when services are delivered.</p>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <p style={{ fontSize:11, color:"rgba(199,210,254,0.7)", margin:0 }}>Not counted in revenue</p>
+            <p style={{ fontSize:10, color:"rgba(199,210,254,0.4)", margin:"3px 0 0" }}>Records as revenue at checkout</p>
+          </div>
+        </div>
+      )}
 
       {/* ── DEPOSITS + PROMO SAVINGS ──────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-2">
