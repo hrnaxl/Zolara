@@ -1,1214 +1,378 @@
-import { useEffect, useState } from "react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizePhone } from "@/lib/clientDedup";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Plus,
-  Mail,
-  Phone,
-  Trash,
-  Pencil,
-  Trash2,
-  CalendarClock,
-  TrendingUp,
-} from "lucide-react";
-import { History } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { z } from "zod";
-import PhoneInput from "@/lib/phoneInput";
-import { AvatarUpload } from "@/components/AvatarUpload";
-import { CollapsibleSearchBar } from "@/components/SearchBar";
+import { format, parseISO } from "date-fns";
+import { normalizePhone } from "@/lib/clientDedup";
+import { Search, X, Plus, Phone, Mail, Star, Calendar, TrendingUp, ChevronLeft, ChevronRight, RefreshCw, User, Trash2, Pencil, Gift } from "lucide-react";
 
-const clientSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required")
-    .max(100, "Name too long"),
-  phone: z.string().regex(/^\+?[0-9]{10,15}$/, "Invalid phone number format"),
-  email: z
-    .string()
-    .email("Invalid email address")
-    .max(255, "Email too long")
-    .optional()
-    .or(z.literal("")),
-  address: z.string().max(500, "Address too long").optional(),
-  notes: z.string().max(1000, "Notes too long").optional(),
-  image: z.union([z.instanceof(File), z.null()]).optional(),
-});
+const G = "#C8A97E", G_D = "#8B6914";
+const CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
+const TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
 
-// Small stat tile used in profile dialog
-const Stat = ({ label, value }: { label: string; value: () => string }) => {
-  return (
-    <div className="p-3 bg-cream dark:bg-gray-800 rounded-lg">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-lg font-semibold mt-1">{value()}</p>
-    </div>
-  );
+const PAGE_SIZE = 25;
+
+const TIER_COLORS: Record<string, string> = {
+  Bronze: "#CD7F32", Silver: "#9CA3AF", Gold: "#B8975A",
+  Diamond: "#6366F1", default: G,
 };
 
-// Helper — returns true if a date string falls within [start, end]
-const bookingInRange = (dateStr: string | null | undefined, start: Date, end: Date): boolean => {
-  if (!dateStr) return false;
-  const d = new Date(dateStr + "T00:00:00");
-  return d >= start && d <= end;
-};
+function getTier(pts: number) {
+  if (pts >= 3000) return "Diamond";
+  if (pts >= 1500) return "Gold";
+  if (pts >= 500) return "Silver";
+  return "Bronze";
+}
 
-const Clients = () => {
+export default function Clients() {
   const [clients, setClients] = useState<any[]>([]);
-  const [filteredClients, setFilteredClients] = useState<any[]>([]);
-  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
-  const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
-  const [merging, setMerging] = useState(false);
-  const [editingClientId, setEditingClientId] = useState<string | null>(null);
-  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [userRole, setUserRole] = useState<string>("");
-  const [services, setServices] = useState([]);
-  const [servicesLoading, setServicesLoading] = useState(false);
-  const [selectedService, setSelectedService] = useState("");
-  const [showServiceList, setShowServiceList] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<
-    | "none"
-    | "date"
-    | "most_active"
-    | "service_history"
-    | "search"
-    | "last_visit"
-    | "most_frequent"
-    | "highest_spenders"
-    | "inactive_60"
-    | "inactive_90"
-  >("none");
-  const [searchResults, setSearchResults] = useState<any[] | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
-  const [startDate, setStartDate] = useState(
-    format(startOfMonth(new Date()), "yyyy-MM-dd")
-  );
-  const [endDate, setEndDate] = useState(
-    format(endOfMonth(new Date()), "yyyy-MM-dd")
-  );
-  const [page, setPage] = useState(1); // current page
-  const [pageSize, setPageSize] = useState(20); // items per page
-  const [totalClients, setTotalClients] = useState(0);
-  const [selectedClient, setSelectedClient] = useState<any | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [filtering, setFiltering] = useState(false);
-  const totalPages = Math.ceil(totalClients / pageSize);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any>(null);
+  const [selectedBookings, setSelectedBookings] = useState<any[]>([]);
 
-  const [formData, setFormData] = useState<any>({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    notes: "",
-    birthday: "",
-    image: null,
-  });
+  // Add/edit form
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: "", phone: "", email: "", birthday: "", notes: "" });
+  const [saving, setSaving] = useState(false);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const fetchClients = useCallback(async (p = 1, s = search) => {
+    setLoading(true);
+    try {
+      let q = supabase.from("clients").select("*", { count: "exact" });
+      if (s.trim()) q = q.or(`name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%`);
+      q = q.order("created_at", { ascending: false }).range((p - 1) * PAGE_SIZE, p * PAGE_SIZE - 1);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      setClients(data || []);
+      setTotal(count || 0);
+    } catch { toast.error("Failed to load clients"); }
+    finally { setLoading(false); }
+  }, [search]);
+
+  const fetchClientBookings = async (clientId: string) => {
+    const { data } = await supabase.from("bookings").select("id,service_name,preferred_date,preferred_time,status,price")
+      .eq("client_id", clientId).order("preferred_date", { ascending: false }).limit(10);
+    setSelectedBookings(data || []);
+  };
+
+  useEffect(() => { fetchClients(1, ""); }, []);
 
   useEffect(() => {
-    fetchClients();
-    fetchUserRole();
-    fetchServices();
-  }, []);
+    const t = setTimeout(() => { setPage(1); fetchClients(1, search); }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  /** Fetch Logged-in User Role */
-  const fetchUserRole = async () => {
+  const openEdit = (c: any) => {
+    setEditId(c.id);
+    setForm({ name: c.name || "", phone: c.phone || "", email: c.email || "", birthday: c.birthday || "", notes: c.notes || "" });
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim() || !form.phone.trim()) { toast.error("Name and phone required"); return; }
+    setSaving(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
-      const metaDataRole = user.user_metadata.role;
-
-      setUserRole(roleData?.role || metaDataRole);
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Unable to fetch user role");
-    }
-  };
-
-  const fetchClients = async (pageNumber = page) => {
-    try {
-      setLoading(true);
-
-      const from = (pageNumber - 1) * pageSize;
-      const to = from + pageSize - 1;
-
-      // Fetch clients first
-      const { data, count, error } = await supabase
-        .from("clients")
-        .select("*", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(from, to);
-
-      if (error) throw error;
-
-      // Fetch bookings separately — safe fallback if it fails
-      let allBookings: any[] = [];
-      try {
-        const { data: bkData } = await supabase
-          .from("bookings")
-          .select("id, client_id, preferred_date, price, status, service_name, staff:staff_id(name), services:service_id(price)");
-        allBookings = bkData || [];
-      } catch { allBookings = []; }
-
-      // Group bookings by client_id
-      const bookingsByClient: Record<string, any[]> = {};
-      for (const bk of (allBookings || [])) {
-        if (!bk.client_id) continue;
-        if (!bookingsByClient[bk.client_id]) bookingsByClient[bk.client_id] = [];
-        bookingsByClient[bk.client_id].push(bk);
-      }
-
-      // Attach bookings and compute real visit count (completed checkouts only)
-      const enriched = (data || []).map((cl: any) => {
-        const bks = bookingsByClient[cl.id] || [];
-        const completedBookings = bks.filter((b: any) => b.status === "completed");
-        const total_visits = completedBookings.length || cl.total_visits || 0;
-        return { ...cl, bookings: bks, total_visits };
-      });
-
-      setClients(enriched);
-      setFilteredClients(enriched);
-      setTotalClients(count || 0);
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      toast.error("Failed to load clients");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchServices = async () => {
-    try {
-      setServicesLoading(true);
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .order("category")
-        .order("order", { ascending: true });
-      if (error) throw error;
-      setServices(data || []);
-    } catch (error: any) {
-      console.error(error);
-      toast.error("Failed to fetch services");
-    } finally {
-      setServicesLoading(false);
-      setLoading(false);
-    }
-  };
-
-  const fetchClientActivity = async () => {
-    const { data, error } = await supabase.from("bookings").select("client_id");
-
-    if (error) {
-      console.error("Activity fetch error:", error);
-      return {};
-    }
-
-    const counts: Record<string, number> = {};
-
-    data.forEach((b: any) => {
-      counts[b.client_id] = (counts[b.client_id] || 0) + 1;
-    });
-
-    return counts;
-  };
-
-  const handleFilterByDate = () => {
-    const filtered = clients.filter(c => {
-      const d = c.created_at?.slice(0,10);
-      return d >= startDate && d <= endDate;
-    });
-    setFilteredClients(filtered);
-    setActiveFilter("date");
-  };
-
-  const handleMostActiveClient = () => {
-    const sorted = [...clients].sort((a,b) => (b.total_visits||0) - (a.total_visits||0));
-    setFilteredClients(sorted);
-    setActiveFilter("most_active");
-  };
-
-  const handleServiceHistory = (serviceName: string) => {
-    setActiveFilter("service_history");
-    setShowServiceList(false);
-  };
-
-  const clearFilters = () => {
-    setFilteredClients(clients);
-    setActiveFilter("none");
-    setSearchTerm("");
-    setSearchResults(null);
-  };
-
-  const findDuplicates = async () => {
-    const { data: allClients } = await supabase.from("clients").select("*").order("name");
-    if (!allClients) return;
-    // Normalize every phone to +233XXXXXXXXX and group by that canonical form
-    const phoneMap: Record<string, any[]> = {};
-    for (const cl of allClients) {
-      const canonical = normalizePhone(cl.phone);
-      if (!canonical) continue;
-      if (!phoneMap[canonical]) phoneMap[canonical] = [];
-      phoneMap[canonical].push(cl);
-    }
-    const groups = Object.values(phoneMap).filter(g => g.length > 1);
-    setDuplicateGroups(groups);
-    setMergeDialogOpen(true);
-  };
-
-  const mergeGroup = async (group: any[]) => {
-    setMerging(true);
-    try {
-      // Keep the client with most visits / oldest record as primary
-      const primary = group.reduce((best, cl) => ((cl.total_visits||0) >= (best.total_visits||0)) ? cl : best, group[0]);
-      const secondary = group.filter(cl => cl.id !== primary.id);
-      const aliases = secondary.map(cl => cl.name).filter(Boolean);
-      const mergedNotes = [primary.notes, ...secondary.map(cl => cl.notes)].filter(Boolean).join(" | ");
-      const mergedPoints = group.reduce((s, cl) => s + (cl.loyalty_points||0), 0);
-      const mergedVisits = group.reduce((s, cl) => s + (cl.total_visits||0), 0);
-      const mergedSpent = group.reduce((s, cl) => s + (cl.total_spent||0), 0);
-      const aliasNote = aliases.length > 0 ? `[Also known as: ${aliases.join(", ")}]` : "";
-      // Update primary
-      await supabase.from("clients").update({
-        loyalty_points: mergedPoints, total_visits: mergedVisits, total_spent: mergedSpent,
-        notes: [aliasNote, mergedNotes].filter(Boolean).join(" "),
-      }).eq("id", primary.id);
-      // Reassign all bookings from secondary to primary
-      for (const sec of secondary) {
-        await supabase.from("bookings").update({ client_id: primary.id, client_name: primary.name }).eq("client_id", sec.id);
-        await supabase.from("clients").delete().eq("id", sec.id);
-      }
-      toast.success(`Merged ${group.length} records into ${primary.name}`);
-      setDuplicateGroups(prev => prev.filter(g => g[0].phone !== group[0].phone));
-      fetchClients();
-    } catch (e: any) { toast.error(e.message || "Merge failed"); }
-    finally { setMerging(false); }
-  };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const validated = clientSchema.parse(formData);
-      const clientData: any = {
-        name: validated.name,
-        phone: normalizePhone(validated.phone),
-        ...(validated.email && { email: validated.email.toLowerCase().trim() }),
-        ...(validated.notes && { notes: validated.notes }),
-        ...(formData.birthday && { birthday: formData.birthday }),
-      };
-
-      if (validated.image) {
-        setUploading(true);
-        const fileExtension = validated.image.name.split(".").pop();
-        const uniqueId = editingClientId || Date.now();
-        const fileName = `client-${uniqueId}.${fileExtension}`;
-        const { error: uploadError } = await supabase.storage
-          .from("avatars").upload(fileName, validated.image, { cacheControl: "3600", upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
-        clientData.avatar_url = urlData.publicUrl;
-        setUploading(false);
-      }
-
-      if (editingClientId) {
-        const { error } = await supabase.from("clients").update(clientData).eq("id", editingClientId);
+      const payload: any = { name: form.name.trim(), phone: normalizePhone(form.phone.trim()), email: form.email.trim() || null, birthday: form.birthday || null, notes: form.notes.trim() || null };
+      if (editId) {
+        const { error } = await supabase.from("clients").update(payload).eq("id", editId);
         if (error) throw error;
-        toast.success("Client updated successfully");
+        toast.success("Client updated");
+        if (selected?.id === editId) setSelected({ ...selected, ...payload });
       } else {
-        // Dedup check before insert
-        const dupeChecks = [];
-        if (clientData.phone) {
-          const local = clientData.phone.startsWith("+233") ? "0" + clientData.phone.slice(4) : clientData.phone;
-          dupeChecks.push(supabase.from("clients").select("id,name").in("phone", [clientData.phone, local]).limit(1).maybeSingle());
-        }
-        if (clientData.email) {
-          dupeChecks.push(supabase.from("clients").select("id,name").ilike("email", clientData.email).limit(1).maybeSingle());
-        }
-        if (dupeChecks.length > 0) {
-          const results = await Promise.all(dupeChecks);
-          const dupe = results.find(r => r.data)?.data;
-          if (dupe) {
-            toast.error(`A client with this phone or email already exists: ${dupe.name}`);
-            setUploading(false);
-            return;
-          }
-        }
-        const { error } = await supabase.from("clients").insert([clientData]);
+        const { error } = await supabase.from("clients").insert([payload]);
         if (error) throw error;
-        toast.success("Client added successfully");
+        toast.success("Client added");
       }
-
-      setDialogOpen(false);
-      setEditingClientId(null);
-      setFormData({ name: "", phone: "", email: "", address: "", notes: "", image: null });
-      fetchClients();
-    } catch (error: any) {
-      if (error?.errors?.[0]?.message) toast.error(error.errors[0].message);
-      else toast.error(error.message || "Failed to save client");
-      setUploading(false);
-    }
+      setShowForm(false); setEditId(null); setForm({ name: "", phone: "", email: "", birthday: "", notes: "" });
+      fetchClients(page, search);
+    } catch (e: any) { toast.error(e.message || "Failed to save"); }
+    finally { setSaving(false); }
   };
 
-  const handleDeleteClient = async () => {
-    if (!deleteClientId) return;
-
-    try {
-      const { error } = await supabase
-        .from("clients")
-        .delete()
-        .eq("id", deleteClientId);
-
-      if (error) throw error;
-
-      toast.success("Client deleted successfully");
-      setClients(prev => prev.filter(c => c.id !== deleteClientId));
-      setFilteredClients(prev => prev.filter(c => c.id !== deleteClientId));
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete client");
-    } finally {
-      setDeleteDialogOpen(false);
-      setDeleteClientId(null);
-    }
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this client? This cannot be undone.")) return;
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (error) { toast.error("Failed to delete"); return; }
+    toast.success("Client deleted");
+    if (selected?.id === id) setSelected(null);
+    fetchClients(page, search);
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  const inp: React.CSSProperties = { width: "100%", border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", boxSizing: "border-box" };
 
   return (
-    <div className="z-page">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="z-title" style={{ fontFamily:"'Cormorant Garamond', serif" }}>Clients</h1>
-          <p className="z-subtitle">Manage your clients</p>
-        </div>
-        <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-          <Button variant="outline" onClick={findDuplicates} style={{fontSize:"12px"}}>
-            🔀 Merge Duplicates
-          </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Client
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md grid gap-4 p-6">
-            <DialogHeader>
-              <DialogTitle>
-                {!editingClientId ? "Add New Client" : "Update Client Details"}
-              </DialogTitle>
-            </DialogHeader>
-            <AvatarUpload
-              image={formData.image}
-              onChange={(file) => setFormData({ ...formData, image: file })}
-            />
+    <div style={{ background: CREAM, minHeight: "100vh", fontFamily: "Montserrat, sans-serif", color: TXT }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+        .cl-row { cursor:pointer; transition:background 0.12s; }
+        .cl-row:hover { background:#F5EFE6 !important; }
+        .cl-row.sel { background:#FBF6EE !important; border-left:3px solid ${G_D} !important; }
+        .page-btn { width:32px; height:32px; border-radius:8px; border:1.5px solid ${BORDER}; background:${WHITE}; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        .page-btn:hover:not(:disabled) { border-color:${G}; }
+        .page-btn:disabled { opacity:0.35; cursor:not-allowed; }
+      `}</style>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Full Name *</Label>
-                <Input
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <PhoneInput
-                value={formData.phone}
-                onChange={(v) => setFormData({ ...formData, phone: v })}
-              />
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  placeholder="client@example.com"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Address</Label>
-                <Input
-                  placeholder="Client address"
-                  value={formData.address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Birthday (optional)</Label>
-                <Input
-                  type="date"
-                  value={formData.birthday}
-                  onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea
-                  placeholder="Additional notes about client"
-                  value={formData.notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                {uploading
-                  ? "Loading..."
-                  : !editingClientId
-                  ? "Add Client"
-                  : "Update Client"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-        </div>
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
 
-        {/* Merge Duplicates Dialog */}
-        <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
-          <DialogContent className="max-w-lg" style={{maxHeight:"80vh",overflowY:"auto"}}>
-            <DialogHeader>
-              <DialogTitle>Merge Duplicate Clients</DialogTitle>
-            </DialogHeader>
-            {duplicateGroups.length === 0 ? (
-              <div style={{textAlign:"center",padding:"32px",color:"#A8A29E",fontSize:"13px"}}>
-                ✅ No duplicates found. All clients have unique phone numbers.
-              </div>
-            ) : (
-              <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-                <p style={{fontSize:"12px",color:"#78716C"}}>{duplicateGroups.length} group(s) with matching phone numbers found.</p>
-                {duplicateGroups.map((group, i) => (
-                  <div key={i} style={{border:"1px solid #E5DDD3",borderRadius:"10px",overflow:"hidden"}}>
-                    <div style={{background:"#FBF6EE",padding:"10px 14px",borderBottom:"1px solid #E5DDD3"}}>
-                      <p style={{margin:0,fontSize:"12px",fontWeight:700}}>📱 {normalizePhone(group[0].phone) || group[0].phone}</p>
-                    </div>
-                    {group.map((cl: any) => (
-                      <div key={cl.id} style={{padding:"10px 14px",borderBottom:"1px solid #F5F0E8",display:"flex",justifyContent:"space-between",fontSize:"12px"}}>
-                        <div>
-                          <p style={{margin:0,fontWeight:600}}>{cl.name}</p>
-                          <p style={{margin:0,color:"#A8A29E"}}>{cl.email||"—"} · {cl.total_visits||0} visits · GHS {(cl.total_spent||0).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <div style={{padding:"10px 14px",background:"#F9FAFB"}}>
-                      <button onClick={()=>mergeGroup(group)} disabled={merging}
-                        style={{padding:"8px 16px",background:"#C8A97E",color:"white",border:"none",borderRadius:"6px",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>
-                        {merging?"Merging…":"Merge into one client"}
-                      </button>
-                      <span style={{fontSize:"11px",color:"#A8A29E",marginLeft:"10px"}}>Keeps the record with most visits. Combines points, visits &amp; spent.</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* ── LEFT: Table ───────────────────────────────── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderRight: selected ? `1px solid ${BORDER}` : "none" }}>
 
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="max-w-sm grid gap-4 p-6">
-            <DialogHeader>
-              <DialogTitle>Delete client</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              This will permanently delete the client and all their data. This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleDeleteClient}>
-                Delete permanently
-              </Button>
+          {/* Header */}
+          <div style={{ padding: "20px 24px 16px", background: WHITE, borderBottom: `1px solid ${BORDER}`, boxShadow: SHADOW }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: G, textTransform: "uppercase", margin: "0 0 2px" }}>Zolara</p>
+                <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 28, fontWeight: 700, color: TXT, margin: 0 }}>Clients</h1>
+                <p style={{ fontSize: 11, color: TXT_SOFT, margin: "2px 0 0" }}>{total.toLocaleString()} total</p>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => fetchClients(page, search)} style={{ padding: "8px 10px", borderRadius: 10, border: `1.5px solid ${BORDER}`, background: WHITE, cursor: "pointer" }}>
+                  <RefreshCw size={14} color={TXT_SOFT} />
+                </button>
+                <button onClick={() => { setEditId(null); setForm({ name: "", phone: "", email: "", birthday: "", notes: "" }); setShowForm(true); }}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  <Plus size={14} /> Add Client
+                </button>
+              </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-        {/* Left: Search */}
-        <div className="w-full sm:w-1/2">
-          <CollapsibleSearchBar
-            data={clients}
-            placeholder="Search clients..."
-            onSearchResults={(results) => {
-              setSearchResults(results);
-              setActiveFilter("search");
-            }}
-          />
-        </div>
-
-        {/* Right: Filters */}
-        <div className="w-full sm:w-auto flex items-center justify-end">
-          {/* Mobile: toggleable filters panel */}
-          <Button
-            className="sm:hidden"
-            variant={showFiltersMobile ? "default" : "outline"}
-            onClick={() => setShowFiltersMobile((s) => !s)}
-          >
-            Filters
-          </Button>
-
-          {/* Desktop filters (hidden on small screens) */}
-          <div className="hidden sm:flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-2 w-auto">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 text-sm"
-                aria-label="Start date"
-              />
-              <span>to</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 text-sm"
-                aria-label="End date"
-              />
-              <Button
-                onClick={handleFilterByDate}
-                variant={activeFilter === "date" ? "default" : "outline"}
-                className="whitespace-nowrap"
-              >
-                <CalendarClock className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-              <Button onClick={clearFilters} variant={"ghost"} className="ml-2">
-                Clear
-              </Button>
-            </div>
-
-            <Button
-              onClick={handleMostActiveClient}
-              variant={activeFilter === "most_active" ? "default" : "ghost"}
-            >
-              <TrendingUp className="w-4 h-4 mr-2" /> Most Active
-            </Button>
-
-            {/* Smart Filters */}
-            <div>
-              <Select
-                value={activeFilter}
-                onValueChange={(v) => setActiveFilter(v as any)}
-              >
-                <SelectTrigger className="w-44 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">All</SelectItem>
-                  <SelectItem value="last_visit">Last Visit</SelectItem>
-                  <SelectItem value="most_frequent">Most Frequent</SelectItem>
-                  <SelectItem value="highest_spenders">
-                    Highest Spenders
-                  </SelectItem>
-                  <SelectItem value="inactive_60">
-                    Inactive (60 days)
-                  </SelectItem>
-                  <SelectItem value="inactive_90">
-                    Inactive (90 days)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* small spinner while filtering */}
-            {filtering && (
-              <div className="flex items-center">
-                <div className="ml-2 w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-
-            {/* Service History Dropdown (desktop) */}
-            <div className="relative w-auto">
-              <Button
-                onClick={() => setShowServiceList(!showServiceList)}
-                variant={
-                  activeFilter === "service_history" ? "default" : "outline"
-                }
-                className="w-auto flex items-center gap-2"
-              >
-                {servicesLoading ? (
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-                ) : null}
-                <span>{selectedService || "Service History"}</span>
-              </Button>
-
-              {showServiceList && (
-                <div className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-xl z-50">
-                  <div
-                    className="
-                    p-2
-                    max-h-64
-                    overflow-y-auto
-                    overscroll-contain
-                    scrollbar-thin
-                    scrollbar-thumb-gray-400
-                    scrollbar-track-gray-200
-                    dark:scrollbar-thumb-gray-600
-                    dark:scrollbar-track-gray-800
-                  "
-                  >
-                    {servicesLoading ? (
-                      <div className="flex items-center justify-center p-4">
-                        <div className="w-6 h-6 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    ) : (
-                      services.map((service: any) => (
-                        <button
-                          key={service.id}
-                          onClick={() => handleServiceHistory(service.name)}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm rounded-md transition"
-                        >
-                          {service.name}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
+            <div style={{ position: "relative" }}>
+              <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: TXT_SOFT }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone or email…"
+                style={{ ...inp, paddingLeft: 36, background: CREAM }} />
+              {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer" }}><X size={13} color={TXT_SOFT} /></button>}
             </div>
           </div>
 
-          {/* Mobile filters panel (shown when toggled) */}
-          {showFiltersMobile && (
-            <div className="sm:hidden mt-3 w-full p-3 space-y-3 border rounded-lg bg-white/70 dark:bg-gray-900/60">
-              <div className="flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 text-sm"
-                    aria-label="Start date"
-                  />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 text-sm"
-                    aria-label="End date"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleFilterByDate}
-                    variant={activeFilter === "date" ? "default" : "outline"}
-                    className="flex-1"
-                  >
-                    <CalendarClock className="w-4 h-4 mr-2" />
-                    Filter
-                  </Button>
-                  <Button
-                    onClick={clearFilters}
-                    variant={"ghost"}
-                    className="flex-1"
-                  >
-                    Clear
-                  </Button>
-                </div>
-
-                <Button
-                  onClick={handleMostActiveClient}
-                  variant={
-                    activeFilter === "most_active" ? "default" : "outline"
-                  }
-                  className="w-full"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" /> Most Active
-                </Button>
-
+          {/* Add/edit form */}
+          {showForm && (
+            <div style={{ background: "#FFFDF9", borderBottom: `1px solid ${BORDER}`, padding: "16px 24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
                 <div>
-                  <label className="block text-sm mb-1">Quick Filters</label>
-                  <div className="mb-2">
-                    <Select
-                      value={activeFilter}
-                      onValueChange={(v) => setActiveFilter(v as any)}
-                    >
-                      <SelectTrigger className="w-full text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">All</SelectItem>
-                        <SelectItem value="last_visit">Last Visit</SelectItem>
-                        <SelectItem value="most_frequent">
-                          Most Frequent
-                        </SelectItem>
-                        <SelectItem value="highest_spenders">
-                          Highest Spenders
-                        </SelectItem>
-                        <SelectItem value="inactive_60">
-                          Inactive (60 days)
-                        </SelectItem>
-                        <SelectItem value="inactive_90">
-                          Inactive (90 days)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <label className="block text-sm mb-1">Service History</label>
-                  <div className="flex flex-col gap-2">
-                    {services.map((service: any) => (
-                      <button
-                        key={service.id}
-                        onClick={() => handleServiceHistory(service.name)}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm rounded-md transition"
-                      >
-                        {service.name}
-                      </button>
-                    ))}
-                  </div>
+                  <label style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Name *</label>
+                  <input style={inp} placeholder="Full name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
+                <div>
+                  <label style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Phone *</label>
+                  <input style={inp} placeholder="024 XXX XXXX" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Email</label>
+                  <input style={inp} type="email" placeholder="optional" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Birthday</label>
+                  <input style={inp} type="date" value={form.birthday} onChange={e => setForm(f => ({ ...f, birthday: e.target.value }))} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Notes</label>
+                <textarea style={{ ...inp, resize: "none", height: 56 } as any} placeholder="Any notes…" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={handleSave} disabled={saving}
+                  style={{ padding: "9px 24px", borderRadius: 10, background: saving ? BORDER : `linear-gradient(135deg,${G},${G_D})`, color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer" }}>
+                  {saving ? "Saving…" : editId ? "Update" : "Add Client"}
+                </button>
+                <button onClick={() => { setShowForm(false); setEditId(null); }}
+                  style={{ padding: "9px 16px", borderRadius: 10, background: WHITE, border: `1.5px solid ${BORDER}`, fontSize: 12, fontWeight: 600, cursor: "pointer", color: TXT_MID }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {loading ? (
+              <div style={{ textAlign: "center", padding: 60, color: TXT_SOFT, fontSize: 13 }}>Loading…</div>
+            ) : clients.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 60 }}>
+                <User size={32} style={{ color: TXT_SOFT, margin: "0 auto 12px", display: "block" }} />
+                <p style={{ fontSize: 14, fontWeight: 600, color: TXT_MID }}>No clients found</p>
+              </div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${BORDER}`, background: WHITE }}>
+                    {["Client", "Contact", "Loyalty", "Visits", "Joined"].map(h => (
+                      <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: TXT_SOFT, textTransform: "uppercase" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((c, i) => {
+                    const pts = c.loyalty_points || 0;
+                    const tier = getTier(pts);
+                    const tc = TIER_COLORS[tier] || G;
+                    const isSel = selected?.id === c.id;
+                    return (
+                      <tr key={c.id} onClick={() => {
+                        if (isSel) { setSelected(null); return; }
+                        setSelected(c);
+                        fetchClientBookings(c.id);
+                      }} className={`cl-row${isSel ? " sel" : ""}`}
+                        style={{ borderBottom: `1px solid ${BORDER}`, background: i % 2 === 0 ? WHITE : "#FAFAF8", borderLeft: isSel ? `3px solid ${G_D}` : "3px solid transparent" }}>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg,${G},${G_D})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: WHITE }}>{(c.name || "?")[0].toUpperCase()}</span>
+                            </div>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: TXT, margin: 0 }}>{c.name}</p>
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <p style={{ fontSize: 12, color: TXT, margin: 0 }}>{c.phone}</p>
+                          {c.email && <p style={{ fontSize: 11, color: TXT_SOFT, margin: "2px 0 0" }}>{c.email}</p>}
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <span style={{ padding: "2px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: `${tc}22`, color: tc }}>{tier}</span>
+                          <p style={{ fontSize: 10, color: TXT_SOFT, margin: "3px 0 0" }}>{pts} pts</p>
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: TXT, margin: 0 }}>{c.total_visits || 0}</p>
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <p style={{ fontSize: 12, color: TXT_SOFT, margin: 0 }}>{c.created_at ? format(parseISO(c.created_at), "d MMM yyyy") : "—"}</p>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ padding: "12px 24px", borderTop: `1px solid ${BORDER}`, background: WHITE, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontSize: 11, color: TXT_SOFT, margin: 0 }}>{total} clients · Page {page} of {totalPages}</p>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button className="page-btn" disabled={page === 1} onClick={() => { const np = page - 1; setPage(np); fetchClients(np, search); }}>
+                  <ChevronLeft size={14} color={TXT_MID} />
+                </button>
+                <button className="page-btn" disabled={page === totalPages} onClick={() => { const np = page + 1; setPage(np); fetchClients(np, search); }}>
+                  <ChevronRight size={14} color={TXT_MID} />
+                </button>
               </div>
             </div>
           )}
         </div>
-      </div>
-      <div className="z-page">
-        {/* Client Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px", alignItems: "stretch" }}>
-          {filteredClients.map((client) => {
-            const s = new Date(`${startDate}T00:00:00`);
-            const e = new Date(`${endDate}T23:59:59`);
-            const bookingsInRange = (client.bookings || []).filter((b: any) => {
-              return bookingInRange(b?.preferred_date, s, e);
-            });
-            const bookingsCount =
-              bookingsInRange.length || (client.bookings || []).length;
-            const lastBooking = (client.bookings || []).reduce(
-              (latest: any, b: any) => {
-                if (!b?.preferred_date) return latest;
-                if (!latest) return b.preferred_date;
-                return new Date(b.preferred_date) > new Date(latest)
-                  ? b.preferred_date
-                  : latest;
-              },
-              null as any
-            );
 
-            const isVip = client.totalSpent > 5000 || client.visitsCount > 10;
-            const isNew = client.visitsCount === 0;
-            const isRisk = client.noShowCount >= 3;
-
-            return (
-              <div
-                key={client.id}
-                onClick={() => { setSelectedClient(client); setProfileOpen(true); }}
-                style={{
-                  background: "#fff", borderRadius: "16px", border: "1px solid #EDE8E0",
-                  boxShadow: "0 2px 16px rgba(28,22,14,0.06)", cursor: "pointer",
-                  transition: "all 0.2s ease", overflow: "hidden",
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 40px rgba(28,22,14,0.12)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 16px rgba(28,22,14,0.06)"; }}
-              >
-                {/* Gold accent bar */}
-                <div style={{ height: "3px", background: isVip ? "linear-gradient(90deg, #8B6914, #C8A97E, #FFD700)" : "linear-gradient(90deg, #8B6914, #C8A97E)" }} />
-                <div style={{ padding: "20px 20px 16px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "14px" }}>
-                    <div style={{ width: "50px", height: "50px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: "2px solid #C8A97E", boxShadow: "0 0 0 3px rgba(200,169,126,0.12)" }}>
-                      {client.image ? (
-                        <img src={client.image} alt={client.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond',serif", fontSize: "18px", fontWeight: 700, color: "#fff" }}>
-                          {client.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
-                        <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "17px", fontWeight: 700, color: "#1C160E" }}>{client.name}</span>
-                        {isVip && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(200,169,126,0.15)", color: "#8B6914", border: "1px solid rgba(200,169,126,0.3)" }}>VIP</span>}
-                        {isNew && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(59,130,246,0.1)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.2)" }}>NEW</span>}
-                        {isRisk && <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1em", padding: "2px 7px", borderRadius: "10px", background: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}>AT RISK</span>}
-                        {["owner","admin"].includes(userRole) && (
-                          <button
-                            onClick={e => { e.stopPropagation(); setDeleteClientId(client.id); setDeleteDialogOpen(true); }}
-                            style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: "6px", color: "#EF4444", opacity: 0.7, display: "flex", alignItems: "center" }}
-                            title="Delete client"
-                          >
-                            <Trash2 style={{ width: "13px", height: "13px" }} />
-                          </button>
-                        )}
-                      </div>
-                      {client.phone && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <Phone style={{ width: "11px", height: "11px", color: "#C8A97E", flexShrink: 0 }} />
-                          <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "#78716C" }}>{client.phone}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Stats row */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "14px" }}>
-                    {[
-                      { label: "VISITS", value: bookingsCount || client.total_visits || 0 },
-                      { label: "SPENT", value: `GHS ${(client.total_spent || 0).toLocaleString()}` },
-                      { label: "POINTS", value: client.loyalty_points || 0 },
-                    ].map(({ label, value }) => (
-                      <div key={label} style={{ background: "#F8F3EC", borderRadius: "8px", padding: "8px 10px", textAlign: "center" }}>
-                        <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", fontWeight: 700, letterSpacing: "0.14em", color: "#A8A29E", marginBottom: "3px" }}>{label}</div>
-                        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "15px", fontWeight: 700, color: "#1C160E" }}>{value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {lastBooking && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", paddingTop: "10px", borderTop: "1px solid #F0EBE2" }}>
-                      <CalendarClock style={{ width: "11px", height: "11px", color: "#C8A97E" }} />
-                      <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "#78716C" }}>Last visit: {format(new Date(lastBooking), "MMM d, yyyy")}</span>
-                    </div>
-                  )}
+        {/* ── RIGHT: Client detail panel ────────────────── */}
+        {selected && (
+          <div style={{ width: 360, background: WHITE, borderLeft: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", overflowY: "auto", flexShrink: 0 }}>
+            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg,${G},${G_D})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>{(selected.name || "?")[0].toUpperCase()}</span>
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: TXT, margin: 0 }}>{selected.name}</p>
+                  <p style={{ fontSize: 11, color: TXT_SOFT, margin: 0 }}>{selected.phone}</p>
                 </div>
               </div>
-            );
-          })}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => openEdit(selected)} style={{ background: "none", border: `1.5px solid ${BORDER}`, borderRadius: 8, padding: "5px 8px", cursor: "pointer" }}>
+                  <Pencil size={13} color={TXT_MID} />
+                </button>
+                <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+                  <X size={16} color={TXT_SOFT} />
+                </button>
+              </div>
+            </div>
 
-          {/* Profile Dialog */}
-          <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-            <DialogContent className="max-w-3xl grid gap-4 p-6">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedClient ? selectedClient.name : "Client Profile"}
-                </DialogTitle>
-              </DialogHeader>
-
-              {selectedClient && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center text-2xl font-semibold text-white bg-gradient-to-br from-green-500 to-teal-500">
-                        {selectedClient.image ? (
-                          <img
-                            src={selectedClient.image}
-                            alt={selectedClient.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          (selectedClient.name || "")
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                        )}
-                      </div>
-
-                      <div>
-                        <h3 className="text-xl font-semibold">
-                          {selectedClient.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedClient.email}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedClient.phone}
-                        </p>
-                      </div>
+            <div style={{ padding: "16px 20px" }}>
+              {/* Loyalty tier */}
+              {(() => {
+                const pts = selected.loyalty_points || 0;
+                const tier = getTier(pts);
+                const tc = TIER_COLORS[tier] || G;
+                const next = tier === "Diamond" ? 3000 : tier === "Gold" ? 3000 : tier === "Silver" ? 1500 : 500;
+                const pct = Math.min(100, (pts / next) * 100);
+                return (
+                  <div style={{ background: `${tc}11`, border: `1px solid ${tc}44`, borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: tc }}>{tier} Member</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: tc }}>{pts} pts</span>
                     </div>
-
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-600">Notes</h4>
-                      {(() => {
-                        const raw = selectedClient.notes || "";
-                        const divIdx = raw.indexOf("\n--- Aliases ---");
-                        const baseNotes = divIdx >= 0 ? raw.slice(0, divIdx).trim() : raw;
-                        const aliasSection = divIdx >= 0 ? raw.slice(divIdx) : "";
-                        const nameMatch = aliasSection.match(/Other names?: ([^\n]+)/i);
-                        const emailMatch = aliasSection.match(/Other emails?: ([^\n]+)/i);
-                        return (
-                          <div className="mt-2 space-y-2">
-                            {baseNotes && <p className="text-sm text-gray-800">{baseNotes}</p>}
-                            {!baseNotes && !nameMatch && !emailMatch && <p className="text-sm text-gray-400">No notes</p>}
-                            {(nameMatch || emailMatch) && (
-                              <div style={{ background: "#FBF6EE", border: "1px solid #F0E4CC", borderRadius: 8, padding: "8px 12px" }}>
-                                <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: "#8B6914", marginBottom: 4 }}>ALSO BOOKED AS</p>
-                                {nameMatch && <p style={{ fontSize: 12, color: "#1C160E", margin: "2px 0" }}>👤 {nameMatch[1]}</p>}
-                                {emailMatch && <p style={{ fontSize: 12, color: "#1C160E", margin: "2px 0" }}>✉️ {emailMatch[1]}</p>}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                    <div style={{ height: 5, borderRadius: 3, background: `${tc}33`, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: tc, borderRadius: 3 }} />
                     </div>
-
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-600">Birthday</h4>
-                      <p className="mt-1 text-sm text-gray-800">
-                        {(selectedClient as any).birthday
-                          ? new Date((selectedClient as any).birthday + "T12:00:00").toLocaleDateString("en-GH", { day: "numeric", month: "long" })
-                          : "Not set"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-600">
-                        Contact & Address
-                      </h4>
-                      <p className="mt-1 text-sm">
-                        {selectedClient.address || "No address"}
-                      </p>
-                    </div>
+                    {tier !== "Diamond" && <p style={{ fontSize: 10, color: TXT_SOFT, margin: "5px 0 0" }}>{next - pts} pts to next tier</p>}
                   </div>
+                );
+              })()}
 
-                  {/* Middle: service history */}
-                  <div className="md:col-span-2">
-                    <h4 className="text-lg font-semibold mb-3">
-                      Service History
-                    </h4>
-
-                    <div className="space-y-3 max-h-72 overflow-auto">
-                      {(selectedClient.bookings || [])
-                        .slice()
-                        .sort(
-                          (a: any, b: any) =>
-                            new Date(b.preferred_date).getTime() -
-                            new Date(a.preferred_date).getTime()
-                        )
-                        .map((b: any) => (
-                          <div
-                            key={b.id}
-                            className="flex justify-between items-center p-3 rounded-lg border bg-white/50 dark:bg-gray-900/40"
-                          >
-                            <div>
-                              <div className="text-sm font-medium">
-                                {b.service_name || b.services?.name || "Service"}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {b.staff?.name || "Unassigned"}{" "}
-                                •{" "}
-                                {b.preferred_date
-                                  ? format(new Date(b.preferred_date), "PPP")
-                                  : "Date N/A"}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold">
-                                GH₵{Number(b.price || b.services?.price || 0).toFixed(2)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {b.status || "-"}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-
-                    {/* Summary stats */}
-                    <div className="mt-4 grid grid-cols-2 gap-4">
-                      <Stat
-                        label="Total Spent"
-                        value={() => {
-                          const total = (selectedClient.bookings || []).reduce(
-                            (sum: number, bk: any) => {
-                              // count only completed bookings as spent
-                              if (bk.status && bk.status !== "completed")
-                                return sum;
-                              return sum + Number(bk.price || bk.services?.price || 0);
-                            },
-                            0
-                          );
-                          return `GH₵${total.toFixed(2)}`;
-                        }}
-                      />
-
-                      <Stat
-                        label="Preferred Staff"
-                        value={() => {
-                          const counts: Record<
-                            string,
-                            { name: string; count: number }
-                          > = {};
-                          (selectedClient.bookings || []).forEach((bk: any) => {
-                            const name =
-                              bk.staff?.name ||
-                              bk.staff?.name ||
-                              "Unassigned";
-                            if (!name) return;
-                            counts[name] = counts[name] || { name, count: 0 };
-                            counts[name].count += 1;
-                          });
-                          const top = Object.values(counts).sort(
-                            (a, b) => b.count - a.count
-                          )[0];
-                          return top ? `${top.name} (${top.count})` : "N/A";
-                        }}
-                      />
-
-                      <Stat
-                        label="Visits"
-                        value={() =>
-                          `${(selectedClient.bookings || []).length}`
-                        }
-                      />
-
-                      <Stat
-                        label="Avg Frequency"
-                        value={() => {
-                          const dates = (selectedClient.bookings || [])
-                            .map((bk: any) => bk.preferred_date)
-                            .filter(Boolean)
-                            .map((d: string) => new Date(d))
-                            .sort(
-                              (a: Date, b: Date) => a.getTime() - b.getTime()
-                            );
-                          if (dates.length < 2) return "N/A";
-                          const diffs: number[] = [];
-                          for (let i = 1; i < dates.length; i++) {
-                            const days =
-                              (dates[i].getTime() - dates[i - 1].getTime()) /
-                              (1000 * 60 * 60 * 24);
-                            diffs.push(days);
-                          }
-                          const avg =
-                            diffs.reduce((s, v) => s + v, 0) / diffs.length;
-                          return `${Math.round(avg)} days`;
-                        }}
-                      />
-                    </div>
+              {/* Stats */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                {[
+                  { label: "Total Visits", val: selected.total_visits || 0, icon: <Calendar size={14} /> },
+                  { label: "Total Spent", val: `GHS ${Number(selected.total_spent || 0).toLocaleString()}`, icon: <TrendingUp size={14} /> },
+                ].map(({ label, val, icon }) => (
+                  <div key={label} style={{ background: CREAM, borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ color: G_D, marginBottom: 4 }}>{icon}</div>
+                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", margin: "0 0 2px" }}>{label}</p>
+                    <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 18, fontWeight: 700, color: TXT, margin: 0 }}>{val}</p>
                   </div>
+                ))}
+              </div>
+
+              {/* Details */}
+              {selected.email && (
+                <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                  <Mail size={13} color={TXT_SOFT} />
+                  <p style={{ fontSize: 12, color: TXT_MID, margin: 0 }}>{selected.email}</p>
+                </div>
+              )}
+              {selected.birthday && (
+                <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                  <Gift size={13} color={TXT_SOFT} />
+                  <p style={{ fontSize: 12, color: TXT_MID, margin: 0 }}>Birthday: {format(parseISO(selected.birthday), "d MMMM")}</p>
+                </div>
+              )}
+              {selected.notes && (
+                <div style={{ background: CREAM, borderRadius: 10, padding: "10px 12px", marginBottom: 16 }}>
+                  <p style={{ fontSize: 12, color: TXT_MID, margin: 0, lineHeight: 1.6 }}>{selected.notes}</p>
                 </div>
               )}
 
-              {/* Edit button */}
-              {selectedClient && (
-                <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "8px", borderTop: "1px solid #EDE8E0" }}>
-                  <button
-                    onClick={() => {
-                      setProfileOpen(false);
-                      setEditingClientId(selectedClient.id);
-                      setFormData({
-                        name: selectedClient.name || "",
-                        phone: selectedClient.phone || "",
-                        email: selectedClient.email || "",
-                        address: selectedClient.address || "",
-                        notes: selectedClient.notes || "",
-        birthday: (selectedClient as any).birthday || "",
-                        image: null,
-                      });
-                      setDialogOpen(true);
-                    }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "6px",
-                      background: "#C8A97E", color: "#fff", border: "none",
-                      borderRadius: "8px", padding: "9px 18px", fontSize: "13px",
-                      fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit Client
-                  </button>
+              {/* Recent bookings */}
+              {selectedBookings.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", margin: "0 0 10px" }}>Recent Bookings</p>
+                  {selectedBookings.slice(0, 5).map(b => {
+                    const ss = { pending: "#EAB308", confirmed: "#22C55E", completed: "#4ADE80", cancelled: "#EF4444", no_show: "#9CA3AF", in_progress: "#3B82F6" } as any;
+                    return (
+                      <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+                        <div>
+                          <p style={{ fontSize: 12, color: TXT, margin: 0 }}>{b.service_name || "Service"}</p>
+                          <p style={{ fontSize: 10, color: TXT_SOFT, margin: "1px 0 0" }}>{b.preferred_date ? format(parseISO(b.preferred_date), "d MMM yyyy") : "—"}</p>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: ss[b.status] || TXT_SOFT }}>{b.status?.toUpperCase()}</span>
+                          {b.price && <p style={{ fontSize: 11, fontWeight: 600, color: TXT_MID, margin: "1px 0 0" }}>GHS {b.price}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </DialogContent>
-          </Dialog>
 
-          {/* No-match placeholder when filters applied but nothing matches */}
-          {filteredClients.length === 0 && clients.length > 0 && (
-            <Card className="col-span-full border-gray-200 dark:border-gray-700 rounded-2xl shadow-md bg-gradient-to-b from-white/80 to-white/60 dark:from-gray-800/80 dark:to-gray-900/60 backdrop-blur-md">
-              <CardContent className="text-center py-16">
-                <p className="text-gray-500 dark:text-gray-400 text-lg">
-                  No clients match the current filters. Try clearing filters or
-                  expanding the date range.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* No clients placeholder */}
-          {clients.length === 0 && (
-            <Card className="col-span-full border-gray-200 dark:border-gray-700 rounded-2xl shadow-md bg-gradient-to-b from-white/80 to-white/60 dark:from-gray-800/80 dark:to-gray-900/60 backdrop-blur-md">
-              <CardContent className="text-center py-16">
-                <p className="text-gray-500 dark:text-gray-400 text-lg">
-                  No clients yet. Add your first client!
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <button
-            disabled={page === 1}
-            onClick={() => {
-              fetchClients(page - 1);
-              setPage(page - 1);
-            }}
-            className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-          >
-            Prev
-          </button>
-          <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            disabled={page === totalPages}
-            onClick={() => {
-              fetchClients(page + 1);
-              setPage(page + 1);
-            }}
-            className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-          >
-            Next
-          </button>
-        </div>
+              {/* Delete */}
+              <button onClick={() => handleDelete(selected.id)}
+                style={{ marginTop: 20, width: "100%", padding: "9px", borderRadius: 10, background: WHITE, border: `1.5px solid #FECACA`, color: "#DC2626", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Trash2 size={13} /> Delete Client
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default Clients;
+}
