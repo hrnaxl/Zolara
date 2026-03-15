@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
+import { sendGiftCardEmail } from "@/lib/email";
 import { openPaystackPopup } from "@/lib/payment";
 import { toast } from "sonner";
 
@@ -105,13 +106,25 @@ export default function BuyGiftCard() {
               });
             }
 
-            // If digital, trigger email immediately via supabase.functions.invoke
-            if (!error && card?.id && isEmail) {
-              const supabaseInvoke = (await import("@/integrations/supabase/client")).supabase;
-              const { error: fnErr } = await (supabaseInvoke as any).functions.invoke("send-gift-card-email", {
-                body: { card_id: card.id },
+            // If digital, send email directly via Resend
+            if (!error && card?.id && isEmail && form.recipientEmail) {
+              const emailSent = await sendGiftCardEmail({
+                id: card.id,
+                tier: selectedTier!,
+                amount: tierValue,
+                code,
+                recipient_name: form.recipientName || form.buyerName,
+                recipient_email: form.recipientEmail,
+                buyer_name: form.buyerName,
+                message: form.message || undefined,
               });
-              if (fnErr) console.error("Gift card email function error:", fnErr);
+              // Update gift card status to active after email sent
+              const supabaseClient = (await import("@/integrations/supabase/client")).supabase;
+              if (emailSent) {
+                await (supabaseClient as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", card.id);
+              } else {
+                console.error("Gift card email failed to send — will retry via cron");
+              }
             }
           } catch (e) {
             console.error("Gift card creation error:", e);

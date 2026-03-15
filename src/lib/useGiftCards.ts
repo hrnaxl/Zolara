@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { sendGiftCardEmail } from "./email";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 
@@ -268,11 +269,25 @@ export async function markGiftCardSold(id: string) {
 
 export async function resendGiftCardEmail(id: string) {
   try {
-    const { error } = await (supabaseAdmin as any)
+    const { data: card, error: fetchErr } = await (supabaseAdmin as any)
       .from("gift_cards")
-      .update({ status: "pending_send" })
-      .eq("id", id);
-    if (error) throw error;
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (fetchErr || !card) throw fetchErr || new Error("Card not found");
+    if (!card.recipient_email) throw new Error("No recipient email on this card");
+    const sent = await sendGiftCardEmail({
+      id: card.id,
+      tier: card.tier,
+      amount: card.amount,
+      code: card.code,
+      recipient_name: card.recipient_name,
+      recipient_email: card.recipient_email,
+      buyer_name: card.buyer_name,
+      message: card.message,
+    });
+    if (!sent) throw new Error("Email delivery failed");
+    await (supabaseAdmin as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", id);
     return { success: true, error: null };
   } catch (error: any) {
     return { success: false, error };
