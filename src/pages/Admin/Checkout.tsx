@@ -328,36 +328,24 @@ const Checkout = () => {
         if (appliedGift > 0) {
           const { error: giftErr } = await (supabase as any).from("sales").insert([{ booking_id: booking.id, amount: appliedGift, payment_method: "gift_card", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: notes || null, payment_date: new Date().toISOString() }]);
           if (giftErr) { toast.error("Failed to record gift card payment"); setProcessing(false); return; }
-          // Diamond cards: deduct balance and increment redemption_count (max 3 uses)
+          // Use server-side API to update gift card (bypasses RLS + stale TS schema)
           const isDiamond = (redeemedCard as any).tier === "Diamond";
           const currentBalance = (redeemedCard as any).fullBalance ?? appliedGift;
-          const newBalance = Math.max(0, currentBalance - appliedGift);
-
-          // Fetch current redemption count (column may not exist yet — default 0)
-          const { data: cardData } = await (supabase as any)
-            .from("gift_cards").select("redemption_count, balance").eq("id", redeemedCard.id).single();
-          const redemptionCount = (cardData?.redemption_count || 0) + 1;
-          const fullyUsed = !isDiamond || newBalance <= 0 || redemptionCount >= 3;
-
-          const updatePayload: any = {
-            status: fullyUsed ? "redeemed" : "active",
-            balance: newBalance,
-            redeemed_by_client: booking.client_name || null,
-          };
-          if (fullyUsed) updatePayload.redeemed_at = new Date().toISOString();
-          // Only set redemption_count if column exists (it should after SQL migration)
-          try { updatePayload.redemption_count = redemptionCount; } catch {}
-
-          const { error: cardUpdateErr } = await (supabase as any)
-            .from("gift_cards").update(updatePayload).eq("id", redeemedCard.id);
-          if (cardUpdateErr) {
-            console.error("Gift card update failed:", cardUpdateErr);
-            // Fallback — try without redemption_count in case column doesn't exist
-            await (supabase as any).from("gift_cards").update({
-              status: "redeemed", balance: 0,
-              redeemed_by_client: booking.client_name || null,
-              redeemed_at: new Date().toISOString(),
-            }).eq("id", redeemedCard.id);
+          const redeemRes = await fetch("/api/redeem-gift-card", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardId: redeemedCard.id,
+              appliedAmount: appliedGift,
+              isDiamond,
+              currentBalance,
+              clientName: booking.client_name || null,
+            }),
+          });
+          const redeemData = await redeemRes.json();
+          if (!redeemRes.ok) {
+            console.error("Gift card redeem API failed:", redeemData);
+            toast.error("Gift card recorded but status update failed — check admin.");
           }
         }
       }
