@@ -4,6 +4,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const GIFT_CARD_TIERS = {
+  Bronze:   { value: 10,   grace: 0,   label: "Bronze",           color: "#CD7F32" },
   Silver:   { value: 220,  grace: 15,  label: "Silver",          color: "#A8A29E" },
   Gold:     { value: 450,  grace: 15,  label: "Gold",            color: "#B8975A" },
   Platinum: { value: 650,  grace: 15,  label: "Platinum",        color: "#6B7280" },

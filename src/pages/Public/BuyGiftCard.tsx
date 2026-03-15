@@ -12,6 +12,7 @@ const TXT_MID = "#78716C";
 const BORDER = "#EDEBE5";
 
 const TIER_STYLES: Record<GiftCardTier, { bg: string; accent: string; shine: string }> = {
+  Bronze:   { bg: "linear-gradient(135deg, #CD7F32, #E8A55A, #8B5A1A)", accent: "#CD7F32", shine: "#E8A55A" },
   Silver:   { bg: "linear-gradient(135deg, #d4d4d4, #f5f5f5, #a8a8a8)", accent: "#9CA3AF", shine: "#e5e5e5" },
   Gold:     { bg: "linear-gradient(135deg, #B8975A, #F5D98A, #8C6A30)", accent: "#B8975A", shine: "#F5D98A" },
   Platinum: { bg: "linear-gradient(135deg, #4B5563, #9CA3AF, #374151)", accent: "#6B7280", shine: "#D1D5DB" },
