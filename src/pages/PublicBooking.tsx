@@ -757,103 +757,11 @@ export default function PublicBooking() {
                 <label style={lbl}>Time *</label>
                 <div style={{ position: "relative" }}>
                   <Clock size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
-                  <input type="time" value={preferredTime} onChange={async e => {
-                    const t = e.target.value;
-                    setTime(t);
-                    setShowWaitlist(false);
-                    setAvailableStaff([]);
-                    setSelectedStaffId("");
-                    await release();
-                    if (preferredDate && t) {
-                      setCheckingSlot(true);
-                      try {
-                        const { data: avail } = await (supabase as any).rpc("get_available_staff", {
-                          p_service_id: serviceId || "00000000-0000-0000-0000-000000000000",
-                          p_date: preferredDate,
-                          p_time: t,
-                        });
-                        if (!avail || avail.length === 0) {
-                          setShowWaitlist(true);
-                        } else {
-                          setAvailableStaff(avail);
-                          // Auto-claim first available staff slot
-                          const first = avail[0];
-                          setSelectedStaffId(first.staff_id);
-                          await claimSlot({ staffId: first.staff_id, date: preferredDate, time: t, clientName: name, clientPhone: phone });
-                        }
-                      } catch(e) { console.error(e); } finally { setCheckingSlot(false); }
-                    }
-                  }} min="08:30" max="21:00" style={{ ...inp, paddingLeft: "38px" }} />
+                  <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="21:00" style={{ ...inp, paddingLeft: "38px" }} />
                 </div>
                 {errors.time && <p className="err">{errors.time}</p>}
               </div>
             </div>
-
-            {/* Slot check feedback */}
-            {checkingSlot && (
-              <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: TXT_MID, fontFamily: "'Montserrat',sans-serif" }}>
-                <span style={{ width: 14, height: 14, border: `2px solid ${GOLD}`, borderTop: "2px solid transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
-                Checking availability…
-              </div>
-            )}
-
-            {/* Slot locked confirmation */}
-            {lockState === "locked" && !checkingSlot && (
-              <div style={{ marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 16 }}>🔒</span>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: "#15803D", margin: 0, fontFamily: "'Montserrat',sans-serif" }}>Slot reserved for you</p>
-                  <p style={{ fontSize: 11, color: "#16A34A", margin: 0, fontFamily: "'Montserrat',sans-serif" }}>Complete your booking within {formattedTime} — a stylist will be assigned at your appointment</p>
-                </div>
-              </div>
-            )}
-
-            {/* Slot expired */}
-            {lockState === "expired" && (
-              <div style={{ marginTop: 12, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#DC2626", fontFamily: "'Montserrat',sans-serif" }}>
-                ⏰ Your slot reservation expired. Please pick another time or try again.
-              </div>
-            )}
-
-            {/* All staff booked — show waitlist */}
-            {showWaitlist && !waitlistJoined && (
-              <div style={{ marginTop: 12, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "16px 18px", fontFamily: "'Montserrat',sans-serif" }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: "0 0 6px" }}>😔 All stylists are booked at this time</p>
-                <p style={{ fontSize: 11, color: "#B45309", margin: "0 0 14px" }}>Join our waitlist and we'll SMS you if a slot opens up. You'll have 10 minutes to claim it.</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <select value={waitlistPref.staffId} onChange={e => setWaitlistPref(p => ({ ...p, staffId: e.target.value }))}
-                    style={{ ...inp, fontSize: 12 }}>
-                    <option value="">Any available stylist</option>
-                    {(availableStaff as any[]).map(s => <option key={s.staff_id} value={s.staff_id}>{s.staff_name}</option>)}
-                  </select>
-                  <button onClick={async () => {
-                    if (!name || !phone) { toast.error("Please fill in your name and phone first"); return; }
-                    const { error } = await (supabase as any).from("waitlist").insert({
-                      client_name: name,
-                      client_phone: phone,
-                      client_email: email || null,
-                      service_id: serviceId || null,
-                      service_name: selectedService?.name || null,
-                      preferred_date: preferredDate,
-                      preferred_time: preferredTime || null,
-                      staff_id: waitlistPref.staffId || null,
-                      status: "active",
-                    });
-                    if (error) { toast.error("Failed to join waitlist"); return; }
-                    setWaitlistJoined(true);
-                    toast.success("You've been added to the waitlist!");
-                  }} style={{ padding: "10px 20px", borderRadius: 10, background: "#D97706", color: "white", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                    Join Waitlist
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {waitlistJoined && (
-              <div style={{ marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "12px 16px", fontSize: 12, fontWeight: 600, color: "#15803D", fontFamily: "'Montserrat',sans-serif" }}>
-                ✅ You're on the waitlist! We'll SMS you at {phone} if a slot opens up.
-              </div>
-            )}
 
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, marginTop: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
               <Sparkles size={11} style={{ color: GOLD }} /> Open Mon to Sat · 8:30 AM to 9:00 PM · Closed Sundays
