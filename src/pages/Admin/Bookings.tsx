@@ -363,7 +363,7 @@ export default function Bookings() {
                     {confirming ? "Confirming…" : `✓ Confirm All (${counts["pending"] || 0})`}
                   </button>
                 )}
-                <button onClick={() => navigate("/app/admin/bookings/new")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={() => navigate("/book?source=walk_in")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   <Plus size={14} /> New Booking
                 </button>
               </div>

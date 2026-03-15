@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { autoAssignBooking } from "@/lib/autoAssign";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
@@ -47,6 +49,8 @@ const sectionTitle = {
 
 export default function EnhancedBookingForm() {
   const { settings } = useSettings();
+  const location = useLocation();
+  const isWalkIn = new URLSearchParams(location.search).get("source") === "walk_in";
   const [services, setServices]   = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -162,13 +166,23 @@ export default function EnhancedBookingForm() {
         promoApplied ? `Promo: ${promoApplied.code}` : "",
       ].filter(Boolean).join("\n");
 
-      const { error } = await supabase.from("bookings").insert({
+      const { data: newBooking, error } = await supabase.from("bookings").insert({
         client_name: name, client_email: email || null, client_phone: cleanPhone,
         service_id: serviceId, service_name: selectedService?.name || null,
         preferred_date: preferredDate, preferred_time: normalizedTime,
         price: total, notes: notesFull, status: "pending", client_id: clientId || null,
-      } as any);
+        booking_source: isWalkIn ? "walk_in" : "online",
+      } as any).select("id").single();
       if (error) throw error;
+      // Auto-assign staff for online bookings only — walk-ins assigned manually by receptionist
+      if (newBooking?.id && !isWalkIn) {
+        autoAssignBooking(
+          newBooking.id,
+          selectedService?.name || "",
+          preferredDate,
+          normalizedTime
+        ).catch(console.error); // fire and forget — don't block confirmation
+      }
       setBookingRef(ref);
       setSubmitted(true);
     } catch (err: any) {
