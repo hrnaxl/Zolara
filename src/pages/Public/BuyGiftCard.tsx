@@ -108,7 +108,8 @@ export default function BuyGiftCard() {
           } catch (e) {
             console.error("Gift card creation error:", e);
           }
-          window.location.href = `${window.location.origin}/gift-card/success`;
+          setStep("done");
+          setLoading(false);
         },
         onClose: () => {
           setLoading(false);
