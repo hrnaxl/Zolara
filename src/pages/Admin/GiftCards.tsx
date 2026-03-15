@@ -73,6 +73,15 @@ export default function GiftCards() {
   const [genBatch, setGenBatch]     = useState("");
   const [genLoading, setGenLoading] = useState(false);
   const [newBatch, setNewBatch]     = useState<any[]>([]);
+  const [tierPrices, setTierPrices] = useState<Record<string,number>>({});
+
+  // Load custom tier prices from settings
+  useEffect(() => {
+    (supabase as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
+      .then(({ data }: any) => { if (data?.gift_card_prices) setTierPrices(data.gift_card_prices); });
+  }, []);
+
+  const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as GiftCardTier]?.value ?? 0;
 
   // Physical card POS
   const [physPosOpen, setPhysPosOpen]     = useState(false);
@@ -254,6 +263,7 @@ export default function GiftCards() {
         quantity: genQty,
         batchId: genBatch.trim().toUpperCase(),
         adminUserId: "admin",
+        overridePrice: getTierValue(genTier),
       });
       if (error) throw new Error(error);
       setNewBatch(generated);
@@ -643,8 +653,8 @@ export default function GiftCards() {
                     {[
                       { l:"Tier",     v: GIFT_CARD_TIERS[genTier]?.label || genTier },
                       { l:"Qty",      v: genQty },
-                      { l:"Value ea", v:`GHS ${GIFT_CARD_TIERS[genTier]?.value || "?"}` },
-                      { l:"Total",    v:`GHS ${((GIFT_CARD_TIERS[genTier]?.value||0)*genQty).toLocaleString()}` },
+                      { l:"Value ea", v:`GHS ${getTierValue(genTier)}` },
+                      { l:"Total",    v:`GHS ${(getTierValue(genTier)*genQty).toLocaleString()}` },
                     ].map(f => (
                       <div key={f.l}>
                         <div style={{ fontSize:"9px", color:TXT_S }}>{f.l}</div>

@@ -107,6 +107,7 @@ export async function generatePhysicalBatch(opts: {
   quantity: number;
   batchId: string;
   adminUserId: string;
+  overridePrice?: number;
 }): Promise<{ cards: any[]; error: string | null }> {
   try {
     // Get current max sequence for serial numbers
@@ -126,14 +127,15 @@ export async function generatePhysicalBatch(opts: {
     }
 
     const tierConfig = GIFT_CARD_TIERS[opts.tier];
+    const cardValue = opts.overridePrice ?? tierConfig.value;
     const expiresAt = new Date();
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
     const cards = Array.from({ length: opts.quantity }, (_, i) => ({
       code: generateRedeemableCode(opts.tier),
       serial_number: generateSerialNumber(opts.tier, startSeq + i),
-      amount: tierConfig.value,
-      balance: tierConfig.value,
+      amount: cardValue,
+      balance: cardValue,
       tier: opts.tier,
       card_type: "physical",
       delivery_type: "physical",
