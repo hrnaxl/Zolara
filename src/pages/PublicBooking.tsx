@@ -764,11 +764,11 @@ export default function PublicBooking() {
                     setAvailableStaff([]);
                     setSelectedStaffId("");
                     await release();
-                    if (serviceId && preferredDate && t) {
+                    if (preferredDate && t) {
                       setCheckingSlot(true);
                       try {
                         const { data: avail } = await (supabase as any).rpc("get_available_staff", {
-                          p_service_id: serviceId,
+                          p_service_id: serviceId || "00000000-0000-0000-0000-000000000000",
                           p_date: preferredDate,
                           p_time: t,
                         });
@@ -803,7 +803,7 @@ export default function PublicBooking() {
                 <span style={{ fontSize: 16 }}>🔒</span>
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "#15803D", margin: 0, fontFamily: "'Montserrat',sans-serif" }}>Slot reserved for you</p>
-                  <p style={{ fontSize: 11, color: "#16A34A", margin: 0, fontFamily: "'Montserrat',sans-serif" }}>Complete your booking within {formattedTime} · {availableStaff.find(s => s.staff_id === selectedStaffId)?.staff_name || "Stylist assigned"}</p>
+                  <p style={{ fontSize: 11, color: "#16A34A", margin: 0, fontFamily: "'Montserrat',sans-serif" }}>Complete your booking within {formattedTime} — a stylist will be assigned at your appointment</p>
                 </div>
               </div>
             )}
