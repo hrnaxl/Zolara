@@ -42,6 +42,7 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [salonSettings, setSalonSettings] = useState<any>(null);
   const [dbServices, setDbServices] = useState<any[]>([]);
+  const [subPlans, setSubPlans] = useState<any[]>([]);
   const [dbVariantsMap, setDbVariantsMap] = useState<Record<string,any[]>>({});
   const [activeSvcCat, setActiveSvcCat] = useState("all");
   const [svcVisible, setSvcVisible] = useState(false);
@@ -827,45 +828,54 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "20px", position: "relative", zIndex: 1, marginBottom: "48px" }}>
-          {[
-            { name: "Essential", price: "GHS 300", cycle: "per month", slots: "2 visits", desc: "Two services per month. Perfect for maintaining your look.", icon: "◇", featured: false },
-            { name: "Premium", price: "GHS 500", cycle: "per month", slots: "4 visits", desc: "Four services per month. For the client who never misses a week.", icon: "✦", featured: true },
-            { name: "Luxury", price: "GHS 800", cycle: "per month", slots: "Unlimited", desc: "Unlimited visits all month. Full access to everything Zolara offers.", icon: "◉", featured: false },
-          ].map(plan => (
-            <div key={plan.name} style={{
-              background: plan.featured ? "linear-gradient(150deg,#2C2416,#1A1008)" : "#fff",
-              border: plan.featured ? "1px solid rgba(200,169,126,0.35)" : "1px solid rgba(200,169,126,0.18)",
-              borderRadius: "4px", padding: "36px 28px", position: "relative", overflow: "hidden",
-              boxShadow: plan.featured ? "0 24px 60px rgba(28,22,14,0.3)" : "0 4px 20px rgba(28,22,14,0.06)",
-            }}>
-              {plan.featured && (
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg,transparent,#C8A97E,transparent)" }} />
-              )}
-              {plan.featured && (
-                <div style={{ position: "absolute", top: "16px", right: "16px" }}>
-                  <span className="sans" style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.18em", color: "#1C160E", background: gold, padding: "4px 10px", borderRadius: "20px" }}>POPULAR</span>
+        {(subPlans.length > 0 ? subPlans : [
+          { id:"1", name:"Essential", description:"Two services per month. Perfect for maintaining your look.", price:300, billing_cycle:"monthly", max_usage_per_cycle:2 },
+          { id:"2", name:"Premium",   description:"Four services per month. For the client who never misses a week.", price:500, billing_cycle:"monthly", max_usage_per_cycle:4 },
+          { id:"3", name:"Luxury",    description:"Unlimited visits all month. Full access to everything Zolara offers.", price:800, billing_cycle:"monthly", max_usage_per_cycle:99 },
+        ]).length > 0 && (
+          <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "20px", position: "relative", zIndex: 1, marginBottom: "48px" }}>
+            {(subPlans.length > 0 ? subPlans : [
+              { id:"1", name:"Essential", description:"Two services per month. Perfect for maintaining your look.", price:300, billing_cycle:"monthly", max_usage_per_cycle:2 },
+              { id:"2", name:"Premium",   description:"Four services per month. For the client who never misses a week.", price:500, billing_cycle:"monthly", max_usage_per_cycle:4 },
+              { id:"3", name:"Luxury",    description:"Unlimited visits all month. Full access to everything Zolara offers.", price:800, billing_cycle:"monthly", max_usage_per_cycle:99 },
+            ]).map((plan: any, idx: number) => {
+              const icons = ["◇","✦","◉","◆"];
+              const featured = idx === 1;
+              const visits = plan.max_usage_per_cycle >= 99 ? "Unlimited" : plan.max_usage_per_cycle + " visits";
+              return (
+                <div key={plan.id} style={{
+                  background: featured ? "linear-gradient(150deg,#2C2416,#1A1008)" : "#fff",
+                  border: featured ? "1px solid rgba(200,169,126,0.35)" : "1px solid rgba(200,169,126,0.18)",
+                  borderRadius: "4px", padding: "36px 28px", position: "relative", overflow: "hidden",
+                  boxShadow: featured ? "0 24px 60px rgba(28,22,14,0.3)" : "0 4px 20px rgba(28,22,14,0.06)",
+                }}>
+                  {featured && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg,transparent,#C8A97E,transparent)" }} />}
+                  {featured && (
+                    <div style={{ position: "absolute", top: "16px", right: "16px" }}>
+                      <span className="sans" style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.18em", color: "#1C160E", background: gold, padding: "4px 10px", borderRadius: "20px" }}>POPULAR</span>
+                    </div>
+                  )}
+                  <div style={{ color: featured ? gold : goldDark, fontSize: "18px", marginBottom: "16px" }}>{icons[idx % icons.length]}</div>
+                  <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 600, color: featured ? "#F5EFE6" : dark, marginBottom: "4px" }}>{plan.name}</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "6px" }}>
+                    <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "36px", fontWeight: 300, color: featured ? gold : goldDark, lineHeight: 1 }}>GHS {Number(plan.price).toLocaleString()}</span>
+                    <span className="sans" style={{ fontSize: "11px", color: featured ? "rgba(245,239,230,0.45)" : "#78716C", fontWeight: 400 }}>/ {plan.billing_cycle || "month"}</span>
+                  </div>
+                  <div className="sans" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em", color: featured ? gold : goldDark, marginBottom: "16px" }}>{visits.toUpperCase()} PER MONTH</div>
+                  <div style={{ height: "1px", background: "rgba(200,169,126,0.15)", marginBottom: "16px" }} />
+                  <p className="sans" style={{ fontSize: "13px", color: featured ? "rgba(245,239,230,0.6)" : "#4A3520", lineHeight: 1.75, fontWeight: 400, marginBottom: "24px" }}>{plan.description || ""}</p>
+                  <Link to="/book" style={{
+                    display: "block", textAlign: "center", textDecoration: "none",
+                    fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em",
+                    color: featured ? "#1C160E" : "#fff",
+                    background: featured ? "linear-gradient(135deg,#C8A97E,#8B6914)" : "linear-gradient(135deg,#8B6914,#C8A97E)",
+                    padding: "12px 24px", borderRadius: "1px",
+                  }}>ENQUIRE NOW</Link>
                 </div>
-              )}
-              <div style={{ color: plan.featured ? gold : goldDark, fontSize: "18px", marginBottom: "16px" }}>{plan.icon}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 600, color: plan.featured ? "#F5EFE6" : dark, marginBottom: "4px" }}>{plan.name}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "6px" }}>
-                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "36px", fontWeight: 300, color: plan.featured ? gold : goldDark, lineHeight: 1 }}>{plan.price}</span>
-                <span className="sans" style={{ fontSize: "11px", color: plan.featured ? "rgba(245,239,230,0.45)" : "#78716C", fontWeight: 400 }}>{plan.cycle}</span>
-              </div>
-              <div className="sans" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em", color: plan.featured ? gold : goldDark, marginBottom: "16px" }}>{plan.slots.toUpperCase()}</div>
-              <div style={{ height: "1px", background: plan.featured ? "rgba(200,169,126,0.15)" : "rgba(200,169,126,0.15)", marginBottom: "16px" }} />
-              <p className="sans" style={{ fontSize: "13px", color: plan.featured ? "rgba(245,239,230,0.6)" : "#4A3520", lineHeight: 1.75, fontWeight: 400, marginBottom: "24px" }}>{plan.desc}</p>
-              <Link to="/book" style={{
-                display: "block", textAlign: "center", textDecoration: "none",
-                fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em",
-                color: plan.featured ? "#1C160E" : "#fff",
-                background: plan.featured ? "linear-gradient(135deg,#C8A97E,#8B6914)" : "linear-gradient(135deg,#8B6914,#C8A97E)",
-                padding: "12px 24px", borderRadius: "1px",
-              }}>ENQUIRE NOW</Link>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         <div style={{ maxWidth: "680px", margin: "0 auto", background: "#fff", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "4px", padding: "28px 32px", textAlign: "center", boxShadow: "0 4px 20px rgba(28,22,14,0.06)", position: "relative", zIndex: 1 }}>
           <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 400, color: dark, marginBottom: "8px" }}>Custom plans available for groups and businesses</p>
