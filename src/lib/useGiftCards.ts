@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { sendGiftCardEmail } from "./email";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin } from "@/integrations/supabase/adminClient";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 
 export type GiftCard = {
   id: string;
