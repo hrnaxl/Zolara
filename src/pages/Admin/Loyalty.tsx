@@ -32,7 +32,7 @@ interface Client {
 }
 
 export default function Loyalty() {
-  const { settings } = useSettings();
+  const { settings, userRole } = useSettings();
   const REWARD_DISCOUNT   = Number((settings as any)?.loyalty_reward_discount   ?? 50);
   const STAMPS_PER_REWARD = Number((settings as any)?.loyalty_stamps_for_reward  ?? STAMPS_PER_REWARD_DEFAULT);
   const STAMP_EARN_RATE   = Number((settings as any)?.loyalty_stamp_per_ghs      ?? STAMP_EARN_RATE_DEFAULT);

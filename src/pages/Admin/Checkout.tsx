@@ -393,13 +393,15 @@ const Checkout = () => {
           const appliedGift = Math.min(Number(redeemedCard.value), originalPrice);
           if (appliedGift > 0) {
             // Record in sales
-            await (supabase as any).from("sales").insert([{
-              booking_id: booking.id, amount: appliedGift, payment_method: "gift_card",
-              status: "completed", client_name: booking.client_name || null,
-              service_name: booking.service_name || null,
-              client_id: clientIdForSale, staff_id: staffIdForSale,
-              notes: "Gift card redemption at checkout", payment_date: new Date().toISOString()
-            }]).catch(console.error);
+            try {
+              await (supabase as any).from("sales").insert([{
+                booking_id: booking.id, amount: appliedGift, payment_method: "gift_card",
+                status: "completed", client_name: booking.client_name || null,
+                service_name: booking.service_name || null,
+                client_id: clientIdForSale, staff_id: staffIdForSale,
+                notes: "Gift card redemption at checkout", payment_date: new Date().toISOString()
+              }]);
+            } catch (gcSaleErr) { console.error("Gift card sale insert failed:", gcSaleErr); }
             // Mark card redeemed via service-role API
             const isDiamond = (redeemedCard as any).tier === "Diamond";
             const currentBalance = (redeemedCard as any).fullBalance ?? appliedGift;
