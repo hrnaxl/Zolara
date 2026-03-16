@@ -78,56 +78,45 @@ export default function BuyGiftCard() {
         onSuccess: async (paymentRef: string) => {
           try {
             const tierValue = getTierValue(selectedTier!);
-            const { supabase: sb } = await import("@/integrations/supabase/client");
 
             if (isEmail) {
-              // ── DIGITAL ───────────────────────────────────────────────────
-              const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-              const rand4 = () => Array.from({length:4}, () => chars[Math.floor(Math.random()*chars.length)]).join("");
-              const pfx = (selectedTier || "GC").substring(0,3).toUpperCase();
-              const code = pfx + "-" + rand4() + "-" + rand4();
-              const expires = new Date();
-              expires.setFullYear(expires.getFullYear() + 1);
-              const emailTo = form.recipientEmail || form.buyerEmail;
-
-              const { data: newCard, error: insertErr } = await (sb as any)
-                .from("gift_cards")
-                .insert({
-                  code,
+              // ── DIGITAL ─────────────────────────────────────────────────────
+              // Create card via server-side API (bypasses RLS)
+              const createRes = await fetch("/api/create-gift-card", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
                   tier: selectedTier,
-                  amount: tierValue,
-                  balance: tierValue,
-                  status: "active",
-                  payment_status: "paid",
-                  card_type: "digital",
-                  buyer_name: form.buyerName || null,
-                  buyer_email: form.buyerEmail || null,
-                  buyer_phone: form.buyerPhone || null,
-                  recipient_name: form.recipientName || form.buyerName || null,
-                  recipient_email: emailTo || null,
+                  buyerName: form.buyerName,
+                  buyerEmail: form.buyerEmail,
+                  buyerPhone: form.buyerPhone,
+                  recipientName: form.recipientName || form.buyerName,
+                  recipientEmail: form.recipientEmail || form.buyerEmail,
                   message: form.message || null,
-                  expires_at: expires.toISOString(),
-                })
-                .select("id, code")
-                .single();
+                }),
+              });
+              const createData = await createRes.json().catch(() => ({}));
+              console.log("Create card:", createRes.status, JSON.stringify(createData));
 
-              if (insertErr) {
-                console.error("Card insert failed:", insertErr.message);
-              } else if (emailTo) {
-                sendGiftCardEmail({
-                  id: newCard.id,
-                  tier: selectedTier!,
-                  amount: tierValue,
-                  code: newCard.code,
-                  recipient_name: form.recipientName || form.buyerName,
-                  recipient_email: emailTo,
-                  buyer_name: form.buyerName,
-                  message: form.message || undefined,
-                }).catch((e: any) => console.error("Gift email error:", e.message));
+              if (createRes.ok && createData.card) {
+                // Send gift card email to recipient
+                const emailTo = form.recipientEmail || form.buyerEmail;
+                if (emailTo) {
+                  sendGiftCardEmail({
+                    id: createData.card.id,
+                    tier: selectedTier!,
+                    amount: tierValue,
+                    code: createData.card.code,
+                    recipient_name: form.recipientName || form.buyerName,
+                    recipient_email: emailTo,
+                    buyer_name: form.buyerName,
+                    message: form.message || undefined,
+                  }).catch((e: any) => console.error("Gift email failed:", e.message));
+                }
               }
 
             } else {
-              // ── PHYSICAL PICKUP ──────────────────────────────────────────
+              // ── PHYSICAL PICKUP ──────────────────────────────────────────────
               const claimRes = await fetch("/api/claim-gift-card", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -139,31 +128,30 @@ export default function BuyGiftCard() {
                   paymentRef,
                 }),
               });
-              const claimText = await claimRes.text();
-              let claimData: any = {};
-              try { claimData = JSON.parse(claimText); } catch { claimData = { error: claimText }; }
-              console.log("Claim:", claimRes.status, JSON.stringify(claimData));
+              const claimData = await claimRes.json().catch(() => ({}));
+              console.log("Claim card:", claimRes.status, JSON.stringify(claimData));
 
-              if (form.buyerEmail && claimData.card?.code) {
+              // Send pickup receipt email (fire and forget)
+              if (form.buyerEmail && claimData.card) {
                 sendPickupReceiptEmail({
                   buyerName: form.buyerName,
                   buyerEmail: form.buyerEmail,
                   tier: selectedTier!,
                   amount: tierValue,
-                  cardCode: claimData.card.code,
+                  cardCode: claimData.card.code || "",
                   serialNumber: claimData.card.serial_number || undefined,
                   paymentRef: paymentRef || "",
-                }).catch((e: any) => console.error("Pickup email error:", e.message));
+                }).catch((e: any) => console.error("Pickup email failed:", e.message));
               }
             }
 
           } catch (e: any) {
-            console.error("Gift card error:", e.message);
+            console.error("Gift card onSuccess error:", e.message);
           }
           setStep("done");
           setLoading(false);
         },
-        onClose: () => {
+                onClose: () => {
           setLoading(false);
           toast.error("Payment was cancelled.");
         },

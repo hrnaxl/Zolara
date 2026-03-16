@@ -267,7 +267,6 @@ export async function markGiftCardSold(id: string) {
 
 export async function resendGiftCardEmail(id: string) {
   try {
-    // Fetch the card
     const { data: card, error: fetchErr } = await (supabaseAdmin as any)
       .from("gift_cards")
       .select("*")
@@ -276,24 +275,64 @@ export async function resendGiftCardEmail(id: string) {
     if (fetchErr) throw new Error("DB error: " + fetchErr.message);
     if (!card) throw new Error("Card not found");
 
-    // Get email address — try recipient first, then buyer
     const emailTo = card.recipient_email || card.buyer_email;
-    if (!emailTo) throw new Error("No email address on this card. Update the card with an email first.");
+    if (!emailTo) throw new Error("No email address on this card");
 
-    // Send directly via API route — no wrapper that can silently fail
+    // Build HTML inline — no dependency on email.ts
+    const amount = Number(card.amount || 0);
+    const code = card.code || "";
+    const tier = card.tier || "Gold";
+    const recipient = card.recipient_name || card.buyer_name || "there";
+    const buyer = card.buyer_name || "";
+    const msg = card.message || "";
+    const colors: Record<string,string> = { Bronze:"#CD7F32", Silver:"#9CA3AF", Gold:"#B8975A", Platinum:"#6B7280", Diamond:"#6366F1" };
+    const color = colors[tier] || "#B8975A";
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F5EFE6;font-family:Helvetica,Arial,sans-serif;">
+<div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <div style="background:#0F1E35;padding:32px 40px;text-align:center;">
+    <div style="color:#B8975A;font-size:28px;font-weight:300;letter-spacing:4px;">ZOLARA</div>
+    <div style="color:#9CA3AF;font-size:11px;letter-spacing:3px;margin-top:4px;">BEAUTY STUDIO</div>
+  </div>
+  <div style="padding:32px 40px;">
+    <div style="background:${color};border-radius:12px;padding:28px;margin-bottom:24px;text-align:center;">
+      <div style="color:rgba(255,255,255,0.8);font-size:10px;letter-spacing:3px;margin-bottom:12px;">ZOLARA BEAUTY STUDIO</div>
+      <div style="color:white;font-size:38px;font-weight:700;">GH&#8373; ${amount.toLocaleString()}</div>
+      <div style="color:rgba(255,255,255,0.8);font-size:11px;letter-spacing:4px;margin-top:8px;">${tier.toUpperCase()} GIFT CARD</div>
+    </div>
+    <p style="color:#1C1917;font-size:16px;margin:0 0 12px;">Hello ${recipient},</p>
+    <p style="color:#78716C;font-size:14px;line-height:1.7;margin:0 0 24px;">
+      You have received a Zolara Beauty Studio gift card worth <strong>GH&#8373; ${amount.toLocaleString()}</strong>${buyer ? " from <strong>" + buyer + "</strong>" : ""}.${msg ? "<br><br><em>&ldquo;" + msg + "&rdquo;</em>" : ""}
+    </p>
+    <div style="background:#FAFAF8;border:2px dashed #B8975A;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+      <div style="font-size:11px;color:#78716C;letter-spacing:2px;margin-bottom:10px;">YOUR GIFT CARD CODE</div>
+      <div style="font-size:28px;font-weight:700;color:#0F1E35;letter-spacing:5px;font-family:monospace;">${code}</div>
+      <div style="font-size:11px;color:#A8A29E;margin-top:10px;">Present this code at checkout</div>
+    </div>
+    <div style="text-align:center;margin-bottom:32px;">
+      <a href="https://zolarasalon.com/book" style="background:#B8975A;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;display:inline-block;">Book Your Appointment</a>
+    </div>
+  </div>
+  <div style="background:#F5EFE6;padding:20px 40px;text-align:center;">
+    <div style="color:#78716C;font-size:12px;">Sakasaka, Opposite CalBank, Tamale</div>
+    <div style="color:#A8A29E;font-size:11px;margin-top:4px;">0594365314 &middot; zolarasalon.com &middot; @zolarastudio</div>
+  </div>
+</div></body></html>`;
+
+    // Send via /api/send-email
     const res = await fetch("/api/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: emailTo,
-        subject: "Your Zolara " + (card.tier || "") + " Gift Card",
-        html: buildGiftCardEmailHtml(card),
+        subject: "Your Zolara " + tier + " Gift Card — GH₵" + amount,
+        html,
       }),
     });
     const resData = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(resData.error || "Resend API returned " + res.status);
+    if (!res.ok) throw new Error(resData.error || "Email API returned " + res.status);
 
-    // Mark card as active/paid after successful send
+    // Update card status after successful send
     await (supabaseAdmin as any)
       .from("gift_cards")
       .update({ status: "active", payment_status: "paid" })
@@ -305,6 +344,7 @@ export async function resendGiftCardEmail(id: string) {
     return { success: false, error };
   }
 }
+
 
 function buildGiftCardEmailHtml(card: any): string {
   const amount = Number(card.amount || 0);

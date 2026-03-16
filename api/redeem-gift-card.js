@@ -1,30 +1,32 @@
-const SUPABASE_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
-const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
-const H = { "apikey": SERVICE_KEY, "Authorization": `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
+// Zolara redeem-gift-card API — marks card redeemed at checkout
+const https = require("https");
 
-async function sbGet(path) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: H });
-  const t = await r.text();
-  try { return { data: JSON.parse(t), ok: r.ok, status: r.status }; }
-  catch { return { data: t, ok: r.ok, status: r.status }; }
-}
+const SB_URL = "vwvrhbyfytmqsywfdhvd.supabase.co";
+const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
 
-async function sbPatch(path, body) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    method: "PATCH",
-    headers: { ...H, "Prefer": "return=representation" },
-    body: JSON.stringify(body),
+function sbRequest(method, path, body) {
+  return new Promise((resolve, reject) => {
+    const data = body ? JSON.stringify(body) : null;
+    const headers = {
+      "apikey": SK, "Authorization": "Bearer " + SK,
+      "Content-Type": "application/json", "Prefer": "return=representation",
+    };
+    if (data) headers["Content-Length"] = Buffer.byteLength(data);
+    const req = https.request(
+      { hostname: SB_URL, path: "/rest/v1/" + path, method, headers },
+      (res) => {
+        let buf = "";
+        res.on("data", (c) => (buf += c));
+        res.on("end", () => {
+          try { resolve({ status: res.statusCode, data: JSON.parse(buf) }); }
+          catch { resolve({ status: res.statusCode, data: buf }); }
+        });
+      }
+    );
+    req.on("error", reject);
+    if (data) req.write(data);
+    req.end();
   });
-  const t = await r.text();
-  try { return { data: JSON.parse(t), ok: r.ok, status: r.status }; }
-  catch { return { data: t, ok: r.ok, status: r.status }; }
-}
-
-// Try a patch with given fields, return { ok, updated }
-async function tryPatch(cardId, fields) {
-  const r = await sbPatch(`gift_cards?id=eq.${cardId}`, fields);
-  const updated = Array.isArray(r.data) ? r.data : [];
-  return { ok: r.ok && updated.length > 0, updated, status: r.status, raw: r.data };
 }
 
 module.exports = async function handler(req, res) {
@@ -34,16 +36,16 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { cardId, appliedAmount, isDiamond, currentBalance, clientName } = req.body;
+  const { cardId, appliedAmount, isDiamond, currentBalance, clientName } = req.body || {};
   if (!cardId) return res.status(400).json({ error: "Missing cardId" });
 
   try {
-    // 1. Fetch card
-    const get = await sbGet(`gift_cards?id=eq.${cardId}&select=*`);
+    // Fetch the card fresh
+    const get = await sbRequest("GET", "gift_cards?id=eq." + cardId + "&select=*", null);
     const card = Array.isArray(get.data) ? get.data[0] : null;
     if (!card) return res.status(404).json({ error: "Card not found" });
 
-    // 2. Re-validate
+    // Re-validate — prevent double use
     if (card.tier !== "Diamond") {
       if (card.status === "redeemed") {
         return res.status(409).json({ error: "Card already redeemed", alreadyUsed: true });
@@ -54,48 +56,35 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // 3. Calculate
     const applied = Number(appliedAmount || 0);
-    const balance = Number(currentBalance ?? card.balance ?? 0);
+    const balance = Number(currentBalance != null ? currentBalance : card.balance || 0);
     const newBalance = Math.max(0, balance - applied);
     const diamond = card.tier === "Diamond";
     const fullyUsed = !diamond || newBalance <= 0;
-    const newStatus = fullyUsed ? "redeemed" : "active";
 
-    // 4. Try updating with all extended columns first
-    let result = await tryPatch(cardId, {
-      status: newStatus,
+    const patch = await sbRequest("PATCH", "gift_cards?id=eq." + cardId, {
+      status: fullyUsed ? "redeemed" : "active",
       balance: newBalance,
       redeemed_by_client: clientName || null,
       redeemed_at: fullyUsed ? new Date().toISOString() : null,
       redemption_count: (card.redemption_count || 0) + 1,
     });
 
-    // 5. If that failed — try without optional extended columns
-    if (!result.ok) {
-      console.warn("Full patch failed, trying without redeemed_by_client/redemption_count:", result.status, JSON.stringify(result.raw).slice(0,200));
-      result = await tryPatch(cardId, {
-        status: newStatus,
-        balance: newBalance,
-      });
+    console.log("Redeem patch:", patch.status, JSON.stringify(patch.data));
+
+    if (patch.status >= 400) {
+      return res.status(500).json({ error: "Failed to update card", detail: patch.data });
     }
 
-    // 6. Last resort — just update status and balance, nothing else
-    if (!result.ok) {
-      console.warn("Second patch failed, trying status+balance only:", result.status);
-      result = await tryPatch(cardId, { status: newStatus, balance: newBalance });
-    }
-
-    if (!result.ok) {
-      console.error("All patches failed:", result.status, JSON.stringify(result.raw).slice(0,300));
-      return res.status(500).json({ error: "Failed to update card after 3 attempts", detail: result.raw });
-    }
-
-    console.log("✓ Gift card marked:", cardId, "->", newStatus, "balance:", newBalance);
-    return res.status(200).json({ ok: true, newBalance, fullyUsed, newStatus, card: result.updated[0] });
+    return res.status(200).json({
+      ok: true,
+      newBalance,
+      fullyUsed,
+      newStatus: fullyUsed ? "redeemed" : "active",
+    });
 
   } catch (err) {
-    console.error("Redeem error:", err);
+    console.error("redeem-gift-card crash:", err.message);
     return res.status(500).json({ error: err.message });
   }
 };
