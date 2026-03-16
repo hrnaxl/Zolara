@@ -974,6 +974,26 @@ const AdminDashboard = () => {
         ))}
       </div>
 
+      {/* ── DAILY SUMMARY BUTTON (owner/admin only) ─────── */}
+      {(inactivityRole === "owner" || inactivityRole === "admin") && (
+        <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:14 }}>
+          <button onClick={async () => {
+            try {
+              const r = await fetch("/api/daily-summary", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54" },
+              });
+              const d = await r.json();
+              const { toast: t } = await import("sonner");
+              if (d.ok) t.success("Daily summary sent to " + d.sentTo);
+              else t.error(d.reason || d.error || "Failed to send");
+            } catch(e: any) { const { toast: t } = await import("sonner"); t.error(e.message); }
+          }} style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 16px", borderRadius:8, background:"rgba(200,169,126,0.12)", border:"1px solid rgba(200,169,126,0.3)", cursor:"pointer", fontSize:11, fontWeight:600, color:"#8B6914", fontFamily:"'Montserrat',sans-serif" }}>
+            📊 Send Daily Summary SMS
+          </button>
+        </div>
+      )}
+
       {/* ── GIFT CARD PANEL ──────────────────────────────── */}
       {(stats.giftCardLiability > 0 || stats.giftCardsSoldCount > 0 || stats.giftCardsRedeemedCount > 0) && (
         <div style={{ background:"linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
