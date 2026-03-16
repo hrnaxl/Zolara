@@ -10,11 +10,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/daily-summary",
-      "schedule": "0 21 * * *"
-    }
   ]
 }
