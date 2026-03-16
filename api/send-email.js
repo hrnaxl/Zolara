@@ -15,8 +15,9 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({ from: "Zolara Beauty Studio <onboarding@resend.dev>", to: Array.isArray(to) ? to : [to], subject, html }),
     });
     const data = await response.json();
-    if (!response.ok) return res.status(500).json({ error: data.message || "Send failed" });
-    return res.status(200).json({ ok: true });
+    console.log("Resend response:", response.status, JSON.stringify(data));
+    if (!response.ok) return res.status(500).json({ error: data.message || data.name || JSON.stringify(data) });
+    return res.status(200).json({ ok: true, id: data.id });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
