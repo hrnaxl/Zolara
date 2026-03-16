@@ -1203,8 +1203,8 @@ const AdminDashboard = () => {
                     </div>
                   ))}
                   {days.map((day, di) => (
-                    <>
-                      <div key={day} style={{ fontSize:9, color: TXT_SOFT, display:"flex", alignItems:"center", paddingRight:4 }}>{day}</div>
+                    <React.Fragment key={day}>
+                      <div style={{ fontSize:9, color: TXT_SOFT, display:"flex", alignItems:"center", paddingRight:4 }}>{day}</div>
                       {hours.map(h => {
                         const v = heatmapData[di + "_" + h] || 0;
                         const intensity = v / maxVal;
@@ -1216,7 +1216,7 @@ const AdminDashboard = () => {
                           }} />
                         );
                       })}
-                    </>
+                    </React.Fragment>
                   ))}
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:10 }}>
