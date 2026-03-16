@@ -83,11 +83,12 @@ export default function BuyGiftCard() {
             if (isEmail) {
               // ── DIGITAL: create new card + send gift email ─────────────
               const code = `ZGC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
+              // Insert card as active immediately — no pending_send limbo
               const { data: card, error } = await (sb as any)
                 .from("gift_cards")
                 .insert({
                   code, tier: selectedTier, amount: tierValue, balance: tierValue,
-                  status: "pending_send", payment_status: "pending_send", card_type: "digital",
+                  status: "active", payment_status: "paid", card_type: "digital",
                   buyer_name: form.buyerName || null, buyer_email: form.buyerEmail || null,
                   buyer_phone: form.buyerPhone || null,
                   recipient_name: form.recipientName || form.buyerName,
@@ -97,10 +98,6 @@ export default function BuyGiftCard() {
 
               if (error) console.error("Digital card insert failed:", error);
 
-              // Gift card purchase is NOT recorded as revenue — it's a liability until redeemed.
-              // Revenue is recorded per-service when the card is used at checkout.
-              // The outstanding balance is visible in the Gift Cards dashboard KPI.
-
               // Send gift card email
               if (!error && card?.id && form.recipientEmail) {
                 const emailSent = await sendGiftCardEmail({
@@ -109,9 +106,7 @@ export default function BuyGiftCard() {
                   recipient_email: form.recipientEmail, buyer_name: form.buyerName,
                   message: form.message || undefined,
                 });
-                if (emailSent && card?.id) {
-                  await (sb as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", card.id);
-                }
+                if (!emailSent) console.error("Gift card email failed to send for card:", card.id);
               }
 
               // Send purchase receipt to buyer
