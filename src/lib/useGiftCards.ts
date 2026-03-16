@@ -267,41 +267,22 @@ export async function markGiftCardSold(id: string) {
 
 export async function resendGiftCardEmail(id: string) {
   try {
-    // Fetch card using service role
-    const { data: card, error: fetchErr } = await (supabaseAdmin as any)
+    const { data: card, error } = await (supabaseAdmin as any)
       .from("gift_cards").select("*").eq("id", id).single();
-    if (fetchErr) throw new Error("DB fetch failed: " + fetchErr.message);
+    if (error) throw new Error("DB: " + error.message);
     if (!card) throw new Error("Card not found");
-
     const emailTo = card.recipient_email || card.buyer_email;
     if (!emailTo) throw new Error("No email address on this card");
-
-    // Use sendGiftCardEmail from email.ts
     const sent = await sendGiftCardEmail({
-      id: card.id,
-      tier: card.tier || "Gold",
-      amount: Number(card.amount || 0),
-      code: card.code || "",
-      recipient_name: card.recipient_name || card.buyer_name || undefined,
-      recipient_email: emailTo,
-      buyer_name: card.buyer_name || undefined,
-      message: card.message || undefined,
+      id: card.id, tier: card.tier || "Gold", amount: Number(card.amount || 0),
+      code: card.code || "", recipient_name: card.recipient_name || card.buyer_name || undefined,
+      recipient_email: emailTo, buyer_name: card.buyer_name || undefined, message: card.message || undefined,
     });
-
-    if (!sent) throw new Error("Email failed to send — check Vercel logs for Resend error");
-
-    // Mark card active/paid after successful send
-    const { error: updateErr } = await (supabaseAdmin as any)
-      .from("gift_cards")
-      .update({ status: "active", payment_status: "paid" })
-      .eq("id", id);
-    if (updateErr) console.error("Card status update after resend failed:", updateErr.message);
-
+    if (!sent) throw new Error("Email send failed — check Vercel logs");
+    await (supabaseAdmin as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", id);
     return { success: true, error: null };
   } catch (error: any) {
     console.error("resendGiftCardEmail:", error.message);
     return { success: false, error };
   }
 }
-
-

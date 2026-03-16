@@ -78,82 +78,30 @@ export default function BuyGiftCard() {
         onSuccess: async (paymentRef: string) => {
           try {
             const tierValue = getTierValue(selectedTier!);
-
             if (isEmail) {
-              // ── DIGITAL GIFT CARD ─────────────────────────────────────────
-              // Create card server-side (service role, bypasses RLS)
-              const createRes = await fetch("/api/create-gift-card", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  tier: selectedTier,
-                  buyerName: form.buyerName,
-                  buyerEmail: form.buyerEmail,
-                  buyerPhone: form.buyerPhone,
-                  recipientName: form.recipientName || form.buyerName,
-                  recipientEmail: form.recipientEmail || form.buyerEmail,
-                  message: form.message || null,
-                }),
+              // DIGITAL — create server-side then email
+              const r = await fetch("/api/create-gift-card", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tier: selectedTier, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
               });
-              const createData = await createRes.json().catch(() => ({}));
-              console.log("Create card:", createRes.status, JSON.stringify(createData));
-
-              if (createRes.ok && createData.card) {
-                // Send gift card email to recipient (fire and forget)
+              const d = await r.json().catch(() => ({}));
+              console.log("Create card:", r.status, JSON.stringify(d));
+              if (r.ok && d.card) {
                 const emailTo = form.recipientEmail || form.buyerEmail;
-                if (emailTo) {
-                  sendGiftCardEmail({
-                    id: createData.card.id,
-                    tier: selectedTier!,
-                    amount: tierValue,
-                    code: createData.card.code,
-                    recipient_name: form.recipientName || form.buyerName,
-                    recipient_email: emailTo,
-                    buyer_name: form.buyerName,
-                    message: form.message || undefined,
-                  }).then(sent => {
-                    if (!sent) console.error("Gift card email failed for card:", createData.card.id);
-                  }).catch(console.error);
-                }
-              } else {
-                console.error("Card creation failed:", createData.error || createData);
+                if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName || form.buyerName, recipient_email: emailTo, buyer_name: form.buyerName, message: form.message || undefined }).catch(console.error);
               }
-
             } else {
-              // ── PHYSICAL PICKUP ───────────────────────────────────────────
-              const claimRes = await fetch("/api/claim-gift-card", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  tier: selectedTier,
-                  buyerName: form.buyerName,
-                  buyerEmail: form.buyerEmail,
-                  buyerPhone: form.buyerPhone,
-                  paymentRef,
-                }),
+              // PHYSICAL — reserve a pre-printed card
+              const r = await fetch("/api/claim-gift-card", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tier: selectedTier, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, paymentRef }),
               });
-              const claimData = await claimRes.json().catch(() => ({}));
-              console.log("Claim card:", claimRes.status, JSON.stringify(claimData));
-
-              // Send pickup receipt email (fire and forget)
-              if (form.buyerEmail && claimData.card) {
-                sendPickupReceiptEmail({
-                  buyerName: form.buyerName,
-                  buyerEmail: form.buyerEmail,
-                  tier: selectedTier!,
-                  amount: tierValue,
-                  cardCode: claimData.card.code || "",
-                  serialNumber: claimData.card.serial_number || undefined,
-                  paymentRef: paymentRef || "",
-                }).catch(console.error);
-              }
+              const d = await r.json().catch(() => ({}));
+              console.log("Claim card:", r.status, JSON.stringify(d));
+              if (form.buyerEmail && d.card) sendPickupReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code || "", serialNumber: d.card.serial_number || undefined, paymentRef: paymentRef || "" }).catch(console.error);
             }
-
-          } catch (e: any) {
-            console.error("Gift card onSuccess error:", e.message);
-          }
-          setStep("done");
-          setLoading(false);
+          } catch (e: any) { console.error("GC onSuccess:", e.message); }
+          setStep("done"); setLoading(false);
         },
                 onClose: () => {
           setLoading(false);
