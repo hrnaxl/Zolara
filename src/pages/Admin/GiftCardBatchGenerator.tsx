@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
+import { GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
+import { generatePhysicalBatch } from "@/lib/giftCardAdmin";
 import { notifyGiftCardsUpdated, onGiftCardsUpdated } from "@/lib/giftCardEvents";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin } from "@/integrations/supabase/adminClient";

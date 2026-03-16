@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { validatePromoCode, incrementPromoUsage } from "@/lib/promoCodes";
+import { GIFT_CARD_TIERS } from "@/lib/giftCardEcommerce";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -297,17 +298,25 @@ const Checkout = () => {
       }
       if (card.status === "void") { toast.error("This gift card has been voided."); return; }
       if (card.status === "expired" || (card.expires_at && new Date(card.expires_at) < new Date())) { toast.error("This gift card has expired."); return; }
-      if (!["active","available","pending_send","redeemed"].includes(card.status || "")) {
+      if (!["active","available","redeemed"].includes(card.status || "")) {
         toast.error("Gift card is not active (status: " + card.status + ")."); return;
+      }
+      // Card must be paid — not just printed inventory
+      if (!["paid","pending_pickup"].includes(card.payment_status || "")) {
+        toast.error("This gift card has not been paid for yet."); return;
       }
       const value = Number(card.balance || card.amount || 0);
       if (value <= 0) { toast.error("This gift card has no remaining balance."); return; }
 
-      // Apply — capped at what's actually owed
+      // Apply grace buffer — Silver/Gold/Platinum/Diamond cards can slightly over-cover
+      const tierConfig = GIFT_CARD_TIERS[card.tier as keyof typeof GIFT_CARD_TIERS];
+      const grace = tierConfig?.grace ?? 0;
       const dep2 = depositPaid ? depositAmount : 0;
       const baseAfterDeposit = Math.max(0, originalPrice - dep2);
-      const applied = Math.min(value, baseAfterDeposit);
-      setRedeemedCard({ id: card.id, value: applied, tier: card.tier, fullBalance: value } as any);
+      // Card covers up to its balance + grace; but we only deduct actual balance from card
+      const coversUpTo = value + grace;
+      const applied = coversUpTo >= baseAfterDeposit ? baseAfterDeposit : value;
+      setRedeemedCard({ id: card.id, value: applied, tier: card.tier, fullBalance: value, grace } as any);
       toast.success(`Gift card applied — GHS ${applied.toFixed(2)} off`);
     } catch (err: any) {
       console.error("Redeem error:", err);
@@ -428,17 +437,20 @@ const Checkout = () => {
         });
         if (gcErr) console.error("Gift card sale record failed:", gcErr.message);
         // Mark card status via service-role API (fire and forget — booking already saved)
-        fetch("/api/redeem-gift-card", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cardId: redeemedCard.id,
-            appliedAmount: appliedGift,
-            isDiamond: (redeemedCard as any).tier === "Diamond",
-            currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
-            clientName: booking.client_name || null,
-          }),
-        }).catch(e => console.error("Gift card status update failed:", e));
+        try {
+          const gcRes = await fetch("/api/redeem-gift-card", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardId: redeemedCard.id,
+              appliedAmount: appliedGift,
+              isDiamond: (redeemedCard as any).tier === "Diamond",
+              currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
+              clientName: booking.client_name || null,
+            }),
+          });
+          if (!gcRes.ok) console.error("Gift card status update failed:", await gcRes.text());
+        } catch (gcApiErr) { console.error("Gift card API error:", gcApiErr); }
       }
 
       // ── STEP 5: Record product sales + deduct stock ─────────────────────────
