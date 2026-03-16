@@ -337,249 +337,206 @@ const Checkout = () => {
       const name = staff.find(s => s.id === selectedStaff)?.name || "This staff member";
       if (!window.confirm(`${name} is marked absent today. Proceed anyway?`)) return;
     }
+
     const giftValue = redeemedCard?.value ?? 0;
     const dep = depositPaid ? depositAmount : 0;
     const prodTotal = lineItems.filter(i => i.type === "product").reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-    // effectivePrice = full service + products value (stored in DB for records)
     const effectivePrice = originalPrice + prodTotal;
-    // amountToCharge = EXACTLY what the button shows (same formula as balanceDue in render)
-    const afterDep2 = Math.max(0, originalPrice - dep) + prodTotal;
-    const afterPr2 = Math.max(0, afterDep2 - promoDiscount);
-    const amountToCharge = Math.max(0, afterPr2 - giftValue);
-    const paymentAmount = amountToCharge;
+    const afterDep = Math.max(0, originalPrice - dep) + prodTotal;
+    const afterPromo = Math.max(0, afterDep - promoDiscount);
+    const amountToCharge = Math.max(0, afterPromo - giftValue);
+
+    const enabled = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
+    if (amountToCharge > 0 && (!paymentMethod || !enabled.includes(paymentMethod))) {
+      toast.error("Please select a payment method"); return;
+    }
+
     setProcessing(true);
-
     try {
-      const enabled = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
-      if (paymentAmount > 0 && (!paymentMethod || !enabled.includes(paymentMethod))) {
-        toast.error("Please select a payment method"); setProcessing(false); return;
-      }
+      // Sanitize UUIDs — Supabase rejects empty strings in UUID columns
+      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const safeStaff = uuidRe.test(selectedStaff) ? selectedStaff : null;
+      const safeClient = uuidRe.test(booking.clients?.id || "") ? booking.clients?.id
+        : uuidRe.test((booking as any).client_id || "") ? (booking as any).client_id : null;
 
-      await supabase.from("bookings").update({ staff_id: selectedStaff || null, notes: notes || booking.notes, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
+      // ── STEP 1: Mark booking completed ─────────────────────────────────────
+      const { error: bkErr } = await supabase.from("bookings").update({
+        status: "completed",
+        staff_id: safeStaff,
+        notes: notes || booking.notes,
+        price: effectivePrice,
+        ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}),
+      } as any).eq("id", booking.id);
+      if (bkErr) throw new Error("Failed to complete booking: " + bkErr.message);
 
-      if (paymentMethod !== "bank_transfer") {
-        await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff || null, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
-        // amount saved = what client actually paid (balance after deposit + discounts)
-        // amount = actual cash received (balance after deposit + promo + gift deductions)
-        // original_price = full service price, discount_amount = promo discount given
-        const saleNotes = [
-          notes || "Payment at checkout",
-          dep > 0 ? ("Deposit GHS " + dep + " included") : null,
-          promoDiscount > 0 ? ("Promo " + (appliedPromo?.code || "") + " saved GHS " + promoDiscount) : null,
-          giftValue > 0 ? ("Gift card GHS " + giftValue + " applied") : null,
-        ].filter(Boolean).join(" | ");
-
-        // Sanitize all UUID fields — empty string causes "pattern" error in Supabase
-        const clientIdForSale = (booking.clients?.id || (booking as any).client_id || null) || null;
-        const staffIdForSale = (selectedStaff && selectedStaff.length > 10) ? selectedStaff : null;
-        const { error: saleErr } = await (supabase as any).from("sales").insert({
-          booking_id: booking.id,
-          amount: amountToCharge,
-          payment_method: paymentMethod,
-          status: "completed",
-          client_name: booking.client_name || null,
-          service_name: booking.service_name || null,
-          client_id: clientIdForSale,
-          staff_id: staffIdForSale,
-          notes: saleNotes,
-          promo_code: appliedPromo?.code || null,
-          promo_discount: promoDiscount > 0 ? promoDiscount : null,
-          payment_date: new Date().toISOString(),
-        });
-        if (saleErr) { console.error("SALE INSERT FAILED:", saleErr, {clientIdForSale, staffIdForSale, paymentMethod, amountToCharge}); throw new Error("Sale record failed: " + saleErr.message); }
-
-        // Record gift card redemption AFTER checkout confirmed — only now update card status
-        if (redeemedCard && Number(redeemedCard.value) > 0) {
-          const appliedGift = Math.min(Number(redeemedCard.value), originalPrice);
-          if (appliedGift > 0) {
-            // Record in sales
-            try {
-              await (supabase as any).from("sales").insert([{
-                booking_id: booking.id, amount: appliedGift, payment_method: "gift_card",
-                status: "completed", client_name: booking.client_name || null,
-                service_name: booking.service_name || null,
-                client_id: clientIdForSale, staff_id: staffIdForSale,
-                notes: "Gift card redemption at checkout", payment_date: new Date().toISOString()
-              }]);
-            } catch (gcSaleErr) { console.error("Gift card sale insert failed:", gcSaleErr); }
-            // Mark card redeemed via service-role API
-            const isDiamond = (redeemedCard as any).tier === "Diamond";
-            const currentBalance = (redeemedCard as any).fullBalance ?? appliedGift;
-            fetch("/api/redeem-gift-card", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ cardId: redeemedCard.id, appliedAmount: appliedGift, isDiamond, currentBalance, clientName: booking.client_name || null }),
-            }).catch(console.error);
-          }
-        }
-
-        // If a deposit was previously collected, record it as revenue now (checkout = confirmed revenue)
-        if (dep > 0) {
-          try {
-            await (supabase as any).from("sales").insert({
-              booking_id: booking.id,
-              amount: dep,
-              payment_method: "mobile_money",
-              status: "completed",
-              client_name: booking.client_name || null,
-              service_name: booking.service_name || null,
-              notes: "Deposit collected - confirmed at checkout",
-              payment_date: new Date().toISOString(),
-            });
-          } catch (depErr) { console.error("Deposit revenue record failed:", depErr); }
-        }
-
-        // Write checkout session + line items
-        try {
-          const clientIdForSess = (booking.clients?.id || (booking as any).client_id || null) || null;
-          const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: clientIdForSess, staff_id: staffIdForSale, booking_id: booking.id, total_amount: effectivePrice, payment_method: paymentMethod, status: "completed" }]).select("id").single();
-          if (sess?.id && lineItems.length > 0) {
-            // item_id must be a valid UUID — use null if not a proper UUID
-            const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: sess.id, booking_id: booking.id, item_type: item.type, item_id: uuidRe.test(item.id) ? item.id : null, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
-          }
-          // Deduct product stock + record product sales
-          for (const pi of lineItems.filter(i => i.type === "product")) {
-            const prod = products.find(p => p.id === pi.id);
-            if (prod) {
-              await (supabase as any).from("products").update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) }).eq("id", pi.id);
-              // Record product sale in sales table
-              await (supabase as any).from("sales").insert({
-                booking_id: booking.id,
-                amount: pi.unitPrice * pi.quantity,
-                payment_method: paymentMethod,
-                status: "completed",
-                client_name: booking.client_name || null,
-                service_name: pi.name + (pi.quantity > 1 ? " x" + pi.quantity : ""),
-                client_id: (booking as any).clients?.id || null,
-                staff_id: selectedStaff || null,
-                notes: "Product sale at checkout",
-                payment_date: new Date().toISOString(),
-              });
-            }
-          }
-          // Log subscription usage
-          if (clientSubscription) {
-            for (const ci of lineItems.filter(i => i.coveredBySubscription)) {
-              await (supabase as any).from("subscription_usage").insert({ client_subscription_id: clientSubscription.id, client_id: booking.clients?.id || null, service_id: ci.type === "service" ? ci.id : null, booking_id: booking.id });
-            }
-          }
-        } catch (itemErr) { console.error("Line items error:", itemErr); }
-
-        // Auto-create/find client + assign loyalty points (always runs before showing completion)
-        try {
-          const clientPhone = (booking as any).client_phone || booking.clients?.phone;
-          const clientName = (booking as any).client_name || booking.clients?.name || "Guest";
-          const clientEmail = (booking as any).client_email || booking.clients?.email || null;
-          let clientId = booking.clients?.id || (booking as any).client_id || null;
-
-          // Always attempt to find or create the client record
-          const resolvedId = await findOrCreateClient({ name: clientName, phone: clientPhone, email: clientEmail });
-          if (resolvedId) {
-            clientId = resolvedId;
-            await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id);
-          }
-
-          if (clientId) {
-            // Loyalty: full amount including deposit (deposit was also real spend)
-            const spendable = (amountToCharge > 0 ? amountToCharge : 0) + (dep > 0 ? dep : 0);
-            const spendableActual = spendable > 0 ? spendable : (lineItems.reduce((s, i) => s + (i.coveredBySubscription ? 0 : i.unitPrice * i.quantity), 0) || Number(originalPrice) || 0);
-            const { data: before } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
-            const prevPts = Number(before?.loyalty_points || 0);
-            try {
-              await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendableActual });
-            } catch (rpcErr: any) {
-              console.warn("RPC update_client_after_checkout failed, using fallback:", rpcErr.message);
-              // Fallback: manual loyalty points update
-              const earnRate = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
-              const pointsEarned = Math.floor(spendableActual / earnRate);
-              if (pointsEarned > 0) {
-                await (supabase as any).from("clients").update({
-                  loyalty_points: prevPts + pointsEarned,
-                  total_visits: (supabase as any).rpc ? undefined : undefined,
-                  total_spent: undefined,
-                }).eq("id", clientId);
-              }
-            }
-            const { data: after } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
-            const finalPts = Number(after?.loyalty_points || 0);
-            if (clientPhone) {
-              const earned = Math.max(0, finalPts - prevPts);
-              await sendSMS(clientPhone, SMS.checkoutComplete(clientName, booking.service_name || "service", amountToCharge.toFixed(0), earned, finalPts, booking.booking_ref || booking.id.slice(0, 8).toUpperCase()));
-              const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
-              if (Math.floor(finalPts / stampsForReward) > Math.floor(prevPts / stampsForReward) && finalPts >= stampsForReward) {
-                setTimeout(() => sendSMS(clientPhone, SMS.loyaltyReward(clientName, finalPts)).catch(console.error), 3000);
-              }
-              // Send feedback request 8 seconds later (non-blocking)
-              setTimeout(() => sendSMS(clientPhone, SMS.feedbackRequest(clientName, booking.service_name || "service")).catch(console.error), 8000);
-            }
-          }
-        } catch (loyErr) { console.error("Client/loyalty error:", loyErr); }
-
-        // Increment promo code usage count
-        if (appliedPromo?.id) { incrementPromoUsage(appliedPromo.id).catch(console.error); }
-
-        setFinalAmountCharged(amountToCharge);
-        setCompleted(true);
-        toast.success("Checkout completed!");
-        return;
-      }
-
-      // Bank transfer — mark booking completed, record sale, show completed screen
-      await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff || null, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
-      const bankNotes = [
-        notes || "Bank transfer payment",
-        dep > 0 ? ("Deposit GHS " + dep + " included") : null,
-        promoDiscount > 0 ? ("Promo " + (appliedPromo?.code || "") + " saved GHS " + promoDiscount) : null,
+      // ── STEP 2: Record main service sale ───────────────────────────────────
+      const saleNotes = [
+        notes || "Payment at checkout",
+        dep > 0 ? `Deposit GHS ${dep} included` : null,
+        promoDiscount > 0 ? `Promo ${appliedPromo?.code || ""} saved GHS ${promoDiscount}` : null,
+        giftValue > 0 ? `Gift card GHS ${giftValue} applied` : null,
       ].filter(Boolean).join(" | ");
 
-      const clientIdForBank = (booking.clients?.id || (booking as any).client_id || null) || null;
-      const staffIdForBank = (selectedStaff && selectedStaff.length > 10) ? selectedStaff : null;
-      const { error: bankSaleErr } = await (supabase as any).from("sales").insert({
+      const method = paymentMethod || "cash";
+      const { error: saleErr } = await (supabase as any).from("sales").insert({
         booking_id: booking.id,
         amount: amountToCharge,
-        payment_method: "bank_transfer",
+        payment_method: method,
         status: "completed",
         client_name: booking.client_name || null,
         service_name: booking.service_name || null,
-        client_id: clientIdForBank,
-        staff_id: staffIdForBank,
-        notes: bankNotes,
+        client_id: safeClient,
+        staff_id: safeStaff,
+        notes: saleNotes,
         promo_code: appliedPromo?.code || null,
         promo_discount: promoDiscount > 0 ? promoDiscount : null,
         payment_date: new Date().toISOString(),
       });
-      if (bankSaleErr) { console.error("BANK SALE FAILED:", bankSaleErr, {clientIdForBank, staffIdForBank}); throw new Error("Bank sale record failed: " + bankSaleErr.message); }
+      if (saleErr) throw new Error("Sale record failed: " + saleErr.message);
 
-      // Record deposit as confirmed revenue at checkout (bank transfer path)
+      // ── STEP 3: Record deposit as confirmed revenue (only now — checkout complete) ──
       if (dep > 0) {
-        try {
-          await (supabase as any).from("sales").insert({
-            booking_id: booking.id, amount: dep,
-            payment_method: "mobile_money", status: "completed",
-            client_name: booking.client_name || null, service_name: booking.service_name || null,
-            notes: "Deposit collected - confirmed at checkout",
-            payment_date: new Date().toISOString(),
-          });
-        } catch (depErr) { console.error("Deposit revenue record failed:", depErr); }
+        const { error: depErr } = await (supabase as any).from("sales").insert({
+          booking_id: booking.id,
+          amount: dep,
+          payment_method: "mobile_money",
+          status: "completed",
+          client_name: booking.client_name || null,
+          service_name: booking.service_name || null,
+          client_id: safeClient,
+          staff_id: safeStaff,
+          notes: "Deposit — confirmed at checkout",
+          payment_date: new Date().toISOString(),
+        });
+        if (depErr) console.error("Deposit sale record failed:", depErr.message);
       }
 
-      // Write checkout session + line items for bank transfer too
-      try {
-        const { data: bSess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff || null, booking_id: booking.id, total_amount: effectivePrice, payment_method: "bank_transfer", status: "completed" }]).select("id").single();
-        if (bSess?.id && lineItems.length > 0) {
-          await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: bSess.id, booking_id: booking.id, item_type: item.type, item_id: item.id, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
+      // ── STEP 4: Record gift card redemption (only after booking confirmed) ─
+      if (redeemedCard && giftValue > 0) {
+        const appliedGift = Math.min(giftValue, originalPrice);
+        const { error: gcErr } = await (supabase as any).from("sales").insert({
+          booking_id: booking.id,
+          amount: appliedGift,
+          payment_method: "gift_card",
+          status: "completed",
+          client_name: booking.client_name || null,
+          service_name: booking.service_name || null,
+          client_id: safeClient,
+          staff_id: safeStaff,
+          notes: "Gift card redemption",
+          payment_date: new Date().toISOString(),
+        });
+        if (gcErr) console.error("Gift card sale record failed:", gcErr.message);
+        // Mark card status via service-role API (fire and forget — booking already saved)
+        fetch("/api/redeem-gift-card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: redeemedCard.id,
+            appliedAmount: appliedGift,
+            isDiamond: (redeemedCard as any).tier === "Diamond",
+            currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
+            clientName: booking.client_name || null,
+          }),
+        }).catch(e => console.error("Gift card status update failed:", e));
+      }
+
+      // ── STEP 5: Record product sales + deduct stock ─────────────────────────
+      for (const pi of lineItems.filter(i => i.type === "product")) {
+        const prod = products.find(p => p.id === pi.id);
+        if (prod) {
+          await (supabase as any).from("products").update({
+            stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity),
+          }).eq("id", pi.id);
+          await (supabase as any).from("sales").insert({
+            booking_id: booking.id,
+            amount: pi.unitPrice * pi.quantity,
+            payment_method: method,
+            status: "completed",
+            client_name: booking.client_name || null,
+            service_name: pi.name + (pi.quantity > 1 ? " x" + pi.quantity : ""),
+            client_id: safeClient,
+            staff_id: safeStaff,
+            notes: "Product sale at checkout",
+            payment_date: new Date().toISOString(),
+          });
         }
-        for (const pi of lineItems.filter(i => i.type === "product")) {
-          const prod = products.find(p => p.id === pi.id);
-          if (prod) {
-            await (supabase as any).from("products").update({ stock_quantity: Math.max(0, (prod.stock_quantity || 0) - pi.quantity) }).eq("id", pi.id);
-            await (supabase as any).from("sales").insert({ booking_id: booking.id, amount: pi.unitPrice * pi.quantity, payment_method: "bank_transfer", status: "completed", client_name: booking.client_name || null, service_name: pi.name + (pi.quantity > 1 ? " x" + pi.quantity : ""), client_id: (booking as any).clients?.id || null, staff_id: selectedStaff || null, notes: "Product sale at checkout", payment_date: new Date().toISOString() });
+      }
+
+      // ── STEP 6: Checkout session + line items ───────────────────────────────
+      try {
+        const { data: sess } = await (supabase as any).from("checkout_sessions")
+          .insert([{ client_id: safeClient, staff_id: safeStaff, booking_id: booking.id, total_amount: effectivePrice, payment_method: method, status: "completed" }])
+          .select("id").single();
+        if (sess?.id && lineItems.length > 0) {
+          await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({
+            checkout_session_id: sess.id,
+            booking_id: booking.id,
+            item_type: item.type,
+            item_id: uuidRe.test(item.id) ? item.id : null,
+            name: item.name,
+            quantity: item.quantity,
+            price_at_time: item.unitPrice,
+            subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity,
+          })));
+        }
+      } catch (sessErr) { console.error("Checkout session error:", sessErr); }
+
+      // ── STEP 7: Find/create client + loyalty points ─────────────────────────
+      try {
+        const clientPhone = (booking as any).client_phone || booking.clients?.phone;
+        const clientName = (booking as any).client_name || booking.clients?.name || "Guest";
+        const clientEmail = (booking as any).client_email || booking.clients?.email || null;
+        let clientId = safeClient;
+        const resolvedId = await findOrCreateClient({ name: clientName, phone: clientPhone, email: clientEmail });
+        if (resolvedId) {
+          clientId = resolvedId;
+          await supabase.from("bookings").update({ client_id: clientId } as any).eq("id", booking.id);
+        }
+        if (clientId) {
+          const spendable = amountToCharge + dep;
+          const spendableActual = spendable > 0 ? spendable : effectivePrice;
+          const { data: before } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
+          const prevPts = Number(before?.loyalty_points || 0);
+          try {
+            await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendableActual });
+          } catch {
+            const earnRate = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
+            const pts = Math.floor(spendableActual / earnRate);
+            if (pts > 0) await (supabase as any).from("clients").update({ loyalty_points: prevPts + pts }).eq("id", clientId);
+          }
+          const { data: after } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
+          const finalPts = Number(after?.loyalty_points || 0);
+          if (clientPhone) {
+            const earned = Math.max(0, finalPts - prevPts);
+            await sendSMS(clientPhone, SMS.checkoutComplete(clientName, booking.service_name || "service", amountToCharge.toFixed(0), earned, finalPts, booking.booking_ref || booking.id.slice(0, 8).toUpperCase())).catch(console.error);
+            const stampsForReward = Number((settings as any)?.loyalty_stamps_for_reward ?? 20);
+            if (Math.floor(finalPts / stampsForReward) > Math.floor(prevPts / stampsForReward) && finalPts >= stampsForReward) {
+              setTimeout(() => sendSMS(clientPhone, SMS.loyaltyReward(clientName, finalPts)).catch(console.error), 3000);
+            }
+            setTimeout(() => sendSMS(clientPhone, SMS.feedbackRequest(clientName, booking.service_name || "service")).catch(console.error), 8000);
           }
         }
-      } catch (itemErr) { console.error("Bank transfer items error:", itemErr); }
+      } catch (loyErr) { console.error("Loyalty error:", loyErr); }
+
+      // ── STEP 8: Promo usage ─────────────────────────────────────────────────
+      if (appliedPromo?.id) incrementPromoUsage(appliedPromo.id).catch(console.error);
+
+      // ── STEP 9: Subscription usage ──────────────────────────────────────────
+      if (clientSubscription) {
+        for (const ci of lineItems.filter(i => i.coveredBySubscription)) {
+          await (supabase as any).from("subscription_usage").insert({
+            client_subscription_id: clientSubscription.id,
+            client_id: safeClient,
+            service_id: uuidRe.test(ci.id) ? ci.id : null,
+            booking_id: booking.id,
+          }).catch(console.error);
+        }
+      }
+
       setFinalAmountCharged(amountToCharge);
       setCompleted(true);
-      toast.success("Bank transfer checkout completed!");
+      toast.success("Checkout completed!");
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast.error(error.message || "Failed to complete checkout");
