@@ -690,96 +690,166 @@ export default function LandingPage() {
 
       {/* VISIT US */}
       {/* ── LOYALTY SECTION ─────────────────────────────── */}
-      <section id="loyalty" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: dark, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", right: "-20px", top: "50%", transform: "translateY(-50%)", fontSize: "420px", color: "rgba(200,169,126,0.04)", fontWeight: 700, lineHeight: 1, pointerEvents: "none", userSelect: "none" }}>★</div>
+      <section id="loyalty" style={{ background: "#0A0705", position: "relative", overflow: "hidden" }}>
         <style>{`
-          .loyalty-step-num { width:36px; height:36px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,#8B6914,#C8A97E); display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800; color:white; }
-          .stamp { aspect-ratio:1; border-radius:8px; border:1.5px solid rgba(200,169,126,0.25); display:flex; align-items:center; justify-content:center; font-size:16px; }
-          .stamp.filled { background:linear-gradient(135deg,#8B6914,#C8A97E); border-color:#C8A97E; box-shadow:0 4px 12px rgba(200,169,126,0.3); }
-          .stamp.empty { background:rgba(255,255,255,0.03); }
-          .stamp.reward { background:linear-gradient(135deg,#4A90D9,#2563EB); border-color:#60A5FA; }
-          .loyalty-tier { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:14px 10px; text-align:center; transition:all 0.2s; }
-          .loyalty-tier:hover { background:rgba(200,169,126,0.06); border-color:rgba(200,169,126,0.2); }
+          @keyframes stampPop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+          @keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:1} }
+          .lyl-stamp { aspect-ratio:1; border-radius:6px; display:flex; align-items:center; justify-content:center; transition:transform 0.2s; }
+          .lyl-stamp:hover { transform:scale(1.1); }
+          .lyl-stamp.filled { background:linear-gradient(135deg,#6B4E0A,#C8A97E); box-shadow:0 2px 8px rgba(200,169,126,0.4); }
+          .lyl-stamp.empty { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); }
+          .lyl-stamp.reward { background:linear-gradient(135deg,#1a3a5c,#4A90D9); box-shadow:0 2px 8px rgba(74,144,217,0.4); }
+          .lyl-tier-card { border:1px solid rgba(200,169,126,0.1); border-radius:2px; padding:20px 14px; text-align:center; transition:all 0.3s; position:relative; overflow:hidden; }
+          .lyl-tier-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(200,169,126,0.0) 0%,rgba(200,169,126,0.04) 100%); opacity:0; transition:opacity 0.3s; }
+          .lyl-tier-card:hover { border-color:rgba(200,169,126,0.35); transform:translateY(-3px); }
+          .lyl-tier-card:hover::before { opacity:1; }
+          .lyl-rule { border:none; border-top:1px solid rgba(200,169,126,0.12); margin:0; }
         `}</style>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center" }} className="landing-experience-grid">
-          {/* Left */}
-          <div>
-            <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>LOYALTY REWARDS</div>
-            <h2 style={{ fontSize: "clamp(36px,5vw,56px)", fontWeight: 500, color: "#F5EFE6", lineHeight: 1.1, marginBottom: "20px" }}>Every Visit <em>Earns.</em><br />Every Stamp <em>Counts.</em></h2>
-            <p className="sans" style={{ fontSize: "13.5px", color: "rgba(245,239,230,0.65)", lineHeight: 1.85, marginBottom: "36px", fontWeight: 400 }}>
-              At Zolara, your loyalty is rewarded every single time. Spend, earn stamps, and unlock exclusive discounts — automatically.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 36 }}>
-              {[
-                { n:"1", title:"Spend & Earn", body:"Every GHS 100 you spend earns you 1 stamp. No sign-up required — it's automatic from your first visit." },
-                { n:"2", title:"Collect 20 Stamps", body:"Once you hit 20 stamps, a GHS 50 reward is unlocked and ready to use on your next visit." },
-                { n:"3", title:"Birthday Bonus 🎂", body:"In your birthday month, every stamp you earn is doubled. Our gift to you." },
-              ].map(step => (
-                <div key={step.n} style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
-                  <div className="loyalty-step-num">{step.n}</div>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 600, color: "#F5EFE6", marginBottom: 4 }}>{step.title}</div>
-                    <div className="sans" style={{ fontSize: 12, color: "rgba(245,239,230,0.55)", lineHeight: 1.7 }}>{step.body}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Link to="/book" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", color: "#fff", background: "linear-gradient(135deg,#8B6914,#C8A97E)", padding: "16px 40px", borderRadius: "1px", boxShadow: "0 8px 32px rgba(139,105,20,0.38)" }}>
-              START EARNING TODAY
-            </Link>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 28 }}>
-              {[{icon:"🥉",name:"BRONZE",pts:"0 – 499"},{icon:"🥈",name:"SILVER",pts:"500+"},{icon:"🥇",name:"GOLD",pts:"1,500+"},{icon:"💎",name:"DIAMOND",pts:"3,000+"}].map(t => (
-                <div key={t.name} className="loyalty-tier">
-                  <div style={{ fontSize: 20, marginBottom: 6 }}>{t.icon}</div>
-                  <div className="sans" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(245,239,230,0.5)", marginBottom: 4 }}>{t.name}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: gold }}>{t.pts}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Right — stamp card */}
-          <div>
-            <div style={{ background: "linear-gradient(160deg,#2C2216,#1C160E)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: 16, padding: "32px 28px", boxShadow: "0 32px 64px rgba(0,0,0,0.5)", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 70% 20%, rgba(200,169,126,0.08) 0%, transparent 60%)", pointerEvents: "none" }} />
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", flexShrink: 0 }}>
-                  <img src="https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg" alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: "#F5EFE6", lineHeight: 1.1 }}>Zolara Loyalty</div>
-                  <div className="sans" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: gold }}>BEAUTY REWARDS CARD</div>
-                </div>
+
+        {/* Top rule */}
+        <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(200,169,126,0.3),transparent)" }} />
+
+        {/* Giant editorial header */}
+        <div style={{ padding: "clamp(48px,6vw,80px) clamp(24px,6vw,100px) 0", position: "relative", zIndex: 1 }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 20, marginBottom: "clamp(40px,5vw,64px)" }}>
+              <div>
+                <div className="sans" style={{ fontSize: 10, letterSpacing: "0.32em", color: "rgba(200,169,126,0.6)", fontWeight: 700, marginBottom: 16 }}>LOYALTY PROGRAMME</div>
+                <h2 style={{ fontSize: "clamp(48px,7vw,96px)", fontWeight: 400, color: "#F5EFE6", lineHeight: 0.95, margin: 0, letterSpacing: "-0.02em" }}>
+                  Spend.<br /><em style={{ color: gold }}>Be Rewarded.</em>
+                </h2>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
-                {Array.from({length:20}, (_,i) => (
-                  <div key={i} className={"stamp" + (i < 15 ? " filled" : i === 19 ? " reward" : " empty")} style={{ fontSize: i === 19 ? 14 : 16 }}>
-                    {i < 15 ? "✦" : i === 19 ? "🎁" : ""}
-                  </div>
-                ))}
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(48px,6vw,80px)", fontWeight: 300, color: "rgba(200,169,126,0.15)", lineHeight: 1, letterSpacing: "-0.03em" }}>20</div>
+                <div className="sans" style={{ fontSize: 9, letterSpacing: "0.2em", color: "rgba(200,169,126,0.4)", marginTop: -4 }}>STAMPS = GHS 50 OFF</div>
               </div>
-              <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, marginBottom: 12, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: "75%", background: "linear-gradient(90deg,#8B6914,#C8A97E)", borderRadius: 2 }} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span className="sans" style={{ fontSize: 10, color: "rgba(245,239,230,0.45)" }}>15 of 20 stamps · 5 more for reward</span>
-                <span className="sans" style={{ fontSize: 10, fontWeight: 700, color: gold, background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.3)", borderRadius: 4, padding: "4px 10px" }}>GHS 50 REWARD</span>
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 28 }}>
-              {[
-                { icon:"💳", text:"GHS 50 off every 20 stamps — redeemed at checkout" },
-                { icon:"🎂", text:"Double stamps in your birthday month automatically" },
-                { icon:"✦",  text:"4 tiers — Bronze to Diamond as you spend more" },
-                { icon:"📱", text:"SMS alerts when you earn stamps and unlock rewards" },
-              ].map((p,i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{p.icon}</div>
-                  <div className="sans" style={{ fontSize: 12, color: "rgba(245,239,230,0.6)", lineHeight: 1.5 }}>{p.text}</div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
+
+        <hr className="lyl-rule" />
+
+        {/* Main content grid */}
+        <div style={{ padding: "clamp(48px,6vw,80px) clamp(24px,6vw,100px)", position: "relative", zIndex: 1 }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "clamp(40px,6vw,80px)", alignItems: "start" }} className="landing-experience-grid">
+
+            {/* Left — how it works */}
+            <div>
+              <p className="sans" style={{ fontSize: 13, color: "rgba(245,239,230,0.5)", lineHeight: 1.9, marginBottom: 48, maxWidth: 440, fontWeight: 400 }}>
+                Every visit counts. Every GHS 100 spent earns a stamp. Reach 20 and unlock a GHS 50 reward — automatically applied at checkout.
+              </p>
+
+              {/* Steps — editorial list style */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {[
+                  { num: "01", title: "Spend GHS 100", detail: "1 stamp added to your card. No app, no sign-up." },
+                  { num: "02", title: "Collect 20 Stamps", detail: "GHS 50 reward unlocked. Redeemable on any service." },
+                  { num: "03", title: "Birthday Month", detail: "Every stamp doubles automatically. Our gift to you." },
+                ].map((s, i, arr) => (
+                  <div key={s.num}>
+                    <div style={{ display: "grid", gridTemplateColumns: "52px 1fr", gap: 20, padding: "24px 0", alignItems: "start" }}>
+                      <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 11, fontWeight: 300, color: "rgba(200,169,126,0.35)", letterSpacing: "0.2em", paddingTop: 4 }}>{s.num}</div>
+                      <div>
+                        <div style={{ fontSize: "clamp(18px,2vw,22px)", fontWeight: 500, color: "#F5EFE6", marginBottom: 6 }}>{s.title}</div>
+                        <div className="sans" style={{ fontSize: 12, color: "rgba(245,239,230,0.45)", lineHeight: 1.7 }}>{s.detail}</div>
+                      </div>
+                    </div>
+                    {i < arr.length - 1 && <hr className="lyl-rule" />}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 40 }}>
+                <Link to="/book" style={{
+                  display: "inline-flex", alignItems: "center", gap: 10,
+                  fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 700,
+                  letterSpacing: "0.2em", color: "#1C160E", textDecoration: "none",
+                  background: "linear-gradient(135deg,#C8A97E,#8B6914)",
+                  padding: "16px 36px", borderRadius: 1,
+                }}>
+                  START EARNING TODAY
+                  <span style={{ fontSize: 14 }}>→</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right — stamp card + tiers */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Luxury stamp card */}
+              <div style={{
+                background: "linear-gradient(145deg,#1A1008 0%,#0D0A05 60%,#1A1008 100%)",
+                border: "1px solid rgba(200,169,126,0.2)",
+                borderRadius: 3, padding: "28px 24px",
+                boxShadow: "0 40px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(200,169,126,0.08)",
+                position: "relative", overflow: "hidden",
+              }}>
+                {/* Subtle light */}
+                <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle,rgba(200,169,126,0.07) 0%,transparent 70%)", pointerEvents: "none" }} />
+
+                {/* Card header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 300, color: "rgba(200,169,126,0.5)", letterSpacing: "0.3em", marginBottom: 2 }}>ZOLARA</div>
+                    <div className="sans" style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.25em", color: "rgba(200,169,126,0.35)" }}>BEAUTY REWARDS</div>
+                  </div>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", border: "1.5px solid rgba(200,169,126,0.4)", overflow: "hidden" }}>
+                    <img src="https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg" alt="Z" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                </div>
+
+                {/* Stamps — 4 rows of 5 */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 20 }}>
+                  {Array.from({length:20}, (_,i) => (
+                    <div key={i} className={"lyl-stamp" + (i<15?" filled":i===19?" reward":" empty")} style={{ height: 36, fontSize: i===19?12:14, color: i<15?"rgba(255,255,255,0.9)":i===19?"#90CAF9":"transparent" }}>
+                      {i<15?"✦":i===19?"✦":""}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Progress */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span className="sans" style={{ fontSize: 9, color: "rgba(245,239,230,0.3)", letterSpacing: "0.1em" }}>PROGRESS</span>
+                    <span className="sans" style={{ fontSize: 9, color: "rgba(200,169,126,0.5)", letterSpacing: "0.1em" }}>15 / 20</span>
+                  </div>
+                  <div style={{ height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 1, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: "75%", background: "linear-gradient(90deg,#6B4E0A,#C8A97E)", borderRadius: 1, animation: "shimmer 3s infinite" }} />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span className="sans" style={{ fontSize: 9, color: "rgba(245,239,230,0.25)", letterSpacing: "0.06em" }}>5 stamps until next reward</span>
+                  <div style={{ background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: 1, padding: "5px 12px" }}>
+                    <span className="sans" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: gold }}>GHS 50 REWARD</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tiers — horizontal strip */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                {[
+                  { icon:"◈", name:"BRONZE", col:"#CD7F32" },
+                  { icon:"◇", name:"SILVER", col:"#9CA3AF" },
+                  { icon:"✦", name:"GOLD",   col:"#C8A97E" },
+                  { icon:"◉", name:"DIAMOND",col:"#818CF8" },
+                ].map(t => (
+                  <div key={t.name} className="lyl-tier-card">
+                    <div style={{ fontSize: 18, color: t.col, marginBottom: 8 }}>{t.icon}</div>
+                    <div className="sans" style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.18em", color: "rgba(245,239,230,0.35)" }}>{t.name}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Single stat callout */}
+              <div style={{ border: "1px solid rgba(200,169,126,0.12)", borderRadius: 2, padding: "18px 20px", display: "flex", gap: 16, alignItems: "center" }}>
+                <div style={{ fontSize: "clamp(28px,3vw,36px)", fontFamily: "'Cormorant Garamond',serif", fontWeight: 300, color: gold, lineHeight: 1 }}>2×</div>
+                <div className="sans" style={{ fontSize: 11, color: "rgba(245,239,230,0.45)", lineHeight: 1.6 }}>stamps in your birthday month — our gift to every Zolara client</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(200,169,126,0.3),transparent)" }} />
       </section>
 
       <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
