@@ -158,15 +158,20 @@ export default function Settings() {
     setSaving(true);
     try {
       const logoUrl = await uploadLogo();
-      const settingsData = {
+      // Core columns — always exist
+      const coreData: any = {
         business_name: settings.business_name, logo_url: logoUrl,
         open_time: settings.open_time, close_time: settings.close_time,
         currency: settings.currency, business_phone: settings.business_phone,
         business_email: settings.business_email, business_address: settings.business_address,
         payment_methods: settings.payment_methods,
+        deposit_amount: settings.deposit_amount ?? 50,
+      };
+
+      // Extended columns — saved separately so missing ones don't block core save
+      const extendedFields: Record<string, any> = {
         gallery_images: (settings as any).gallery_images ?? [],
         closed_dates: settings.closed_dates ?? [],
-        deposit_amount: settings.deposit_amount ?? 50,
         loyalty_stamp_per_ghs: settings.loyalty_stamp_per_ghs ?? 100,
         loyalty_stamps_for_reward: settings.loyalty_stamps_for_reward ?? 20,
         loyalty_reward_discount: settings.loyalty_reward_discount ?? 50,
@@ -175,18 +180,29 @@ export default function Settings() {
         staff_specialties: (settings as any).staff_specialties ?? [],
         gift_card_prices: (settings as any).gift_card_prices ?? {},
         landing_sections: {
-          show_gift_cards: (settings as any).show_gift_cards ?? true,
-          show_subscriptions: (settings as any).show_subscriptions ?? false,
+          show_gift_cards: (settings as any).landing_sections?.show_gift_cards ?? true,
+          show_subscriptions: (settings as any).landing_sections?.show_subscriptions ?? false,
         },
       };
-      const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("id").limit(1).maybeSingle();
+
+      const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("*").limit(1).maybeSingle();
       if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
+
+      // Detect which extended columns actually exist in DB from the fetched row
+      const existingKeys = existing ? Object.keys(existing) : [];
+      const safeExtended: any = {};
+      for (const [k, v] of Object.entries(extendedFields)) {
+        if (existing === null || existingKeys.includes(k)) safeExtended[k] = v;
+      }
+
+      const settingsData = { ...coreData, ...safeExtended };
+
       if (existing?.id) {
         const { data: updated, error } = await (supabase as any).from("settings").update(settingsData).eq("id", existing.id).select();
         if (error) throw error;
         if (!updated || updated.length === 0) throw new Error("Update blocked — check database permissions");
       } else {
-        const { error } = await (supabase as any).from("settings").insert([settingsData]);
+        const { error } = await (supabase as any).from("settings").insert([coreData]);
         if (error) throw error;
       }
       toast.success("Settings saved");
