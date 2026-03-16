@@ -2,6 +2,7 @@
 // GIFT CARD E-COMMERCE UTILITIES
 // ================================================================
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 
 export const GIFT_CARD_TIERS = {
   Bronze:   { value: 1,    grace: 0,   label: "Bronze",           color: "#CD7F32" },
@@ -30,7 +31,7 @@ export function generateSerialNumber(tier: GiftCardTier, sequence: number): stri
 
 // Get next sequence number for physical cards
 export async function getNextPhysicalSequence(): Promise<number> {
-  const { count } = await (supabase as any)
+  const { count } = await (supabaseAdmin as any)
     .from("gift_cards")
     .select("*", { count: "exact", head: true })
     .eq("card_type", "physical");
@@ -53,7 +54,7 @@ export async function createDigitalPurchase(opts: {
     const expiresAt = new Date();
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabaseAdmin as any)
       .from("gift_cards")
       .insert({
         code,
@@ -86,7 +87,7 @@ export async function createDigitalPurchase(opts: {
 // Mark gift card as paid and queue the email (called by Paystack webhook or manual confirm)
 export async function markGiftCardPaid(giftCardId: string, paymentRef: string): Promise<{ error: string | null }> {
   try {
-    const { error } = await (supabase as any)
+    const { error } = await (supabaseAdmin as any)
       .from("gift_cards")
       .update({
         payment_ref: paymentRef,
@@ -111,7 +112,7 @@ export async function generatePhysicalBatch(opts: {
 }): Promise<{ cards: any[]; error: string | null }> {
   try {
     // Get current max sequence for serial numbers
-    const { data: existing } = await (supabase as any)
+    const { data: existing } = await (supabaseAdmin as any)
       .from("gift_cards")
       .select("serial_number")
       .eq("card_type", "physical")
@@ -146,7 +147,7 @@ export async function generatePhysicalBatch(opts: {
       expires_at: expiresAt.toISOString(),
     }));
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabaseAdmin as any)
       .from("gift_cards")
       .insert(cards)
       .select();
@@ -172,7 +173,7 @@ export async function redeemGiftCardAtCheckout(opts: {
   error: string | null;
 }> {
   try {
-    const { data: card, error } = await (supabase as any)
+    const { data: card, error } = await (supabaseAdmin as any)
       .from("gift_cards")
       .select("*")
       .eq("code", opts.code.trim().toUpperCase())
@@ -195,7 +196,7 @@ export async function redeemGiftCardAtCheckout(opts: {
     const remainder = Math.max(0, opts.serviceAmount - effectiveBalance);
 
     // Mark as redeemed
-    await (supabase as any)
+    await (supabaseAdmin as any)
       .from("gift_cards")
       .update({
         status: "redeemed",
