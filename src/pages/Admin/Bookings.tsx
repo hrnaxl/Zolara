@@ -194,6 +194,7 @@ export default function Bookings() {
 
   const [confirming, setConfirming] = useState(false);
   const [confirmResult, setConfirmResult] = useState<{done:number;skipped:number;noStaff:number} | null>(null);
+  const [extraStaff, setExtraStaff] = useState<{id:string;name:string;service:string}[]>([]);
   const [presentStaffIds, setPresentStaffIds] = useState<Set<string>>(new Set());
   const [absentStaffIds2, setAbsentStaffIds2] = useState<Set<string>>(new Set());
 
@@ -425,7 +426,7 @@ export default function Bookings() {
                     const dl = dateLabel(b.preferred_date);
                     const isSelected = selected?.id === b.id;
                     return (
-                      <tr key={b.id} onClick={() => setSelected(isSelected ? null : b)}
+                      <tr key={b.id} onClick={() => setSelected(isSelected ? null : b); setExtraStaff([])}
                         className={`bk-row${isSelected ? " selected" : ""}`}
                         style={{ borderBottom: `1px solid ${BORDER}`, background: i % 2 === 0 ? WHITE : "#FAFAF8", borderLeft: isSelected ? `3px solid ${G_D}` : "3px solid transparent" }}>
                         <td style={{ padding: "12px 16px" }}>
@@ -528,28 +529,59 @@ export default function Bookings() {
                 </div>
               )}
 
-              {/* Assign staff */}
+              {/* Assign staff — primary + additional for joint bookings */}
               {staff.length > 0 && !["completed","cancelled"].includes(selected.status) && (
                 <div style={{ marginBottom: 16 }}>
                   <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", margin: "0 0 6px" }}>Assign Staff</p>
                   {(() => {
                     const isToday = selected.preferred_date === new Date().toISOString().slice(0,10);
+                    const getLabel = (s: any) => {
+                      let label = s.name;
+                      if (isToday) {
+                        if (absentStaffIds2.has(s.id)) label += " — Absent";
+                        else if (presentStaffIds.has(s.id)) label += " ✓";
+                        else label += " — Not in";
+                      }
+                      return label;
+                    };
                     return (
-                      <select value={selected.staff_id || ""} onChange={e => handleAssignStaff(selected.id, e.target.value)}
-                        style={{ width: "100%", padding: "8px 10px", border: `1.5px solid ${BORDER}`, borderRadius: 10, fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif" }}>
-                        <option value="">Unassigned</option>
-                        {staff.map(s => {
-                          const isAbsent = absentStaffIds2.has(s.id);
-                          const isPresent = presentStaffIds.has(s.id);
-                          let label = s.name;
-                          if (isToday) {
-                            if (isAbsent) label += " — Absent";
-                            else if (isPresent) label += " ✓ Present";
-                            else label += " — Not checked in";
-                          }
-                          return <option key={s.id} value={s.id} disabled={isToday && isAbsent}>{label}</option>;
-                        })}
-                      </select>
+                      <div>
+                        {/* Primary staff */}
+                        <p style={{ fontSize: 10, color: TXT_SOFT, margin: "0 0 4px" }}>Primary</p>
+                        <select value={selected.staff_id || ""} onChange={e => handleAssignStaff(selected.id, e.target.value)}
+                          style={{ width: "100%", padding: "8px 10px", border: `1.5px solid ${BORDER}`, borderRadius: 10, fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", marginBottom: 8 }}>
+                          <option value="">Unassigned</option>
+                          {staff.map(s => <option key={s.id} value={s.id} disabled={isToday && absentStaffIds2.has(s.id)}>{getLabel(s)}</option>)}
+                        </select>
+
+                        {/* Additional staff for joint bookings */}
+                        {extraStaff.map((es, idx) => (
+                          <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                            <div style={{ flex: 1 }}>
+                              <select value={es.id} onChange={e => {
+                                const found = staff.find(s => s.id === e.target.value);
+                                setExtraStaff(prev => prev.map((x, i) => i === idx ? { ...x, id: e.target.value, name: found?.name || "" } : x));
+                              }} style={{ width: "100%", padding: "7px 8px", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif" }}>
+                                <option value="">Select staff</option>
+                                {staff.filter(s => s.id !== selected.staff_id).map(s => <option key={s.id} value={s.id}>{getLabel(s)}</option>)}
+                              </select>
+                            </div>
+                            <input value={es.service} onChange={e => setExtraStaff(prev => prev.map((x, i) => i === idx ? { ...x, service: e.target.value } : x))}
+                              placeholder="Their service" style={{ flex: 1, padding: "7px 8px", border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: TXT, outline: "none", fontFamily: "Montserrat,sans-serif" }} />
+                            <button onClick={() => setExtraStaff(prev => prev.filter((_, i) => i !== idx))}
+                              style={{ padding: "6px 8px", border: `1.5px solid #FECACA`, borderRadius: 8, background: WHITE, color: "#DC2626", cursor: "pointer", fontSize: 12 }}>✕</button>
+                          </div>
+                        ))}
+                        {extraStaff.length < 3 && (
+                          <button onClick={() => setExtraStaff(prev => [...prev, { id: "", name: "", service: "" }])}
+                            style={{ fontSize: 11, color: G_D, background: "none", border: `1px dashed ${G}`, borderRadius: 8, padding: "5px 12px", cursor: "pointer", width: "100%", marginTop: 2 }}>
+                            + Add another stylist (joint booking)
+                          </button>
+                        )}
+                        {extraStaff.length > 0 && (
+                          <p style={{ fontSize: 10, color: TXT_SOFT, margin: "6px 0 0" }}>Each stylist's revenue will be recorded separately at checkout</p>
+                        )}
+                      </div>
                     );
                   })()}
                 </div>
@@ -580,6 +612,9 @@ export default function Bookings() {
               {["confirmed","in_progress"].includes(selected.status) && (
                 <button onClick={() => {
                   const base = (userRole === "receptionist") ? "/app/receptionist/checkout" : "/app/admin/checkout";
+                  // Save extra staff to sessionStorage for checkout to pick up
+                  if (extraStaff.length > 0) sessionStorage.setItem("extraStaff_" + selected.id, JSON.stringify(extraStaff));
+                  else sessionStorage.removeItem("extraStaff_" + selected.id);
                   navigate(`${base}?booking=${selected.id}`);
                 }} className="panel-btn"
                   style={{ width: "100%", background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
