@@ -9,16 +9,33 @@ module.exports = async function handler(req, res) {
   try {
     const { to, subject, html } = req.body;
     if (!to || !subject || !html) return res.status(400).json({ error: "Missing fields" });
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
-      body: JSON.stringify({ from: "Zolara Beauty Studio <onboarding@resend.dev>", to: Array.isArray(to) ? to : [to], subject, html }),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + RESEND_API_KEY,
+      },
+      body: JSON.stringify({
+        from: "Zolara Beauty Studio <onboarding@resend.dev>",
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html,
+      }),
     });
+
     const data = await response.json();
-    console.log("Resend response:", response.status, JSON.stringify(data));
-    if (!response.ok) return res.status(500).json({ error: data.message || data.name || JSON.stringify(data) });
+    console.log("Resend status:", response.status, "response:", JSON.stringify(data));
+
+    if (!response.ok) {
+      const errMsg = data.message || data.name || data.statusCode || JSON.stringify(data);
+      console.error("Resend error:", errMsg);
+      return res.status(500).json({ error: errMsg });
+    }
+
     return res.status(200).json({ ok: true, id: data.id });
   } catch (err) {
+    console.error("Email handler error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 };

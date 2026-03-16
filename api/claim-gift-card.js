@@ -10,15 +10,30 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const { tier, buyerName, buyerEmail, buyerPhone, paymentRef } = req.body;
   if (!tier) return res.status(400).json({ error: "Missing tier" });
+  const tierValues = { Bronze:1, Silver:220, Gold:450, Platinum:650, Diamond:1000 };
   try {
-    const findUrl = `${SUPABASE_URL}/rest/v1/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&limit=1&select=id,code,serial_number,batch_id,tier,amount`;
+    // Search by tier first, fallback to any pending physical card
+    const findUrl = `${SUPABASE_URL}/rest/v1/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&limit=1&select=id,code,serial_number,batch_id,tier,amount,balance`;
     const findRes = await fetch(findUrl, { headers });
     const findData = await findRes.json();
     if (!findRes.ok || !findData || findData.length === 0) {
       const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/gift_cards`, {
         method: "POST",
         headers: { ...headers, "Prefer": "return=representation" },
-        body: JSON.stringify({ code: `PICKUP-${Date.now()}`, tier, amount: 1, balance: 1, status: "active", payment_status: "pending_pickup", card_type: "physical", buyer_name: buyerName || null, buyer_email: buyerEmail || null, buyer_phone: buyerPhone || null, recipient_name: buyerName, notes: `⚠️ No pre-printed ${tier} card in stock. ASSIGN MANUALLY. Buyer: ${buyerName} | Phone: ${buyerPhone} | Ref: ${paymentRef}` }),
+        body: JSON.stringify({
+          code: "PICKUP-" + Date.now(),
+          tier,
+          amount: tierValues[tier] || 1,
+          balance: tierValues[tier] || 1,
+          status: "active",
+          payment_status: "pending_pickup",
+          card_type: "physical",
+          buyer_name: buyerName || null,
+          buyer_email: buyerEmail || null,
+          buyer_phone: buyerPhone || null,
+          recipient_name: buyerName,
+          notes: "No pre-printed " + tier + " card in stock. ASSIGN MANUALLY. Buyer: " + buyerName + " | Phone: " + buyerPhone + " | Ref: " + paymentRef,
+        }),
       });
       const insertData = await insertRes.json();
       return res.status(200).json({ claimed: false, card: Array.isArray(insertData) ? insertData[0] : insertData, message: "No stock — placeholder created" });
