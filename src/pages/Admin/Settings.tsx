@@ -174,6 +174,8 @@ export default function Settings() {
         staff_roles: settings.staff_roles ?? [],
         staff_specialties: (settings as any).staff_specialties ?? [],
         gift_card_prices: (settings as any).gift_card_prices ?? {},
+        show_gift_cards: (settings as any).show_gift_cards ?? true,
+        show_subscriptions: (settings as any).show_subscriptions ?? false,
       };
       const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("id").limit(1).maybeSingle();
       if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
@@ -309,6 +311,32 @@ export default function Settings() {
 
         {tab("loyalty", (
           <div>
+            {/* Landing Page Visibility */}
+            <div style={{ background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "24px 28px", marginBottom: 20 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", color: G, marginBottom: 18 }}>LANDING PAGE SECTIONS</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {[
+                  { key: "show_gift_cards", label: "Gift Cards Section", desc: "Show the gift cards section on the public landing page" },
+                  { key: "show_subscriptions", label: "Subscriptions / Plans Section", desc: "Show the monthly plans section on the public landing page" },
+                ].map(({ key, label, desc }) => {
+                  const val = (settings as any)[key] ?? (key === "show_gift_cards" ? true : false);
+                  return (
+                    <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", background: CREAM, borderRadius: 10, border: `1px solid ${BORDER}` }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontSize: 11, color: TXT_SOFT }}>{desc}</div>
+                      </div>
+                      <button
+                        onClick={() => setSettings((p: any) => ({ ...p, [key]: !val }))}
+                        style={{ width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer", position: "relative", flexShrink: 0, background: val ? `linear-gradient(135deg,${G},${G_D})` : BORDER, transition: "background 0.2s" }}>
+                        <span style={{ position: "absolute", top: 2, left: val ? 22 : 2, width: 20, height: 20, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: 11, color: TXT_SOFT, marginTop: 12 }}>Remember to save settings after toggling.</p>
+            </div>
             <GiftCardPricingSection />
             <BusinessRulesSection
               depositAmount={settings.deposit_amount ?? 50}

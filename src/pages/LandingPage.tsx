@@ -655,6 +655,7 @@ export default function LandingPage() {
       </section>
 
       {/* GIFT CARDS: 2 column with KPI marketing */}
+      {((salonSettings as any)?.show_gift_cards !== false) && (
       <section id="gift-cards" style={{ background: dark, padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", position: "relative", overflow: "hidden" }}>
         <style>{`
           @keyframes cardFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-8px) rotate(-1deg)} }
@@ -726,7 +727,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-      {/* VISIT US */}
+      )}
       {/* ── LOYALTY SECTION ─────────────────────────────── */}
       <section id="loyalty" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", left: "-60px", top: "50%", transform: "translateY(-50%)", fontSize: "380px", color: "rgba(200,169,126,0.045)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>◈</div>
@@ -817,6 +818,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      {((salonSettings as any)?.show_subscriptions === true) && (
+      <>
       {/* ── SUBSCRIPTIONS ─────────────────────────────── */}
       <section id="subscriptions" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: "-40px", top: "50%", transform: "translateY(-50%)", fontSize: "320px", color: "rgba(200,169,126,0.04)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
@@ -885,8 +888,10 @@ export default function LandingPage() {
           </a>
         </div>
       </section>
+      </>
+      )}
 
-            <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
+      <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
         <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FIND US</div>
