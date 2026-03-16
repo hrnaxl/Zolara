@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { validatePromoCode, incrementPromoUsage } from "@/lib/promoCodes";
 import { GIFT_CARD_TIERS } from "@/lib/giftCardEcommerce";
 import { findOrCreateClient } from "@/lib/clientDedup";
@@ -423,40 +424,47 @@ const Checkout = () => {
         if (depErr) console.error("Deposit sale record failed:", depErr.message);
       }
 
-      // ── STEP 4: Record gift card redemption (only after booking confirmed) ─
+      // ── STEP 4: Record gift card redemption ────────────────────────────────
       if (redeemedCard && giftValue > 0) {
         const appliedGift = Math.min(giftValue, originalPrice);
+        const isDiamond = (redeemedCard as any).tier === "Diamond";
+        const currentBalance = Number((redeemedCard as any).fullBalance ?? appliedGift);
+        const newBalance = Math.max(0, currentBalance - appliedGift);
+        const fullyUsed = !isDiamond || newBalance <= 0;
 
-        // Mark card redeemed via service-role API FIRST — re-validates it's still active
-        // If the card was already used (409), we still complete checkout but don't record the gift card
+        // Re-validate card is still redeemable using supabaseAdmin (bypasses RLS)
+        const { data: freshCard } = await (supabaseAdmin as any)
+          .from("gift_cards").select("*").eq("id", redeemedCard.id).single();
+
         let cardMarked = false;
-        try {
-          const gcRes = await fetch("/api/redeem-gift-card", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardId: redeemedCard.id,
-              appliedAmount: appliedGift,
-              isDiamond: (redeemedCard as any).tier === "Diamond",
-              currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
-              clientName: booking.client_name || null,
-            }),
-          });
-          const gcData = await gcRes.json();
-          console.log("Gift card API response:", gcRes.status, JSON.stringify(gcData));
-          if (gcRes.status === 409 || gcData.alreadyUsed) {
-            toast.error("Gift card was already redeemed — checkout completed without gift card discount.");
-            console.warn("Gift card double-use attempted:", redeemedCard.id);
-          } else if (!gcRes.ok) {
-            console.error("Gift card status update failed:", gcData);
-            toast.error("Gift card update failed: " + (gcData.error || gcData.detail || "unknown error"));
+        if (!freshCard) {
+          console.error("Gift card not found in DB:", redeemedCard.id);
+        } else if (!isDiamond && freshCard.status === "redeemed") {
+          toast.error("Gift card was already redeemed.");
+        } else {
+          // Update card directly via supabaseAdmin — no API route needed
+          const updatePayload: any = {
+            status: fullyUsed ? "redeemed" : "active",
+            balance: newBalance,
+          };
+          // Only set extended columns if they exist in the card row
+          if ("redeemed_by_client" in freshCard) updatePayload.redeemed_by_client = booking.client_name || null;
+          if ("redeemed_at" in freshCard && fullyUsed) updatePayload.redeemed_at = new Date().toISOString();
+          if ("redemption_count" in freshCard) updatePayload.redemption_count = (freshCard.redemption_count || 0) + 1;
+
+          const { error: gcUpdateErr, data: gcUpdated } = await (supabaseAdmin as any)
+            .from("gift_cards").update(updatePayload).eq("id", redeemedCard.id).select();
+
+          if (gcUpdateErr) {
+            console.error("Gift card update failed:", gcUpdateErr);
+            toast.error("Gift card could not be marked redeemed: " + gcUpdateErr.message);
           } else {
             cardMarked = true;
-            console.log("Gift card successfully marked:", gcData);
+            console.log("✓ Gift card marked:", fullyUsed ? "redeemed" : "active", "balance:", newBalance, gcUpdated);
           }
-        } catch (gcApiErr) { console.error("Gift card API error:", gcApiErr); }
+        }
 
-        // Only record the gift card sale if card was successfully marked
+        // Record gift card sale only if card was successfully updated
         if (cardMarked) {
           const { error: gcErr } = await (supabase as any).from("sales").insert({
             booking_id: booking.id,
