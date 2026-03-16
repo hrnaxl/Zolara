@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
 import { notifyGiftCardsUpdated, onGiftCardsUpdated } from "@/lib/giftCardEvents";
 import { supabase } from "@/integrations/supabase/client";
-import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { toast } from "sonner";
 import { Download, Printer, Plus } from "lucide-react";
 
@@ -33,8 +32,8 @@ export default function GiftCardBatchGenerator() {
 
   const loadPastBatches = async () => {
       try {
-        const { data, error } = await (supabaseAdmin as any)
-          .from("gift_cards")
+        const { data, error } = await supabase
+          .from("gift_cards" as any)
           .select("*")
           .eq("card_type", "physical")
           .eq("is_admin_generated", true)

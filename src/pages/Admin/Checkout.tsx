@@ -89,15 +89,7 @@ const Checkout = () => {
   }, []);
 
   useEffect(() => {
-    if (bookingId) {
-      setBookingLoading(true); setBooking(null); fetchBookingDetails(); fetchStaff(); fetchProducts();
-      // Load any extra staff set from the bookings panel
-      try {
-        const stored = sessionStorage.getItem("extraStaff_" + bookingId);
-        if (stored) { setExtraStaff(JSON.parse(stored)); sessionStorage.removeItem("extraStaff_" + bookingId); }
-        else setExtraStaff([]);
-      } catch { setExtraStaff([]); }
-    }
+    if (bookingId) { setBookingLoading(true); setBooking(null); fetchBookingDetails(); fetchStaff(); fetchProducts(); }
   }, [bookingId]);
 
   useEffect(() => {
@@ -251,7 +243,6 @@ const Checkout = () => {
 
   // ── Booking picker state (always at top level — never inside conditionals) ──
   const [pickerSearch, setPickerSearch] = useState("");
-  const [extraStaff, setExtraStaff] = useState<{id:string;name:string;service:string}[]>([]);
   const [pickerBookings, setPickerBookings] = useState<any[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
 
@@ -436,50 +427,18 @@ const Checkout = () => {
           payment_date: new Date().toISOString(),
         });
         if (gcErr) console.error("Gift card sale record failed:", gcErr.message);
-        // Mark card status via service-role API — awaited so we know if it fails
-        try {
-          const gcApiRes = await fetch("/api/redeem-gift-card", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardId: redeemedCard.id,
-              appliedAmount: appliedGift,
-              isDiamond: (redeemedCard as any).tier === "Diamond",
-              currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
-              clientName: booking.client_name || null,
-            }),
-          });
-          const gcApiData = await gcApiRes.json();
-          if (!gcApiRes.ok) console.error("Gift card API failed:", gcApiData);
-          else console.log("Gift card marked:", gcApiData);
-        } catch (gcApiErr) { console.error("Gift card API error:", gcApiErr); }
-      }
-
-      // ── STEP 4b: Record extra staff sales for joint bookings ──────────────────
-      for (const es of extraStaff.filter(e => e.id && e.service)) {
-        const esUuid = uuidRe.test(es.id) ? es.id : null;
-        if (!esUuid) continue;
-        await (supabase as any).from("sales").insert({
-          booking_id: booking.id,
-          amount: 0, // no separate charge — service price split noted in text
-          payment_method: method,
-          status: "completed",
-          client_name: booking.client_name || null,
-          service_name: es.service,
-          client_id: safeClient,
-          staff_id: esUuid,
-          notes: `Joint booking — ${booking.client_name || "client"} | Primary: ${staff.find(s => s.id === selectedStaff)?.name || ""}`,
-          is_joint_booking: true,
-          joint_booking_note: `Part of booking ${booking.booking_ref || booking.id.slice(0,8)}`,
-          payment_date: new Date().toISOString(),
-        }).catch((e: any) => console.error("Extra staff sale failed:", e));
-      }
-
-      // Update booking with all staff IDs
-      if (extraStaff.length > 0) {
-        const allStaffIds = [selectedStaff, ...extraStaff.filter(e => e.id).map(e => e.id)].filter(Boolean);
-        const allStaffNames = [staff.find(s => s.id === selectedStaff)?.name || "", ...extraStaff.filter(e => e.id && e.name).map(e => e.name)].filter(Boolean);
-        await supabase.from("bookings").update({ staff_ids: allStaffIds, staff_names: allStaffNames } as any).eq("id", booking.id).catch(console.error);
+        // Mark card status via service-role API (fire and forget — booking already saved)
+        fetch("/api/redeem-gift-card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: redeemedCard.id,
+            appliedAmount: appliedGift,
+            isDiamond: (redeemedCard as any).tier === "Diamond",
+            currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
+            clientName: booking.client_name || null,
+          }),
+        }).catch(e => console.error("Gift card status update failed:", e));
       }
 
       // ── STEP 5: Record product sales + deduct stock ─────────────────────────
@@ -696,8 +655,7 @@ const Checkout = () => {
           <div style={{ padding: "28px 32px" }}>
             {[
               { l: "Client", v: booking.client_name },
-              { l: "Primary Staff", v: staff.find(s => s.id === selectedStaff)?.name || "Assigned" },
-              ...extraStaff.filter(e => e.id).map(e => ({ l: `+ ${e.name}`, v: e.service || "Joint service" })),
+              { l: "Staff", v: staff.find(s => s.id === selectedStaff)?.name || "Assigned" },
               { l: "Payment", v: paymentMethod === "mobile_money" ? "Mobile Money" : paymentMethod === "bank_transfer" ? "Bank Transfer" : (paymentMethod || "").charAt(0).toUpperCase() + (paymentMethod || "").slice(1) },
             ].map(row => (
               <div key={row.l} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #EDEBE5" }}>
@@ -723,10 +681,10 @@ const Checkout = () => {
                 <span style={{ fontSize: "12px", fontWeight: 600, color: "#16A34A" }}>- GHS {promoDiscount.toFixed(2)}</span>
               </div>
             )}
-            {redeemedCard && ((redeemedCard as any).fullBalance ?? redeemedCard.value) > 0 && (
+            {redeemedCard && redeemedCard.value > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EDEBE5" }}>
-                <span style={{ fontSize: "12px", color: "#7C3AED" }}>🎁 Gift Card Applied</span>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: "#7C3AED" }}>- GHS {Math.min(((redeemedCard as any).fullBalance ?? redeemedCard.value), originalPrice).toFixed(2)}</span>
+                <span style={{ fontSize: "12px", color: "#16A34A" }}>Gift Card Applied</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#16A34A" }}>- GHS {redeemedCard.value.toFixed(2)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0" }}>

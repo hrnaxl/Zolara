@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import {
   Calendar,
   Users,
@@ -338,7 +337,7 @@ const AdminDashboard = () => {
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("payment_date", periodStartTs).lte("payment_date", periodEndTs).not("promo_discount", "is", null),
         // gift card liability — only cards where payment was received (paid/pending_pickup)
         // Excludes pre-printed unsold cards (payment_status=pending, no money received yet)
-        (supabaseAdmin as any).from("gift_cards").select("balance, amount, tier, status, payment_status")
+        (supabase as any).from("gift_cards").select("balance, amount, tier, status, payment_status")
           .in("status", ["active", "available", "pending_send", "pending_pickup"])
           .in("payment_status", ["paid", "pending_pickup", "pending_send"]),
       ]);

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { generatePhysicalBatch, GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
@@ -102,7 +101,7 @@ export default function GiftCards() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabaseAdmin as any)
+      const { data, error } = await (supabase as any)
         .from("gift_cards")
         .select("*")
         .order("created_at", { ascending: false })
@@ -221,9 +220,9 @@ export default function GiftCards() {
     if (!code.trim()) { setPhysPosCard(null); return; }
     const q = code.trim().toUpperCase();
     // Try by code first, then by serial_number
-    const { data: byCode } = await (supabaseAdmin as any).from("gift_cards").select("*").eq("code", q).maybeSingle();
+    const { data: byCode } = await (supabase as any).from("gift_cards").select("*").eq("code", q).maybeSingle();
     if (byCode) { setPhysPosCard(byCode); return; }
-    const { data: bySerial } = await (supabaseAdmin as any).from("gift_cards").select("*").ilike("serial_number", q).maybeSingle();
+    const { data: bySerial } = await (supabase as any).from("gift_cards").select("*").ilike("serial_number", q).maybeSingle();
     setPhysPosCard(bySerial || null);
   };
 
@@ -235,7 +234,7 @@ export default function GiftCards() {
     setPhysPosSaving(true);
     try {
       // Mark card as paid/active (only update columns that exist)
-      const { error: cardErr } = await (supabaseAdmin as any).from("gift_cards").update({
+      const { error: cardErr } = await (supabase as any).from("gift_cards").update({
         payment_status: "paid",
         status: "active",
       }).eq("id", physPosCard.id);

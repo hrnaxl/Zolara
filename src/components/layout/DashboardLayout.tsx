@@ -43,13 +43,8 @@ import { useSettings } from "@/context/SettingsContext";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 const DashboardLayout = () => {
-  // Role-based inactivity timeouts:
-  // Owner: 20 min | Staff/receptionist/client: 30 min
-  const { userRole: inactivityRole } = useSettings();
-  const inactivityMs = inactivityRole === "owner" || inactivityRole === "admin"
-    ? 20 * 60 * 1000   // 20 minutes for owner/admin
-    : 30 * 60 * 1000;  // 30 minutes for everyone else
-  useInactivityLogout(inactivityMs);
+  // 2-minute inactivity logout for all staff/admin/receptionist roles
+  useInactivityLogout(2 * 60 * 1000);
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();

@@ -15,21 +15,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    chunkSizeWarningLimit: 2000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("@supabase")) return "supabase";
-            if (id.includes("react-dom") || id.includes("react-router")) return "vendor";
-            if (id.includes("react")) return "vendor";
-            if (id.includes("@radix-ui") || id.includes("lucide") || id.includes("sonner")) return "ui";
-            if (id.includes("date-fns") || id.includes("zod") || id.includes("react-beautiful-dnd")) return "utils";
-            return "libs";
-          }
-        },
-      },
-    },
-  },
 }));
