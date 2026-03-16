@@ -103,6 +103,7 @@ export default function EnhancedBookingForm() {
   const [svcVariantSel, setSvcVariantSel]   = useState<Record<string,string>>({});
   const [svcAddonsSel, setSvcAddonsSel]     = useState<Record<string,string[]>>({});
   const [svcLoading, setSvcLoading]         = useState<Record<string,boolean>>({});
+  const [expandedSvc, setExpandedSvc]       = useState<string | null>(null);
 
   const loadServiceExtras = async (svcId: string) => {
     if (!svcId || svcVariantsMap[svcId] !== undefined) return;
@@ -369,7 +370,13 @@ export default function EnhancedBookingForm() {
                         return (
                           <div key={s.id} style={{ gridColumn: sel ? "span 2" : "span 1" }}>
                           <div className="svc-card" onClick={() => {
-                            if (!serviceIds.includes(s.id)) loadServiceExtras(s.id);
+                            const willSelect = !serviceIds.includes(s.id);
+                            if (willSelect) {
+                              loadServiceExtras(s.id);
+                              setExpandedSvc(s.id);
+                            } else {
+                              setExpandedSvc(null);
+                            }
                             setServiceIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]);
                           }}
                             style={{ textAlign: "left", padding: "14px 16px", borderRadius: sel ? "12px 12px 0 0" : 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
@@ -383,9 +390,14 @@ export default function EnhancedBookingForm() {
                                 return mn === mx ? "GHS " + mn.toLocaleString() : "GHS " + mn.toLocaleString() + " – " + mx.toLocaleString();
                               })()}
                             </div>
-                            {sel && <div style={{ marginTop: 6, fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: "0.08em" }}>✓ SELECTED</div>}
+                            {sel && (
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: "0.08em" }}>✓ SELECTED</div>
+                                <div style={{ fontSize: 10, color: GOLD_DARK, fontFamily: "'Montserrat',sans-serif", fontWeight: 600 }}>{expandedSvc === s.id ? "▲ hide" : "▼ options"}</div>
+                              </div>
+                            )}
                           </div>
-                          {sel && (() => {
+                          {sel && expandedSvc === s.id && (() => {
                             const svcVars = svcVariantsMap[s.id] || [];
                             const svcAdds = svcAddonsMap[s.id]   || [];
                             const isLoading = !!svcLoading[s.id];
