@@ -80,8 +80,8 @@ export default function BuyGiftCard() {
             const tierValue = getTierValue(selectedTier!);
 
             if (isEmail) {
-              // ── DIGITAL ─────────────────────────────────────────────────────
-              // Create card via server-side API (bypasses RLS)
+              // ── DIGITAL GIFT CARD ─────────────────────────────────────────
+              // Create card server-side (service role, bypasses RLS)
               const createRes = await fetch("/api/create-gift-card", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -99,7 +99,7 @@ export default function BuyGiftCard() {
               console.log("Create card:", createRes.status, JSON.stringify(createData));
 
               if (createRes.ok && createData.card) {
-                // Send gift card email to recipient
+                // Send gift card email to recipient (fire and forget)
                 const emailTo = form.recipientEmail || form.buyerEmail;
                 if (emailTo) {
                   sendGiftCardEmail({
@@ -111,12 +111,16 @@ export default function BuyGiftCard() {
                     recipient_email: emailTo,
                     buyer_name: form.buyerName,
                     message: form.message || undefined,
-                  }).catch((e: any) => console.error("Gift email failed:", e.message));
+                  }).then(sent => {
+                    if (!sent) console.error("Gift card email failed for card:", createData.card.id);
+                  }).catch(console.error);
                 }
+              } else {
+                console.error("Card creation failed:", createData.error || createData);
               }
 
             } else {
-              // ── PHYSICAL PICKUP ──────────────────────────────────────────────
+              // ── PHYSICAL PICKUP ───────────────────────────────────────────
               const claimRes = await fetch("/api/claim-gift-card", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -141,7 +145,7 @@ export default function BuyGiftCard() {
                   cardCode: claimData.card.code || "",
                   serialNumber: claimData.card.serial_number || undefined,
                   paymentRef: paymentRef || "",
-                }).catch((e: any) => console.error("Pickup email failed:", e.message));
+                }).catch(console.error);
               }
             }
 

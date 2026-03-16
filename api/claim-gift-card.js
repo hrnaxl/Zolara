@@ -1,11 +1,14 @@
-// Zolara claim-gift-card API — reserves a physical card for online pickup purchase
+/**
+ * Zolara claim-gift-card — finds a pre-printed physical card and reserves it for pickup
+ * Called when client pays online and chooses "store pickup"
+ */
 const https = require("https");
 
-const SB_URL = "vwvrhbyfytmqsywfdhvd.supabase.co";
+const SB_HOST = "vwvrhbyfytmqsywfdhvd.supabase.co";
 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
 const TIER_VALUES = { Bronze: 1, Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
 
-function sbRequest(method, path, body) {
+function sbReq(method, path, body) {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
     const headers = {
@@ -16,13 +19,13 @@ function sbRequest(method, path, body) {
     };
     if (data) headers["Content-Length"] = Buffer.byteLength(data);
     const req = https.request(
-      { hostname: SB_URL, path: "/rest/v1/" + path, method, headers },
+      { hostname: SB_HOST, port: 443, path: "/rest/v1/" + path, method, headers },
       (res) => {
         let buf = "";
-        res.on("data", (c) => (buf += c));
+        res.on("data", (c) => { buf += c; });
         res.on("end", () => {
           try { resolve({ status: res.statusCode, data: JSON.parse(buf) }); }
-          catch { resolve({ status: res.statusCode, data: buf }); }
+          catch (e) { resolve({ status: res.statusCode, data: buf }); }
         });
       }
     );
@@ -42,33 +45,38 @@ module.exports = async function handler(req, res) {
   const { tier, buyerName, buyerEmail, buyerPhone, paymentRef } = req.body || {};
   if (!tier) return res.status(400).json({ error: "Missing tier" });
 
-  const amount = TIER_VALUES[tier] || 0;
+  const tierValue = TIER_VALUES[tier] || 0;
 
   try {
-    // 1. Find an available pre-printed card of this tier
-    const findPath = "gift_cards?tier=eq." + encodeURIComponent(tier) +
-      "&card_type=eq.physical&payment_status=eq.pending&status=eq.active" +
-      "&limit=1&select=id,code,serial_number,tier,amount,balance";
-    const find = await sbRequest("GET", findPath, null);
+    // Find one available pre-printed card: physical, pending payment, active
+    const findPath = "gift_cards?" +
+      "tier=eq." + encodeURIComponent(tier) +
+      "&card_type=eq.physical" +
+      "&payment_status=eq.pending" +
+      "&status=eq.active" +
+      "&limit=1" +
+      "&select=id,code,serial_number,tier,amount,balance";
 
-    console.log("Find:", find.status, JSON.stringify(find.data));
+    const find = await sbReq("GET", findPath, null);
+    console.log("Find physical card:", find.status, JSON.stringify(find.data));
 
     if (find.status === 200 && Array.isArray(find.data) && find.data.length > 0) {
-      // Found — reserve it
+      // Found a pre-printed card — reserve it
       const card = find.data[0];
-      const note = "RESERVED FOR PICKUP. Buyer: " + (buyerName || "") +
-        " | Phone: " + (buyerPhone || "") + " | Ref: " + (paymentRef || "") +
-        " | " + new Date().toISOString();
+      const note = "RESERVED FOR PICKUP — Buyer: " + (buyerName || "Unknown") +
+        " | Phone: " + (buyerPhone || "") +
+        " | Email: " + (buyerEmail || "") +
+        " | PayRef: " + (paymentRef || "") +
+        " | Date: " + new Date().toISOString();
 
-      const patch = await sbRequest("PATCH", "gift_cards?id=eq." + card.id, {
+      const patch = await sbReq("PATCH", "gift_cards?id=eq." + card.id, {
         payment_status: "pending_pickup",
         buyer_name: buyerName || null,
         buyer_email: buyerEmail || null,
         buyer_phone: buyerPhone || null,
         notes: note,
       });
-
-      console.log("Patch:", patch.status, JSON.stringify(patch.data));
+      console.log("Reserve card:", patch.status, JSON.stringify(patch.data));
 
       return res.status(200).json({
         claimed: true,
@@ -77,38 +85,40 @@ module.exports = async function handler(req, res) {
       });
 
     } else {
-      // No pre-printed stock — create a placeholder so the purchase is tracked
-      console.warn("No " + tier + " card in stock — creating placeholder");
+      // No pre-printed stock — create a placeholder record so the purchase is tracked
+      console.warn("No " + tier + " physical card in stock — creating placeholder");
       const code = "PICKUP-" + Date.now().toString(36).toUpperCase();
-      const note = "NO PRE-PRINTED STOCK. Assign a physical card manually. Buyer: " +
-        (buyerName || "") + " | Phone: " + (buyerPhone || "") + " | Ref: " + (paymentRef || "");
+      const expires = new Date();
+      expires.setFullYear(expires.getFullYear() + 1);
 
-      const insert = await sbRequest("POST", "gift_cards", {
+      const insert = await sbReq("POST", "gift_cards", {
         code,
         tier,
-        amount,
-        balance: amount,
+        amount: tierValue,
+        balance: tierValue,
         status: "active",
         payment_status: "pending_pickup",
         card_type: "physical",
         buyer_name: buyerName || null,
         buyer_email: buyerEmail || null,
         buyer_phone: buyerPhone || null,
-        notes: note,
+        notes: "⚠️ NO PRE-PRINTED CARD IN STOCK. Assign manually. Buyer: " +
+          (buyerName || "") + " | Phone: " + (buyerPhone || "") +
+          " | PayRef: " + (paymentRef || ""),
+        expires_at: expires.toISOString(),
       });
+      console.log("Placeholder insert:", insert.status, JSON.stringify(insert.data));
 
-      console.log("Insert placeholder:", insert.status, JSON.stringify(insert.data));
       const inserted = Array.isArray(insert.data) ? insert.data[0] : insert.data;
-
       return res.status(200).json({
         claimed: false,
         card: inserted,
-        message: "No stock. Placeholder created. Assign card manually.",
+        message: "No stock. Placeholder created. Assign physical card manually.",
       });
     }
 
   } catch (err) {
-    console.error("claim-gift-card crash:", err.message);
+    console.error("claim-gift-card error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 };
