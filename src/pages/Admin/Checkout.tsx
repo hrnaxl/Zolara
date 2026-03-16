@@ -301,9 +301,12 @@ const Checkout = () => {
       if (!["active","available","redeemed"].includes(card.status || "")) {
         toast.error("Gift card is not active (status: " + card.status + ")."); return;
       }
-      // Card must be paid — not just printed inventory
-      if (!["paid","pending_pickup"].includes(card.payment_status || "")) {
-        toast.error("This gift card has not been paid for yet."); return;
+      // Block voided or expired cards
+      if (card.payment_status === "voided") { toast.error("This gift card has been voided."); return; }
+      if (card.payment_status === "expired") { toast.error("This gift card has expired."); return; }
+      // Block cards that are pure unsold stock (pending + active with no buyer info = just printed, not sold)
+      if (card.payment_status === "pending" && !card.buyer_name && !card.buyer_phone) {
+        toast.error("This card has not been sold yet. Mark it as sold at the POS first."); return;
       }
       const value = Number(card.balance || card.amount || 0);
       if (value <= 0) { toast.error("This gift card has no remaining balance."); return; }
