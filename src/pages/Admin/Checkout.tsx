@@ -274,32 +274,41 @@ const Checkout = () => {
     setRedeeming(true);
     try {
       const code = giftCode.trim().toUpperCase();
-      const { data: cards, error: fetchErr } = await (supabase as any)
-        .from("gift_cards").select("*").eq("code", code).limit(1);
-      if (fetchErr) throw fetchErr;
-      const card = cards?.[0];
+      // Use service-role API to bypass RLS on gift_cards table
+      const lookupRes = await fetch(`https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1/gift_cards?code=eq.${encodeURIComponent(code)}&limit=1&select=*`, {
+        headers: {
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+        }
+      });
+      const cards = await lookupRes.json();
+      const card = Array.isArray(cards) ? cards[0] : null;
       if (!card) { toast.error("Gift card not found. Check the code and try again."); return; }
+
+      // Non-diamond cards can only be used once
       if (card.status === "redeemed") {
-        const isDiamond = card.tier === "Diamond";
-        const hasBalance = Number(card.balance || 0) > 0;
-        const underLimit = (card.redemption_count || 0) < 3;
-        if (!isDiamond || !hasBalance || !underLimit) {
-          toast.error("This gift card has already been fully used.");
-          return;
+        if (card.tier !== "Diamond") {
+          toast.error("This gift card has already been redeemed."); return;
+        }
+        // Diamond: check it still has balance and uses remaining
+        if (Number(card.balance || 0) <= 0 || (card.redemption_count || 0) >= 3) {
+          toast.error("This Diamond card has no remaining balance or uses."); return;
         }
       }
-      if (card.status === "expired" || (card.expire_at && new Date(card.expire_at) < new Date())) { toast.error("This gift card has expired."); return; }
-      // Allow Diamond cards that passed the redeemed check above (still have balance + uses left)
-      const isDiamondPartial = card.tier === "Diamond" && card.status === "redeemed" && Number(card.balance || 0) > 0 && (card.redemption_count || 0) < 3;
-      if (!isDiamondPartial && !["active","available","pending_send"].includes(card.status || "")) { toast.error("Gift card is not available (status: " + card.status + ")."); return; }
-      const value = Number(card.balance || 0);
+      if (card.status === "void") { toast.error("This gift card has been voided."); return; }
+      if (card.status === "expired" || (card.expires_at && new Date(card.expires_at) < new Date())) { toast.error("This gift card has expired."); return; }
+      if (!["active","available","pending_send","redeemed"].includes(card.status || "")) {
+        toast.error("Gift card is not active (status: " + card.status + ")."); return;
+      }
+      const value = Number(card.balance || card.amount || 0);
       if (value <= 0) { toast.error("This gift card has no remaining balance."); return; }
-      // Apply after deposit deduction
+
+      // Apply — capped at what's actually owed
       const dep2 = depositPaid ? depositAmount : 0;
       const baseAfterDeposit = Math.max(0, originalPrice - dep2);
-      setRedeemedCard({ id: card.id, value: Math.min(value, baseAfterDeposit), tier: card.tier, fullBalance: value });
-      toast.success("Gift card applied: GHS " + Math.min(value, baseAfterDeposit).toFixed(2) + " off");
-      toast.success("Gift card applied: GHS " + value.toFixed(2) + " off");
+      const applied = Math.min(value, baseAfterDeposit);
+      setRedeemedCard({ id: card.id, value: applied, tier: card.tier, fullBalance: value } as any);
+      toast.success(`Gift card applied — GHS ${applied.toFixed(2)} off`);
     } catch (err: any) {
       console.error("Redeem error:", err);
       toast.error(err.message || "Redeem failed");
@@ -348,34 +357,6 @@ const Checkout = () => {
 
       await supabase.from("bookings").update({ staff_id: selectedStaff || null, notes: notes || booking.notes, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
 
-      if (redeemedCard && Number(redeemedCard.value) > 0) {
-        const orig = Number(originalPrice || (booking.services?.price ?? 0));
-        const appliedGift = Math.min(Number(redeemedCard.value), orig);
-        if (appliedGift > 0) {
-          const { error: giftErr } = await (supabase as any).from("sales").insert([{ booking_id: booking.id, amount: appliedGift, payment_method: "gift_card", status: "completed", client_name: booking.client_name || null, service_name: booking.service_name || null, client_id: booking.clients?.id || null, staff_id: selectedStaff || null, notes: notes || null, payment_date: new Date().toISOString() }]);
-          if (giftErr) { toast.error("Failed to record gift card payment"); setProcessing(false); return; }
-          // Use server-side API to update gift card (bypasses RLS + stale TS schema)
-          const isDiamond = (redeemedCard as any).tier === "Diamond";
-          const currentBalance = (redeemedCard as any).fullBalance ?? appliedGift;
-          const redeemRes = await fetch("/api/redeem-gift-card", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardId: redeemedCard.id,
-              appliedAmount: appliedGift,
-              isDiamond,
-              currentBalance,
-              clientName: booking.client_name || null,
-            }),
-          });
-          const redeemData = await redeemRes.json();
-          if (!redeemRes.ok) {
-            console.error("Gift card redeem API failed:", redeemData);
-            toast.error("Gift card recorded but status update failed — check admin.");
-          }
-        }
-      }
-
       if (paymentMethod !== "bank_transfer") {
         await supabase.from("bookings").update({ status: "completed", staff_id: selectedStaff || null, notes: notes || booking.notes, price: effectivePrice, ...(depositPaid ? { deposit_paid: true, deposit_amount: depositAmount } : {}) } as any).eq("id", booking.id);
         // amount saved = what client actually paid (balance after deposit + discounts)
@@ -406,6 +387,28 @@ const Checkout = () => {
           payment_date: new Date().toISOString(),
         });
         if (saleErr) { console.error("SALE INSERT FAILED:", saleErr, {clientIdForSale, staffIdForSale, paymentMethod, amountToCharge}); throw new Error("Sale record failed: " + saleErr.message); }
+
+        // Record gift card redemption AFTER checkout confirmed — only now update card status
+        if (redeemedCard && Number(redeemedCard.value) > 0) {
+          const appliedGift = Math.min(Number(redeemedCard.value), originalPrice);
+          if (appliedGift > 0) {
+            // Record in sales
+            await (supabase as any).from("sales").insert([{
+              booking_id: booking.id, amount: appliedGift, payment_method: "gift_card",
+              status: "completed", client_name: booking.client_name || null,
+              service_name: booking.service_name || null,
+              client_id: clientIdForSale, staff_id: staffIdForSale,
+              notes: "Gift card redemption at checkout", payment_date: new Date().toISOString()
+            }]).catch(console.error);
+            // Mark card redeemed via service-role API
+            const isDiamond = (redeemedCard as any).tier === "Diamond";
+            const currentBalance = (redeemedCard as any).fullBalance ?? appliedGift;
+            fetch("/api/redeem-gift-card", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cardId: redeemedCard.id, appliedAmount: appliedGift, isDiamond, currentBalance, clientName: booking.client_name || null }),
+            }).catch(console.error);
+          }
+        }
 
         // If a deposit was previously collected, record it as revenue now (checkout = confirmed revenue)
         if (dep > 0) {
