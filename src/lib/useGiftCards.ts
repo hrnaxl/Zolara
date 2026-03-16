@@ -273,24 +273,23 @@ export async function resendGiftCardEmail(id: string) {
       .eq("id", id)
       .single();
     if (fetchErr || !card) throw fetchErr || new Error("Card not found");
-    if (!card.recipient_email) throw new Error("No recipient email on this card");
+    const emailTo = card.recipient_email || card.buyer_email;
+    if (!emailTo) throw new Error("No email address on this card");
     const sent = await sendGiftCardEmail({
       id: card.id,
       tier: card.tier || "Gold",
       amount: Number(card.amount || 0),
-      code: card.code || card.final_code || "",
+      code: card.code || "",
       recipient_name: card.recipient_name || undefined,
-      recipient_email: card.recipient_email,
+      recipient_email: emailTo,
       buyer_name: card.buyer_name || undefined,
       message: card.message || undefined,
     });
-    // Email sent — update card status
-    const { error: updateErr } = await (supabaseAdmin as any)
+    if (!sent) throw new Error("Email send failed");
+    await (supabaseAdmin as any)
       .from("gift_cards")
       .update({ status: "active", payment_status: "paid" })
       .eq("id", id);
-    if (updateErr) console.error("Card update after email failed:", updateErr.message);
-    // Still return success — email was sent even if card update failed
     return { success: true, error: null };
   } catch (error: any) {
     console.error("resendGiftCardEmail error:", error.message);

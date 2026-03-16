@@ -82,12 +82,13 @@ export async function sendGiftCardEmail(card: {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       console.error("Email API error:", res.status, data);
-      throw new Error(data.error || "Resend returned " + res.status);
+      return false;
     }
+    console.log("Gift card email sent:", data.id);
     return true;
   } catch (err: any) {
     console.error("Gift card email error:", err.message);
-    throw err;
+    return false;
   }
 }
 

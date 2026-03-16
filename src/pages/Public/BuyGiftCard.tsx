@@ -125,37 +125,50 @@ export default function BuyGiftCard() {
               }
 
             } else {
-              // ── PHYSICAL PICKUP: claim via server-side API (bypasses RLS) ──
-              const claimRes = await fetch("/api/claim-gift-card", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  tier: selectedTier,
-                  buyerName: form.buyerName,
-                  buyerEmail: form.buyerEmail,
-                  buyerPhone: form.buyerPhone,
-                  paymentRef,
-                }),
-              });
-              const claimData = await claimRes.json();
-              console.log("Claim API response:", claimData);
+              // ── PHYSICAL PICKUP: claim a pre-printed card ──────────────────
+              try {
+                const claimRes = await fetch("/api/claim-gift-card", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    tier: selectedTier,
+                    buyerName: form.buyerName,
+                    buyerEmail: form.buyerEmail,
+                    buyerPhone: form.buyerPhone,
+                    paymentRef,
+                  }),
+                });
+                const claimData = await claimRes.json();
+                console.log("Claim response:", claimRes.status, claimData);
+                if (!claimRes.ok) throw new Error(claimData.error || "Claim API failed");
 
-              const claimedCard = claimData.card;
-              const claimedCode = claimedCard?.code || "";
+                const claimedCard = claimData.card;
+                const claimedCode = claimedCard?.code || "";
 
-              // Gift card purchase is NOT recorded as revenue — liability until service is delivered.
-
-              // Send pickup receipt to buyer with card details
-              if (form.buyerEmail) {
-                sendPickupReceiptEmail({
-                  buyerName: form.buyerName, buyerEmail: form.buyerEmail,
-                  tier: selectedTier!, amount: tierValue, cardCode: claimedCode,
-                  serialNumber: claimedCard?.serial_number || claimedCard?.code || undefined,
-                  paymentRef: paymentRef || "",
+                // Send pickup receipt email
+                if (form.buyerEmail) {
+                  sendPickupReceiptEmail({
+                    buyerName: form.buyerName, buyerEmail: form.buyerEmail,
+                    tier: selectedTier!, amount: tierValue, cardCode: claimedCode,
+                    serialNumber: claimedCard?.serial_number || claimedCard?.code || undefined,
+                    paymentRef: paymentRef || "",
+                  }).catch(console.error);
+                }
+              } catch (claimErr: any) {
+                console.error("Physical card claim failed:", claimErr.message);
+                // Payment went through — create a placeholder record directly
+                const { supabase: sb2 } = await import("@/integrations/supabase/client");
+                await (sb2 as any).from("gift_cards").insert({
+                  code: "PICKUP-" + Date.now().toString(36).toUpperCase(),
+                  tier: selectedTier, amount: tierValue, balance: tierValue,
+                  status: "active", payment_status: "pending_pickup",
+                  card_type: "physical",
+                  buyer_name: form.buyerName || null,
+                  buyer_email: form.buyerEmail || null,
+                  buyer_phone: form.buyerPhone || null,
+                  recipient_name: form.buyerName,
+                  notes: "AUTO-PLACEHOLDER: claim API failed. Payment ref: " + paymentRef + ". Assign physical card manually.",
                 }).catch(console.error);
-              }
-              if (!claimData.claimed) {
-                console.warn("No pre-printed card in stock — placeholder created. Assign manually.");
               }
             }
           } catch (e) {
