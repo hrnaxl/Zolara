@@ -97,6 +97,25 @@ export default function EnhancedBookingForm() {
     }).catch(() => setLoading(false));
   }, []);
 
+  // Per-service variants/addons (loaded on first click)
+  const [svcVariantsMap, setSvcVariantsMap] = useState<Record<string,any[]>>({});
+  const [svcAddonsMap, setSvcAddonsMap]     = useState<Record<string,any[]>>({});
+  const [svcVariantSel, setSvcVariantSel]   = useState<Record<string,string>>({});
+  const [svcAddonsSel, setSvcAddonsSel]     = useState<Record<string,string[]>>({});
+  const [svcLoading, setSvcLoading]         = useState<Record<string,boolean>>({});
+
+  const loadServiceExtras = async (svcId: string) => {
+    if (!svcId || svcVariantsMap[svcId] !== undefined) return;
+    setSvcLoading(prev => ({ ...prev, [svcId]: true }));
+    const [vRes, aRes] = await Promise.all([
+      (supabase as any).from("service_variants").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order"),
+      (supabase as any).from("service_addons").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order"),
+    ]);
+    setSvcVariantsMap(prev => ({ ...prev, [svcId]: vRes.data || [] }));
+    setSvcAddonsMap(prev =>   ({ ...prev, [svcId]: aRes.data || [] }));
+    setSvcLoading(prev => ({ ...prev, [svcId]: false }));
+  };
+
   const serviceId = serviceIds[0] || "";
   const selectedService = services.find(s => s.id === serviceId);
   const selectedServices = services.filter(s => serviceIds.includes(s.id));
@@ -107,13 +126,24 @@ export default function EnhancedBookingForm() {
     return acc;
   }, {} as Record<string, any[]>);
 
-  const basePrice   = selectedServices.reduce((s, sv) => s + Number(sv.price || 0), 0);
-  const discount    = promoApplied
+  const basePrice = selectedServices.reduce((total, s) => {
+    const selVarId = svcVariantSel[s.id] || "";
+    const svcVars = svcVariantsMap[s.id] || [];
+    const selVariant = svcVars.find((v: any) => v.id === selVarId);
+    const hasVars = svcVars.length > 0 || !!svcLoading[s.id];
+    const p = selVariant ? Number(selVariant.price_adjustment) : hasVars ? 0 : Number(s.price || 0);
+    return total + p;
+  }, 0);
+  const addonTotal = selectedServices.reduce((total, s) => {
+    const selAddons = svcAddonsSel[s.id] || [];
+    return total + (svcAddonsMap[s.id] || []).filter((a: any) => selAddons.includes(a.id)).reduce((sum: number, a: any) => sum + Number(a.price), 0);
+  }, 0);
+  const discount = promoApplied
     ? promoApplied.discount_type === "percentage"
-      ? (basePrice * promoApplied.discount_value) / 100
+      ? ((basePrice + addonTotal) * promoApplied.discount_value) / 100
       : promoApplied.discount_value
     : 0;
-  const total = Math.max(0, basePrice - discount);
+  const total = Math.max(0, basePrice + addonTotal - discount);
 
   const enabledPayments = (settings as any)?.payment_methods?.filter((m: any) => m.enabled)
     || [{ id: "cash", name: "Cash" }, { id: "mobile_money", name: "Mobile Money" }];
@@ -337,8 +367,14 @@ export default function EnhancedBookingForm() {
                       {(svcs as any[]).map((s: any) => {
                         const sel = serviceIds.includes(s.id);
                         return (
-                          <button key={s.id} className="svc-card" onClick={() => setServiceIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                            style={{ textAlign: "left", padding: "14px 16px", borderRadius: 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
+                          <div key={s.id} style={{ gridColumn: "span 1" }}>
+                          <div className="svc-card" onClick={() => {
+                            setServiceIds(prev => {
+                              if (!prev.includes(s.id)) loadServiceExtras(s.id);
+                              return prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id];
+                            });
+                          }}
+                            style={{ textAlign: "left", padding: "14px 16px", borderRadius: sel ? "12px 12px 0 0" : 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
                             <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>
                               {(() => {
@@ -350,7 +386,58 @@ export default function EnhancedBookingForm() {
                               })()}
                             </div>
                             {sel && <div style={{ marginTop: 6, fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: "0.08em" }}>✓ SELECTED</div>}
-                          </button>
+                          </div>
+                          {sel && (() => {
+                            const svcVars = svcVariantsMap[s.id] || [];
+                            const svcAdds = svcAddonsMap[s.id]   || [];
+                            const isLoading = !!svcLoading[s.id];
+                            if (!isLoading && svcVars.length === 0 && svcAdds.length === 0 && svcVariantsMap[s.id] !== undefined) return null;
+                            return (
+                              <div style={{ border: `1.5px solid ${GOLD}`, borderTop: "none", borderRadius: "0 0 12px 12px", padding: "12px 14px", background: GOLD_LIGHT, display: "flex", flexDirection: "column", gap: 12 }}>
+                                {isLoading && <p style={{ fontSize: 11, color: TXT_SOFT, fontFamily: "'Montserrat',sans-serif" }}>Loading options...</p>}
+                                {svcVars.length > 0 && (
+                                  <div>
+                                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", color: GOLD_DARK, marginBottom: 8, fontFamily: "'Montserrat',sans-serif" }}>SIZE / LENGTH <span style={{ color: "#C0392B" }}>*</span></p>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                      {svcVars.map((v: any) => {
+                                        const vActive = (svcVariantSel[s.id] || "") === v.id;
+                                        return (
+                                          <button type="button" key={v.id} onClick={() => setSvcVariantSel(prev => ({ ...prev, [s.id]: v.id }))}
+                                            style={{ background: vActive ? GOLD_DARK : WHITE, color: vActive ? WHITE : TXT, border: `1.5px solid ${vActive ? GOLD_DARK : BORDER}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, transition: "all 0.15s" }}>
+                                            {v.name}
+                                            <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: vActive ? "rgba(255,255,255,0.85)" : GOLD_DARK, marginTop: 2 }}>GHS {Number(v.price_adjustment).toLocaleString()}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                                {svcAdds.length > 0 && (
+                                  <div>
+                                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", color: "#7C3AED", marginBottom: 8, fontFamily: "'Montserrat',sans-serif" }}>ADD-ONS <span style={{ fontWeight: 400, color: TXT_SOFT, fontSize: 9 }}>(optional)</span></p>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                      {svcAdds.map((a: any) => {
+                                        const checked = (svcAddonsSel[s.id] || []).includes(a.id);
+                                        return (
+                                          <label key={a.id} onClick={() => setSvcAddonsSel(prev => ({ ...prev, [s.id]: checked ? (prev[s.id]||[]).filter((id:string) => id !== a.id) : [...(prev[s.id]||[]), a.id] }))}
+                                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: checked ? "#F5F3FF" : WHITE, border: `1.5px solid ${checked ? "#A78BFA" : BORDER}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", transition: "all 0.15s" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                              <div style={{ width: 14, height: 14, borderRadius: 3, border: `2px solid ${checked ? "#7C3AED" : "#D1C5B8"}`, background: checked ? "#7C3AED" : WHITE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                {checked && <span style={{ color: WHITE, fontSize: 9, fontWeight: 700 }}>✓</span>}
+                                              </div>
+                                              <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: TXT }}>{a.name}</span>
+                                            </div>
+                                            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap", marginLeft: 8 }}>+GHS {Number(a.price).toLocaleString()}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                          </div>
                         );
                       })}
                     </div>
