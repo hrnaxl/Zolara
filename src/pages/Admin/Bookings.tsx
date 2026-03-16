@@ -426,7 +426,7 @@ export default function Bookings() {
                     const dl = dateLabel(b.preferred_date);
                     const isSelected = selected?.id === b.id;
                     return (
-                      <tr key={b.id} onClick={() => setSelected(isSelected ? null : b); setExtraStaff([])}
+                      <tr key={b.id} onClick={() => { setSelected(isSelected ? null : b); setExtraStaff([]); }}
                         className={`bk-row${isSelected ? " selected" : ""}`}
                         style={{ borderBottom: `1px solid ${BORDER}`, background: i % 2 === 0 ? WHITE : "#FAFAF8", borderLeft: isSelected ? `3px solid ${G_D}` : "3px solid transparent" }}>
                         <td style={{ padding: "12px 16px" }}>
