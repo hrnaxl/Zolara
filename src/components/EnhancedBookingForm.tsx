@@ -367,12 +367,10 @@ export default function EnhancedBookingForm() {
                       {(svcs as any[]).map((s: any) => {
                         const sel = serviceIds.includes(s.id);
                         return (
-                          <div key={s.id} style={{ gridColumn: "span 1" }}>
+                          <div key={s.id} style={{ gridColumn: sel ? "span 2" : "span 1" }}>
                           <div className="svc-card" onClick={() => {
-                            setServiceIds(prev => {
-                              if (!prev.includes(s.id)) loadServiceExtras(s.id);
-                              return prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id];
-                            });
+                            if (!serviceIds.includes(s.id)) loadServiceExtras(s.id);
+                            setServiceIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]);
                           }}
                             style={{ textAlign: "left", padding: "14px 16px", borderRadius: sel ? "12px 12px 0 0" : 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
