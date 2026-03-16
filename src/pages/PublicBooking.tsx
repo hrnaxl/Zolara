@@ -240,7 +240,17 @@ export default function PublicBooking() {
   const primaryBase = selectedVariant
     ? Number(selectedVariant.price_adjustment)
     : serviceHasVariants ? 0 : Number(selectedService?.price || 0);
-  const otherServicesTotal = selectedServices.filter(s => s.id !== serviceId).reduce((sum, s) => sum + Number(s.price || 0), 0);
+  // For additional services: use their base price (no variant selected for them)
+  const otherServicesTotal = selectedServices
+    .filter(s => s.id !== serviceId)
+    .reduce((sum, s) => {
+      const vars = allVariantsMap[s.id] || [];
+      // If service has variants, use min variant price as estimate; else use service price
+      const p = vars.length > 0
+        ? Math.min(...vars.map((v: any) => Number(v.price_adjustment)))
+        : Number(s.price || 0);
+      return sum + p;
+    }, 0);
   const basePrice = primaryBase + otherServicesTotal;
   const variantAdj = 0;
   const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
