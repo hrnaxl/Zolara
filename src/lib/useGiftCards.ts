@@ -284,10 +284,16 @@ export async function resendGiftCardEmail(id: string) {
       buyer_name: card.buyer_name || undefined,
       message: card.message || undefined,
     });
-    // sent is true if we get here (throws on failure)
-    await (supabaseAdmin as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", id);
+    // Email sent — update card status
+    const { error: updateErr } = await (supabaseAdmin as any)
+      .from("gift_cards")
+      .update({ status: "active", payment_status: "paid" })
+      .eq("id", id);
+    if (updateErr) console.error("Card update after email failed:", updateErr.message);
+    // Still return success — email was sent even if card update failed
     return { success: true, error: null };
   } catch (error: any) {
+    console.error("resendGiftCardEmail error:", error.message);
     return { success: false, error };
   }
 }
