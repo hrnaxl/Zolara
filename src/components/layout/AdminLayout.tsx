@@ -1183,72 +1183,49 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ── HEATMAP + BOTTOM ROW ─────────────────────────── */}
-      <div className="admin-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:14 }}>
-        {/* Booking Heatmap */}
-        <div className="zc-flat au" style={{ animationDelay:"0.57s", padding:"24px" }}>
-          <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:5 }}>BOOKING PATTERNS</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color: TXT, marginBottom:16 }}>Busiest Times</div>
-          {(() => {
-            const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-            const hours = [8,9,10,11,12,13,14,15,16,17,18,19,20];
-            const maxVal = Math.max(1, ...Object.values(heatmapData));
-            return (
-              <div style={{ overflowX:"auto" }}>
-                <div style={{ display:"grid", gridTemplateColumns:`28px repeat(${hours.length},1fr)`, gap:2, minWidth:300 }}>
-                  <div />
-                  {hours.map(h => (
-                    <div key={h} style={{ fontSize:8, color: TXT_SOFT, textAlign:"center", paddingBottom:4 }}>
-                      {h > 12 ? (h-12)+"p" : h+"a"}
-                    </div>
-                  ))}
-                  {days.map((day, di) => (
-                    <React.Fragment key={day}>
-                      <div style={{ fontSize:9, color: TXT_SOFT, display:"flex", alignItems:"center", paddingRight:4 }}>{day}</div>
-                      {hours.map(h => {
-                        const v = heatmapData[di + "_" + h] || 0;
-                        const intensity = v / maxVal;
-                        return (
-                          <div key={h} title={v + " bookings"} style={{
-                            height:18, borderRadius:3,
-                            background: intensity === 0 ? "#F3F4F6" : `rgba(200,169,126,${0.15 + intensity * 0.85})`,
-                            border: intensity > 0.7 ? "1px solid rgba(139,105,20,0.3)" : "none",
-                          }} />
-                        );
-                      })}
-                    </React.Fragment>
-                  ))}
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:10 }}>
-                  <span style={{ fontSize:9, color: TXT_SOFT }}>Less</span>
-                  {[0.1,0.3,0.5,0.7,0.9].map(i => (
-                    <div key={i} style={{ width:12, height:12, borderRadius:2, background:`rgba(200,169,126,${0.15 + i * 0.85})` }} />
-                  ))}
-                  <span style={{ fontSize:9, color: TXT_SOFT }}>More</span>
-                </div>
+      {/* ── HEATMAP ──────────────────────────────────────── */}
+      <div className="zc-flat au" style={{ marginBottom:14, padding:"24px" }}>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:5 }}>BOOKING PATTERNS</div>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color: TXT, marginBottom:16 }}>Busiest Times (last 90 days)</div>
+        {(() => {
+          const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+          const hours = [8,9,10,11,12,13,14,15,16,17,18,19,20];
+          const maxVal = Math.max(1, ...Object.values(heatmapData).map(Number));
+          return (
+            <div style={{ overflowX:"auto" }}>
+              <div style={{ display:"grid", gridTemplateColumns:`32px repeat(${hours.length},1fr)`, gap:3, minWidth:320 }}>
+                <div />
+                {hours.map(h => (
+                  <div key={h} style={{ fontSize:8, color: TXT_SOFT, textAlign:"center", paddingBottom:4 }}>
+                    {h > 12 ? (h-12)+"p" : h+"a"}
+                  </div>
+                ))}
+                {days.map((day, di) => (
+                  <React.Fragment key={day}>
+                    <div style={{ fontSize:9, color: TXT_SOFT, display:"flex", alignItems:"center" }}>{day}</div>
+                    {hours.map(h => {
+                      const v = Number(heatmapData[di + "_" + h] || 0);
+                      const intensity = v / maxVal;
+                      return (
+                        <div key={h} title={v + " bookings"} style={{
+                          height:16, borderRadius:3,
+                          background: intensity === 0 ? "#F3F4F6" : `rgba(200,169,126,${0.15 + intensity * 0.85})`,
+                        }} />
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
               </div>
-            );
-          })()}
-        </div>
-
-        {/* Top Staff */}
-        <div className="zc-flat au" style={{ animationDelay:"0.63s", padding:"24px" }}>
-          <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:5 }}>PERFORMANCE</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color: TXT, marginBottom:16 }}>Top Staff</div>
-          {topStaff.length === 0
-            ? <div style={{ color: TXT_SOFT, fontSize:12, textAlign:"center", padding:"20px 0" }}>No data yet</div>
-            : topStaff.slice(0,5).map((s: any, i: number) => (
-              <div key={s.name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom: i < 4 ? `1px solid ${BORDER}` : "none" }}>
-                <div style={{ width:28, height:28, borderRadius:8, background: i === 0 ? G_LIGHT : CREAM, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color: i === 0 ? G : TXT_SOFT, flexShrink:0 }}>{i+1}</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:12, fontWeight:600, color: TXT }}>{s.name}</div>
-                  <div style={{ fontSize:10, color: TXT_SOFT }}>{s.bookings} bookings</div>
-                </div>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color: G }}>GHS {Number(s.revenue||0).toLocaleString()}</div>
+              <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:10 }}>
+                <span style={{ fontSize:9, color: TXT_SOFT }}>Less</span>
+                {[0.15,0.35,0.55,0.75,0.95].map(i => (
+                  <div key={i} style={{ width:12, height:12, borderRadius:2, background:`rgba(200,169,126,${i})` }} />
+                ))}
+                <span style={{ fontSize:9, color: TXT_SOFT }}>More</span>
               </div>
-            ))
-          }
-        </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── BOTTOM ROW ───────────────────────────────────── */}
