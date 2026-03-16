@@ -24,6 +24,7 @@ import {
   endOfDay,
 } from "date-fns";
 import { useSettings } from "@/context/SettingsContext";
+import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
