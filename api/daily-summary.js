@@ -65,7 +65,9 @@ module.exports = async function handler(req, res) {
     const ownerPhone = "0594922679";
 
     // Build message
-    const dayLabel = now.toLocaleDateString("en-GH", { weekday: "long", day: "numeric", month: "short" });
+    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const dayLabel = days[now.getDay()] + ", " + now.getDate() + " " + months[now.getMonth()];
     const lines = [
       `📊 Zolara Daily Summary — ${dayLabel}`,
       ``,
