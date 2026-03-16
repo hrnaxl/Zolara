@@ -274,19 +274,17 @@ export async function resendGiftCardEmail(id: string) {
       .single();
     if (fetchErr || !card) throw fetchErr || new Error("Card not found");
     if (!card.recipient_email) throw new Error("No recipient email on this card");
-    // Call send-email API directly so we get the actual error back
-    const emailRes = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: card.recipient_email,
-        subject: "Your Zolara " + (card.tier || "") + " Gift Card — GH₵" + card.amount,
-        html: "<h1>Your Zolara Gift Card</h1><p>Code: <strong>" + card.code + "</strong></p><p>Value: GH₵" + card.amount + "</p>",
-      }),
+    const sent = await sendGiftCardEmail({
+      id: card.id,
+      tier: card.tier || "Gold",
+      amount: Number(card.amount || 0),
+      code: card.code || card.final_code || "",
+      recipient_name: card.recipient_name || undefined,
+      recipient_email: card.recipient_email,
+      buyer_name: card.buyer_name || undefined,
+      message: card.message || undefined,
     });
-    const emailData = await emailRes.json().catch(() => ({}));
-    console.log("Resend result:", emailRes.status, emailData);
-    if (!emailRes.ok) throw new Error("Email failed: " + (emailData.error || emailRes.status));
+    if (!sent) throw new Error("Email delivery failed — check Resend logs");
     await (supabaseAdmin as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", id);
     return { success: true, error: null };
   } catch (error: any) {
