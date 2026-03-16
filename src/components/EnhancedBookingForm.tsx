@@ -48,63 +48,6 @@ const sectionTitle = {
   color: GOLD, marginBottom: 20, display: "block",
 } as const;
 
-
-// ── Stable service picker — isolated from parent re-renders ──────────────────
-function ServicePicker({ services, selectedIds, onChange }: {
-  services: any[];
-  selectedIds: string[];
-  onChange: (ids: string[]) => void;
-}) {
-  const GOLD = "#C9A84C"; const GOLD_DARK = "#A8892E"; const GOLD_LIGHT = "#FDF6E3";
-  const WHITE = "#FFFFFF"; const BORDER = "#EDE8E0"; const TXT = "#1C1917"; const TXT_SOFT = "#A8A29E";
-
-  const grouped = services.reduce((acc: Record<string,any[]>, s: any) => {
-    const cat = s.category || "Other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(s);
-    return acc;
-  }, {});
-
-  const toggle = (id: string) => {
-    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
-  };
-
-  const selected = services.filter(s => selectedIds.includes(s.id));
-  const total = selected.reduce((s: number, sv: any) => s + Number(sv.price || 0), 0);
-
-  return (
-    <div>
-      {Object.entries(grouped).map(([cat, svcs]) => (
-        <div key={cat} style={{ marginBottom: 24 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: 10, textTransform: "uppercase", borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 }}>{cat}</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(svcs as any[]).map((s: any) => {
-              const sel = selectedIds.includes(s.id);
-              return (
-                <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: sel ? GOLD_LIGHT : WHITE, border: `1.5px solid ${sel ? GOLD : BORDER}`, cursor: "pointer" }}>
-                  <input type="checkbox" checked={sel} onChange={() => toggle(s.id)}
-                    style={{ width: 18, height: 18, accentColor: GOLD, cursor: "pointer", flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: sel ? GOLD_DARK : TXT }}>{s.name}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: GOLD, flexShrink: 0 }}>GHS {Number(s.price).toLocaleString()}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-      {selected.length > 0 && (
-        <div style={{ marginTop: 8, padding: "12px 16px", background: GOLD_LIGHT, borderRadius: 10, border: `1px solid ${GOLD}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: GOLD_DARK, marginBottom: 3 }}>{selected.length} service{selected.length > 1 ? "s" : ""} selected</div>
-            <div style={{ fontSize: 11, color: GOLD_DARK, opacity: 0.8 }}>{selected.map((s: any) => s.name).join(" + ")}</div>
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: GOLD_DARK, fontFamily: "'Cormorant Garamond',serif" }}>GHS {total.toLocaleString()}</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function EnhancedBookingForm() {
   const { settings } = useSettings();
   const location = useLocation();
@@ -122,7 +65,7 @@ export default function EnhancedBookingForm() {
   const [email, setEmail] = useState("");
 
   // Step 2 — service + datetime
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [serviceIds, setServiceIds]   = useState<string[]>([]);
   const [preferredDate, setDate]      = useState("");
   const [preferredTime, setTime]      = useState("");
   const [notes, setNotes]             = useState("");
@@ -151,9 +94,16 @@ export default function EnhancedBookingForm() {
       .catch(() => setLoading(false));
   }, []);
 
-  const selectedServices = services.filter(s => selectedIds.includes(s.id));
-  const selectedService  = selectedServices[0] || null; // primary service for compat
-  const serviceId        = selectedIds[0] || "";        // primary id for compat
+  const serviceId = serviceIds[0] || "";
+  const selectedService = services.find(s => s.id === serviceId);
+  const selectedServices = services.filter(s => serviceIds.includes(s.id));
+  const grouped = services.reduce((acc, s) => {
+    const cat = s.category || "Other";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(s);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   const basePrice   = selectedServices.reduce((s, sv) => s + Number(sv.price || 0), 0);
   const discount    = promoApplied
     ? promoApplied.discount_type === "percentage"
@@ -183,7 +133,7 @@ export default function EnhancedBookingForm() {
 
   const validateStep2 = () => {
     const e: Record<string,string> = {};
-    if (selectedIds.length === 0) e.service = "Please select at least one service";
+    if (serviceIds.length === 0) e.service = "Please select at least one service";
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
     setErrors(e);
@@ -368,7 +318,7 @@ export default function EnhancedBookingForm() {
           <>
             {/* Service cards */}
             <div style={card}>
-              <span style={sectionTitle}>SELECT SERVICES (choose one or more)</span>
+              <span style={sectionTitle}>SELECT A SERVICE</span>
               {loading ? (
                 <div style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
                   <Loader2 size={28} style={{ color: GOLD, animation: "spin 0.8s linear infinite" }} />
@@ -377,7 +327,24 @@ export default function EnhancedBookingForm() {
               ) : services.length === 0 ? (
                 <p style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No services available at the moment.</p>
               ) : (
-                <ServicePicker services={services} selectedIds={selectedIds} onChange={setSelectedIds} />
+                Object.entries(grouped).map(([cat, svcs]) => (
+                  <div key={cat} style={{ marginBottom: 20 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: 10, textTransform: "uppercase" }}>{cat}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      {(svcs as any[]).map((s: any) => {
+                        const sel = serviceIds.includes(s.id);
+                        return (
+                          <button key={s.id} className="svc-card" onClick={() => setServiceIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                            style={{ textAlign: "left", padding: "14px 16px", borderRadius: 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>GHS {Number(s.price).toLocaleString()}</div>
+                            {sel && <div style={{ marginTop: 6, fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: "0.08em" }}>✓ SELECTED</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
               )}
               {errors.service && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.service}</p>}
             </div>
