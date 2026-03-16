@@ -1,33 +1,28 @@
-const https = require("https");
-
-const SUPABASE_HOST = "vwvrhbyfytmqsywfdhvd.supabase.co";
-const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
-
-function sbRequest(method, path, body) {
-  return new Promise((resolve, reject) => {
-    const data = body ? JSON.stringify(body) : null;
-    const headers = {
-      "apikey": SERVICE_KEY,
-      "Authorization": "Bearer " + SERVICE_KEY,
-      "Content-Type": "application/json",
-      "Prefer": "return=representation",
-    };
-    if (data) headers["Content-Length"] = Buffer.byteLength(data);
-    const req = https.request({ hostname: SUPABASE_HOST, path: "/rest/v1/" + path, method, headers }, res => {
-      let buf = "";
-      res.on("data", c => buf += c);
-      res.on("end", () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(buf) }); }
-        catch { resolve({ status: res.statusCode, data: buf }); }
-      });
-    });
-    req.on("error", reject);
-    if (data) req.write(data);
-    req.end();
-  });
-}
+const SUPABASE_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
+const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
+const H  = { "apikey": SK, "Authorization": "Bearer " + SK, "Content-Type": "application/json", "Prefer": "return=representation" };
 
 const TIER_VALUES = { Bronze: 1, Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
+
+async function sbGet(path) {
+  const r = await fetch(SUPABASE_URL + "/rest/v1/" + path, { headers: H });
+  return { ok: r.ok, status: r.status, data: await r.json() };
+}
+
+async function sbPatch(table, match, body) {
+  const qs = Object.entries(match).map(([k,v]) => k + "=eq." + encodeURIComponent(v)).join("&");
+  const r = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?" + qs, {
+    method: "PATCH", headers: H, body: JSON.stringify(body),
+  });
+  return { ok: r.ok, status: r.status, data: await r.json() };
+}
+
+async function sbInsert(table, body) {
+  const r = await fetch(SUPABASE_URL + "/rest/v1/" + table, {
+    method: "POST", headers: H, body: JSON.stringify(body),
+  });
+  return { ok: r.ok, status: r.status, data: await r.json() };
+}
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -39,56 +34,65 @@ module.exports = async function handler(req, res) {
   const { tier, buyerName, buyerEmail, buyerPhone, paymentRef } = req.body || {};
   if (!tier) return res.status(400).json({ error: "Missing tier" });
 
-  const tierValue = TIER_VALUES[tier] || 0;
+  const amount = TIER_VALUES[tier] || 0;
 
   try {
     // 1. Find available physical card for this tier
-    const find = await sbRequest("GET",
+    const find = await sbGet(
       "gift_cards?tier=eq." + encodeURIComponent(tier) +
-      "&card_type=eq.physical&payment_status=eq.pending&status=eq.active&limit=1&select=id,code,serial_number,tier,amount"
+      "&card_type=eq.physical&payment_status=eq.pending&status=eq.active" +
+      "&limit=1&select=id,code,serial_number,tier,amount"
     );
-    console.log("Find:", find.status, JSON.stringify(find.data));
 
-    let card;
+    console.log("Find result:", find.status, JSON.stringify(find.data));
 
-    if (!Array.isArray(find.data) || find.data.length === 0) {
-      // No stock — create placeholder
-      console.warn("No " + tier + " card in stock, creating placeholder");
-      const insert = await sbRequest("POST", "gift_cards", {
-        code: "PICKUP-" + Date.now(),
-        tier, amount: tierValue, balance: tierValue,
-        status: "active", payment_status: "pending_pickup",
+    let card = null;
+
+    if (find.ok && Array.isArray(find.data) && find.data.length > 0) {
+      // Found a card — reserve it
+      card = find.data[0];
+
+      const patch = await sbPatch("gift_cards", { id: card.id }, {
+        payment_status: "pending_pickup",
+        buyer_name: buyerName || null,
+        buyer_email: buyerEmail || null,
+        buyer_phone: buyerPhone || null,
+        notes: "RESERVED FOR PICKUP. Buyer: " + (buyerName||"") + " | Phone: " + (buyerPhone||"") + " | Ref: " + (paymentRef||"") + " | " + new Date().toISOString(),
+      });
+
+      console.log("Patch result:", patch.status, JSON.stringify(patch.data));
+
+      if (!patch.ok) {
+        // Patch failed — still return the card, log the error
+        console.error("Patch failed but card found:", patch.data);
+      }
+
+      return res.status(200).json({ claimed: true, card, message: "Card reserved for pickup" });
+
+    } else {
+      // No pre-printed card in stock — create a placeholder
+      console.warn("No " + tier + " physical card in stock — creating placeholder");
+
+      const code = "PICKUP-" + Date.now().toString(36).toUpperCase();
+      const insert = await sbInsert("gift_cards", {
+        code,
+        tier,
+        amount,
+        balance: amount,
+        status: "active",
+        payment_status: "pending_pickup",
         card_type: "physical",
         buyer_name: buyerName || null,
         buyer_email: buyerEmail || null,
         buyer_phone: buyerPhone || null,
-        notes: "No pre-printed stock. Payment: " + (paymentRef || ""),
+        notes: "NO STOCK. ASSIGN PHYSICAL CARD MANUALLY. Buyer: " + (buyerName||"") + " | Phone: " + (buyerPhone||"") + " | Ref: " + (paymentRef||""),
       });
-      card = Array.isArray(insert.data) ? insert.data[0] : insert.data;
-      return res.status(200).json({ claimed: false, card, message: "No stock — placeholder created" });
+
+      console.log("Placeholder insert:", insert.status, JSON.stringify(insert.data));
+
+      const inserted = Array.isArray(insert.data) ? insert.data[0] : insert.data;
+      return res.status(200).json({ claimed: false, card: inserted, message: "No stock. Placeholder created. Assign card manually." });
     }
-
-    card = find.data[0];
-
-    // 2. Reserve it — update payment_status first (critical)
-    const patch = await sbRequest("PATCH", "gift_cards?id=eq." + card.id, {
-      payment_status: "pending_pickup",
-      buyer_name: buyerName || null,
-      buyer_email: buyerEmail || null,
-      buyer_phone: buyerPhone || null,
-      notes: "Reserved. Buyer: " + (buyerName || "") + " | Phone: " + (buyerPhone || "") + " | Ref: " + (paymentRef || ""),
-    });
-    console.log("Patch:", patch.status, JSON.stringify(patch.data));
-
-    if (patch.status >= 400) {
-      // Try minimal patch if buyer columns don't exist
-      const minPatch = await sbRequest("PATCH", "gift_cards?id=eq." + card.id, { payment_status: "pending_pickup" });
-      console.log("Min patch:", minPatch.status, JSON.stringify(minPatch.data));
-      if (minPatch.status >= 400) return res.status(500).json({ error: "Failed to reserve card", detail: minPatch.data });
-    }
-
-    console.log("Reserved:", card.id, card.code);
-    return res.status(200).json({ claimed: true, card, message: "Card reserved for pickup" });
 
   } catch (err) {
     console.error("Claim error:", err.message);

@@ -81,93 +81,84 @@ export default function BuyGiftCard() {
             const { supabase: sb } = await import("@/integrations/supabase/client");
 
             if (isEmail) {
-              // ── DIGITAL: create new card + send gift email ─────────────
-              const code = `ZGC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
-              // Insert card as active immediately — no pending_send limbo
-              const { data: card, error } = await (sb as any)
+              // ── DIGITAL ───────────────────────────────────────────────────
+              const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+              const rand4 = () => Array.from({length:4}, () => chars[Math.floor(Math.random()*chars.length)]).join("");
+              const pfx = (selectedTier || "GC").substring(0,3).toUpperCase();
+              const code = pfx + "-" + rand4() + "-" + rand4();
+              const expires = new Date();
+              expires.setFullYear(expires.getFullYear() + 1);
+              const emailTo = form.recipientEmail || form.buyerEmail;
+
+              const { data: newCard, error: insertErr } = await (sb as any)
                 .from("gift_cards")
                 .insert({
-                  code, tier: selectedTier, amount: tierValue, balance: tierValue,
-                  status: "active", payment_status: "paid", card_type: "digital",
-                  buyer_name: form.buyerName || null, buyer_email: form.buyerEmail || null,
-                  buyer_phone: form.buyerPhone || null,
-                  recipient_name: form.recipientName || form.buyerName,
-                  recipient_email: form.recipientEmail, message: form.message || null,
-                })
-                .select("id").single();
-
-              if (error) console.error("Digital card insert failed:", error);
-
-              // Send gift card email
-              if (!error && card?.id && form.recipientEmail) {
-                const emailSent = await sendGiftCardEmail({
-                  id: card.id, tier: selectedTier!, amount: tierValue, code,
-                  recipient_name: form.recipientName || form.buyerName,
-                  recipient_email: form.recipientEmail, buyer_name: form.buyerName,
-                  message: form.message || undefined,
-                });
-                if (!emailSent) console.error("Gift card email failed to send for card:", card.id);
-              }
-
-              // Send purchase receipt to buyer
-              if (form.buyerEmail) {
-                sendPurchaseReceiptEmail({
-                  buyerName: form.buyerName, buyerEmail: form.buyerEmail,
-                  tier: selectedTier!, amount: tierValue, cardCode: code,
-                  paymentRef: paymentRef || "", isDigital: true,
-                  recipientName: form.recipientName, recipientEmail: form.recipientEmail,
-                }).catch(console.error);
-              }
-
-            } else {
-              // ── PHYSICAL PICKUP: claim a pre-printed card ──────────────────
-              try {
-                const claimRes = await fetch("/api/claim-gift-card", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    tier: selectedTier,
-                    buyerName: form.buyerName,
-                    buyerEmail: form.buyerEmail,
-                    buyerPhone: form.buyerPhone,
-                    paymentRef,
-                  }),
-                });
-                const claimData = await claimRes.json();
-                console.log("Claim response:", claimRes.status, claimData);
-                if (!claimRes.ok) throw new Error(claimData.error || "Claim API failed");
-
-                const claimedCard = claimData.card;
-                const claimedCode = claimedCard?.code || "";
-
-                // Send pickup receipt email
-                if (form.buyerEmail) {
-                  sendPickupReceiptEmail({
-                    buyerName: form.buyerName, buyerEmail: form.buyerEmail,
-                    tier: selectedTier!, amount: tierValue, cardCode: claimedCode,
-                    serialNumber: claimedCard?.serial_number || claimedCard?.code || undefined,
-                    paymentRef: paymentRef || "",
-                  }).catch(console.error);
-                }
-              } catch (claimErr: any) {
-                console.error("Physical card claim failed:", claimErr.message);
-                // Payment went through — create a placeholder record directly
-                const { supabase: sb2 } = await import("@/integrations/supabase/client");
-                await (sb2 as any).from("gift_cards").insert({
-                  code: "PICKUP-" + Date.now().toString(36).toUpperCase(),
-                  tier: selectedTier, amount: tierValue, balance: tierValue,
-                  status: "active", payment_status: "pending_pickup",
-                  card_type: "physical",
+                  code,
+                  tier: selectedTier,
+                  amount: tierValue,
+                  balance: tierValue,
+                  status: "active",
+                  payment_status: "paid",
+                  card_type: "digital",
                   buyer_name: form.buyerName || null,
                   buyer_email: form.buyerEmail || null,
                   buyer_phone: form.buyerPhone || null,
-                  recipient_name: form.buyerName,
-                  notes: "AUTO-PLACEHOLDER: claim API failed. Payment ref: " + paymentRef + ". Assign physical card manually.",
-                }).catch(console.error);
+                  recipient_name: form.recipientName || form.buyerName || null,
+                  recipient_email: emailTo || null,
+                  message: form.message || null,
+                  expires_at: expires.toISOString(),
+                })
+                .select("id, code")
+                .single();
+
+              if (insertErr) {
+                console.error("Card insert failed:", insertErr.message);
+              } else if (emailTo) {
+                sendGiftCardEmail({
+                  id: newCard.id,
+                  tier: selectedTier!,
+                  amount: tierValue,
+                  code: newCard.code,
+                  recipient_name: form.recipientName || form.buyerName,
+                  recipient_email: emailTo,
+                  buyer_name: form.buyerName,
+                  message: form.message || undefined,
+                }).catch((e: any) => console.error("Gift email error:", e.message));
+              }
+
+            } else {
+              // ── PHYSICAL PICKUP ──────────────────────────────────────────
+              const claimRes = await fetch("/api/claim-gift-card", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  tier: selectedTier,
+                  buyerName: form.buyerName,
+                  buyerEmail: form.buyerEmail,
+                  buyerPhone: form.buyerPhone,
+                  paymentRef,
+                }),
+              });
+              const claimText = await claimRes.text();
+              let claimData: any = {};
+              try { claimData = JSON.parse(claimText); } catch { claimData = { error: claimText }; }
+              console.log("Claim:", claimRes.status, JSON.stringify(claimData));
+
+              if (form.buyerEmail && claimData.card?.code) {
+                sendPickupReceiptEmail({
+                  buyerName: form.buyerName,
+                  buyerEmail: form.buyerEmail,
+                  tier: selectedTier!,
+                  amount: tierValue,
+                  cardCode: claimData.card.code,
+                  serialNumber: claimData.card.serial_number || undefined,
+                  paymentRef: paymentRef || "",
+                }).catch((e: any) => console.error("Pickup email error:", e.message));
               }
             }
-          } catch (e) {
-            console.error("Gift card processing error:", e);
+
+          } catch (e: any) {
+            console.error("Gift card error:", e.message);
           }
           setStep("done");
           setLoading(false);

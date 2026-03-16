@@ -6,12 +6,17 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
   try {
-    const { to, subject, html } = req.body;
-    if (!to || !subject || !html) return res.status(400).json({ error: "Missing fields" });
-    const response = await fetch("https://api.resend.com/emails", {
+    const { to, subject, html } = req.body || {};
+    if (!to || !subject || !html) return res.status(400).json({ error: "Missing to, subject or html" });
+
+    const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + RESEND_API_KEY },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + RESEND_API_KEY,
+      },
       body: JSON.stringify({
         from: "Zolara Beauty Studio <onboarding@resend.dev>",
         to: Array.isArray(to) ? to : [to],
@@ -19,11 +24,13 @@ module.exports = async function handler(req, res) {
         html,
       }),
     });
-    const data = await response.json();
-    console.log("Resend:", response.status, JSON.stringify(data));
-    if (!response.ok) return res.status(500).json({ error: data.message || JSON.stringify(data) });
-    return res.status(200).json({ ok: true, id: data.id });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+
+    const d = await r.json();
+    console.log("Resend", r.status, JSON.stringify(d));
+    if (!r.ok) return res.status(500).json({ error: d.message || d.name || JSON.stringify(d) });
+    return res.status(200).json({ ok: true, id: d.id });
+  } catch (e) {
+    console.error("send-email error:", e.message);
+    return res.status(500).json({ error: e.message });
   }
 };
