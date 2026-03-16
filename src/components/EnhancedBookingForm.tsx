@@ -328,18 +328,25 @@ export default function EnhancedBookingForm() {
                 <p style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No services available at the moment.</p>
               ) : (
                 Object.entries(grouped).map(([cat, svcs]) => (
-                  <div key={cat} style={{ marginBottom: 20 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: 10, textTransform: "uppercase" }}>{cat}</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div key={cat} style={{ marginBottom: 24 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: 10, textTransform: "uppercase", borderBottom: `1px solid ${BORDER}`, paddingBottom: 8 }}>{cat}</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {(svcs as any[]).map((s: any) => {
                         const sel = selectedIds.includes(s.id);
+                        const toggle = () => setSelectedIds(ids =>
+                          ids.includes(s.id) ? ids.filter(id => id !== s.id) : [...ids, s.id]
+                        );
                         return (
-                          <button type="button" key={s.id} className="svc-card" onClick={() => setSelectedIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                            style={{ textAlign: "left", padding: "14px 16px", borderRadius: 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>GHS {Number(s.price).toLocaleString()}</div>
-                            {sel && <div style={{ marginTop: 6, fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: "0.08em" }}>✓ SELECTED</div>}
-                          </button>
+                          <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 10, background: sel ? GOLD_LIGHT : WHITE, border: `1.5px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s" }}>
+                            <input
+                              type="checkbox"
+                              checked={sel}
+                              onChange={toggle}
+                              style={{ width: 18, height: 18, accentColor: GOLD, cursor: "pointer", flexShrink: 0 }}
+                            />
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: sel ? GOLD_DARK : TXT }}>{s.name}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: GOLD, flexShrink: 0 }}>GHS {Number(s.price).toLocaleString()}</span>
+                          </label>
                         );
                       })}
                     </div>
