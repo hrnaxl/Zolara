@@ -427,18 +427,23 @@ const Checkout = () => {
           payment_date: new Date().toISOString(),
         });
         if (gcErr) console.error("Gift card sale record failed:", gcErr.message);
-        // Mark card status via service-role API (fire and forget — booking already saved)
-        fetch("/api/redeem-gift-card", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cardId: redeemedCard.id,
-            appliedAmount: appliedGift,
-            isDiamond: (redeemedCard as any).tier === "Diamond",
-            currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
-            clientName: booking.client_name || null,
-          }),
-        }).catch(e => console.error("Gift card status update failed:", e));
+        // Mark card status via service-role API — awaited so we know if it fails
+        try {
+          const gcApiRes = await fetch("/api/redeem-gift-card", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardId: redeemedCard.id,
+              appliedAmount: appliedGift,
+              isDiamond: (redeemedCard as any).tier === "Diamond",
+              currentBalance: (redeemedCard as any).fullBalance ?? appliedGift,
+              clientName: booking.client_name || null,
+            }),
+          });
+          const gcApiData = await gcApiRes.json();
+          if (!gcApiRes.ok) console.error("Gift card API failed:", gcApiData);
+          else console.log("Gift card marked:", gcApiData);
+        } catch (gcApiErr) { console.error("Gift card API error:", gcApiErr); }
       }
 
       // ── STEP 5: Record product sales + deduct stock ─────────────────────────
