@@ -86,12 +86,19 @@ export default function PublicBooking() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
-  const serviceId = serviceIds[0] || ""; // compat
-  const [variants, setVariants] = useState<any[]>([]);
-  const [variantsLoading, setVariantsLoading] = useState(false);
-  const [addons, setAddons] = useState<any[]>([]);
-  const [selectedVariantId, setSelectedVariantId] = useState("");
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const serviceId = serviceIds[0] || ""; // primary service id (for slot check compat)
+  // Per-service variant/addon data
+  const [svcVariantsMap, setSvcVariantsMap] = useState<Record<string,any[]>>({});
+  const [svcAddonsMap, setSvcAddonsMap]     = useState<Record<string,any[]>>({});
+  const [svcVariantSel, setSvcVariantSel]   = useState<Record<string,string>>({});
+  const [svcAddonsSel, setSvcAddonsSel]     = useState<Record<string,string[]>>({});
+  const [svcLoading, setSvcLoading]         = useState<Record<string,boolean>>({});
+  // Compat aliases for first service (slot check, validation)
+  const variants       = svcVariantsMap[serviceId] || [];
+  const addons         = svcAddonsMap[serviceId] || [];
+  const selectedVariantId = svcVariantSel[serviceId] || "";
+  const selectedAddons    = svcAddonsSel[serviceId] || [];
+  const variantsLoading   = !!svcLoading[serviceId];
   const [preferredDate, setDate] = useState("");
   const [preferredTime, setTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -186,26 +193,20 @@ export default function PublicBooking() {
   const selectedService = services.find(s => s.id === serviceId);
   const selectedServices = services.filter(s => serviceIds.includes(s.id));
 
-  // Fetch variants + addons whenever service changes
-  useEffect(() => {
-    setVariants([]); setAddons([]); setSelectedVariantId(""); setSelectedAddons([]);
-    if (!serviceId) { setVariantsLoading(false); return; }
-    setVariantsLoading(true);
-    const fetchVariantsAndAddons = async () => {
-      const [vRes, aRes] = await Promise.all([
-        (supabase as any).from("service_variants").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order"),
-        (supabase as any).from("service_addons").select("*").eq("service_id", serviceId).eq("is_active", true).order("sort_order"),
-      ]);
-      if (vRes.error) console.error("Variants fetch error:", vRes.error);
-      if (aRes.error) console.error("Addons fetch error:", aRes.error);
-      setVariants(vRes.data || []);
-      setAddons(aRes.data || []);
-      setVariantsLoading(false);
-    };
-    fetchVariantsAndAddons();
-  }, [serviceId]);
+  // Load variants + addons for a service the first time it is selected
+  const loadServiceExtras = async (svcId: string) => {
+    if (!svcId || svcVariantsMap[svcId] !== undefined) return; // already loaded
+    setSvcLoading(prev => ({ ...prev, [svcId]: true }));
+    const [vRes, aRes] = await Promise.all([
+      (supabase as any).from("service_variants").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order"),
+      (supabase as any).from("service_addons").select("*").eq("service_id", svcId).eq("is_active", true).order("sort_order"),
+    ]);
+    setSvcVariantsMap(prev => ({ ...prev, [svcId]: vRes.data || [] }));
+    setSvcAddonsMap(prev =>   ({ ...prev, [svcId]: aRes.data || [] }));
+    setSvcLoading(prev => ({ ...prev, [svcId]: false }));
+  };
 
-  const selectedVariant = variants.find(v => v.id === selectedVariantId);
+  const selectedVariant = variants.find((v: any) => v.id === selectedVariantId);
   const grouped = services.reduce((acc, s) => {
     const cat = s.category || "Other";
     if (!acc[cat]) acc[cat] = [];
@@ -237,23 +238,23 @@ export default function PublicBooking() {
 
   // While loading variants OR when variants exist: show 0 until one is selected
   const serviceHasVariants = variantsLoading || variants.length > 0;
-  const primaryBase = selectedVariant
-    ? Number(selectedVariant.price_adjustment)
-    : serviceHasVariants ? 0 : Number(selectedService?.price || 0);
-  // For additional services: use their base price (no variant selected for them)
-  const otherServicesTotal = selectedServices
-    .filter(s => s.id !== serviceId)
-    .reduce((sum, s) => {
-      const vars = allVariantsMap[s.id] || [];
-      // If service has variants, use min variant price as estimate; else use service price
-      const p = vars.length > 0
-        ? Math.min(...vars.map((v: any) => Number(v.price_adjustment)))
-        : Number(s.price || 0);
-      return sum + p;
-    }, 0);
-  const basePrice = primaryBase + otherServicesTotal;
+  // Each service: use its selected variant price if chosen, else base price
+  const basePrice = selectedServices.reduce((total, s) => {
+    const selVariantId = svcVariantSel[s.id] || "";
+    const svcVars = svcVariantsMap[s.id] || [];
+    const selVariant = svcVars.find((v: any) => v.id === selVariantId);
+    const hasVariants = svcVars.length > 0 || !!svcLoading[s.id];
+    const p = selVariant
+      ? Number(selVariant.price_adjustment)
+      : hasVariants ? 0 : Number(s.price || 0);
+    return total + p;
+  }, 0);
   const variantAdj = 0;
-  const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
+  const addonTotal = selectedServices.reduce((total, s) => {
+    const selAddons = svcAddonsSel[s.id] || [];
+    const svcAddons = svcAddonsMap[s.id] || [];
+    return total + svcAddons.filter((a: any) => selAddons.includes(a.id)).reduce((sum: number, a: any) => sum + Number(a.price), 0);
+  }, 0);
   const subtotal = basePrice + variantAdj + addonTotal;
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
@@ -271,7 +272,13 @@ export default function PublicBooking() {
     if (!name.trim() || name.trim().length < 2) e.name = "Enter your full name";
     if (!phone.trim() || phone.replace(/\s/g,"").length < 10) e.phone = "Enter a valid phone number";
     if (serviceIds.length === 0) e.service = "Please select a service";
-    if (serviceId && variants.length > 0 && !selectedVariantId) e.variant = "Please select a size or length";
+    for (const s of selectedServices) {
+      const sVars = svcVariantsMap[s.id] || [];
+      if (sVars.length > 0 && !svcVariantSel[s.id]) {
+        e.variant = "Please select a size/length for " + s.name;
+        break;
+      }
+    }
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
     setErrors(e);
@@ -323,9 +330,15 @@ export default function PublicBooking() {
           service_name: selectedServices.map(s => s.name).join(", ") || selectedService?.name || null,
           variant_id: selectedVariantId || null,
           variant_name: selectedVariant?.name || null,
-          selected_addons: selectedAddons.length > 0
-            ? addons.filter(a => selectedAddons.includes(a.id)).map(a => ({ id: a.id, name: a.name, price: a.price }))
-            : [],
+          selected_addons: (() => {
+            const all: any[] = [];
+            for (const s of selectedServices) {
+              const selAdd = svcAddonsSel[s.id] || [];
+              const sAdd = svcAddonsMap[s.id] || [];
+              sAdd.filter((a: any) => selAdd.includes(a.id)).forEach((a: any) => all.push({ id: a.id, name: a.name, price: a.price, service: s.name }));
+            }
+            return all;
+          })(),
           preferred_date: preferredDate,
           preferred_time: normalizedTime,
           price: total,
@@ -727,7 +740,13 @@ export default function PublicBooking() {
                   return (
                     <div key={svc.id}>
                       {/* Service row */}
-                      <button type="button" onClick={() => setServiceIds(prev => prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id])}
+                      <button type="button" onClick={() => {
+                        setServiceIds(prev => {
+                          const next = prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id];
+                          if (!prev.includes(svc.id)) loadServiceExtras(svc.id); // load on first select
+                          return next;
+                        });
+                      }}
                         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: active ? "10px 10px 0 0" : "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{svc.name}</p>
@@ -739,54 +758,53 @@ export default function PublicBooking() {
                         </div>
                       </button>
 
-                      {/* Inline variants + addons — only shown for the selected service */}
-                      {active && (variants.length > 0 || addons.length > 0 || selectedService) && (
+                      {/* Inline variants + addons — per-service, loads on first select */}
+                      {active && (() => {
+                        const svcVars  = svcVariantsMap[svc.id] || [];
+                        const svcAdds  = svcAddonsMap[svc.id]   || [];
+                        const isLoading = !!svcLoading[svc.id];
+                        const selVarId = svcVariantSel[svc.id]  || "";
+                        const selAdds  = svcAddonsSel[svc.id]   || [];
+                        if (!isLoading && svcVars.length === 0 && svcAdds.length === 0 && svcVariantsMap[svc.id] !== undefined) return null;
+                        return (
                         <div style={{ border: `1.5px solid ${GOLD}`, borderTop: "none", borderRadius: "0 0 10px 10px", padding: "14px 16px", background: "#FFFDF9", display: "flex", flexDirection: "column", gap: "14px" }}>
-
-                          {/* Selected service summary */}
-                          {selectedService && (
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_MID, margin: 0 }}>{selectedService.description ? selectedService.description.slice(0, 80) : "Selected"}</p>
-                              <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 700, color: GOLD_DARK, margin: 0, flexShrink: 0, marginLeft: 8 }}>GHS {total.toLocaleString()}</p>
-                            </div>
-                          )}
+                          {isLoading && <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 12, color: TXT_SOFT }}>Loading options...</p>}
 
                           {/* Variants */}
-                          {variants.length > 0 && (
+                          {svcVars.length > 0 && (
                             <div>
                               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: GOLD_DARK, marginBottom: "8px" }}>
                                 SIZE / LENGTH <span style={{ color: "#C0392B", marginLeft: "2px" }}>*</span>
                               </p>
                               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                                {variants.map((v: any) => {
-                                  const vPrice = Number(v.price_adjustment);
-                                  const vActive = selectedVariantId === v.id;
+                                {svcVars.map((v: any) => {
+                                  const vActive = selVarId === v.id;
                                   return (
-                                    <button key={v.id} onClick={() => setSelectedVariantId(v.id)}
+                                    <button type="button" key={v.id} onClick={() => setSvcVariantSel(prev => ({ ...prev, [svc.id]: v.id }))}
                                       style={{ background: vActive ? GOLD_DARK : "white", color: vActive ? "white" : DARK, border: `1.5px solid ${vActive ? GOLD_DARK : BORDER}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 600, transition: "all 0.15s" }}>
                                       {v.name}
                                       <span style={{ display: "block", fontSize: "11px", fontWeight: 700, color: vActive ? "rgba(255,255,255,0.85)" : GOLD_DARK, marginTop: "2px" }}>
-                                        GHS {vPrice.toLocaleString()}
+                                        GHS {Number(v.price_adjustment).toLocaleString()}
                                       </span>
                                     </button>
                                   );
                                 })}
                               </div>
-                              {errors.variant && <p className="err" style={{ marginTop: "6px" }}>{errors.variant}</p>}
+                              {errors.variant && errors.variant.includes(svc.name) && <p className="err" style={{ marginTop: "6px" }}>{errors.variant}</p>}
                             </div>
                           )}
 
                           {/* Add-ons */}
-                          {addons.length > 0 && (
+                          {svcAdds.length > 0 && (
                             <div>
                               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#7C3AED", marginBottom: "8px" }}>
                                 ADD-ONS <span style={{ fontWeight: 400, color: TXT_SOFT }}>(optional)</span>
                               </p>
                               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                {addons.map((a: any) => {
-                                  const checked = selectedAddons.includes(a.id);
+                                {svcAdds.map((a: any) => {
+                                  const checked = selAdds.includes(a.id);
                                   return (
-                                    <label key={a.id} onClick={() => setSelectedAddons(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])}
+                                    <label key={a.id} onClick={() => setSvcAddonsSel(prev => ({ ...prev, [svc.id]: checked ? (prev[svc.id]||[]).filter((id:string) => id !== a.id) : [...(prev[svc.id]||[]), a.id] }))}
                                       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: checked ? "#F5F3FF" : "white", border: `1.5px solid ${checked ? "#A78BFA" : BORDER}`, borderRadius: "8px", padding: "10px 14px", cursor: "pointer", transition: "all 0.15s" }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                         <div style={{ width: "16px", height: "16px", borderRadius: "4px", border: `2px solid ${checked ? "#7C3AED" : "#D1C5B8"}`, background: checked ? "#7C3AED" : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -808,7 +826,8 @@ export default function PublicBooking() {
                           )}
 
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -995,7 +1014,10 @@ export default function PublicBooking() {
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#F5EFE6" }}>{row.value}</span>
                 </div>
               ))}
-              {addons.filter(a => selectedAddons.includes(a.id)).map(a => (
+              {selectedServices.flatMap(s => {
+                const selAdd = svcAddonsSel[s.id] || [];
+                return (svcAddonsMap[s.id] || []).filter((a: any) => selAdd.includes(a.id));
+              }).map(a => (
                 <div key={a.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em" }}>+ {a.name}</span>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#C4B5FD" }}>+GHS {Number(a.price).toLocaleString()}</span>
