@@ -954,9 +954,11 @@ const AdminDashboard = () => {
               try {
                 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
                 const r = await fetch("/api/daily-summary", { method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+SK } });
-                const d = await r.json();
-                if (d.ok) { toast.success("Daily summary sent!"); }
-                else { toast.error(d.reason || d.error || "Failed"); }
+                const text = await r.text();
+                let d: any = {};
+                try { d = JSON.parse(text); } catch { d = { error: text }; }
+                if (r.ok && d.ok) { toast.success("Daily summary sent to " + (d.sentTo || "your phone") + "!"); }
+                else { toast.error("Error: " + (d.error || d.reason || text || "Unknown")); }
               } catch(e: any) { toast.error(e.message); }
             }}
             style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 16px", borderRadius:8, background:"rgba(200,169,126,0.12)", border:"1px solid rgba(200,169,126,0.3)", cursor:"pointer", fontSize:11, fontWeight:600, color:"#8B6914", fontFamily:"'Montserrat',sans-serif" }}
