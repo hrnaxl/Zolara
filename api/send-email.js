@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
         "Authorization": "Bearer " + RESEND_API_KEY,
       },
       body: JSON.stringify({
-        from: "Zolara Beauty Studio <onboarding@resend.dev>",
+        from: "Zolara Beauty Studio <noreply@noreply.zolarasalon.com>",
         to: Array.isArray(to) ? to : [to],
         subject,
         html,
