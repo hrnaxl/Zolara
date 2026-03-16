@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { autoAssignBooking } from "@/lib/autoAssign";
+import { sendSMS, SMS } from "@/lib/sms";
 import { validatePromoCode } from "@/lib/promoCodes";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
@@ -183,6 +184,18 @@ export default function EnhancedBookingForm() {
           normalizedTime
         ).catch(console.error); // fire and forget — don't block confirmation
       }
+      // Send booking received SMS
+      const depositAmt = Number((settings as any)?.deposit_amount ?? 50);
+      sendSMS(cleanPhone, SMS.bookingReceived(
+        name,
+        selectedService?.name || "Service",
+        preferredDate,
+        normalizedTime,
+        ref,
+        false, // deposit not yet paid at this stage
+        depositAmt,
+      )).catch(console.error);
+
       setBookingRef(ref);
       setSubmitted(true);
     } catch (err: any) {

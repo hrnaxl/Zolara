@@ -120,6 +120,21 @@ export default function Bookings() {
     const { error } = await supabase.from("bookings").update({ status } as any).eq("id", id);
     if (error) { toast.error("Failed to update"); return; }
     toast.success("Status updated");
+    // Send booking confirmed SMS
+    if (status === "confirmed") {
+      const b = bookings.find(bk => bk.id === id) || selected;
+      if (b?.client_phone) {
+        const staffName = staff.find(s => s.id === (b.staff_id || selected?.staff_id))?.name || "our team";
+        sendSMS(b.client_phone, SMS.bookingConfirmed(
+          b.client_name || "Client",
+          b.service_name || "Service",
+          b.preferred_date,
+          b.preferred_time,
+          staffName,
+          b.booking_ref || id.slice(0, 8).toUpperCase(),
+        )).catch(console.error);
+      }
+    }
     if (selected?.id === id) setSelected({ ...selected, status });
     fetchBookings(page, filter, search);
     fetchCounts();
@@ -175,6 +190,8 @@ export default function Bookings() {
 
 
   // ── Specialty → service keyword mapping ─────────────────────────────────
+  // Base keyword map — works for default specialties
+  // Custom specialties added in Settings are matched by their lowercase name as a keyword
   const SPECIALTY_MAP: Record<string, string[]> = {
     "Braider":                ["braid", "cornrow", "twist", "loc", "feed-in", "knotless", "box braid"],
     "Lash Tech":              ["lash", "extension", "cluster", "volume lash"],
@@ -182,6 +199,11 @@ export default function Bookings() {
     "Wig & Hair Stylist":     ["wig", "hair", "blow dry", "scalp", "wash"],
     "Makeup Artist":          ["makeup", "make up", "glam", "bridal", "brow", "contour"],
     "Pedicurist & Manicurist":["pedicure", "manicure", "feet", "foot"],
+    // Auto-include any custom specialties from settings using their name as keyword
+    ...((settings as any)?.staff_specialties || []).reduce((acc: Record<string,string[]>, sp: string) => {
+      if (!acc[sp]) acc[sp] = [sp.toLowerCase()];
+      return acc;
+    }, {} as Record<string,string[]>),
   };
 
   const getRequiredSpecialty = (serviceName: string): string | null => {
@@ -307,6 +329,18 @@ export default function Bookings() {
             date: booking.preferred_date,
             time: booking.preferred_time,
           });
+          // Send booking confirmed SMS
+          const phone = (booking as any).client_phone;
+          if (phone) {
+            sendSMS(phone, SMS.bookingConfirmed(
+              booking.client_name || "Client",
+              booking.service_name || "Service",
+              booking.preferred_date,
+              booking.preferred_time,
+              available.name,
+              (booking as any).booking_ref || booking.id.slice(0,8).toUpperCase(),
+            )).catch(console.error);
+          }
         } else skipped++;
       }
 

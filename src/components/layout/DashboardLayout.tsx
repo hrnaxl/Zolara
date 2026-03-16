@@ -43,8 +43,9 @@ import { useSettings } from "@/context/SettingsContext";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 const DashboardLayout = () => {
-  // 2-minute inactivity logout for all staff/admin/receptionist roles
-  useInactivityLogout(2 * 60 * 1000);
+  // Role-based inactivity: owner/admin 20 min, everyone else 30 min
+  const { userRole: _inactRole } = useSettings();
+  useInactivityLogout((_inactRole === "owner" || _inactRole === "admin") ? 20 * 60 * 1000 : 30 * 60 * 1000);
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();
@@ -183,7 +184,8 @@ const DashboardLayout = () => {
           "Promo Codes", "Products", "Sell Products", "Waitlist",
           // Attendance management
           "Attendance", "Attendance Reports",
-          // Security — removed, receptionist uses /app/receptionist/security directly if needed
+          // Security — change own password
+          "Security",
         ];
         return baseNavItems
           .filter((item) => allowed.includes(item.label))

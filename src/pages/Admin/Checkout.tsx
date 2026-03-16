@@ -423,20 +423,10 @@ const Checkout = () => {
       // ── STEP 4: Record gift card redemption (only after booking confirmed) ─
       if (redeemedCard && giftValue > 0) {
         const appliedGift = Math.min(giftValue, originalPrice);
-        const { error: gcErr } = await (supabase as any).from("sales").insert({
-          booking_id: booking.id,
-          amount: appliedGift,
-          payment_method: "gift_card",
-          status: "completed",
-          client_name: booking.client_name || null,
-          service_name: booking.service_name || null,
-          client_id: safeClient,
-          staff_id: safeStaff,
-          notes: "Gift card redemption",
-          payment_date: new Date().toISOString(),
-        });
-        if (gcErr) console.error("Gift card sale record failed:", gcErr.message);
-        // Mark card status via service-role API (fire and forget — booking already saved)
+
+        // Mark card redeemed via service-role API FIRST — re-validates it's still active
+        // If the card was already used (409), we still complete checkout but don't record the gift card
+        let cardMarked = false;
         try {
           const gcRes = await fetch("/api/redeem-gift-card", {
             method: "POST",
@@ -449,8 +439,34 @@ const Checkout = () => {
               clientName: booking.client_name || null,
             }),
           });
-          if (!gcRes.ok) console.error("Gift card status update failed:", await gcRes.text());
+          const gcData = await gcRes.json();
+          if (gcRes.status === 409 || gcData.alreadyUsed) {
+            // Card was already redeemed — do not record gift card sale
+            toast.error("Gift card was already redeemed — checkout completed without gift card discount.");
+            console.warn("Gift card double-use attempted:", redeemedCard.id);
+          } else if (!gcRes.ok) {
+            console.error("Gift card status update failed:", gcData);
+          } else {
+            cardMarked = true;
+          }
         } catch (gcApiErr) { console.error("Gift card API error:", gcApiErr); }
+
+        // Only record the gift card sale if card was successfully marked
+        if (cardMarked) {
+          const { error: gcErr } = await (supabase as any).from("sales").insert({
+            booking_id: booking.id,
+            amount: appliedGift,
+            payment_method: "gift_card",
+            status: "completed",
+            client_name: booking.client_name || null,
+            service_name: booking.service_name || null,
+            client_id: safeClient,
+            staff_id: safeStaff,
+            notes: "Gift card redemption",
+            payment_date: new Date().toISOString(),
+          });
+          if (gcErr) console.error("Gift card sale record failed:", gcErr.message);
+        }
       }
 
       // ── STEP 5: Record product sales + deduct stock ─────────────────────────
