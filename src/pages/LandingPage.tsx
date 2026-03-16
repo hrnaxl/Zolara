@@ -813,73 +813,82 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ background: "linear-gradient(160deg,#1A1208,#0D0A06)", padding: "clamp(48px,6vw,80px) clamp(24px,6vw,100px) 0", borderTop: "1px solid rgba(200,169,126,0.14)" }}>
-        <div className="landing-footer-grid" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: "clamp(32px,5vw,80px)", alignItems: "start", marginBottom: "52px" }}>
+      <footer style={{ background: "linear-gradient(160deg,#1A1208,#0D0A06)", borderTop: "1px solid rgba(200,169,126,0.14)" }}>
+
+        {/* Main footer */}
+        <div style={{ padding: "clamp(36px,5vw,60px) clamp(24px,6vw,100px)", display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "clamp(24px,4vw,60px)", alignItems: "start" }} className="landing-footer-grid">
 
           {/* Brand */}
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-              <div style={{ width: "44px", height: "44px", borderRadius: "50%", border: "2px solid rgba(200,169,126,0.6)", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+              <div style={{ width: "38px", height: "38px", borderRadius: "50%", border: "1.5px solid rgba(200,169,126,0.55)", overflow: "hidden", flexShrink: 0 }}>
                 <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <div>
-                <div className="sans" style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "0.22em", color: cream, lineHeight: 1 }}>ZOLARA</div>
-                <div className="sans" style={{ fontSize: "9px", letterSpacing: "0.22em", color: gold, marginTop: "3px", fontWeight: 600 }}>BEAUTY STUDIO</div>
+                <div className="sans" style={{ fontSize: "15px", fontWeight: 800, letterSpacing: "0.2em", color: cream, lineHeight: 1 }}>ZOLARA</div>
+                <div className="sans" style={{ fontSize: "8px", letterSpacing: "0.2em", color: gold, marginTop: "2px", fontWeight: 600 }}>BEAUTY STUDIO</div>
               </div>
             </div>
-            <p className="sans" style={{ fontSize: "13px", color: "rgba(245,239,230,0.42)", lineHeight: 1.85, maxWidth: "260px", fontWeight: 400, marginBottom: "24px" }}>
-              Tamale's premier luxury beauty studio. Every visit is crafted to leave you feeling extraordinary.
+            <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.8, marginBottom: "14px", maxWidth: "240px", fontWeight: 400 }}>
+              Tamale's premier luxury beauty studio.
             </p>
-            <div className="sans" style={{ fontSize: "12.5px", color: "rgba(245,239,230,0.38)", lineHeight: 2 }}>
+            <div className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.9 }}>
               <div>Sakasaka, Opposite CalBank, Tamale</div>
               <div>059 436 5314 · 020 884 8707</div>
               <div>Mon – Sat · 8:30 AM – 9:00 PM</div>
-              <div style={{ color: "rgba(245,239,230,0.22)" }}>Closed Sundays</div>
             </div>
           </div>
 
           {/* Navigate */}
           <div>
-            <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.24em", color: gold, fontWeight: 700, marginBottom: "22px" }}>NAVIGATE</p>
-            {[["#services","Services"],["#experience","The Experience"],["#gift-cards","Gift Cards"],["#loyalty","Loyalty"],["#reviews","Reviews"],["#visit-us","Visit Us"]].map(([href,label]) => (
-              <div key={label} style={{ marginBottom: "14px" }}>
-                <a href={href} className="sans" style={{ fontSize: "13.5px", color: "rgba(245,239,230,0.5)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
+            <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "16px" }}>NAVIGATE</p>
+            {[["#services","Services"],["#experience","Experience"],["#gift-cards","Gift Cards"],["#loyalty","Loyalty"],["#visit-us","Visit Us"]].map(([href,label]) => (
+              <div key={label} style={{ marginBottom: "11px" }}>
+                <a href={href} className="sans" style={{ fontSize: "13px", color: "rgba(245,239,230,0.65)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
                   onMouseEnter={e => (e.target as HTMLElement).style.color = gold}
-                  onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(245,239,230,0.5)"}>{label}</a>
+                  onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(245,239,230,0.65)"}>{label}</a>
               </div>
             ))}
           </div>
 
           {/* Social */}
           <div>
-            <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.24em", color: gold, fontWeight: 700, marginBottom: "22px" }}>FOLLOW</p>
-            {[["https://www.instagram.com/zolarastudio","@zolarastudio"],["https://www.tiktok.com/@zolarastudio","TikTok"],["https://www.facebook.com/zolarastudio","Facebook"],["https://www.threads.net/@zolarastudio","Threads"],["https://wa.me/233594365314","WhatsApp"]].map(([href,label]) => (
-              <div key={label} style={{ marginBottom: "14px" }}>
-                <a href={href} target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "13.5px", color: "rgba(245,239,230,0.5)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
-                  onMouseEnter={e => (e.target as HTMLElement).style.color = gold}
-                  onMouseLeave={e => (e.target as HTMLElement).style.color = "rgba(245,239,230,0.5)"}>{label}</a>
-              </div>
-            ))}
-            <div style={{ marginTop: "8px" }}>
-              <a href="https://www.instagram.com/zolarastudio" target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "11px", fontWeight: 600, color: gold, letterSpacing: "0.1em", textDecoration: "none" }}>@zolarastudio ↗</a>
+            <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FOLLOW US</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {[
+                { label: "Instagram", handle: "@zolarastudio", href: "https://www.instagram.com/zolarastudio", icon: "IG" },
+                { label: "TikTok",    handle: "@zolarastudio", href: "https://www.tiktok.com/@zolarastudio",    icon: "TK" },
+                { label: "Facebook",  handle: "Zolara Studio", href: "https://www.facebook.com/zolarastudio",  icon: "FB" },
+                { label: "WhatsApp",  handle: "Message us",    href: "https://wa.me/233594365314",             icon: "WA" },
+              ].map(s => (
+                <a key={s.label} href={s.href} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", transition: "all 0.2s", padding: "6px 0" }}
+                  onMouseEnter={e => { const el = e.currentTarget; el.style.opacity="1"; }}
+                  onMouseLeave={e => { const el = e.currentTarget; el.style.opacity="1"; }}>
+                  <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background="rgba(200,169,126,0.2)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(200,169,126,0.5)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background="rgba(200,169,126,0.1)"; (e.currentTarget as HTMLElement).style.borderColor="rgba(200,169,126,0.2)"; }}>
+                    <span className="sans" style={{ fontSize: "8px", fontWeight: 700, color: gold, letterSpacing: "0.05em" }}>{s.icon}</span>
+                  </div>
+                  <div>
+                    <div className="sans" style={{ fontSize: "12px", fontWeight: 600, color: "rgba(245,239,230,0.75)", lineHeight: 1.2 }}>{s.label}</div>
+                    <div className="sans" style={{ fontSize: "10px", color: "rgba(245,239,230,0.4)", lineHeight: 1.2 }}>{s.handle}</div>
+                  </div>
+                </a>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div style={{ borderTop: "1px solid rgba(200,169,126,0.1)", padding: "22px 0 30px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-          <p className="sans" style={{ fontSize: "11px", color: "rgba(245,239,230,0.2)", fontWeight: 400 }}>
-            © {new Date().getFullYear()} Zolara Beauty Studio · All rights reserved.
+        <div style={{ borderTop: "1px solid rgba(200,169,126,0.1)", padding: "16px clamp(24px,6vw,100px)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+          <p className="sans" style={{ fontSize: "11px", color: "rgba(245,239,230,0.3)", fontWeight: 400 }}>
+            © {new Date().getFullYear()} Zolara Beauty Studio
           </p>
-          <Link to="/app/auth" className="sans" style={{
-            fontSize: "10px", fontWeight: 600, color: "rgba(200,169,126,0.5)",
-            textDecoration: "none", letterSpacing: "0.16em",
-            padding: "7px 18px", border: "1px solid rgba(200,169,126,0.18)",
-            borderRadius: "20px", transition: "all 0.25s",
-          }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = gold; (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,169,126,0.45)"; (e.currentTarget as HTMLElement).style.background = "rgba(200,169,126,0.07)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(200,169,126,0.5)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,169,126,0.18)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-          >STAFF LOGIN</Link>
+          <Link to="/app/auth" className="sans" style={{ fontSize: "10px", fontWeight: 600, color: "rgba(200,169,126,0.5)", textDecoration: "none", letterSpacing: "0.14em", padding: "6px 16px", border: "1px solid rgba(200,169,126,0.18)", borderRadius: "20px", transition: "all 0.25s" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = gold; (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,169,126,0.45)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(200,169,126,0.5)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(200,169,126,0.18)"; }}>
+            STAFF LOGIN
+          </Link>
         </div>
       </footer>
       <AmandaWidget />
