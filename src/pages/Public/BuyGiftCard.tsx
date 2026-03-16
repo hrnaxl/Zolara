@@ -81,28 +81,24 @@ export default function BuyGiftCard() {
             const { supabase: sb } = await import("@/integrations/supabase/client");
 
             if (isEmail) {
-              // ── DIGITAL: create new card + send gift email ─────────────
-              const code = `ZGC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
-              const { data: card, error } = await (sb as any)
-                .from("gift_cards")
-                .insert({
-                  code, tier: selectedTier, amount: tierValue, balance: tierValue,
-                  status: "pending_send", payment_status: "pending_send", card_type: "digital",
-                  buyer_name: form.buyerName || null, buyer_email: form.buyerEmail || null,
-                  buyer_phone: form.buyerPhone || null,
-                  recipient_name: form.recipientName || form.buyerName,
-                  recipient_email: form.recipientEmail, message: form.message || null,
-                })
-                .select("id").single();
-
-              if (error) console.error("Digital card insert failed:", error);
-
-              // Gift card purchase is NOT recorded as revenue — it's a liability until redeemed.
-              // Revenue is recorded per-service when the card is used at checkout.
-              // The outstanding balance is visible in the Gift Cards dashboard KPI.
+              // ── DIGITAL: create via server-side API (service role — bypasses RLS) ──
+              const createRes = await fetch("/api/create-gift-card", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  tier: selectedTier, tierValue,
+                  buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone,
+                  recipientName: form.recipientName || form.buyerName,
+                  recipientEmail: form.recipientEmail, message: form.message || null,
+                  paymentRef,
+                }),
+              });
+              const createData = await createRes.json();
+              const card = createData.card;
+              const code = createData.code || "";
+              if (!createRes.ok) console.error("Digital card create failed:", createData);
 
               // Send gift card email
-              if (!error && card?.id && form.recipientEmail) {
+              if (card?.id && form.recipientEmail) {
                 const emailSent = await sendGiftCardEmail({
                   id: card.id, tier: selectedTier!, amount: tierValue, code,
                   recipient_name: form.recipientName || form.buyerName,
@@ -110,7 +106,11 @@ export default function BuyGiftCard() {
                   message: form.message || undefined,
                 });
                 if (emailSent && card?.id) {
-                  await (sb as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", card.id);
+                  // Activate via server-side API
+                  await fetch("/api/activate-gift-card", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ cardId: card.id }),
+                  });
                 }
               }
 
