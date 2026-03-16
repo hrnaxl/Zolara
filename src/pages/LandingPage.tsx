@@ -511,10 +511,36 @@ export default function LandingPage() {
               <div style={{ width: "44px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)", margin: "0 auto 24px" }} />
               <p className="sans" style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: gold, fontWeight: 700 }}>ZOLARA BEAUTY STUDIO</p>
               <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", marginTop: "8px", fontWeight: 400 }}>Sakasaka, Tamale</p>
-              <div style={{ marginTop: "36px", display: "flex", justifyContent: "center", gap: "8px" }}>
-                {[1,2,3,4,5].map(s => <span key={s} style={{ color: gold, fontSize: "18px" }}>★</span>)}
+              <div style={{ marginTop: "36px", display: "flex", justifyContent: "center", gap: "6px" }}>
+                {[1,2,3,4,5].map((s,i) => (
+                  <span key={s} style={{
+                    color: gold, fontSize: "20px", display: "inline-block",
+                    animation: `starPop 0.4s cubic-bezier(0.34,1.56,0.64,1) ${0.6 + i * 0.08}s both`,
+                  }}>★</span>
+                ))}
               </div>
-              <p className="sans" style={{ fontSize: "11px", color: "rgba(245,239,230,0.55)", marginTop: "10px", fontWeight: 400 }}>5.0 · 500+ Reviews</p>
+              <style>{`
+                @keyframes starPop {
+                  0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
+                  100% { transform: scale(1) rotate(0deg);   opacity: 1; }
+                }
+                @keyframes countUp {
+                  from { opacity: 0; transform: translateY(8px); }
+                  to   { opacity: 1; transform: translateY(0);   }
+                }
+                @keyframes pulseGold {
+                  0%,100% { box-shadow: 0 0 0 0 rgba(200,169,126,0); }
+                  50%     { box-shadow: 0 0 0 8px rgba(200,169,126,0.12); }
+                }
+              `}</style>
+              <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", animation: "countUp 0.5s ease 1.1s both" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "38px", fontWeight: 600, color: "#F5EFE6", lineHeight: 1, letterSpacing: "-0.02em" }}>5.0</span>
+                <span className="sans" style={{ fontSize: "10px", color: gold, fontWeight: 700, letterSpacing: "0.18em" }}>PERFECT SCORE</span>
+              </div>
+              <div style={{ marginTop: "10px", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "20px", padding: "5px 14px", animation: "countUp 0.5s ease 1.3s both, pulseGold 3s ease 2s infinite" }}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: gold, display: "inline-block", flexShrink: 0 }} />
+                <span className="sans" style={{ fontSize: "10px", color: "rgba(245,239,230,0.7)", fontWeight: 600, letterSpacing: "0.08em" }}>500+ Happy Clients</span>
+              </div>
               <div style={{ marginTop: "36px", padding: "24px 0 0", borderTop: "1px solid rgba(200,169,126,0.15)" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   {[["Free WiFi","◈"],["Free Water","❋"],["Loyalty Program","◉"],["Exit Ritual","✦"]].map(([f,ic]) => (
