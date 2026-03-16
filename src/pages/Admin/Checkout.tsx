@@ -443,14 +443,16 @@ const Checkout = () => {
             }),
           });
           const gcData = await gcRes.json();
+          console.log("Gift card API response:", gcRes.status, JSON.stringify(gcData));
           if (gcRes.status === 409 || gcData.alreadyUsed) {
-            // Card was already redeemed — do not record gift card sale
             toast.error("Gift card was already redeemed — checkout completed without gift card discount.");
             console.warn("Gift card double-use attempted:", redeemedCard.id);
           } else if (!gcRes.ok) {
             console.error("Gift card status update failed:", gcData);
+            toast.error("Gift card update failed: " + (gcData.error || gcData.detail || "unknown error"));
           } else {
             cardMarked = true;
+            console.log("Gift card successfully marked:", gcData);
           }
         } catch (gcApiErr) { console.error("Gift card API error:", gcApiErr); }
 
