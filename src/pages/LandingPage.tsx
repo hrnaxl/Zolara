@@ -58,7 +58,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    supabase.from("settings").select("open_time, close_time, closed_dates").limit(1).maybeSingle()
+    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
     // Load visible reviews from DB
     (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
