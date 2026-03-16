@@ -62,13 +62,7 @@ module.exports = async function handler(req, res) {
     }
     const topSvc = Object.entries(svcCounts).sort((a, b) => b[1] - a[1])[0];
 
-    // Get owner phone from settings
-    const settingsArr = await query(`settings?select=business_phone&limit=1`);
-    const ownerPhone = Array.isArray(settingsArr) && settingsArr[0]?.business_phone;
-
-    if (!ownerPhone) {
-      return res.status(200).json({ ok: false, reason: "No business_phone in settings" });
-    }
+    const ownerPhone = "0594922679";
 
     // Build message
     const dayLabel = now.toLocaleDateString("en-GH", { weekday: "long", day: "numeric", month: "short" });
