@@ -318,7 +318,7 @@ export default function EnhancedBookingForm() {
           <>
             {/* Service cards */}
             <div style={card}>
-              <span style={sectionTitle}>SELECT A SERVICE</span>
+              <span style={sectionTitle}>SELECT SERVICES (choose one or more)</span>
               {loading ? (
                 <div style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
                   <Loader2 size={28} style={{ color: GOLD, animation: "spin 0.8s linear infinite" }} />
@@ -334,7 +334,7 @@ export default function EnhancedBookingForm() {
                       {(svcs as any[]).map((s: any) => {
                         const sel = selectedIds.includes(s.id);
                         return (
-                          <button key={s.id} className="svc-card" onClick={() => setSelectedIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                          <button type="button" key={s.id} className="svc-card" onClick={() => setSelectedIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
                             style={{ textAlign: "left", padding: "14px 16px", borderRadius: 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
                             <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>GHS {Number(s.price).toLocaleString()}</div>
