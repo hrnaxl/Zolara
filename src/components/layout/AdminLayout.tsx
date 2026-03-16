@@ -91,10 +91,12 @@ const AdminDashboard = () => {
     depositsPendingCount: 0,
     periodPromoSavings: 0,
     promoBreakdown: [] as { code: string; savings: number; count: number }[],
-    giftCardsRedeemedCount: 0,    // total number of cards redeemed
-    giftCardsSoldCount: 0,        // total cards sold (payment_status=paid)
-    giftCardsInStock: 0,          // pre-printed physical cards not yet sold
+    giftCardsRedeemedCount: 0,
+    giftCardsSoldCount: 0,
+    giftCardsInStock: 0,
   });
+  const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
+  const [heatmapData, setHeatmapData] = useState<Record<string,number>>({});
 
   const [revenueData, setRevenueData] = useState<
     { name: string; revenue: number; bookings: number }[]
@@ -632,6 +634,33 @@ const AdminDashboard = () => {
       const promoBreakdown = Object.entries(promoMap).map(([code, v]) => ({ code, ...v })).sort((a, b) => b.savings - a.savings);
       const periodPromoSavings = promoBreakdown.reduce((s, p) => s + p.savings, 0);
 
+      // Birthday clients this month
+      const thisMonth = new Date().getMonth() + 1;
+      const { data: bdays } = await supabase
+        .from("clients").select("id, name, phone, birthday, loyalty_points")
+        .not("birthday", "is", null);
+      const birthdayThisMonth = (bdays || []).filter((cl: any) => {
+        if (!cl.birthday) return false;
+        const m = new Date(cl.birthday).getMonth() + 1;
+        return m === thisMonth;
+      });
+      setBirthdayClients(birthdayThisMonth);
+
+      // Booking heatmap — count bookings by day-of-week + hour from last 90 days
+      const { data: heatBookings } = await supabase
+        .from("bookings").select("preferred_date, preferred_time")
+        .gte("preferred_date", format(subDays(today, 90), "yyyy-MM-dd"))
+        .in("status", ["completed", "confirmed"]);
+      const hmap: Record<string,number> = {};
+      for (const b of (heatBookings || [])) {
+        if (!b.preferred_date || !b.preferred_time) continue;
+        const dow = new Date(b.preferred_date + "T00:00:00").getDay(); // 0=Sun
+        const hr = parseInt((b.preferred_time || "00:00").slice(0, 2));
+        const key = dow + "_" + hr;
+        hmap[key] = (hmap[key] || 0) + 1;
+      }
+      setHeatmapData(hmap);
+
       setStats({
         todayBookings: todayBookingsRes.data?.length || 0,
         periodBookings: periodBookingsRes.data?.length || 0,
@@ -1111,6 +1140,94 @@ const AdminDashboard = () => {
               }
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ── BIRTHDAY BANNER ─────────────────────────────── */}
+      {birthdayClients.length > 0 && (
+        <div style={{ background:"linear-gradient(135deg,#7C3AED,#5B21B6)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(124,58,237,0.2)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+            <span style={{ fontSize:20 }}>🎂</span>
+            <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(233,213,255,0.7)", textTransform:"uppercase", margin:0 }}>
+              BIRTHDAY CLIENTS THIS MONTH — Double Stamps Apply
+            </p>
+          </div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+            {birthdayClients.map((cl: any) => (
+              <div key={cl.id} style={{ background:"rgba(255,255,255,0.1)", borderRadius:10, padding:"8px 14px", border:"1px solid rgba(233,213,255,0.2)" }}>
+                <p style={{ fontSize:13, fontWeight:700, color:"white", margin:"0 0 2px" }}>{cl.name}</p>
+                <p style={{ fontSize:10, color:"rgba(233,213,255,0.7)", margin:0 }}>{cl.phone} · {cl.loyalty_points || 0} stamps</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── HEATMAP + BOTTOM ROW ─────────────────────────── */}
+      <div className="admin-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:14 }}>
+        {/* Booking Heatmap */}
+        <div className="zc-flat au" style={{ animationDelay:"0.57s", padding:"24px" }}>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:5 }}>BOOKING PATTERNS</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color: TXT, marginBottom:16 }}>Busiest Times</div>
+          {(() => {
+            const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+            const hours = [8,9,10,11,12,13,14,15,16,17,18,19,20];
+            const maxVal = Math.max(1, ...Object.values(heatmapData));
+            return (
+              <div style={{ overflowX:"auto" }}>
+                <div style={{ display:"grid", gridTemplateColumns:`28px repeat(${hours.length},1fr)`, gap:2, minWidth:300 }}>
+                  <div />
+                  {hours.map(h => (
+                    <div key={h} style={{ fontSize:8, color: TXT_SOFT, textAlign:"center", paddingBottom:4 }}>
+                      {h > 12 ? (h-12)+"p" : h+"a"}
+                    </div>
+                  ))}
+                  {days.map((day, di) => (
+                    <>
+                      <div key={day} style={{ fontSize:9, color: TXT_SOFT, display:"flex", alignItems:"center", paddingRight:4 }}>{day}</div>
+                      {hours.map(h => {
+                        const v = heatmapData[di + "_" + h] || 0;
+                        const intensity = v / maxVal;
+                        return (
+                          <div key={h} title={v + " bookings"} style={{
+                            height:18, borderRadius:3,
+                            background: intensity === 0 ? "#F3F4F6" : `rgba(200,169,126,${0.15 + intensity * 0.85})`,
+                            border: intensity > 0.7 ? "1px solid rgba(139,105,20,0.3)" : "none",
+                          }} />
+                        );
+                      })}
+                    </>
+                  ))}
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:10 }}>
+                  <span style={{ fontSize:9, color: TXT_SOFT }}>Less</span>
+                  {[0.1,0.3,0.5,0.7,0.9].map(i => (
+                    <div key={i} style={{ width:12, height:12, borderRadius:2, background:`rgba(200,169,126,${0.15 + i * 0.85})` }} />
+                  ))}
+                  <span style={{ fontSize:9, color: TXT_SOFT }}>More</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Top Staff */}
+        <div className="zc-flat au" style={{ animationDelay:"0.63s", padding:"24px" }}>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:5 }}>PERFORMANCE</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color: TXT, marginBottom:16 }}>Top Staff</div>
+          {topStaff.length === 0
+            ? <div style={{ color: TXT_SOFT, fontSize:12, textAlign:"center", padding:"20px 0" }}>No data yet</div>
+            : topStaff.slice(0,5).map((s: any, i: number) => (
+              <div key={s.name} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom: i < 4 ? `1px solid ${BORDER}` : "none" }}>
+                <div style={{ width:28, height:28, borderRadius:8, background: i === 0 ? G_LIGHT : CREAM, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color: i === 0 ? G : TXT_SOFT, flexShrink:0 }}>{i+1}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color: TXT }}>{s.name}</div>
+                  <div style={{ fontSize:10, color: TXT_SOFT }}>{s.bookings} bookings</div>
+                </div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, color: G }}>GHS {Number(s.revenue||0).toLocaleString()}</div>
+              </div>
+            ))
+          }
         </div>
       </div>
 
