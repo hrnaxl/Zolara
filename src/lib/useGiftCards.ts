@@ -284,7 +284,7 @@ export async function resendGiftCardEmail(id: string) {
       buyer_name: card.buyer_name || undefined,
       message: card.message || undefined,
     });
-    if (!sent) throw new Error("Email delivery failed — check Resend logs");
+    // sent is true if we get here (throws on failure)
     await (supabaseAdmin as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", id);
     return { success: true, error: null };
   } catch (error: any) {

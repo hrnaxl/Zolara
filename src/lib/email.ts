@@ -70,22 +70,24 @@ export async function sendGiftCardEmail(card: {
   message?: string;
 }): Promise<boolean> {
   try {
-    // Call our Vercel API route — runs server-side, no CORS issues
     const res = await fetch("/api/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: card.recipient_email,
-        subject: `Your Zolara ${card.tier} Gift Card — GH₵${card.amount}`,
+        subject: "Your Zolara " + card.tier + " Gift Card — GH₵" + card.amount,
         html: buildGiftCardHtml(card),
       }),
     });
-    const data = await res.json();
-    if (!res.ok) { console.error("Email API error:", data); return false; }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Email API error:", res.status, data);
+      throw new Error(data.error || "Resend returned " + res.status);
+    }
     return true;
-  } catch (err) {
-    console.error("Gift card email error:", err);
-    return false;
+  } catch (err: any) {
+    console.error("Gift card email error:", err.message);
+    throw err;
   }
 }
 
