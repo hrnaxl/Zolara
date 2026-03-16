@@ -655,7 +655,7 @@ export default function LandingPage() {
       </section>
 
       {/* GIFT CARDS: 2 column with KPI marketing */}
-      {((salonSettings as any)?.show_gift_cards !== false) && (
+      {((salonSettings as any)?.landing_sections?.show_gift_cards !== false) && (
       <section id="gift-cards" style={{ background: dark, padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", position: "relative", overflow: "hidden" }}>
         <style>{`
           @keyframes cardFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-8px) rotate(-1deg)} }
@@ -818,7 +818,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      {((salonSettings as any)?.show_subscriptions === true) && (
+      {((salonSettings as any)?.landing_sections?.show_subscriptions === true) && (
       <>
       {/* ── SUBSCRIPTIONS ─────────────────────────────── */}
       <section id="subscriptions" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
