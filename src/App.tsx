@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -17,17 +18,17 @@ import CleanerLayout from "./components/layout/CleanerLayout";
 import ReceptionistLayout from "./components/layout/ReceptionistLayout";
 import ClientLayout from "./components/layout/ClientLayout";
 
-import Bookings from "./pages/Admin/Bookings";
-import Clients from "./pages/Admin/Clients";
-import Staff from "./pages/Admin/Staff";
-import Services from "./pages/Admin/Services";
-import Sales from "./pages/Admin/Sales";
-import Reports from "./pages/Admin/Reports";
+const Bookings = lazy(() => import("./pages/Admin/Bookings"));
+const Clients = lazy(() => import("./pages/Admin/Clients"));
+const Staff = lazy(() => import("./pages/Admin/Staff"));
+const Services = lazy(() => import("./pages/Admin/Services"));
+const Sales = lazy(() => import("./pages/Admin/Sales"));
+const Reports = lazy(() => import("./pages/Admin/Reports"));
 import NotFound from "./pages/Admin/NotFound";
-import Attendance from "./pages/Admin/Attendance";
-import AttendanceReports from "./pages/Admin/AttendanceReports";
-import Checkout from "./pages/Admin/Checkout";
-import GiftCards from "./pages/Admin/GiftCards";
+const Attendance = lazy(() => import("./pages/Admin/Attendance"));
+const AttendanceReports = lazy(() => import("./pages/Admin/AttendanceReports"));
+const Checkout = lazy(() => import("./pages/Admin/Checkout"));
+const GiftCards = lazy(() => import("./pages/Admin/GiftCards"));
 
 import StaffBookings from "./pages/Staff/StaffBookings";
 import MyAttendance from "./pages/Staff/MyAttendance";
@@ -38,20 +39,20 @@ import ClientPortal from "./pages/Client/ClientPortal";
 import ClientDashboard from "./pages/Client/ClientDashboard";
 import ClientLoyalty from "./pages/Client/ClientLoyalty";
 import ClientProfile from "./pages/Client/ClientProfile";
-import SMSTest from "./pages/Admin/SMSTest";
+const SMSTest = lazy(() => import("./pages/Admin/SMSTest"));
 import ViewServices from "./pages/Client/ViewServices";
-import SettingsPage from "./pages/Admin/Settings";
-import Loyalty from "./pages/Admin/Loyalty";
-import PromoCodesPage from "./pages/Admin/PromoCodes";
+const SettingsPage = lazy(() => import("./pages/Admin/Settings"));
+const Loyalty = lazy(() => import("./pages/Admin/Loyalty"));
+const PromoCodesPage = lazy(() => import("./pages/Admin/PromoCodes"));
 import BuyGiftCard from "./pages/Public/BuyGiftCard";
-import GiftCardBatchGenerator from "./pages/Admin/GiftCardBatchGenerator";
-import AnalyticsPage from "./pages/Admin/Analytics";
-import ProductsPage from "./pages/Admin/Products";
-import ProductSale from "./pages/Admin/ProductSale";
-import SecuritySettings from "./pages/Admin/SecuritySettings";
-import WaitlistPage from "./pages/Admin/Waitlist";
+const GiftCardBatchGenerator = lazy(() => import("./pages/Admin/GiftCardBatchGenerator"));
+const AnalyticsPage = lazy(() => import("./pages/Admin/Analytics"));
+const ProductsPage = lazy(() => import("./pages/Admin/Products"));
+const ProductSale = lazy(() => import("./pages/Admin/ProductSale"));
+const SecuritySettings = lazy(() => import("./pages/Admin/SecuritySettings"));
+const WaitlistPage = lazy(() => import("./pages/Admin/Waitlist"));
 import Feedback from "./pages/Public/Feedback";
-import SubscriptionsPage from "./pages/Admin/Subscriptions";
+const SubscriptionsPage = lazy(() => import("./pages/Admin/Subscriptions"));
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
 
@@ -65,6 +66,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#FAFAF8"}}><div style={{width:40,height:40,border:"3px solid #F0E4CC",borderTopColor:"#C8A97E",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} /><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style></div>}>
         <Routes>
           {/* =================== PUBLIC ROUTES =================== */}
           {/* Public Landing Page */}
@@ -185,6 +187,7 @@ const App = () => (
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
         </BrowserRouter>
       </SettingsProvider>
       </CatalogProvider>
