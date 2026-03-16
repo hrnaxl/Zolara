@@ -37,7 +37,7 @@ export type GiftCardFetchOptions = {
 export async function fetchGiftCards(opts: GiftCardFetchOptions = {}) {
   const { status, tier, year, limit = 100, offset = 0, orderBy } = opts;
   try {
-    let q: any = (supabase as any).from("gift_cards").select("*");
+    let q: any = (supabaseAdmin as any).from("gift_cards").select("*");
     if (status && status !== "all") q = q.eq("status", status);
     if (tier) q = q.eq("tier", tier);
     if (year) q = q.eq("year", year);
@@ -58,9 +58,7 @@ export async function fetchGiftCards(opts: GiftCardFetchOptions = {}) {
  */
 export async function importGiftCards(rows: Record<string, any>[]) {
   try {
-    const { data, error } = await supabase //@ts-ignore
-      .from("gift_cards") //@ts-ignore
-      .insert(rows);
+    const { data, error } = await (supabaseAdmin as any).from("gift_cards").insert(rows);
 
     if (error) throw error;
 
