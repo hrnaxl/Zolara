@@ -68,7 +68,7 @@ export const getRevenueByDay = (sales: any[], days = 30) => {
   return interval.map(day => {
     const key = format(day, "yyyy-MM-dd");
     const dayRevenue = sales
-      .filter(s => s.created_at?.startsWith(key))
+      .filter(s => (s.payment_date || s.created_at || "").startsWith(key))
       .reduce((sum, s) => sum + Number(s.amount || 0), 0);
     return { date: format(day, "MMM d"), revenue: dayRevenue };
   });
@@ -83,7 +83,7 @@ export const getRevenueByWeek = (sales: any[]) => {
     const wStart = format(weekStart, "yyyy-MM-dd");
     const wEnd = format(weekEnd, "yyyy-MM-dd");
     const weekRevenue = sales
-      .filter(s => s.created_at >= wStart + "T00:00:00" && s.created_at <= wEnd + "T23:59:59")
+      .filter(s => { const d = s.payment_date || s.created_at || ""; return d >= wStart + "T00:00:00" && d <= wEnd + "T23:59:59"; })
       .reduce((sum, s) => sum + Number(s.amount || 0), 0);
     return { date: format(weekStart, "MMM d"), revenue: weekRevenue };
   });

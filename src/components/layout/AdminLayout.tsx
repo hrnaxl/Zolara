@@ -901,7 +901,7 @@ const AdminDashboard = () => {
             { label:"PRODUCT REVENUE",  val:`GHS ${(dateFilter==="today"?stats.todayProductRevenue:stats.periodProductRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
               pct: null, note: periodLabel, color:"#2563EB", bg:"#EFF6FF" },
             { label:"GIFT CARDS REDEEMED",  val:`GHS ${(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}`,
-              pct: null, note: periodLabel, color:"#7C3AED", bg:"#F5F3FF" },
+              pct: null, note: `${periodLabel} · ${stats.giftCardsRedeemedCount} total redeemed`, color:"#7C3AED", bg:"#F5F3FF" },
             { label: dateFilter === "today" ? "TODAY'S REVENUE" : dateFilter === "week" ? "WEEKLY REVENUE" : "MONTHLY REVENUE",
               val:`GHS ${revenueVal.toLocaleString("en",{minimumFractionDigits:2})}`,
               pct: dateFilter === "today" ? stats.todayRevenueChange : dateFilter === "week" ? stats.weeklyRevenueChange : stats.monthChangePercentage,

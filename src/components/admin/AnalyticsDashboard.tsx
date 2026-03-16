@@ -78,7 +78,7 @@ export default function AnalyticsDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [topServices, setTopServices] = useState<any[]>([]);
   const [topClients, setTopClients] = useState<any[]>([]);
-  const [revenueSplit, setRevenueSplit] = useState({ service: 0, product: 0, subscription: 0 });
+  const [revenueSplit, setRevenueSplit] = useState({ service: 0, product: 0, giftCard: 0, subscription: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -102,24 +102,27 @@ export default function AnalyticsDashboard() {
       setTopClients(clients);
       // Revenue split by type from line items
       const items = itemsRes.data || [];
-      // Revenue split by type
+      // Revenue split by type — use payment_method as source of truth
       const allSales = salesRes.data || [];
       const completed = allSales.filter((s: any) => s.status === "completed");
       const prodRev = completed
         .filter((s: any) => s.notes && s.notes.toLowerCase().includes("product sale"))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
       const giftCardRev = completed
-        .filter((s: any) => (s.service_name || "").toLowerCase().includes("gift card"))
+        .filter((s: any) => s.payment_method === "gift_card")
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      const subRev = completed
+        .filter((s: any) => s.payment_method === "subscription" || (s.notes && s.notes.toLowerCase().includes("subscription")))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
       const svcRev = completed
         .filter((s: any) =>
+          s.payment_method !== "gift_card" &&
+          s.payment_method !== "subscription" &&
           (!s.notes || !s.notes.toLowerCase().includes("product sale")) &&
-          !(s.service_name || "").toLowerCase().includes("gift card")
+          (!s.notes || !s.notes.toLowerCase().includes("subscription"))
         )
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      const ciSubRev = items.filter((i: any) => i.item_type === "subscription")
-        .reduce((s: number, i: any) => s + Number(i.subtotal || i.price_at_time || 0), 0);
-      setRevenueSplit({ service: svcRev, product: prodRev, subscription: ciSubRev + giftCardRev });
+      setRevenueSplit({ service: svcRev, product: prodRev, giftCard: giftCardRev, subscription: subRev });
     } catch { toast.error("Failed to load analytics"); }
     finally { setLoading(false); }
   };
@@ -190,13 +193,14 @@ export default function AnalyticsDashboard() {
       {totalRevenue > 0 && (() => {
         const sRev = (revenueSplit.service > 0 || revenueSplit.product > 0) ? revenueSplit.service : totalRevenue;
         const pRev = revenueSplit.product || 0;
-        const subRev = revenueSplit.subscription || 0;
+        const subRev = revenueSplit.subscription || 0; // kept for compatibility
         return (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
           {[
             { label: "SERVICE REVENUE",      value: sRev,   color: "#8B6914", bg: "#FBF6EE", border: "#F0E4CC" },
             { label: "PRODUCT REVENUE",       value: pRev,   color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-            { label: "GIFT CARDS & SUBS",     value: subRev, color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+            { label: "GIFT CARDS REDEEMED",   value: revenueSplit.giftCard || 0, color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+            { label: "SUBSCRIPTIONS",          value: revenueSplit.subscription || 0, color: "#059669", bg: "#ECFDF5", border: "#A7F3D0" },
           ].map(k => (
             <div key={k.label} style={{ background: k.bg, border: `1px solid ${k.border}`, borderRadius: 14, padding: "16px 20px" }}>
               <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: k.color, margin: "0 0 6px" }}>{k.label}</p>

@@ -27,7 +27,7 @@ type DateRange = "today" | "week" | "month" | "custom";
 
 export default function SalesRevenue() {
   const [payments, setPayments] = useState<any[]>([]);
-  const [revSplit, setRevSplit] = useState({ service: 0, product: 0, subscription: 0 });
+  const [revSplit, setRevSplit] = useState({ service: 0, product: 0, giftCard: 0, subscription: 0 });
   const { userRole } = useSettings();
   const canRefund = userRole === "owner" || userRole === "admin";
   const [loading, setLoading] = useState(true);
@@ -57,14 +57,14 @@ export default function SalesRevenue() {
       const now = new Date();
       if (dateRange === "today") {
         const d = format(now, "yyyy-MM-dd");
-        q = q.gte("created_at", d + "T00:00:00").lte("created_at", d + "T23:59:59");
+        q = q.gte("payment_date", d + "T00:00:00").lte("payment_date", d + "T23:59:59");
       } else if (dateRange === "week") {
-        q = q.gte("created_at", format(startOfWeek(now), "yyyy-MM-dd")).lte("created_at", format(endOfWeek(now), "yyyy-MM-dd") + "T23:59:59");
+        q = q.gte("payment_date", format(startOfWeek(now), "yyyy-MM-dd")).lte("payment_date", format(endOfWeek(now), "yyyy-MM-dd") + "T23:59:59");
       } else if (dateRange === "month") {
-        q = q.gte("created_at", format(startOfMonth(now), "yyyy-MM-dd")).lte("created_at", format(endOfMonth(now), "yyyy-MM-dd") + "T23:59:59");
+        q = q.gte("payment_date", format(startOfMonth(now), "yyyy-MM-dd")).lte("payment_date", format(endOfMonth(now), "yyyy-MM-dd") + "T23:59:59");
       } else if (dateRange === "custom") {
-        if (customStart) q = q.gte("created_at", customStart);
-        if (customEnd) q = q.lte("created_at", customEnd + "T23:59:59");
+        if (customStart) q = q.gte("payment_date", customStart);
+        if (customEnd) q = q.lte("payment_date", customEnd + "T23:59:59");
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -84,15 +84,20 @@ export default function SalesRevenue() {
         .filter((p: any) => p.notes && p.notes.toLowerCase().includes("product sale"))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
       const giftCardAmt = completedSales
-        .filter((p: any) => (p.service_name || "").toLowerCase().includes("gift card"))
+        .filter((p: any) => p.payment_method === "gift_card")
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      const subAmt = completedSales
+        .filter((p: any) => p.payment_method === "subscription" || (p.notes && p.notes.toLowerCase().includes("subscription")))
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
       const serviceSalesAmt = completedSales
         .filter((p: any) =>
+          p.payment_method !== "gift_card" &&
+          p.payment_method !== "subscription" &&
           (!p.notes || !p.notes.toLowerCase().includes("product sale")) &&
-          !(p.service_name || "").toLowerCase().includes("gift card")
+          (!p.notes || !p.notes.toLowerCase().includes("subscription"))
         )
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      setRevSplit({ service: serviceSalesAmt, product: productSalesAmt, subscription: giftCardAmt });
+      setRevSplit({ service: serviceSalesAmt, product: productSalesAmt, giftCard: giftCardAmt, subscription: subAmt });
     } catch (e: any) { toast.error(e.message || "Failed to load sales"); }
     finally { setLoading(false); }
   };
@@ -192,11 +197,12 @@ export default function SalesRevenue() {
 
       {/* Revenue Split */}
       {completedTotal > 0 && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"14px", marginBottom:"24px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"14px", marginBottom:"24px" }}>
           {[
             { l:"SERVICE REVENUE",      v: revSplit.service,      c:"#8B6914", bg:"#FBF6EE", bd:"#F0E4CC" },
             { l:"PRODUCT REVENUE",       v: revSplit.product,      c:"#2563EB", bg:"#EFF6FF", bd:"#BFDBFE" },
-            { l:"GIFT CARDS & SUBS",     v: revSplit.subscription, c:"#7C3AED", bg:"#F5F3FF", bd:"#DDD6FE" },
+            { l:"GIFT CARDS REDEEMED", v: revSplit.giftCard,      c:"#7C3AED", bg:"#F5F3FF", bd:"#DDD6FE" },
+            { l:"SUBSCRIPTIONS",         v: revSplit.subscription, c:"#059669", bg:"#ECFDF5", bd:"#A7F3D0" },
           ].map(k => (
             <div key={k.l} style={{ background:k.bg, border:`1px solid ${k.bd}`, borderRadius:"14px", padding:"16px 20px" }}>
               <p style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.12em", color:k.c, margin:"0 0 6px" }}>{k.l}</p>
@@ -328,7 +334,7 @@ export default function SalesRevenue() {
             <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color:TXT, margin:0 }}>Payment Detail</p>
             <button onClick={()=>setSelected(null)} style={{ width:"28px", height:"28px", borderRadius:"50%", border:`1px solid ${BORDER}`, background:WHITE, cursor:"pointer", fontSize:"14px", color:TXT_SOFT }}>✕</button>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px", marginBottom:"20px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"20px" }}>
             {[["Client",selected.client_name||"—"],["Service",selected.service_name||"—"],["Amount",`GH₵${Number(selected.amount).toFixed(2)}`],["Method",selected.payment_method||"—"],["Status",selected.status||"—"],["Date",selected.created_at ? format(new Date(selected.created_at),"MMM d, yyyy 'at' h:mm a") : "—"]].map(([l,v]) => (
               <div key={l}><p style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.1em", color:TXT_SOFT, textTransform:"uppercase", marginBottom:"4px" }}>{l}</p><p style={{ fontSize:"13px", fontWeight:600, color:TXT, margin:0 }}>{v}</p></div>
             ))}
