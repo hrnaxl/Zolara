@@ -87,8 +87,11 @@ export default function BuyGiftCard() {
               const d = await r.json().catch(() => ({}));
               console.log("Create card:", r.status, JSON.stringify(d));
               if (r.ok && d.card) {
+                // Send gift card to recipient
                 const emailTo = form.recipientEmail || form.buyerEmail;
                 if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName || form.buyerName, recipient_email: emailTo, buyer_name: form.buyerName, message: form.message || undefined }).catch(console.error);
+                // Send payment receipt to buyer only
+                if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
               }
             } else {
               // PHYSICAL — reserve a pre-printed card
@@ -310,7 +313,7 @@ export default function BuyGiftCard() {
 
             <div style={{ background: "#FDF8EE", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: TXT_MID, marginBottom: 20, border: `1px solid #F5ECD6` }}>
               {deliveryType === "email"
-                ? `Your gift card will be sent to ${form.recipientEmail} within 10 minutes of payment confirmation.`
+                ? `Your gift card will be sent to ${form.recipientEmail} within 10–15 minutes of payment confirmation.`
                 : "Please visit Zolara Beauty Studio in Sakasaka, Opposite CalBank, to pick up your physical gift card. Show your name and phone number."}
             </div>
 
@@ -342,7 +345,7 @@ export default function BuyGiftCard() {
                   Your <strong>{tierConfig.label} Gift Card</strong> order has been placed.
                 </p>
                 <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-                  Once payment is confirmed, the gift card will be emailed to <strong>{form.recipientEmail}</strong> within 10 minutes.
+                  Once payment is confirmed, the gift card will be emailed to <strong>{form.recipientEmail}</strong> within 10–15 minutes.
                 </p>
                 <p style={{ color: TXT_MID, fontSize: 13 }}>
                   Questions? Call us on <strong>0594365314</strong> or <strong>020 884 8707</strong>

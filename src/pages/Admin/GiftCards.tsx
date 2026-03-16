@@ -206,7 +206,7 @@ export default function GiftCards() {
       } else if (confirmAct === "resend") {
         const res = await resendGiftCardEmail(confirmCard.id);
         if (res.error) throw res.error;
-        toast.success("Email re-queued — will send within 5 minutes");
+        toast.success("Email re-queued — sends within 10–15 minutes");
       }
       setConfirmCard(null); setConfirmAct(null);
       await load();
@@ -352,7 +352,7 @@ export default function GiftCards() {
           { label:"TOTAL REVENUE COLLECTED", val:`GHS ${totalRevCollected.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${cards.filter(c=>isPaid(c)).length} cards sold all time`, icon:"💰", color:"#8B6914", bg:"#FBF6EE" },
           { label:"OUTSTANDING VALUE", val:`GHS ${outstandingValue.toLocaleString("en",{minimumFractionDigits:0})}`, sub:`${totalActive} active cards (unredeemed)`, icon:"🎁", color:"#6366F1", bg:"#EEF2FF" },
           { label:"REDEEMED ALL TIME", val: totalRedeemed, sub:"Gift cards fully used", icon:"✓", color:"#16A34A", bg:"#F0FDF4" },
-          { label:"PENDING EMAIL SEND", val: totalPendingEmail, sub: totalPendingEmail > 0 ? "Sends within 5 minutes" : "All emails sent", icon:"📧", color: totalPendingEmail > 0 ? "#1D4ED8" : "#16A34A", bg: totalPendingEmail > 0 ? "#DBEAFE" : "#F0FDF4" },
+          { label:"PENDING EMAIL SEND", val: totalPendingEmail, sub: totalPendingEmail > 0 ? "Sends within 10–15 minutes" : "All emails sent", icon:"📧", color: totalPendingEmail > 0 ? "#1D4ED8" : "#16A34A", bg: totalPendingEmail > 0 ? "#DBEAFE" : "#F0FDF4" },
         ].map((s, i) => (
           <div key={i} className="gc-card" style={{ padding:"20px", background: s.bg, border:`1px solid ${s.color}22` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"10px" }}>
@@ -766,7 +766,7 @@ export default function GiftCards() {
               {confirmAct === "void"   && `${getCode(confirmCard)} will be permanently voided and cannot be used.`}
               {confirmAct === "delete" && `${getCode(confirmCard)} will be permanently deleted. This cannot be undone.`}
               {confirmAct === "sold"   && `${getCode(confirmCard)} will be marked as sold/issued and set to Active. Do this when you physically hand the card to a client.`}
-              {confirmAct === "resend" && `The gift card code will be re-emailed to ${confirmCard.recipient_email || "the recipient"}. This will happen within 5 minutes.`}
+              {confirmAct === "resend" && `The gift card code will be re-emailed to ${confirmCard.recipient_email || "the recipient"}. This will happen within 10–15 minutes.`}
               {confirmAct === "expire" && `${getCode(confirmCard)} will be marked as expired.`}
             </p>
             <div style={{ display:"flex", gap:"10px" }}>
