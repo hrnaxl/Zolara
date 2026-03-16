@@ -511,35 +511,75 @@ export default function LandingPage() {
               <div style={{ width: "44px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)", margin: "0 auto 24px" }} />
               <p className="sans" style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: gold, fontWeight: 700 }}>ZOLARA BEAUTY STUDIO</p>
               <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", marginTop: "8px", fontWeight: 400 }}>Sakasaka, Tamale</p>
-              <div style={{ marginTop: "36px", display: "flex", justifyContent: "center", gap: "6px" }}>
-                {[1,2,3,4,5].map((s,i) => (
-                  <span key={s} style={{
-                    color: gold, fontSize: "20px", display: "inline-block",
-                    animation: `starPop 0.4s cubic-bezier(0.34,1.56,0.64,1) ${0.6 + i * 0.08}s both`,
+              <style>{`
+                @keyframes starDrop {
+                  0%   { transform: translateY(-40px) scale(0.3); opacity: 0; filter: blur(4px); }
+                  60%  { transform: translateY(4px) scale(1.2); opacity: 1; filter: blur(0); }
+                  80%  { transform: translateY(-2px) scale(0.95); }
+                  100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+                }
+                @keyframes scoreReveal {
+                  0%   { clip-path: inset(0 100% 0 0); opacity: 0; }
+                  20%  { opacity: 1; }
+                  100% { clip-path: inset(0 0% 0 0); opacity: 1; }
+                }
+                @keyframes badgeSlide {
+                  0%   { transform: translateY(16px) scaleX(0.7); opacity: 0; }
+                  100% { transform: translateY(0) scaleX(1); opacity: 1; }
+                }
+                @keyframes shimmerLine {
+                  0%   { transform: translateX(-100%); }
+                  100% { transform: translateX(200%); }
+                }
+                @keyframes ratingPulse {
+                  0%,100% { text-shadow: 0 0 0px rgba(200,169,126,0); }
+                  50%     { text-shadow: 0 0 20px rgba(200,169,126,0.6), 0 0 40px rgba(200,169,126,0.2); }
+                }
+              `}</style>
+
+              {/* Stars */}
+              <div style={{ marginTop: "36px", display: "flex", justifyContent: "center", gap: "10px" }}>
+                {[0,1,2,3,4].map(i => (
+                  <span key={i} style={{
+                    fontSize: "22px", display: "inline-block", color: gold,
+                    animation: expVisible ? `starDrop 0.55s cubic-bezier(0.22,1,0.36,1) ${0.1 + i * 0.1}s both` : "none",
+                    filter: "drop-shadow(0 2px 6px rgba(200,169,126,0.5))",
                   }}>★</span>
                 ))}
               </div>
-              <style>{`
-                @keyframes starPop {
-                  0%   { transform: scale(0) rotate(-30deg); opacity: 0; }
-                  100% { transform: scale(1) rotate(0deg);   opacity: 1; }
-                }
-                @keyframes countUp {
-                  from { opacity: 0; transform: translateY(8px); }
-                  to   { opacity: 1; transform: translateY(0);   }
-                }
-                @keyframes pulseGold {
-                  0%,100% { box-shadow: 0 0 0 0 rgba(200,169,126,0); }
-                  50%     { box-shadow: 0 0 0 8px rgba(200,169,126,0.12); }
-                }
-              `}</style>
-              <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", animation: "countUp 0.5s ease 1.1s both" }}>
-                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "38px", fontWeight: 600, color: "#F5EFE6", lineHeight: 1, letterSpacing: "-0.02em" }}>5.0</span>
-                <span className="sans" style={{ fontSize: "10px", color: gold, fontWeight: 700, letterSpacing: "0.18em" }}>PERFECT SCORE</span>
+
+              {/* Score */}
+              <div style={{ marginTop: "16px", position: "relative", display: "inline-block" }}>
+                <span style={{
+                  fontFamily: "'Cormorant Garamond',serif",
+                  fontSize: "clamp(52px,6vw,72px)",
+                  fontWeight: 300, color: "#F5EFE6", lineHeight: 1,
+                  letterSpacing: "-0.03em", display: "block",
+                  animation: expVisible ? "ratingPulse 2.5s ease 0.8s infinite, scoreReveal 0.9s cubic-bezier(0.22,1,0.36,1) 0.55s both" : "none",
+                }}>5.0</span>
+                {/* Shimmer sweep */}
+                <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", borderRadius: 4 }}>
+                  <div style={{
+                    position: "absolute", top: 0, left: 0, width: "40%", height: "100%",
+                    background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)",
+                    animation: expVisible ? "shimmerLine 0.8s ease 1.5s 1 forwards" : "none",
+                  }} />
+                </div>
               </div>
-              <div style={{ marginTop: "10px", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "20px", padding: "5px 14px", animation: "countUp 0.5s ease 1.3s both, pulseGold 3s ease 2s infinite" }}>
-                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: gold, display: "inline-block", flexShrink: 0 }} />
-                <span className="sans" style={{ fontSize: "10px", color: "rgba(245,239,230,0.7)", fontWeight: 600, letterSpacing: "0.08em" }}>500+ Happy Clients</span>
+
+              {/* Label + badge */}
+              <div style={{ animation: expVisible ? "badgeSlide 0.5s cubic-bezier(0.22,1,0.36,1) 0.9s both" : "none" }}>
+                <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(200,169,126,0.7)", fontWeight: 700, marginBottom: "10px" }}>
+                  OUT OF 5.0
+                </p>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.25)", borderRadius: "4px", padding: "8px 18px" }}>
+                  <div style={{ display: "flex", gap: "3px" }}>
+                    {[0,1,2,3,4].map(i => (
+                      <div key={i} style={{ width: "4px", height: "14px", borderRadius: "2px", background: `rgba(200,169,126,${0.4 + i * 0.15})` }} />
+                    ))}
+                  </div>
+                  <span className="sans" style={{ fontSize: "11px", color: "rgba(245,239,230,0.75)", fontWeight: 600, letterSpacing: "0.06em" }}>500+ Reviews</span>
+                </div>
               </div>
               <div style={{ marginTop: "36px", padding: "24px 0 0", borderTop: "1px solid rgba(200,169,126,0.15)" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
