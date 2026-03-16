@@ -14,7 +14,7 @@ const services = [
   { name: "Wig Styling", icon: "◈", desc: "Custom wig fitting, installation and transformation for any occasion.", price: "From GHS 150", color: "#A0825A" },
 ];
 
-// Reviews are loaded from DB — fallback shown until DB loads
+// Reviews loaded from DB; fallback shown until DB loads
 const FALLBACK_REVIEWS = [
   { name: "Abena K.", text: "Zolara is in a class of its own. The atmosphere, the staff, the results. I've never felt more pampered in Tamale.", stars: 5 },
   { name: "Fatima A.", text: "My lashes were absolutely perfect. The attention to detail is incredible. I won't go anywhere else.", stars: 5 },
@@ -216,7 +216,7 @@ export default function LandingPage() {
         </a>
 
         <div className="desktop-nav" style={{ display: "flex", gap: "36px", alignItems: "center" }}>
-          {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
+          {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#subscriptions","PLANS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
             <a key={label} href={href} className="nav-link sans" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", color: dark, textDecoration: "none" }}>{label}</a>
           ))}
         </div>
@@ -262,7 +262,7 @@ export default function LandingPage() {
             <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", letterSpacing: "0.2em", color: gold, fontWeight: 600 }}>BEAUTY STUDIO</div>
           </div>
         </div>
-        {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href, label]) => (
+        {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#subscriptions","PLANS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href, label]) => (
           <a key={label} href={href} onClick={() => setMobileMenuOpen(false)}
             style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", color: "rgba(245,239,230,0.7)", textDecoration: "none", padding: "15px 0", borderBottom: "1px solid rgba(200,169,126,0.1)" }}>
             {label}
@@ -654,106 +654,77 @@ export default function LandingPage() {
       </section>
 
       {/* GIFT CARDS: 2 column with KPI marketing */}
-      <section id="gift-cards" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 70% 30%, rgba(200,169,126,0.07) 0%, transparent 50%)", pointerEvents: "none" }} />
+      <section id="gift-cards" style={{ background: dark, padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", position: "relative", overflow: "hidden" }}>
+        <style>{`
+          @keyframes cardFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-8px) rotate(-1deg)} }
+          @keyframes cardFloat2 { 0%,100%{transform:translateY(0) rotate(1.5deg)} 50%{transform:translateY(-6px) rotate(1.5deg)} }
+          @keyframes cardFloat3 { 0%,100%{transform:translateY(0) rotate(-0.5deg)} 50%{transform:translateY(-10px) rotate(-0.5deg)} }
+          .gc-tier-card { position:relative; overflow:hidden; border-radius:14px; padding:28px 24px; cursor:pointer; transition:transform 0.3s,box-shadow 0.3s; }
+          .gc-tier-card::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,transparent 60%); pointer-events:none; }
+          .gc-tier-card:hover { transform:translateY(-6px) !important; }
+          .gc-chip { font-family:'Montserrat',sans-serif; font-size:9px; font-weight:700; letter-spacing:0.16em; padding:4px 10px; border-radius:20px; display:inline-block; }
+        `}</style>
 
-        <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(ellipse at 20% 50%, rgba(200,169,126,0.06) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.05) 0%, transparent 45%)", pointerEvents: "none" }} />
+
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "clamp(48px,6vw,80px)", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE PERFECT PRESENT</div>
-          <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400, marginBottom: "20px" }}>Gift the <em>Experience</em></h2>
-          <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", lineHeight: 1.9, maxWidth: "520px", margin: "0 auto", fontWeight: 400 }}>
+          <h2 style={{ fontSize: "clamp(36px,5vw,64px)", fontWeight: 400, color: "#F5EFE6", lineHeight: 1.05, marginBottom: "20px" }}>Gift the <em style={{ color: gold }}>Experience</em></h2>
+          <p className="sans" style={{ fontSize: "14px", color: "rgba(245,239,230,0.55)", lineHeight: 1.85, maxWidth: "480px", margin: "0 auto 32px", fontWeight: 400 }}>
             Give someone you love a luxury beauty experience at Zolara. Valid for 12 months. Redeemable for any service.
           </p>
+          <Link to="/buy-gift-card" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", color: "#fff", background: "linear-gradient(135deg,#8B6914,#C8A97E)", padding: "15px 40px", borderRadius: "1px", boxShadow: "0 8px 32px rgba(139,105,20,0.35)" }}>
+            BUY A GIFT CARD
+          </Link>
         </div>
 
-        <div className="landing-gift-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(32px,5vw,72px)", maxWidth: "1100px", margin: "0 auto", alignItems: "start", position: "relative", zIndex: 1 }}>
-
-          {/* LEFT: Marketing KPI cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <h3 style={{ fontSize: "clamp(24px,3vw,36px)", fontWeight: 400, lineHeight: 1.2, marginBottom: "8px" }}>Why Give a <em>Zolara</em> Gift Card?</h3>
-
-            {[
-              {
-                icon: "✦", title: "Works Like Cash",
-                body: "Redeemable for any service across our full menu. Braids, nails, lashes, makeup and more. Your recipient chooses.",
-              },
-              {
-                icon: "◈", title: "12-Month Validity",
-                body: "No rush. Gift cards stay active for a full year from purchase. Plenty of time to plan a special visit.",
-              },
-              {
-                icon: "◉", title: "Delivered Instantly",
-                body: "Digital cards land in their inbox within minutes. Physical pickup also available at the studio.",
-              },
-              {
-                icon: "◇", title: "A Generous Buffer on Every Card",
-                body: "Your card covers the full service even if it slightly exceeds the card value. Silver: GHS 20 buffer. Gold: GHS 40. Platinum: GHS 70. Diamond: GHS 100. That extra is on us.",
-              },
-              {
-                icon: "❋", title: "Five Tiers. One for Everyone.",
-                body: "Bronze GHS 10, Silver GHS 220, Gold GHS 450, Platinum GHS 650, Diamond GHS 1,000. From a quick treat to a full luxury day.",
-              },
-            ].map(({ icon, title, body }) => (
-              <div key={title} className="kpi-card" style={{ background: cream, border: "1px solid rgba(200,169,126,0.2)", borderRadius: "4px", padding: "22px 24px", display: "flex", gap: "16px", alignItems: "flex-start", boxShadow: "0 4px 20px rgba(28,22,14,0.05)" }}>
-                <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ color: "#fff", fontSize: "14px" }}>{icon}</span>
-                </div>
+        {/* Tier cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "20px", maxWidth: "1100px", margin: "0 auto 64px", position: "relative", zIndex: 1 }}>
+          {[
+            { amount: "GHS 220", tier: "Silver", label: "SILVER", desc: "A perfect treat. Covers a wash, nail set or lashes.", gradient: "linear-gradient(145deg,#6B6B6B,#B8B8B8,#555)", glow: "rgba(180,180,180,0.15)", anim: "cardFloat 5s ease-in-out infinite", chip: "#9CA3AF" },
+            { amount: "GHS 450", tier: "Gold", label: "GOLD", desc: "A full pampering session. Braids, manicure and more.", gradient: "linear-gradient(145deg,#6B4E0A,#C8A97E,#8B6914)", glow: "rgba(200,169,126,0.2)", anim: "cardFloat2 5.5s ease-in-out infinite 0.4s", chip: "#C8A97E" },
+            { amount: "GHS 650", tier: "Platinum", label: "PLATINUM", desc: "Premium luxury. A full day of indulgence.", gradient: "linear-gradient(145deg,#2D3A45,#6B8090,#1E2830)", glow: "rgba(107,128,144,0.15)", anim: "cardFloat 6s ease-in-out infinite 0.2s", chip: "#94A3B8" },
+            { amount: "GHS 1,000", tier: "Diamond", label: "DIAMOND", desc: "The ultimate gift. Use across 3 visits. Balance carries forward.", gradient: "linear-gradient(145deg,#1a1660,#5B54C8,#12104A)", glow: "rgba(99,102,241,0.25)", anim: "cardFloat3 4.5s ease-in-out infinite 0.6s", chip: "#818CF8" },
+          ].map(t => (
+            <div key={t.tier} className="gc-tier-card" style={{ background: t.gradient, boxShadow: `0 20px 48px ${t.glow}, 0 2px 8px rgba(0,0,0,0.4)`, animation: t.anim }}>
+              {/* Decorative circles */}
+              <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+              <div style={{ position: "absolute", bottom: -12, left: -12, width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+              {/* Card top */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", position: "relative" }}>
                 <div>
-                  <p className="sans" style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.06em", color: dark, marginBottom: "6px" }}>{title}</p>
-                  <p className="sans" style={{ fontSize: "13px", color: "#4A3520", lineHeight: 1.75, fontWeight: 400 }}>{body}</p>
+                  <div className="sans" style={{ fontSize: "8px", letterSpacing: "0.22em", color: "rgba(255,255,255,0.5)", marginBottom: "8px", fontWeight: 600 }}>ZOLARA</div>
+                  <div className="gc-chip" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.75)", border: `1px solid ${t.chip}44` }}>{t.label}</div>
+                </div>
+                <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.3)", overflow: "hidden", background: "#fff" }}>
+                  <img src={LOGO} alt="Z" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
               </div>
-            ))}
-
-            {/* Diamond 3x redemption card */}
-            <div className="kpi-card" style={{ background: "linear-gradient(135deg, #1E1B4B, #312E81)", border: "1px solid rgba(99,102,241,0.4)", borderRadius: "4px", padding: "22px 24px", display: "flex", gap: "16px", alignItems: "flex-start", boxShadow: "0 8px 32px rgba(99,102,241,0.2)" }}>
-              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #4F46E5, #818CF8)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ color: "#fff", fontSize: "14px" }}>◆</span>
-              </div>
-              <div>
-                <p className="sans" style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.06em", color: "#C7D2FE", marginBottom: "6px" }}>Diamond Cards: Redeem Up to 3 Times</p>
-                <p className="sans" style={{ fontSize: "13px", color: "rgba(199,210,254,0.8)", lineHeight: 1.75, fontWeight: 400 }}>The Diamond Luxury Pass (GHS 1,000) is the only card redeemable across multiple visits. Use it up to 3 times. The remaining balance carries forward each visit until the card is fully used.</p>
-              </div>
+              {/* Amount */}
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,3vw,38px)", fontWeight: 300, color: "white", lineHeight: 1, marginBottom: "14px", letterSpacing: "-0.01em" }}>{t.amount}</div>
+              <div style={{ height: "1px", background: "rgba(255,255,255,0.12)", marginBottom: "14px" }} />
+              <p className="sans" style={{ fontSize: "12px", color: "rgba(255,255,255,0.62)", lineHeight: 1.65, fontWeight: 400, margin: 0 }}>{t.desc}</p>
             </div>
+          ))}
+        </div>
 
-            <Link to="/buy-gift-card" className="btn-primary" style={{
-              textDecoration: "none", display: "inline-block",
-              fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
-              letterSpacing: "0.14em", color: "#fff",
-              background: "linear-gradient(135deg, #8B6914, #C8A97E)",
-              padding: "17px 40px", borderRadius: "1px", textAlign: "center",
-              boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
-            }}>BUY A GIFT CARD</Link>
-          </div>
-
-          {/* RIGHT: Gift card tiers */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px", paddingTop: "12px" }}>
-            {[
-              { amount: "GH₵ 220", tier: "Silver", buffer: "+GHS 20 buffer", desc: "Perfect for a treat. Covers a wash, nail set, or cluster lashes.", gradient: "linear-gradient(145deg, #a8a8a8, #f0f0f0, #8a8a8a)" },
-              { amount: "GH₵ 450", tier: "Gold", buffer: "+GHS 40 buffer", desc: "A full pampering session. Braids, manicure and more.", gradient: "linear-gradient(145deg, #8B6914, #C8A97E, #A07030)" },
-              { amount: "GH₵ 650", tier: "Platinum", buffer: "+GHS 70 buffer", desc: "Premium luxury experience. A day of indulgence.", gradient: "linear-gradient(145deg, #3D4852, #8B9BAB, #2D3740)" },
-              { amount: "GH₵ 1,000", tier: "Diamond Luxury Pass", buffer: "+GHS 100 buffer · 3 redemptions", desc: "The ultimate gift. Bridal prep, full styling and more.", gradient: "linear-gradient(145deg, #2D2570, #7C6FD4, #1E1860)" },
-            ].map(({ amount, tier, desc, gradient }) => (
-              <div key={tier} className="gift-card-tile" style={{ background: gradient, borderRadius: "10px", padding: "28px 28px", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: -14, right: -14, width: 70, height: 70, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
-                <div style={{ position: "absolute", bottom: -10, left: -10, width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div>
-                    <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.72)", marginBottom: "10px", fontWeight: 600 }}>ZOLARA BEAUTY STUDIO</p>
-                    <p style={{ fontSize: "30px", fontWeight: 700, color: "white", marginBottom: "2px", fontFamily: "'Cormorant Garamond', serif" }}>{amount}</p>
-                    <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.18em", fontWeight: 700, color: "rgba(255,255,255,0.78)", marginBottom: "10px" }}>{tier.toUpperCase()}</p>
-                  </div>
-                  <div style={{ width: "40px", height: "40px", border: "2px solid rgba(255,255,255,0.35)", borderRadius: "50%", overflow: "hidden", background: "#fff", flexShrink: 0, boxShadow: "0 0 0 3px rgba(255,255,255,0.08)" }}>
-                    <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                </div>
-                {(tier as any).buffer && <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.1)", padding: "3px 8px", borderRadius: 20, display: "inline-block", marginBottom: 8 }}>{(tier as any).buffer}</span>}
-                <p className="sans" style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.72)", lineHeight: 1.65, fontWeight: 400, maxWidth: "280px" }}>{desc}</p>
-              </div>
-            ))}
-          </div>
+        {/* Features row */}
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "1px", background: "rgba(200,169,126,0.1)", borderRadius: "4px", overflow: "hidden", position: "relative", zIndex: 1 }}>
+          {[
+            { icon: "✦", title: "Works Like Cash", body: "Redeemable for any service across our full menu." },
+            { icon: "◈", title: "12-Month Validity", body: "Gift cards stay active for a full year from purchase." },
+            { icon: "◉", title: "Instant Delivery", body: "Digital cards arrive by email within minutes." },
+            { icon: "◇", title: "Grace Buffer Included", body: "Each card covers slight overages. Your recipient is never turned away." },
+          ].map(f => (
+            <div key={f.title} style={{ background: "rgba(255,255,255,0.02)", padding: "24px 22px" }}>
+              <div style={{ color: gold, fontSize: "16px", marginBottom: "10px" }}>{f.icon}</div>
+              <div className="sans" style={{ fontSize: "11px", fontWeight: 700, color: "rgba(245,239,230,0.85)", letterSpacing: "0.04em", marginBottom: "6px" }}>{f.title}</div>
+              <div className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.45)", lineHeight: 1.65, fontWeight: 400 }}>{f.body}</div>
+            </div>
+          ))}
         </div>
       </section>
-
       {/* VISIT US */}
       {/* ── LOYALTY SECTION ─────────────────────────────── */}
       <section id="loyalty" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
@@ -772,7 +743,7 @@ export default function LandingPage() {
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>LOYALTY REWARDS</div>
             <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "24px" }}>Your Loyalty,<br /><em>Beautifully Rewarded</em></h2>
             <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", lineHeight: 1.95, marginBottom: "36px", fontWeight: 400 }}>
-              Every GHS 100 you spend earns a stamp. Hit 20 stamps and receive GHS 50 off your next service — automatically, no app needed.
+              Every GHS 100 you spend earns a stamp. Hit 20 stamps and receive GHS 50 off your next service. No app needed.
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "36px" }}>
@@ -796,7 +767,7 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Right — stamp card matching experience section style */}
+          {/* Right: stamp card */}
           <div style={{ position: "relative" }}>
             <div style={{ position: "absolute", inset: "-20px", background: "radial-gradient(circle at 50% 50%, rgba(200,169,126,0.1) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
             <div style={{ background: "linear-gradient(150deg,#2C2416 0%,#1A1008 60%,#251D0E 100%)", borderRadius: "4px", padding: "44px 36px", position: "relative", overflow: "hidden", boxShadow: "0 32px 80px rgba(28,22,14,0.35)" }}>
@@ -845,7 +816,67 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
+      {/* ── SUBSCRIPTIONS ─────────────────────────────── */}
+      <section id="subscriptions" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", right: "-40px", top: "50%", transform: "translateY(-50%)", fontSize: "320px", color: "rgba(200,169,126,0.04)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
+        <div style={{ textAlign: "center", marginBottom: "clamp(40px,5vw,64px)", position: "relative", zIndex: 1 }}>
+          <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>MONTHLY PLANS</div>
+          <h2 style={{ fontSize: "clamp(32px,4.5vw,56px)", fontWeight: 400, lineHeight: 1.1, marginBottom: "16px" }}>Beauty on <em>Subscription</em></h2>
+          <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", lineHeight: 1.85, maxWidth: "440px", margin: "0 auto", fontWeight: 400 }}>
+            Pay once a month, visit as often as your plan allows. Priority booking, fixed price, always ready.
+          </p>
+        </div>
+
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "20px", position: "relative", zIndex: 1, marginBottom: "48px" }}>
+          {[
+            { name: "Essential", price: "GHS 300", cycle: "per month", slots: "2 visits", desc: "Two services per month. Perfect for maintaining your look.", icon: "◇", featured: false },
+            { name: "Premium", price: "GHS 500", cycle: "per month", slots: "4 visits", desc: "Four services per month. For the client who never misses a week.", icon: "✦", featured: true },
+            { name: "Luxury", price: "GHS 800", cycle: "per month", slots: "Unlimited", desc: "Unlimited visits all month. Full access to everything Zolara offers.", icon: "◉", featured: false },
+          ].map(plan => (
+            <div key={plan.name} style={{
+              background: plan.featured ? "linear-gradient(150deg,#2C2416,#1A1008)" : "#fff",
+              border: plan.featured ? "1px solid rgba(200,169,126,0.35)" : "1px solid rgba(200,169,126,0.18)",
+              borderRadius: "4px", padding: "36px 28px", position: "relative", overflow: "hidden",
+              boxShadow: plan.featured ? "0 24px 60px rgba(28,22,14,0.3)" : "0 4px 20px rgba(28,22,14,0.06)",
+            }}>
+              {plan.featured && (
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg,transparent,#C8A97E,transparent)" }} />
+              )}
+              {plan.featured && (
+                <div style={{ position: "absolute", top: "16px", right: "16px" }}>
+                  <span className="sans" style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.18em", color: "#1C160E", background: gold, padding: "4px 10px", borderRadius: "20px" }}>POPULAR</span>
+                </div>
+              )}
+              <div style={{ color: plan.featured ? gold : goldDark, fontSize: "18px", marginBottom: "16px" }}>{plan.icon}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 600, color: plan.featured ? "#F5EFE6" : dark, marginBottom: "4px" }}>{plan.name}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "6px" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "36px", fontWeight: 300, color: plan.featured ? gold : goldDark, lineHeight: 1 }}>{plan.price}</span>
+                <span className="sans" style={{ fontSize: "11px", color: plan.featured ? "rgba(245,239,230,0.45)" : "#78716C", fontWeight: 400 }}>{plan.cycle}</span>
+              </div>
+              <div className="sans" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em", color: plan.featured ? gold : goldDark, marginBottom: "16px" }}>{plan.slots.toUpperCase()}</div>
+              <div style={{ height: "1px", background: plan.featured ? "rgba(200,169,126,0.15)" : "rgba(200,169,126,0.15)", marginBottom: "16px" }} />
+              <p className="sans" style={{ fontSize: "13px", color: plan.featured ? "rgba(245,239,230,0.6)" : "#4A3520", lineHeight: 1.75, fontWeight: 400, marginBottom: "24px" }}>{plan.desc}</p>
+              <Link to="/book" style={{
+                display: "block", textAlign: "center", textDecoration: "none",
+                fontFamily: "'Montserrat',sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em",
+                color: plan.featured ? "#1C160E" : "#fff",
+                background: plan.featured ? "linear-gradient(135deg,#C8A97E,#8B6914)" : "linear-gradient(135deg,#8B6914,#C8A97E)",
+                padding: "12px 24px", borderRadius: "1px",
+              }}>ENQUIRE NOW</Link>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ maxWidth: "680px", margin: "0 auto", background: "#fff", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "4px", padding: "28px 32px", textAlign: "center", boxShadow: "0 4px 20px rgba(28,22,14,0.06)", position: "relative", zIndex: 1 }}>
+          <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 400, color: dark, marginBottom: "8px" }}>Custom plans available for groups and businesses</p>
+          <p className="sans" style={{ fontSize: "13px", color: "#78716C", lineHeight: 1.75, marginBottom: "20px", fontWeight: 400 }}>Bridal parties, corporate teams and student groups get tailored packages. Call us to discuss.</p>
+          <a href="https://wa.me/233594365314" target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: goldDark, textDecoration: "none" }}>
+            CONTACT US ON WHATSAPP →
+          </a>
+        </div>
+      </section>
+
+            <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
         <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FIND US</div>
@@ -908,7 +939,7 @@ export default function LandingPage() {
           {/* Navigate */}
           <div>
             <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "16px" }}>NAVIGATE</p>
-            {[["#services","Services"],["#experience","Experience"],["#gift-cards","Gift Cards"],["#loyalty","Loyalty"],["#visit-us","Visit Us"]].map(([href,label]) => (
+            {[["#services","Services"],["#experience","Experience"],["#gift-cards","Gift Cards"],["#loyalty","Loyalty"],["#subscriptions","Plans"],["#visit-us","Visit Us"]].map(([href,label]) => (
               <div key={label} style={{ marginBottom: "11px" }}>
                 <a href={href} className="sans" style={{ fontSize: "13px", color: "rgba(245,239,230,0.65)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
                   onMouseEnter={e => (e.target as HTMLElement).style.color = gold}
