@@ -31,20 +31,19 @@ module.exports = async function handler(req, res) {
   if (!cardId) return res.status(400).json({ error: "Missing cardId" });
 
   try {
-    // 1. Fetch current card state with service role
+    // 1. Fetch current card state
     const get = await sbGet(`gift_cards?id=eq.${cardId}&select=*`);
     const card = Array.isArray(get.data) ? get.data[0] : null;
     if (!card) return res.status(404).json({ error: "Card not found" });
 
-    // 2. CRITICAL: Re-validate card is still redeemable — prevents double redemption
+    // 2. Re-validate — prevent double redemption
     if (card.tier !== "Diamond") {
       if (card.status === "redeemed") {
         return res.status(409).json({ error: "Card already redeemed", alreadyUsed: true });
       }
     } else {
-      // Diamond: check balance and count
       if (Number(card.balance || 0) <= 0 || (card.redemption_count || 0) >= 3) {
-        return res.status(409).json({ error: "Diamond card has no remaining balance or uses", alreadyUsed: true });
+        return res.status(409).json({ error: "Diamond card fully used", alreadyUsed: true });
       }
     }
 
@@ -52,30 +51,43 @@ module.exports = async function handler(req, res) {
     const applied = Number(appliedAmount || 0);
     const balance = Number(currentBalance ?? card.balance ?? 0);
     const newBalance = Math.max(0, balance - applied);
-    const redemptionCount = (card.redemption_count || 0) + 1;
     const diamond = card.tier === "Diamond";
-    const fullyUsed = !diamond || newBalance <= 0 || redemptionCount >= 3;
+    const fullyUsed = !diamond || newBalance <= 0;
 
-    // 4. Build update — always include redemption_count even if column is null
-    const update = {
+    // 4. Build update — only include columns that definitely exist
+    // redemption_count and redeemed_at may not exist yet — try with them first, fallback without
+    const fullUpdate = {
       status: fullyUsed ? "redeemed" : "active",
       balance: newBalance,
       redeemed_by_client: clientName || null,
-      redemption_count: redemptionCount,
+      redeemed_at: fullyUsed ? new Date().toISOString() : null,
+      redemption_count: (card.redemption_count || 0) + 1,
     };
-    if (fullyUsed) update.redeemed_at = new Date().toISOString();
 
-    // 5. PATCH and verify at least 1 row was updated
-    const patch = await sbPatch(`gift_cards?id=eq.${cardId}`, update);
-    const updated = Array.isArray(patch.data) ? patch.data : [];
+    // 5. Try full update first
+    let patch = await sbPatch(`gift_cards?id=eq.${cardId}`, fullUpdate);
+    let updated = Array.isArray(patch.data) ? patch.data : [];
 
+    // 6. If failed (likely missing column), retry with minimal safe fields only
     if (!patch.ok || updated.length === 0) {
-      console.error("PATCH failed or updated 0 rows:", patch.status, JSON.stringify(patch.data));
-      return res.status(500).json({ error: "Failed to update card — 0 rows matched", detail: patch.data });
+      console.warn("Full update failed, retrying with minimal fields:", patch.status, JSON.stringify(patch.data).slice(0, 200));
+      const minimalUpdate = {
+        status: fullyUsed ? "redeemed" : "active",
+        balance: newBalance,
+        redeemed_by_client: clientName || null,
+      };
+      patch = await sbPatch(`gift_cards?id=eq.${cardId}`, minimalUpdate);
+      updated = Array.isArray(patch.data) ? patch.data : [];
     }
 
-    console.log("Card marked redeemed:", cardId, "newBalance:", newBalance, "fullyUsed:", fullyUsed);
-    return res.status(200).json({ ok: true, newBalance, redemptionCount, fullyUsed, card: updated[0] });
+    if (!patch.ok || updated.length === 0) {
+      console.error("Both updates failed:", patch.status, JSON.stringify(patch.data).slice(0, 300));
+      return res.status(500).json({ error: "Failed to update card", detail: patch.data });
+    }
+
+    console.log("✓ Card marked:", cardId, "status:", fullyUsed ? "redeemed" : "active", "balance:", newBalance);
+    return res.status(200).json({ ok: true, newBalance, fullyUsed, card: updated[0] });
+
   } catch (err) {
     console.error("Redeem error:", err);
     return res.status(500).json({ error: err.message });

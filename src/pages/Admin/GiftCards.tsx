@@ -103,7 +103,7 @@ export default function GiftCards() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabaseAdmin as any)
         .from("gift_cards")
         .select("*")
         .order("created_at", { ascending: false })
@@ -125,13 +125,13 @@ export default function GiftCards() {
 
   // ─── Helpers ─────────────────────────────────────────────────
   const getCode  = (c: any) => c.code || c.final_code || "—";
-  const getValue = (c: any) => Number(c.amount || c.card_value || c.balance || 0);
+  const getValue = (c: any) => Number(c.amount || c.card_value || 0); // amount = original value; balance = remaining
   const getExp   = (c: any) => c.expires_at || c.expire_at;
   const isDigit  = (c: any) => c.card_type === "digital" || c.delivery_type === "email" || (!c.card_type && !c.is_admin_generated);
   const isPhys   = (c: any) => c.card_type === "physical" || c.delivery_type === "physical" || c.is_admin_generated;
 
   // ─── Stats ───────────────────────────────────────────────────
-  const isPaid        = (c: any) => c.payment_status === "paid" || c.payment_status === "pending_send";
+  const isPaid        = (c: any) => ["paid","pending_send","pending_pickup"].includes(c.payment_status || "");
   const totalActive   = cards.filter(c => ["active","available","pending_send"].includes(c.status) && c.payment_status !== "voided" && c.payment_status !== "expired").length;
   const totalPendingEmail = cards.filter(c => c.status === "pending_send" || (c.status === "unused" && c.payment_status === "paid" && isDigit(c) && !c.redeemed_at)).length;
   const thisMonth     = cards.filter(c => {
@@ -152,7 +152,7 @@ export default function GiftCards() {
   const onlineRedeemed = onlineCards.filter(c => c.status === "redeemed").length;
   const physRedeemed  = physCards.filter(c => c.status === "redeemed").length;
   // Outstanding value = total value of active cards not yet redeemed (liability)
-  const outstandingValue = cards.filter(c => ["active","available"].includes(c.status) && isPaid(c)).reduce((s, c) => s + Number(c.balance || getValue(c)), 0);
+  const outstandingValue = cards.filter(c => ["active","available","pending_pickup"].includes(c.status) && isPaid(c)).reduce((s, c) => s + Number(c.balance ?? c.amount ?? 0), 0);
   // Total revenue collected from card sales
   const totalRevCollected = cards.filter(c => isPaid(c)).reduce((s, c) => s + getValue(c), 0);
 
