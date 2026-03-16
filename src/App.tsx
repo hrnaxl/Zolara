@@ -11,7 +11,7 @@ import LandingPage from "./pages/LandingPage";
 import PublicBooking from "./pages/PublicBooking";
 
 import DashboardLayout from "./components/layout/DashboardLayout";
-import AdminLayout from "./components/layout/AdminLayout";
+const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
 import StaffLayout from "./components/layout/StaffLayout";
 import CleanerLayout from "./components/layout/CleanerLayout";
 import ReceptionistLayout from "./components/layout/ReceptionistLayout";
