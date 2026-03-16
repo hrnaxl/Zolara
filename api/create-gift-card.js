@@ -5,7 +5,7 @@ const TV = { Bronze: 1, Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
 const C = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const r4 = () => Array.from({length:4}, () => C[Math.floor(Math.random()*C.length)]).join("");
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -19,22 +19,14 @@ module.exports = async function handler(req, res) {
   try {
     const r = await fetch(SB + "/gift_cards", {
       method: "POST", headers: H,
-      body: JSON.stringify({
-        code, tier, amount, balance: amount,
-        status: "active", payment_status: "paid", card_type: "digital",
-        buyer_name: buyerName || null, buyer_email: buyerEmail || null, buyer_phone: buyerPhone || null,
-        recipient_name: recipientName || buyerName || null,
-        recipient_email: recipientEmail || buyerEmail || null,
-        message: message || null, expires_at: expires.toISOString(),
-      }),
+      body: JSON.stringify({ code, tier, amount, balance: amount, status: "active", payment_status: "paid", card_type: "digital", buyer_name: buyerName || null, buyer_email: buyerEmail || null, buyer_phone: buyerPhone || null, recipient_name: recipientName || buyerName || null, recipient_email: recipientEmail || buyerEmail || null, message: message || null, expires_at: expires.toISOString() }),
     });
     const d = await r.json();
     console.log("Create:", r.status, JSON.stringify(d));
     if (!r.ok) return res.status(500).json({ error: "Insert failed", detail: d });
-    const card = Array.isArray(d) ? d[0] : d;
-    return res.status(200).json({ ok: true, card });
+    return res.status(200).json({ ok: true, card: Array.isArray(d) ? d[0] : d });
   } catch (err) {
     console.error("create error:", err.message);
     return res.status(500).json({ error: err.message });
   }
-};
+}

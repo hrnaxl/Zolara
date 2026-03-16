@@ -1,6 +1,6 @@
 const RESEND_KEY = "re_ihUNevoc_8cu2FmjzUevtnEpxD6aBTTK3";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -12,12 +12,7 @@ module.exports = async function handler(req, res) {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + RESEND_KEY },
-      body: JSON.stringify({
-        from: "Zolara Beauty Studio <onboarding@resend.dev>",
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify({ from: "Zolara Beauty Studio <onboarding@resend.dev>", to: Array.isArray(to) ? to : [to], subject, html }),
     });
     const d = await r.json();
     console.log("Resend:", r.status, JSON.stringify(d));
@@ -27,4 +22,4 @@ module.exports = async function handler(req, res) {
     console.error("send-email crash:", err.message);
     return res.status(500).json({ error: err.message });
   }
-};
+}

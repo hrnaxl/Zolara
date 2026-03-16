@@ -2,7 +2,7 @@ const SB = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
 const H = { "apikey": SK, "Authorization": "Bearer " + SK, "Content-Type": "application/json", "Prefer": "return=representation" };
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -28,11 +28,10 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({ status: done ? "redeemed" : "active", balance: newBal, redemption_count: newCount, redeemed_by_client: clientName || null, redeemed_at: new Date().toISOString() }),
     });
     const pd = await pr.json();
-    console.log("Redeem:", pr.status, JSON.stringify(pd));
     if (!pr.ok) return res.status(500).json({ error: "Update failed", detail: pd });
     return res.status(200).json({ ok: true, newBalance: newBal, fullyUsed: done, newStatus: done ? "redeemed" : "active" });
   } catch (err) {
     console.error("redeem error:", err.message);
     return res.status(500).json({ error: err.message });
   }
-};
+}
