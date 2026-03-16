@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { autoAssignBooking } from "@/lib/autoAssign";
 import { sendSMS, SMS } from "@/lib/sms";
@@ -49,8 +49,9 @@ const sectionTitle = {
 } as const;
 
 export default function EnhancedBookingForm() {
-  const { settings } = useSettings();
+  const { settings, userRole } = useSettings();
   const location = useLocation();
+  const navigate = useNavigate();
   const isWalkIn = new URLSearchParams(location.search).get("source") === "walk_in";
   const [services, setServices]   = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -258,7 +259,10 @@ export default function EnhancedBookingForm() {
           <span style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, color: GOLD, letterSpacing: "0.12em" }}>{bookingRef}</span>
         </div>
         <div>
-          <button onClick={() => window.history.back()} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: GOLD, fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "'Montserrat',sans-serif" }}>
+          <button onClick={() => {
+            const base = userRole === "receptionist" ? "/app/receptionist" : "/app/admin";
+            navigate(base + "/bookings");
+          }} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: GOLD, fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "'Montserrat',sans-serif" }}>
             ← Back to Bookings
           </button>
         </div>
