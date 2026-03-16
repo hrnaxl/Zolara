@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + RESEND_KEY },
-      body: JSON.stringify({ from: "Zolara Beauty Studio <onboarding@resend.dev>", to: Array.isArray(to) ? to : [to], subject, html }),
+      body: JSON.stringify({ from: "Zolara Beauty Studio <noreply@noreply.zolarasalon.com>", to: Array.isArray(to) ? to : [to], subject, html }),
     });
     const d = await r.json();
     console.log("Resend:", r.status, JSON.stringify(d));
