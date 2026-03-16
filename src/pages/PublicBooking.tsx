@@ -85,7 +85,8 @@ export default function PublicBooking() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [serviceId, setServiceId] = useState("");
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const serviceId = serviceIds[0] || ""; // compat
   const [variants, setVariants] = useState<any[]>([]);
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [addons, setAddons] = useState<any[]>([]);
@@ -183,6 +184,7 @@ export default function PublicBooking() {
 
 
   const selectedService = services.find(s => s.id === serviceId);
+  const selectedServices = services.filter(s => serviceIds.includes(s.id));
 
   // Fetch variants + addons whenever service changes
   useEffect(() => {
@@ -235,9 +237,11 @@ export default function PublicBooking() {
 
   // While loading variants OR when variants exist: show 0 until one is selected
   const serviceHasVariants = variantsLoading || variants.length > 0;
-  const basePrice = selectedVariant
+  const primaryBase = selectedVariant
     ? Number(selectedVariant.price_adjustment)
     : serviceHasVariants ? 0 : Number(selectedService?.price || 0);
+  const otherServicesTotal = selectedServices.filter(s => s.id !== serviceId).reduce((sum, s) => sum + Number(s.price || 0), 0);
+  const basePrice = primaryBase + otherServicesTotal;
   const variantAdj = 0;
   const addonTotal = addons.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + Number(a.price), 0);
   const subtotal = basePrice + variantAdj + addonTotal;
@@ -256,7 +260,7 @@ export default function PublicBooking() {
     const e: Record<string,string> = {};
     if (!name.trim() || name.trim().length < 2) e.name = "Enter your full name";
     if (!phone.trim() || phone.replace(/\s/g,"").length < 10) e.phone = "Enter a valid phone number";
-    if (!serviceId) e.service = "Please select a service";
+    if (serviceIds.length === 0) e.service = "Please select a service";
     if (serviceId && variants.length > 0 && !selectedVariantId) e.variant = "Please select a size or length";
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
@@ -305,8 +309,8 @@ export default function PublicBooking() {
           client_name: name,
           client_email: email || null,
           client_phone: cleanPhone,
-          service_id: serviceId,
-          service_name: selectedService?.name || null,
+          service_id: serviceId || null,
+          service_name: selectedServices.map(s => s.name).join(", ") || selectedService?.name || null,
           variant_id: selectedVariantId || null,
           variant_name: selectedVariant?.name || null,
           selected_addons: selectedAddons.length > 0
@@ -330,7 +334,7 @@ export default function PublicBooking() {
       if (cleanPhone) {
         sendSMS(cleanPhone, SMS.bookingReceived(
           name || "Valued Client",
-          selectedService?.name || "service",
+          selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
           preferredDate,
           normalizedTime,
           bRef,
@@ -376,7 +380,7 @@ export default function PublicBooking() {
           try {
             const alertMsg = SMS.newBookingAlert(
               name || "Valued Client",
-              selectedService?.name || "service",
+              selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
               preferredDate,
               normalizedTime,
               bRef,
@@ -417,7 +421,7 @@ export default function PublicBooking() {
           }
 
           setBookingRef(bRef);
-          setBookedService(selectedService?.name || "");
+          setBookedService(selectedServices.map(s => s.name).join(", ") || selectedService?.name || "");
           setBookedDate(preferredDate);
           setBookedTime(normalizedTime);
           setStep("done");
@@ -672,10 +676,10 @@ export default function PublicBooking() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                     {packageCats.map(cat => (
                       (grouped[cat] || []).map((svc: any) => (
-                        <button key={svc.id} onClick={() => { setServiceId(svc.id); setActiveCategory(cat); }}
-                          style={{ background: serviceId === svc.id ? GOLD : "rgba(200,169,126,0.12)", border: `1.5px solid ${serviceId === svc.id ? GOLD : "rgba(200,169,126,0.3)"}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
-                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 700, color: serviceId === svc.id ? DARK : GOLD, margin: 0 }}>{svc.name}</p>
-                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: serviceId === svc.id ? "rgba(28,22,14,0.7)" : "rgba(200,169,126,0.7)", margin: "2px 0 0" }}>{getPriceDisplay(svc)}</p>
+                        <button key={svc.id} onClick={() => { setServiceIds(prev => prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id]); setActiveCategory(cat); }}
+                          style={{ background: serviceIds.includes(svc.id) ? GOLD : "rgba(200,169,126,0.12)", border: `1.5px solid ${serviceIds.includes(svc.id) ? GOLD : "rgba(200,169,126,0.3)"}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 700, color: serviceIds.includes(svc.id) ? DARK : GOLD, margin: 0 }}>{svc.name}</p>
+                          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: serviceIds.includes(svc.id) ? "rgba(28,22,14,0.7)" : "rgba(200,169,126,0.7)", margin: "2px 0 0" }}>{getPriceDisplay(svc)}</p>
                         </button>
                       ))
                     ))}
@@ -709,11 +713,11 @@ export default function PublicBooking() {
                   <p style={{ textAlign: "center", color: TXT_SOFT, fontSize: "13px", padding: "24px 0" }}>No services found.</p>
                 )}
                 {filteredServices.filter(s => !isPackage(s.category)).map((svc: any) => {
-                  const active = serviceId === svc.id;
+                  const active = serviceIds.includes(svc.id);
                   return (
                     <div key={svc.id}>
                       {/* Service row */}
-                      <button onClick={() => setServiceId(svc.id)}
+                      <button type="button" onClick={() => setServiceIds(prev => prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id])}
                         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: active ? "10px 10px 0 0" : "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{svc.name}</p>
@@ -972,7 +976,7 @@ export default function PublicBooking() {
               {[
                 { label: "Name", value: name || "..." },
                 { label: "Phone", value: phone || "..." },
-                { label: "Service", value: selectedService ? `${selectedService.name}${selectedVariant ? ` · ${selectedVariant.name}` : ""}` : "Not selected" },
+                { label: "Service", value: selectedServices.length > 0 ? selectedServices.map(s => s.name).join(", ") + (selectedVariant ? ` · ${selectedVariant.name}` : "") : "Not selected" },
                 { label: "Date", value: preferredDate || "..." },
                 { label: "Time", value: preferredTime || "..." },
               ].map(row => (
