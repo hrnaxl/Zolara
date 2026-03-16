@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
-      body: JSON.stringify({ from: "Zolara Beauty Studio <hello@noreply.zolarasalon.com>", to: Array.isArray(to) ? to : [to], subject, html }),
+      body: JSON.stringify({ from: "Zolara Beauty Studio <onboarding@resend.dev>", to: Array.isArray(to) ? to : [to], subject, html }),
     });
     const data = await response.json();
     if (!response.ok) return res.status(500).json({ error: data.message || "Send failed" });

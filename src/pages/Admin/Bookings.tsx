@@ -6,6 +6,7 @@ import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { formatTo12Hour } from "@/lib/time";
 import { sendSMS, SMS } from "@/lib/sms";
 import { useSettings } from "@/context/SettingsContext";
+import EnhancedBookingForm from "@/components/EnhancedBookingForm";
 import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
 import { Plus, Search, X, ChevronLeft, ChevronRight, Calendar, Clock, User, Scissors, Phone, StickyNote, CreditCard, CheckCircle2, XCircle, AlertCircle, RefreshCw, ArrowRight } from "lucide-react";
 
@@ -216,6 +217,7 @@ export default function Bookings() {
 
   const [confirming, setConfirming] = useState(false);
   const [confirmResult, setConfirmResult] = useState<{done:number;skipped:number;noStaff:number} | null>(null);
+  const [newBookingOpen, setNewBookingOpen] = useState(false);
   const [presentStaffIds, setPresentStaffIds] = useState<Set<string>>(new Set());
   const [absentStaffIds2, setAbsentStaffIds2] = useState<Set<string>>(new Set());
 
@@ -359,6 +361,17 @@ export default function Bookings() {
 
   return (
     <div style={{ background: CREAM, minHeight: "100vh", fontFamily: "Montserrat, sans-serif", color: TXT }}>
+      {/* Walk-in / new booking modal */}
+      {newBookingOpen && (
+        <div onClick={e => { if (e.target === e.currentTarget) setNewBookingOpen(false); }}
+          style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:1000, overflowY:"auto" }}>
+          <div style={{ maxWidth:700, margin:"40px auto", position:"relative" }}>
+            <button onClick={() => setNewBookingOpen(false)}
+              style={{ position:"absolute", top:12, right:12, zIndex:10, background:"white", border:"none", borderRadius:"50%", width:32, height:32, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 2px 8px rgba(0,0,0,0.2)" }}>✕</button>
+            <EnhancedBookingForm />
+          </div>
+        </div>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap');
         .bk-row { cursor:pointer; transition: background 0.12s; }
@@ -397,7 +410,7 @@ export default function Bookings() {
                     {confirming ? "Confirming…" : `✓ Confirm All (${counts["pending"] || 0})`}
                   </button>
                 )}
-                <button onClick={() => navigate("/book?source=walk_in")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={() => setNewBookingOpen(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 10, background: `linear-gradient(135deg,${G},${G_D})`, color: WHITE, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   <Plus size={14} /> New Booking
                 </button>
               </div>
