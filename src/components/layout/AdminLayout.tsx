@@ -91,6 +91,9 @@ const AdminDashboard = () => {
     depositsPendingCount: 0,
     periodPromoSavings: 0,
     promoBreakdown: [] as { code: string; savings: number; count: number }[],
+    giftCardsRedeemedCount: 0,    // total number of cards redeemed
+    giftCardsSoldCount: 0,        // total cards sold (payment_status=paid)
+    giftCardsInStock: 0,          // pre-printed physical cards not yet sold
   });
 
   const [revenueData, setRevenueData] = useState<
@@ -206,6 +209,9 @@ const AdminDashboard = () => {
         depositsPendingCheckoutRes,
         promoSavingsRes,
         giftCardLiabilityRes,
+        giftCardsRedeemedRes,
+        giftCardsSoldRes,
+        giftCardsInStockRes,
       ] = await Promise.all([
         supabase
           .from("bookings")
@@ -230,8 +236,8 @@ const AdminDashboard = () => {
           .from("sales")
           .select("amount, payment_method, status, booking_id, client_name, notes, service_name")
           .eq("status", "completed")
-          .gte("payment_date", periodStart)
-          .lte("payment_date", periodEnd),
+          .gte("payment_date", periodStartTs)
+          .lte("payment_date", periodEndTs),
         supabase
           .from("sales")
           .select("amount")
@@ -336,11 +342,26 @@ const AdminDashboard = () => {
         supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).eq("status", "completed"),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("payment_date", periodStartTs).lte("payment_date", periodEndTs).not("promo_discount", "is", null),
-        // gift card liability — only cards where payment was received (paid/pending_pickup)
-        // Excludes pre-printed unsold cards (payment_status=pending, no money received yet)
-        (supabaseAdmin as any).from("gift_cards").select("balance, amount, tier, status, payment_status")
+        // gift card liability — active paid cards (money received, service not yet delivered)
+        (supabaseAdmin as any).from("gift_cards")
+          .select("balance, amount, tier, status, payment_status")
           .in("status", ["active", "available", "pending_send", "pending_pickup"])
           .in("payment_status", ["paid", "pending_pickup", "pending_send"]),
+        // gift cards redeemed (all time count)
+        (supabaseAdmin as any).from("gift_cards")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "redeemed"),
+        // gift cards sold — payment received (paid + pending_pickup + pending_send)
+        (supabaseAdmin as any).from("gift_cards")
+          .select("id", { count: "exact", head: true })
+          .in("payment_status", ["paid", "pending_pickup", "pending_send"]),
+        // pre-printed physical cards in stock (not yet sold — pure inventory)
+        (supabaseAdmin as any).from("gift_cards")
+          .select("id", { count: "exact", head: true })
+          .eq("card_type", "physical")
+          .eq("is_admin_generated", true)
+          .eq("payment_status", "pending")
+          .eq("status", "active"),
       ]);
 
       // Calculate stats — split service vs product vs gift card revenue
@@ -619,6 +640,9 @@ const AdminDashboard = () => {
         todayProductRevenue,
         todayGiftCardRevenue,
         giftCardLiability: (giftCardLiabilityRes.data || []).reduce((s: number, gc: any) => s + Number(gc.balance ?? gc.amount ?? 0), 0),
+        giftCardsRedeemedCount: giftCardsRedeemedRes.count || 0,
+        giftCardsSoldCount: giftCardsSoldRes.count || 0,
+        giftCardsInStock: giftCardsInStockRes.count || 0,
         periodServiceRevenue,
         periodProductRevenue,
         periodGiftCardRevenue,
@@ -921,17 +945,35 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* ── GIFT CARD LIABILITY ──────────────────────────── */}
-      {stats.giftCardLiability > 0 && (
-        <div style={{ background: "linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
-          <div>
-            <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(199,210,254,0.6)", textTransform:"uppercase", margin:"0 0 4px" }}>◆ GIFT CARD LIABILITY</p>
-            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(22px,2.5vw,30px)", fontWeight:700, color:"white", margin:0 }}>GHS {stats.giftCardLiability.toLocaleString("en",{minimumFractionDigits:2})}</p>
-            <p style={{ fontSize:10, color:"rgba(199,210,254,0.55)", margin:"4px 0 0" }}>Cash held in active unredeemed gift cards. Becomes revenue when services are delivered.</p>
-          </div>
-          <div style={{ textAlign:"right" }}>
-            <p style={{ fontSize:11, color:"rgba(199,210,254,0.7)", margin:0 }}>Not counted in revenue</p>
-            <p style={{ fontSize:10, color:"rgba(199,210,254,0.4)", margin:"3px 0 0" }}>Records as revenue at checkout</p>
+      {/* ── GIFT CARD PANEL ──────────────────────────────── */}
+      {(stats.giftCardLiability > 0 || stats.giftCardsSoldCount > 0 || stats.giftCardsRedeemedCount > 0) && (
+        <div style={{ background:"linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
+          <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(199,210,254,0.5)", textTransform:"uppercase", margin:"0 0 14px" }}>◆ GIFT CARDS</p>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
+            {/* Liability */}
+            <div>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Liability</p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"white", margin:"0 0 3px" }}>GHS {stats.giftCardLiability.toLocaleString("en",{minimumFractionDigits:2})}</p>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Cash held, not yet revenue</p>
+            </div>
+            {/* Redeemed value this period */}
+            <div>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed ({dateFilter})</p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#A5B4FC", margin:"0 0 3px" }}>GHS {(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}</p>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Revenue from redemptions</p>
+            </div>
+            {/* Cards sold (all time) */}
+            <div>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Cards Sold</p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#6EE7B7", margin:"0 0 3px" }}>{stats.giftCardsSoldCount}</p>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Paid / in circulation</p>
+            </div>
+            {/* Cards redeemed (all time) + in stock */}
+            <div>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed / In Stock</p>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#FCA5A5", margin:"0 0 3px" }}>{stats.giftCardsRedeemedCount} <span style={{ fontSize:14, color:"rgba(199,210,254,0.4)", fontWeight:400 }}>/ {stats.giftCardsInStock}</span></p>
+              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>All-time used / physical stock</p>
+            </div>
           </div>
         </div>
       )}
