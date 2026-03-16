@@ -388,6 +388,9 @@ const Checkout = () => {
           giftValue > 0 ? ("Gift card GHS " + giftValue + " applied") : null,
         ].filter(Boolean).join(" | ");
 
+        // Sanitize all UUID fields — empty string causes "pattern" error in Supabase
+        const clientIdForSale = (booking.clients?.id || (booking as any).client_id || null) || null;
+        const staffIdForSale = (selectedStaff && selectedStaff.length > 10) ? selectedStaff : null;
         const { error: saleErr } = await (supabase as any).from("sales").insert({
           booking_id: booking.id,
           amount: amountToCharge,
@@ -395,14 +398,14 @@ const Checkout = () => {
           status: "completed",
           client_name: booking.client_name || null,
           service_name: booking.service_name || null,
-          client_id: booking.clients?.id || null,
-          staff_id: selectedStaff || null,
+          client_id: clientIdForSale,
+          staff_id: staffIdForSale,
           notes: saleNotes,
           promo_code: appliedPromo?.code || null,
           promo_discount: promoDiscount > 0 ? promoDiscount : null,
           payment_date: new Date().toISOString(),
         });
-        if (saleErr) throw saleErr;
+        if (saleErr) { console.error("SALE INSERT FAILED:", saleErr, {clientIdForSale, staffIdForSale, paymentMethod, amountToCharge}); throw new Error("Sale record failed: " + saleErr.message); }
 
         // If a deposit was previously collected, record it as revenue now (checkout = confirmed revenue)
         if (dep > 0) {
@@ -422,9 +425,12 @@ const Checkout = () => {
 
         // Write checkout session + line items
         try {
-          const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: booking.clients?.id || null, staff_id: selectedStaff || null, booking_id: booking.id, total_amount: effectivePrice, payment_method: paymentMethod, status: "completed" }]).select("id").single();
+          const clientIdForSess = (booking.clients?.id || (booking as any).client_id || null) || null;
+          const { data: sess } = await (supabase as any).from("checkout_sessions").insert([{ client_id: clientIdForSess, staff_id: staffIdForSale, booking_id: booking.id, total_amount: effectivePrice, payment_method: paymentMethod, status: "completed" }]).select("id").single();
           if (sess?.id && lineItems.length > 0) {
-            await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: sess.id, booking_id: booking.id, item_type: item.type, item_id: item.id, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
+            // item_id must be a valid UUID — use null if not a proper UUID
+            const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            await (supabase as any).from("checkout_items").insert(lineItems.map(item => ({ checkout_session_id: sess.id, booking_id: booking.id, item_type: item.type, item_id: uuidRe.test(item.id) ? item.id : null, name: item.name, quantity: item.quantity, price_at_time: item.unitPrice, subtotal: item.coveredBySubscription ? 0 : item.unitPrice * item.quantity })));
           }
           // Deduct product stock + record product sales
           for (const pi of lineItems.filter(i => i.type === "product")) {
@@ -474,7 +480,21 @@ const Checkout = () => {
             const spendableActual = spendable > 0 ? spendable : (lineItems.reduce((s, i) => s + (i.coveredBySubscription ? 0 : i.unitPrice * i.quantity), 0) || Number(originalPrice) || 0);
             const { data: before } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
             const prevPts = Number(before?.loyalty_points || 0);
-            await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendableActual });
+            try {
+              await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendableActual });
+            } catch (rpcErr: any) {
+              console.warn("RPC update_client_after_checkout failed, using fallback:", rpcErr.message);
+              // Fallback: manual loyalty points update
+              const earnRate = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
+              const pointsEarned = Math.floor(spendableActual / earnRate);
+              if (pointsEarned > 0) {
+                await (supabase as any).from("clients").update({
+                  loyalty_points: prevPts + pointsEarned,
+                  total_visits: (supabase as any).rpc ? undefined : undefined,
+                  total_spent: undefined,
+                }).eq("id", clientId);
+              }
+            }
             const { data: after } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
             const finalPts = Number(after?.loyalty_points || 0);
             if (clientPhone) {
@@ -507,6 +527,8 @@ const Checkout = () => {
         promoDiscount > 0 ? ("Promo " + (appliedPromo?.code || "") + " saved GHS " + promoDiscount) : null,
       ].filter(Boolean).join(" | ");
 
+      const clientIdForBank = (booking.clients?.id || (booking as any).client_id || null) || null;
+      const staffIdForBank = (selectedStaff && selectedStaff.length > 10) ? selectedStaff : null;
       const { error: bankSaleErr } = await (supabase as any).from("sales").insert({
         booking_id: booking.id,
         amount: amountToCharge,
@@ -514,14 +536,14 @@ const Checkout = () => {
         status: "completed",
         client_name: booking.client_name || null,
         service_name: booking.service_name || null,
-        client_id: booking.clients?.id || null,
-        staff_id: selectedStaff || null,
+        client_id: clientIdForBank,
+        staff_id: staffIdForBank,
         notes: bankNotes,
         promo_code: appliedPromo?.code || null,
         promo_discount: promoDiscount > 0 ? promoDiscount : null,
         payment_date: new Date().toISOString(),
       });
-      if (bankSaleErr) throw bankSaleErr;
+      if (bankSaleErr) { console.error("BANK SALE FAILED:", bankSaleErr, {clientIdForBank, staffIdForBank}); throw new Error("Bank sale record failed: " + bankSaleErr.message); }
 
       // Record deposit as confirmed revenue at checkout (bank transfer path)
       if (dep > 0) {
