@@ -91,12 +91,10 @@ const AdminDashboard = () => {
     depositsPendingCount: 0,
     periodPromoSavings: 0,
     promoBreakdown: [] as { code: string; savings: number; count: number }[],
-    giftCardsRedeemedCount: 0,
-    giftCardsSoldCount: 0,
-    giftCardsInStock: 0,
+    giftCardsRedeemedCount: 0,    // total number of cards redeemed
+    giftCardsSoldCount: 0,        // total cards sold (payment_status=paid)
+    giftCardsInStock: 0,          // pre-printed physical cards not yet sold
   });
-  const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
-  const [heatmapData, setHeatmapData] = useState<Record<string,number>>({});
 
   const [revenueData, setRevenueData] = useState<
     { name: string; revenue: number; bookings: number }[]
@@ -634,33 +632,6 @@ const AdminDashboard = () => {
       const promoBreakdown = Object.entries(promoMap).map(([code, v]) => ({ code, ...v })).sort((a, b) => b.savings - a.savings);
       const periodPromoSavings = promoBreakdown.reduce((s, p) => s + p.savings, 0);
 
-      // Birthday clients this month
-      const thisMonth = new Date().getMonth() + 1;
-      const { data: bdays } = await supabase
-        .from("clients").select("id, name, phone, birthday, loyalty_points")
-        .not("birthday", "is", null);
-      const birthdayThisMonth = (bdays || []).filter((cl: any) => {
-        if (!cl.birthday) return false;
-        const m = new Date(cl.birthday).getMonth() + 1;
-        return m === thisMonth;
-      });
-      setBirthdayClients(birthdayThisMonth);
-
-      // Booking heatmap — count bookings by day-of-week + hour from last 90 days
-      const { data: heatBookings } = await supabase
-        .from("bookings").select("preferred_date, preferred_time")
-        .gte("preferred_date", format(subDays(today, 90), "yyyy-MM-dd"))
-        .in("status", ["completed", "confirmed"]);
-      const hmap: Record<string,number> = {};
-      for (const b of (heatBookings || [])) {
-        if (!b.preferred_date || !b.preferred_time) continue;
-        const dow = new Date(b.preferred_date + "T00:00:00").getDay(); // 0=Sun
-        const hr = parseInt((b.preferred_time || "00:00").slice(0, 2));
-        const key = dow + "_" + hr;
-        hmap[key] = (hmap[key] || 0) + 1;
-      }
-      setHeatmapData(hmap);
-
       setStats({
         todayBookings: todayBookingsRes.data?.length || 0,
         periodBookings: periodBookingsRes.data?.length || 0,
@@ -974,26 +945,6 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* ── DAILY SUMMARY BUTTON (owner/admin only) ─────── */}
-      {(inactivityRole === "owner" || inactivityRole === "admin") && (
-        <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:14 }}>
-          <button onClick={async () => {
-            try {
-              const r = await fetch("/api/daily-summary", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54" },
-              });
-              const d = await r.json();
-              const { toast: t } = await import("sonner");
-              if (d.ok) t.success("Daily summary sent to " + d.sentTo);
-              else t.error(d.reason || d.error || "Failed to send");
-            } catch(e: any) { const { toast: t } = await import("sonner"); t.error(e.message); }
-          }} style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 16px", borderRadius:8, background:"rgba(200,169,126,0.12)", border:"1px solid rgba(200,169,126,0.3)", cursor:"pointer", fontSize:11, fontWeight:600, color:"#8B6914", fontFamily:"'Montserrat',sans-serif" }}>
-            📊 Send Daily Summary SMS
-          </button>
-        </div>
-      )}
-
       {/* ── GIFT CARD PANEL ──────────────────────────────── */}
       {(stats.giftCardLiability > 0 || stats.giftCardsSoldCount > 0 || stats.giftCardsRedeemedCount > 0) && (
         <div style={{ background:"linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
@@ -1161,71 +1112,6 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── BIRTHDAY BANNER ─────────────────────────────── */}
-      {birthdayClients.length > 0 && (
-        <div style={{ background:"linear-gradient(135deg,#7C3AED,#5B21B6)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(124,58,237,0.2)" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-            <span style={{ fontSize:20 }}>🎂</span>
-            <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(233,213,255,0.7)", textTransform:"uppercase", margin:0 }}>
-              BIRTHDAY CLIENTS THIS MONTH — Double Stamps Apply
-            </p>
-          </div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-            {birthdayClients.map((cl: any) => (
-              <div key={cl.id} style={{ background:"rgba(255,255,255,0.1)", borderRadius:10, padding:"8px 14px", border:"1px solid rgba(233,213,255,0.2)" }}>
-                <p style={{ fontSize:13, fontWeight:700, color:"white", margin:"0 0 2px" }}>{cl.name}</p>
-                <p style={{ fontSize:10, color:"rgba(233,213,255,0.7)", margin:0 }}>{cl.phone} · {cl.loyalty_points || 0} stamps</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── HEATMAP ──────────────────────────────────────── */}
-      <div className="zc-flat au" style={{ marginBottom:14, padding:"24px" }}>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:5 }}>BOOKING PATTERNS</div>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color: TXT, marginBottom:16 }}>Busiest Times (last 90 days)</div>
-        {(() => {
-          const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-          const hours = [8,9,10,11,12,13,14,15,16,17,18,19,20];
-          const maxVal = Math.max(1, ...Object.values(heatmapData).map(Number));
-          return (
-            <div style={{ overflowX:"auto" }}>
-              <div style={{ display:"grid", gridTemplateColumns:`32px repeat(${hours.length},1fr)`, gap:3, minWidth:320 }}>
-                <div />
-                {hours.map(h => (
-                  <div key={h} style={{ fontSize:8, color: TXT_SOFT, textAlign:"center", paddingBottom:4 }}>
-                    {h > 12 ? (h-12)+"p" : h+"a"}
-                  </div>
-                ))}
-                {days.map((day, di) => (
-                  <React.Fragment key={day}>
-                    <div style={{ fontSize:9, color: TXT_SOFT, display:"flex", alignItems:"center" }}>{day}</div>
-                    {hours.map(h => {
-                      const v = Number(heatmapData[di + "_" + h] || 0);
-                      const intensity = v / maxVal;
-                      return (
-                        <div key={h} title={v + " bookings"} style={{
-                          height:16, borderRadius:3,
-                          background: intensity === 0 ? "#F3F4F6" : `rgba(200,169,126,${0.15 + intensity * 0.85})`,
-                        }} />
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:10 }}>
-                <span style={{ fontSize:9, color: TXT_SOFT }}>Less</span>
-                {[0.15,0.35,0.55,0.75,0.95].map(i => (
-                  <div key={i} style={{ width:12, height:12, borderRadius:2, background:`rgba(200,169,126,${i})` }} />
-                ))}
-                <span style={{ fontSize:9, color: TXT_SOFT }}>More</span>
-              </div>
-            </div>
-          );
-        })()}
       </div>
 
       {/* ── BOTTOM ROW ───────────────────────────────────── */}

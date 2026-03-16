@@ -44,40 +44,6 @@ export default function LandingPage() {
   const reviewRef = useRef<HTMLDivElement>(null);
   const expRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
-  const [nextSlot, setNextSlot] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Find next available slot — check today and tomorrow
-    const checkSlots = async () => {
-      try {
-        const today = new Date();
-        const pad = (n: number) => String(n).padStart(2, "0");
-        for (let dayOffset = 0; dayOffset < 3; dayOffset++) {
-          const d = new Date(today);
-          d.setDate(today.getDate() + dayOffset);
-          if (d.getDay() === 0) continue; // closed Sundays
-          const dateStr = d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
-          const hours = [9,10,11,12,13,14,15,16,17,18,19,20];
-          const startHour = dayOffset === 0 ? Math.max(9, today.getHours() + 1) : 9;
-          for (const hr of hours.filter(h => h >= startHour)) {
-            const time = pad(hr) + ":00";
-            const { data } = await supabase.rpc("get_available_staff", {
-              p_service_id: "00000000-0000-0000-0000-000000000000",
-              p_date: dateStr, p_time: time,
-            });
-            if (data && data.length > 0) {
-              const label = dayOffset === 0 ? "Today" : dayOffset === 1 ? "Tomorrow" : d.toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" });
-              const hrLabel = hr > 12 ? (hr-12) + ":00 PM" : hr + ":00 AM";
-              setNextSlot(label + " · " + hrLabel);
-              return;
-            }
-          }
-        }
-        setNextSlot("Call to check availability");
-      } catch { setNextSlot(null); }
-    };
-    checkSlots();
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -184,7 +150,6 @@ export default function LandingPage() {
         .review-visible .review-card-anim { animation: reviewPop 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
         .review-card { transition: all 0.5s ease; }
         .hero-floating-card { animation: borderGlow 4.5s ease-in-out infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulseGreen 2s ease-in-out infinite; flex-shrink: 0; }
         .visit-card { transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease; }
         .visit-card:hover { transform: translateY(-7px); box-shadow: 0 24px 60px rgba(28,22,14,0.13); border-color: rgba(200,169,126,0.5) !important; }
@@ -361,14 +326,6 @@ export default function LandingPage() {
             A sanctuary crafted for women who demand the finest. Every appointment at Zolara is a ritual, every stylist an artist, every result extraordinary.
           </p>
 
-          {nextSlot && (
-            <div className="fade-up delay-4" style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.3)", borderRadius:20, padding:"7px 16px", marginBottom:20 }}>
-              <span style={{ width:7, height:7, borderRadius:"50%", background:"#10B981", display:"inline-block", animation:"pulse 2s infinite" }} />
-              <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, fontWeight:600, color:"#065F46", letterSpacing:"0.05em" }}>
-                Next available: {nextSlot}
-              </span>
-            </div>
-          )}
           <div className="fade-up delay-4" style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
             <Link to="/book" className="btn-primary" style={{
               textDecoration: "none", display: "inline-block",
