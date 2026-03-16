@@ -80,18 +80,21 @@ export default function EnhancedBookingForm() {
   const [errors, setErrors] = useState<Record<string,string>>({});
   const today = new Date().toISOString().split("T")[0];
 
+  const [allVariantsMap, setAllVariantsMap] = useState<Record<string,any[]>>({});
   useEffect(() => {
-    supabase
-      .from("services")
-      .select("id, name, category, price, is_active")
-      .eq("is_active", true)
-      .order("category")
-      .order("name")
-      .then(({ data }) => {
-        setServices(data || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      supabase.from("services").select("id, name, category, price, is_active").eq("is_active", true).order("category").order("name"),
+      (supabase as any).from("service_variants").select("service_id, price_adjustment, name").eq("is_active", true),
+    ]).then(([{ data: svcs }, { data: vars }]) => {
+      setServices(svcs || []);
+      const vm: Record<string,any[]> = {};
+      for (const v of (vars || [])) {
+        if (!vm[v.service_id]) vm[v.service_id] = [];
+        vm[v.service_id].push(v);
+      }
+      setAllVariantsMap(vm);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   const serviceId = serviceIds[0] || "";
@@ -224,9 +227,9 @@ export default function EnhancedBookingForm() {
           <span style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, color: GOLD, letterSpacing: "0.12em" }}>{bookingRef}</span>
         </div>
         <div>
-          <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: GOLD, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-            ← Return to homepage
-          </a>
+          <button onClick={() => window.history.back()} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: GOLD, fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "'Montserrat',sans-serif" }}>
+            ← Back to Bookings
+          </button>
         </div>
       </div>
     </div>
@@ -337,7 +340,15 @@ export default function EnhancedBookingForm() {
                           <button key={s.id} className="svc-card" onClick={() => setServiceIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
                             style={{ textAlign: "left", padding: "14px 16px", borderRadius: 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>GHS {Number(s.price).toLocaleString()}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>
+                              {(() => {
+                                const vars = allVariantsMap[s.id] || [];
+                                if (vars.length === 0) return Number(s.price) > 0 ? "GHS " + Number(s.price).toLocaleString() : "See pricing";
+                                const prices = vars.map((v: any) => Number(v.price_adjustment));
+                                const mn = Math.min(...prices), mx = Math.max(...prices);
+                                return mn === mx ? "GHS " + mn.toLocaleString() : "GHS " + mn.toLocaleString() + " – " + mx.toLocaleString();
+                              })()}
+                            </div>
                             {sel && <div style={{ marginTop: 6, fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: "0.08em" }}>✓ SELECTED</div>}
                           </button>
                         );

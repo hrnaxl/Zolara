@@ -41,6 +41,11 @@ export default function LandingPage() {
   const [expVisible, setExpVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [salonSettings, setSalonSettings] = useState<any>(null);
+  const [dbServices, setDbServices] = useState<any[]>([]);
+  const [dbVariantsMap, setDbVariantsMap] = useState<Record<string,any[]>>({});
+  const [activeSvcCat, setActiveSvcCat] = useState("all");
+  const [svcVisible, setSvcVisible] = useState(false);
+  const svcRef = useRef<HTMLDivElement>(null);
   const reviewRef = useRef<HTMLDivElement>(null);
   const expRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -74,6 +79,26 @@ export default function LandingPage() {
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setExpVisible(true); }, { threshold: 0.15 });
     if (expRef.current) obs.observe(expRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  // Fetch real services from DB for showcase
+  useEffect(() => {
+    Promise.all([
+      supabase.from("services").select("id,name,category,price,description,is_active").eq("is_active",true).order("category").order("name"),
+      (supabase as any).from("service_variants").select("service_id,price_adjustment,name").eq("is_active",true),
+    ]).then(([{data:svcs},{data:vars}]) => {
+      setDbServices(svcs || []);
+      const vm: Record<string,any[]> = {};
+      for (const v of (vars||[])) { if (!vm[v.service_id]) vm[v.service_id]=[]; vm[v.service_id].push(v); }
+      setDbVariantsMap(vm);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!svcRef.current) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setSvcVisible(true); }, { threshold: 0.05 });
+    obs.observe(svcRef.current);
     return () => obs.disconnect();
   }, []);
 
@@ -191,7 +216,7 @@ export default function LandingPage() {
         </a>
 
         <div className="desktop-nav" style={{ display: "flex", gap: "36px", alignItems: "center" }}>
-          {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
+          {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
             <a key={label} href={href} className="nav-link sans" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", color: dark, textDecoration: "none" }}>{label}</a>
           ))}
         </div>
@@ -237,7 +262,7 @@ export default function LandingPage() {
             <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", letterSpacing: "0.2em", color: gold, fontWeight: 600 }}>BEAUTY STUDIO</div>
           </div>
         </div>
-        {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href, label]) => (
+        {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href, label]) => (
           <a key={label} href={href} onClick={() => setMobileMenuOpen(false)}
             style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", color: "rgba(245,239,230,0.7)", textDecoration: "none", padding: "15px 0", borderBottom: "1px solid rgba(200,169,126,0.1)" }}>
             {label}
@@ -372,35 +397,75 @@ export default function LandingPage() {
       </div>
 
       {/* SERVICES */}
-      <section id="services" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 85% 15%, rgba(200,169,126,0.08) 0%, transparent 45%), radial-gradient(circle at 15% 85%, rgba(200,169,126,0.06) 0%, transparent 45%)", pointerEvents: "none" }} />
-        <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
+      <section id="services" ref={svcRef} style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
+        <style>{`
+          .svc-db-card { background:#FDFCF9; border-radius:3px; border:1px solid rgba(200,169,126,0.2); overflow:hidden; transition:all 0.25s; opacity:0; transform:translateY(20px); }
+          .svc-db-card.visible { opacity:1; transform:none; transition:opacity 0.5s ease, transform 0.5s ease, box-shadow 0.25s, border-color 0.25s; }
+          .svc-db-card:hover { transform:translateY(-4px) !important; box-shadow:0 16px 48px rgba(28,22,14,0.1); border-color:rgba(200,169,126,0.5); }
+          .svc-cat-tab { font-family:'Montserrat',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.08em; padding:8px 20px; border-radius:20px; cursor:pointer; border:1.5px solid #D4B896; background:transparent; color:#5C3D1A; transition:all 0.2s; }
+          .svc-cat-tab.active, .svc-cat-tab:hover { background:linear-gradient(135deg,#8B6914,#C8A97E); color:white; border-color:transparent; }
+          .svc-book-link { font-family:'Montserrat',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.1em; color:#8B6914; background:rgba(200,169,126,0.12); border:1.5px solid rgba(200,169,126,0.4); padding:8px 16px; border-radius:1px; cursor:pointer; text-decoration:none; transition:all 0.2s; white-space:nowrap; }
+          .svc-book-link:hover { background:linear-gradient(135deg,#8B6914,#C8A97E); color:white; border-color:transparent; }
+        `}</style>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 85% 15%, rgba(200,169,126,0.08) 0%, transparent 45%)", pointerEvents: "none" }} />
+
+        <div style={{ textAlign: "center", marginBottom: "56px", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>WHAT WE OFFER</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400, marginBottom: "16px", letterSpacing: "-0.01em" }}>Our <em>Services</em></h2>
-          <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", maxWidth: "420px", margin: "0 auto", lineHeight: 1.85, fontWeight: 400 }}>
-            From precision braids to flawless nails, every service at Zolara is delivered with artistry and care.
+          <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", maxWidth: "420px", margin: "0 auto", lineHeight: 1.85, fontWeight: 400 }}>
+            From precision braids to flawless nails. Click any service to book it directly.
           </p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", position: "relative", zIndex: 1 }}>
-          {services.map((s, i) => (
-            <div key={s.name} className="service-card fade-up" style={{ animationDelay: `${i * 0.08}s`, background: cream, borderRadius: "3px", padding: "40px 32px", position: "relative", overflow: "hidden", border: "1px solid rgba(200,169,126,0.18)" }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: `linear-gradient(90deg, ${s.color}, ${s.color}88, transparent)` }} />
-              <div className="svc-icon" style={{ fontSize: "30px", color: s.color, marginBottom: "20px", lineHeight: 1 }}>{s.icon}</div>
-              <h3 style={{ fontSize: "23px", fontWeight: 500, marginBottom: "12px" }}>{s.name}</h3>
-              <p className="sans" style={{ fontSize: "13.5px", color: "#3D2E1A", lineHeight: 1.85, marginBottom: "24px", fontWeight: 400 }}>{s.desc}</p>
-              <p className="sans" style={{ fontSize: "11.5px", fontWeight: 700, color: goldDark, letterSpacing: "0.06em" }}>{s.price}</p>
+
+        {/* Category tabs */}
+        {dbServices.length > 0 && (() => {
+          const cats = ["all", ...Array.from(new Set(dbServices.map(s => s.category).filter(Boolean)))];
+          const filtered = activeSvcCat === "all" ? dbServices : dbServices.filter(s => s.category === activeSvcCat);
+          return (
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginBottom: 40 }}>
+                {cats.map(cat => (
+                  <button key={cat} className={"svc-cat-tab" + (activeSvcCat === cat ? " active" : "")} onClick={() => setActiveSvcCat(cat)}>
+                    {cat === "all" ? "All Services" : cat}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px,1fr))", gap: 16, marginBottom: 48 }}>
+                {filtered.map((svc, i) => {
+                  const vars = dbVariantsMap[svc.id] || [];
+                  const priceDisplay = (() => {
+                    if (vars.length === 0) return Number(svc.price) > 0 ? "GHS " + Number(svc.price).toLocaleString() : "See pricing";
+                    const prices = vars.map((v:any) => Number(v.price_adjustment));
+                    const mn = Math.min(...prices), mx = Math.max(...prices);
+                    return mn === mx ? "GHS " + mn.toLocaleString() : "GHS " + mn.toLocaleString() + " – " + mx.toLocaleString();
+                  })();
+                  return (
+                    <div key={svc.id} className={"svc-db-card" + (svcVisible ? " visible" : "")} style={{ transitionDelay: (i * 0.05) + "s" }}>
+                      <div style={{ height: 3, background: "linear-gradient(90deg,#C8A97E,#8B6914)" }} />
+                      <div style={{ padding: "22px 20px" }}>
+                        <div className="sans" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: gold, marginBottom: 8 }}>{svc.category?.toUpperCase()}</div>
+                        <div style={{ fontSize: 20, fontWeight: 600, color: "#1C160E", marginBottom: 8, lineHeight: 1.2 }}>{svc.name}</div>
+                        {svc.description && <div className="sans" style={{ fontSize: 12, color: "#5C4A2A", lineHeight: 1.75, marginBottom: 16 }}>{svc.description.slice(0,80)}{svc.description.length>80?"…":""}</div>}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: svc.description ? 0 : 16 }}>
+                          <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, color: goldDark }}>{priceDisplay}</span>
+                          <Link to={"/book?prefill_service=" + encodeURIComponent(svc.name)} className="svc-book-link">BOOK →</Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          ))}
-        </div>
-        <div style={{ textAlign: "center", marginTop: "60px", position: "relative", zIndex: 1 }}>
+          );
+        })()}
+
+        <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
           <Link to="/book" className="btn-primary" style={{
-            textDecoration: "none", display: "inline-block",
-            fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
-            letterSpacing: "0.14em", color: "#fff",
-            background: "linear-gradient(135deg, #8B6914, #C8A97E)",
-            padding: "17px 52px", borderRadius: "1px",
-            boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
-          }}>BOOK AN APPOINTMENT</Link>
+            textDecoration: "none", display: "inline-block", fontFamily: "'Montserrat',sans-serif",
+            fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", color: "#fff",
+            background: "linear-gradient(135deg,#8B6914,#C8A97E)", padding: "17px 52px",
+            borderRadius: "1px", boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
+          }}>VIEW ALL SERVICES & BOOK</Link>
         </div>
       </section>
 
@@ -624,6 +689,99 @@ export default function LandingPage() {
       </section>
 
       {/* VISIT US */}
+      {/* ── LOYALTY SECTION ─────────────────────────────── */}
+      <section id="loyalty" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: dark, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", right: "-20px", top: "50%", transform: "translateY(-50%)", fontSize: "420px", color: "rgba(200,169,126,0.04)", fontWeight: 700, lineHeight: 1, pointerEvents: "none", userSelect: "none" }}>★</div>
+        <style>{`
+          .loyalty-step-num { width:36px; height:36px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,#8B6914,#C8A97E); display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800; color:white; }
+          .stamp { aspect-ratio:1; border-radius:8px; border:1.5px solid rgba(200,169,126,0.25); display:flex; align-items:center; justify-content:center; font-size:16px; }
+          .stamp.filled { background:linear-gradient(135deg,#8B6914,#C8A97E); border-color:#C8A97E; box-shadow:0 4px 12px rgba(200,169,126,0.3); }
+          .stamp.empty { background:rgba(255,255,255,0.03); }
+          .stamp.reward { background:linear-gradient(135deg,#4A90D9,#2563EB); border-color:#60A5FA; }
+          .loyalty-tier { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:14px 10px; text-align:center; transition:all 0.2s; }
+          .loyalty-tier:hover { background:rgba(200,169,126,0.06); border-color:rgba(200,169,126,0.2); }
+        `}</style>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center" }} className="landing-experience-grid">
+          {/* Left */}
+          <div>
+            <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>LOYALTY REWARDS</div>
+            <h2 style={{ fontSize: "clamp(36px,5vw,56px)", fontWeight: 500, color: "#F5EFE6", lineHeight: 1.1, marginBottom: "20px" }}>Every Visit <em>Earns.</em><br />Every Stamp <em>Counts.</em></h2>
+            <p className="sans" style={{ fontSize: "13.5px", color: "rgba(245,239,230,0.65)", lineHeight: 1.85, marginBottom: "36px", fontWeight: 400 }}>
+              At Zolara, your loyalty is rewarded every single time. Spend, earn stamps, and unlock exclusive discounts — automatically.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 36 }}>
+              {[
+                { n:"1", title:"Spend & Earn", body:"Every GHS 100 you spend earns you 1 stamp. No sign-up required — it's automatic from your first visit." },
+                { n:"2", title:"Collect 20 Stamps", body:"Once you hit 20 stamps, a GHS 50 reward is unlocked and ready to use on your next visit." },
+                { n:"3", title:"Birthday Bonus 🎂", body:"In your birthday month, every stamp you earn is doubled. Our gift to you." },
+              ].map(step => (
+                <div key={step.n} style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                  <div className="loyalty-step-num">{step.n}</div>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 600, color: "#F5EFE6", marginBottom: 4 }}>{step.title}</div>
+                    <div className="sans" style={{ fontSize: 12, color: "rgba(245,239,230,0.55)", lineHeight: 1.7 }}>{step.body}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Link to="/book" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", color: "#fff", background: "linear-gradient(135deg,#8B6914,#C8A97E)", padding: "16px 40px", borderRadius: "1px", boxShadow: "0 8px 32px rgba(139,105,20,0.38)" }}>
+              START EARNING TODAY
+            </Link>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 28 }}>
+              {[{icon:"🥉",name:"BRONZE",pts:"0 – 499"},{icon:"🥈",name:"SILVER",pts:"500+"},{icon:"🥇",name:"GOLD",pts:"1,500+"},{icon:"💎",name:"DIAMOND",pts:"3,000+"}].map(t => (
+                <div key={t.name} className="loyalty-tier">
+                  <div style={{ fontSize: 20, marginBottom: 6 }}>{t.icon}</div>
+                  <div className="sans" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(245,239,230,0.5)", marginBottom: 4 }}>{t.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: gold }}>{t.pts}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Right — stamp card */}
+          <div>
+            <div style={{ background: "linear-gradient(160deg,#2C2216,#1C160E)", border: "1px solid rgba(200,169,126,0.2)", borderRadius: 16, padding: "32px 28px", boxShadow: "0 32px 64px rgba(0,0,0,0.5)", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 70% 20%, rgba(200,169,126,0.08) 0%, transparent 60%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", flexShrink: 0 }}>
+                  <img src="https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg" alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: "#F5EFE6", lineHeight: 1.1 }}>Zolara Loyalty</div>
+                  <div className="sans" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: gold }}>BEAUTY REWARDS CARD</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
+                {Array.from({length:20}, (_,i) => (
+                  <div key={i} className={"stamp" + (i < 15 ? " filled" : i === 19 ? " reward" : " empty")} style={{ fontSize: i === 19 ? 14 : 16 }}>
+                    {i < 15 ? "✦" : i === 19 ? "🎁" : ""}
+                  </div>
+                ))}
+              </div>
+              <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, marginBottom: 12, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: "75%", background: "linear-gradient(90deg,#8B6914,#C8A97E)", borderRadius: 2 }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="sans" style={{ fontSize: 10, color: "rgba(245,239,230,0.45)" }}>15 of 20 stamps · 5 more for reward</span>
+                <span className="sans" style={{ fontSize: 10, fontWeight: 700, color: gold, background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.3)", borderRadius: 4, padding: "4px 10px" }}>GHS 50 REWARD</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 28 }}>
+              {[
+                { icon:"💳", text:"GHS 50 off every 20 stamps — redeemed at checkout" },
+                { icon:"🎂", text:"Double stamps in your birthday month automatically" },
+                { icon:"✦",  text:"4 tiers — Bronze to Diamond as you spend more" },
+                { icon:"📱", text:"SMS alerts when you earn stamps and unlock rewards" },
+              ].map((p,i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(200,169,126,0.1)", border: "1px solid rgba(200,169,126,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{p.icon}</div>
+                  <div className="sans" style={{ fontSize: 12, color: "rgba(245,239,230,0.6)", lineHeight: 1.5 }}>{p.text}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
         <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
