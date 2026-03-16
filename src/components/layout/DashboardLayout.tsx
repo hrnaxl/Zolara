@@ -272,10 +272,12 @@ const DashboardLayout = () => {
 
       {/* ── SIDEBAR ─────────────────────────────────── */}
       <aside style={{
-        position: "fixed", top: 0, left: 0, height: "100vh", width: "240px",
+        position: "fixed", top: 0, left: 0,
+        height: "100vh", height: "100dvh" as any,
+        width: "240px",
         background: NAVY,
         zIndex: 50, display: "flex", flexDirection: "column",
-        overflowY: "auto", WebkitOverflowScrolling: "touch",
+        overflow: "hidden",
       }} className={`transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
 
         {/* Logo / Brand */}
