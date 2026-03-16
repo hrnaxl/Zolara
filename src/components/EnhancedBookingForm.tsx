@@ -65,7 +65,7 @@ export default function EnhancedBookingForm() {
   const [email, setEmail] = useState("");
 
   // Step 2 — service + datetime
-  const [serviceId, setServiceId]     = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [preferredDate, setDate]      = useState("");
   const [preferredTime, setTime]      = useState("");
   const [notes, setNotes]             = useState("");
@@ -94,7 +94,9 @@ export default function EnhancedBookingForm() {
       .catch(() => setLoading(false));
   }, []);
 
-  const selectedService = services.find(s => s.id === serviceId);
+  const selectedServices = services.filter(s => selectedIds.includes(s.id));
+  const selectedService  = selectedServices[0] || null; // primary service for compat
+  const serviceId        = selectedIds[0] || "";        // primary id for compat
   const grouped = services.reduce((acc, s) => {
     const cat = s.category || "Other";
     if (!acc[cat]) acc[cat] = [];
@@ -102,7 +104,7 @@ export default function EnhancedBookingForm() {
     return acc;
   }, {} as Record<string, any[]>);
 
-  const basePrice   = Number(selectedService?.price || 0);
+  const basePrice   = selectedServices.reduce((s, sv) => s + Number(sv.price || 0), 0);
   const discount    = promoApplied
     ? promoApplied.discount_type === "percentage"
       ? (basePrice * promoApplied.discount_value) / 100
@@ -131,7 +133,7 @@ export default function EnhancedBookingForm() {
 
   const validateStep2 = () => {
     const e: Record<string,string> = {};
-    if (!serviceId) e.service = "Please select a service";
+    if (selectedIds.length === 0) e.service = "Please select at least one service";
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
     setErrors(e);
@@ -169,7 +171,8 @@ export default function EnhancedBookingForm() {
 
       const { data: newBooking, error } = await supabase.from("bookings").insert({
         client_name: name, client_email: email || null, client_phone: cleanPhone,
-        service_id: serviceId, service_name: selectedService?.name || null,
+        service_id: serviceId || null,
+        service_name: selectedServices.map(s => s.name).join(", ") || null,
         preferred_date: preferredDate, preferred_time: normalizedTime,
         price: total, notes: notesFull, status: "pending", client_id: clientId || null,
         booking_source: isWalkIn ? "walk_in" : "online",
@@ -179,7 +182,7 @@ export default function EnhancedBookingForm() {
       if (newBooking?.id && !isWalkIn) {
         autoAssignBooking(
           newBooking.id,
-          selectedService?.name || "",
+          selectedServices.map(s => s.name).join(", ") || "",
           preferredDate,
           normalizedTime
         ).catch(console.error); // fire and forget — don't block confirmation
@@ -188,7 +191,7 @@ export default function EnhancedBookingForm() {
       const depositAmt = Number((settings as any)?.deposit_amount ?? 50);
       sendSMS(cleanPhone, SMS.bookingReceived(
         name,
-        selectedService?.name || "Service",
+        selectedServices.map(s => s.name).join(", ") || "Service",
         preferredDate,
         normalizedTime,
         ref,
@@ -215,7 +218,7 @@ export default function EnhancedBookingForm() {
         <h2 style={{ fontFamily: "'Cormorant Garamond',serif", color: TXT, fontSize: 30, fontWeight: 700, marginBottom: 8 }}>Request Received</h2>
         <p style={{ color: TXT_MID, fontSize: 14, marginBottom: 8 }}>We'll confirm your appointment via SMS shortly.</p>
         <p style={{ color: TXT_SOFT, fontSize: 12, marginBottom: 28 }}>
-          {selectedService?.name} · {preferredDate} · {preferredTime}
+          {selectedServices.map(s => s.name).join(", ")} · {preferredDate} · {preferredTime}
         </p>
         <div style={{ background: GOLD_LIGHT, border: `1px solid ${GOLD_BORDER}`, borderRadius: 12, padding: "14px 24px", marginBottom: 28, display: "inline-block" }}>
           <span style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, color: GOLD, letterSpacing: "0.12em" }}>{bookingRef}</span>
@@ -329,9 +332,9 @@ export default function EnhancedBookingForm() {
                     <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: 10, textTransform: "uppercase" }}>{cat}</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       {(svcs as any[]).map((s: any) => {
-                        const sel = serviceId === s.id;
+                        const sel = selectedIds.includes(s.id);
                         return (
-                          <button key={s.id} className="svc-card" onClick={() => setServiceId(s.id)}
+                          <button key={s.id} className="svc-card" onClick={() => setSelectedIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])}
                             style={{ textAlign: "left", padding: "14px 16px", borderRadius: 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
                             <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>GHS {Number(s.price).toLocaleString()}</div>
@@ -342,6 +345,15 @@ export default function EnhancedBookingForm() {
                     </div>
                   </div>
                 ))
+              )}
+              {selectedServices.length > 0 && (
+                <div style={{ marginTop: 14, padding: "12px 16px", background: GOLD_LIGHT, borderRadius: 10, border: `1px solid ${GOLD}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: GOLD_DARK, marginBottom: 3 }}>{selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected</div>
+                    <div style={{ fontSize: 11, color: GOLD_DARK, opacity: 0.8 }}>{selectedServices.map(s => s.name).join(" + ")}</div>
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: GOLD_DARK, fontFamily: "'Cormorant Garamond',serif" }}>GHS {basePrice.toLocaleString()}</div>
+                </div>
               )}
               {errors.service && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.service}</p>}
             </div>
@@ -401,7 +413,7 @@ export default function EnhancedBookingForm() {
                 {[
                   { label: "Name",    value: name },
                   { label: "Phone",   value: phone },
-                  { label: "Service", value: selectedService?.name || "—" },
+                  { label: "Service", value: selectedServices.map(s => s.name).join(", ") || "—" },
                   { label: "Date",    value: preferredDate },
                   { label: "Time",    value: preferredTime },
                 ].map(row => (
