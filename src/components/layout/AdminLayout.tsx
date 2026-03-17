@@ -338,9 +338,11 @@ const AdminDashboard = () => {
         // previous month top service bookings for growth
         supabase.from("bookings").select("service_name").gte("preferred_date", previousMonthStart).lte("preferred_date", previousMonthEnd),
         // deposits pending checkout (in hand, not yet revenue)
-        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).not("status", "in", '("completed","cancelled")'),
+        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).not("status", "in", '("completed","cancelled")')
+          .gte("preferred_date", periodStart).lte("preferred_date", periodEnd),
         // deposits from checked-out bookings (real revenue already collected)
-        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).eq("status", "completed"),
+        supabase.from("bookings" as any).select("deposit_amount, id").eq("deposit_paid", true).eq("status", "completed")
+          .gte("preferred_date", periodStart).lte("preferred_date", periodEnd),
         // promo savings this period
         (supabase as any).from("sales").select("promo_code, promo_discount").gte("payment_date", periodStartTs).lte("payment_date", periodEndTs).not("promo_discount", "is", null),
         // gift card liability — active paid cards (money received, service not yet delivered)
