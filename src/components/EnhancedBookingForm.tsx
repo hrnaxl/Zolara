@@ -395,7 +395,7 @@ export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => v
                     ...prev,
                     [svcId]: checked ? (prev[svcId]||[]).filter((id:string)=>id!==addId) : [...(prev[svcId]||[]), addId]
                   }))}
-                  GOLD={GOLD} GOLD_DARK={GOLD_DARK} GOLD_LIGHT={GOLD_LIGHT} BORDER={BORDER} WHITE={WHITE} TXT={TXT} TXT_SOFT={TXT_SOFT} TXT_MID={TXT_MID} inp={inp}
+
                 />
               )}
               {errors.service && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.service}</p>}

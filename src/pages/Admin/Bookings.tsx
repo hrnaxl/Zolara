@@ -42,6 +42,7 @@ export default function Bookings() {
   // Filters & pagination
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState<"all"|"today"|"yesterday"|"week"|"month">("all");
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -58,12 +59,23 @@ export default function Bookings() {
   // Status counts for filter pills
   const [counts, setCounts] = useState<Record<string, number>>({});
 
-  const fetchBookings = useCallback(async (p = 1, f = filter, s = search) => {
+  const fetchBookings = useCallback(async (p = 1, f = filter, s = search, df = dateFilter) => {
     setLoading(true);
     try {
+      const now = new Date();
+      const toStr = (d: Date) => d.toISOString().slice(0,10);
+      const todayStr = toStr(now);
+      const yesterdayStr = toStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+      const weekStart = toStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
+      const monthStart = toStr(new Date(now.getFullYear(), now.getMonth(), 1));
+
       let q = supabase.from("bookings").select("*", { count: "exact" });
       if (f !== "all") q = q.eq("status", f);
       if (s.trim()) q = q.or(`client_name.ilike.%${s}%,booking_ref.ilike.%${s}%,service_name.ilike.%${s}%,client_phone.ilike.%${s}%`);
+      if (df === "today")     q = q.eq("preferred_date", todayStr);
+      if (df === "yesterday") q = q.eq("preferred_date", yesterdayStr);
+      if (df === "week")      q = q.gte("preferred_date", weekStart).lte("preferred_date", todayStr);
+      if (df === "month")     q = q.gte("preferred_date", monthStart).lte("preferred_date", todayStr);
       q = q.order("preferred_date", { ascending: true }).order("preferred_time", { ascending: true });
       q = q.range((p - 1) * PAGE_SIZE, p * PAGE_SIZE - 1);
       const { data, count, error } = await q;
@@ -72,7 +84,7 @@ export default function Bookings() {
       setTotal(count || 0);
     } catch (e: any) { toast.error("Failed to load bookings"); }
     finally { setLoading(false); }
-  }, [filter, search]);
+  }, [filter, search, dateFilter]);
 
   const fetchCounts = async () => {
     const { data } = await supabase.from("bookings").select("status");
@@ -457,6 +469,17 @@ export default function Bookings() {
                   </button>
                 );
               })}
+            </div>
+            {/* Date filter — shown below status pills */}
+            <div style={{ display:"flex", gap:6, paddingBottom:8, alignItems:"center" }}>
+              <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, whiteSpace:"nowrap" }}>PERIOD</span>
+              {([["all","All time"],["today","Today"],["yesterday","Yesterday"],["week","Last 7 days"],["month","This month"]] as const).map(([val,lbl]) => (
+                <button key={val} onClick={() => setDateFilter(val)}
+                  className={`filter-pill${dateFilter === val ? " active" : ""}`}
+                  style={{ padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:600, whiteSpace:"nowrap" }}>
+                  {lbl}
+                </button>
+              ))}
             </div>
           </div>
 
