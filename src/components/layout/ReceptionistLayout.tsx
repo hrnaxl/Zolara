@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { useSessionGuard } from "@/hooks/useSessionGuard";
 import { RefreshCw, Bell, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { fetchPendingDepositBookings } from "@/lib/giftCardEcommerce";
 
 const ReceptionistDashboard = () => {
-  useInactivityLogout(2 * 60 * 1000); // 2-min inactivity logout
+  useInactivityLogout(30 * 60 * 1000); // 30-min inactivity logout
+  useSessionGuard();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [stats, setStats] = useState({

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { findOrCreateClient } from "@/lib/clientDedup";
+import { registerSession, clearLocalSession } from "@/lib/sessionManager";
 import { Eye, EyeOff } from "lucide-react";
 
 const G     = "#B8975A";
@@ -18,6 +19,8 @@ const RED   = "#DC2626";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const displacedMsg = (location.state as any)?.reason === "displaced" ? "Your session was ended because someone logged in from another device." : (location.state as any)?.reason === "inactivity" ? "You were logged out due to inactivity." : "";
   const [mode, setMode]   = useState<"login"|"signup">("login");
   const [name, setName]   = useState("");
   const [email, setEmail] = useState("");
@@ -113,6 +116,9 @@ export default function Auth() {
       }
 
       clearTimeout(timeout);
+
+      // Register single-session token (invalidates all previous sessions)
+      await registerSession(userId).catch(console.error);
 
       redirectByRole(role);
     } catch (e: any) {
@@ -308,6 +314,13 @@ export default function Auth() {
             ))}
           </div>
 
+          {/* Displacement / inactivity notice */}
+          {displacedMsg && (
+            <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "11px 14px", fontSize: 12, color: "#9A3412", marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <span style={{ flexShrink: 0 }}>ℹ</span>
+              <span>{displacedMsg}</span>
+            </div>
+          )}
           {/* Error */}
           {error && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "11px 14px", fontSize: 12, color: RED, marginBottom: 20, display: "flex", gap: 8, alignItems: "flex-start" }}>

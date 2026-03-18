@@ -41,11 +41,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { useSessionGuard } from "@/hooks/useSessionGuard";
 
 const DashboardLayout = () => {
   // Role-based inactivity: owner/admin 20 min, everyone else 30 min
   const { userRole: _inactRole } = useSettings();
-  useInactivityLogout((_inactRole === "owner" || _inactRole === "admin") ? 20 * 60 * 1000 : 30 * 60 * 1000);
+  useInactivityLogout((_inactRole === "owner" || _inactRole === "admin") ? 10 * 60 * 1000 : 30 * 60 * 1000);
+  useSessionGuard();
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();

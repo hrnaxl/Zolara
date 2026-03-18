@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { useSessionGuard } from "@/hooks/useSessionGuard";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval } from "date-fns";
 
 const StaffDashboard = () => {
-  useInactivityLogout(2 * 60 * 1000); // 2-min inactivity logout
+  useInactivityLogout(10 * 60 * 1000); // 10-min inactivity logout
+  useSessionGuard();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [staffId, setStaffId] = useState<string | null>(null);
