@@ -9,6 +9,7 @@ import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
+import ServicePicker from "@/components/ServicePicker";
 
 const GOLD        = "#C9A84C";
 const GOLD_DARK   = "#A8892E";
