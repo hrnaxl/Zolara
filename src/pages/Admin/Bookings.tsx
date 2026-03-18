@@ -279,10 +279,23 @@ export default function Bookings() {
         const isToday = booking.preferred_date === today;
         const specialty = getRequiredSpecialty(booking.service_name);
 
-        // Filter staff by specialty
+        // Filter staff by specialty — flexible keyword matching
+        // handles DB values like "Braider", "Braiding", "Knotless Braids" etc.
+        const SPEC_KEYWORDS: Record<string,string[]> = {
+          "Braider": ["braid","cornrow","twist","loc","feed-in","knotless","box braid","braiding","plaiting"],
+          "Lash Tech": ["lash","extension","cluster","volume lash","lash tech"],
+          "Nail Tech": ["nail","acrylic","gel polish","nail art","french","nail tech"],
+          "Wig & Hair Stylist": ["wig","hair","blow dry","scalp","wash","hair stylist"],
+          "Makeup Artist": ["makeup","make up","glam","bridal","brow","contour","makeup artist"],
+          "Pedicurist & Manicurist": ["pedicure","manicure","feet","foot","pedicurist","manicurist"],
+        };
         const eligible = opStaff.filter((s: any) => {
           if (!specialty) return true;
-          return (s.specialties || []).includes(specialty);
+          const kws = SPEC_KEYWORDS[specialty] || [];
+          return (s.specialties || []).some((sp: string) => {
+            const sl = sp.toLowerCase();
+            return sl === specialty.toLowerCase() || kws.some(kw => sl.includes(kw));
+          });
         });
 
         // For today: only consider staff who have checked in
@@ -368,7 +381,7 @@ export default function Bookings() {
           <div style={{ maxWidth:700, margin:"40px auto", position:"relative" }}>
             <button onClick={() => setNewBookingOpen(false)}
               style={{ position:"absolute", top:12, right:12, zIndex:10, background:"white", border:"none", borderRadius:"50%", width:32, height:32, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 2px 8px rgba(0,0,0,0.2)" }}>✕</button>
-            <EnhancedBookingForm />
+            <EnhancedBookingForm onSuccess={() => { setNewBookingOpen(false); load(); }} />
           </div>
         </div>
       )}

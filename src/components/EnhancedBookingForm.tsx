@@ -48,7 +48,7 @@ const sectionTitle = {
   color: GOLD, marginBottom: 20, display: "block",
 } as const;
 
-export default function EnhancedBookingForm() {
+export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const { settings, userRole } = useSettings();
   const location = useLocation();
   const navigate = useNavigate();
@@ -260,6 +260,7 @@ export default function EnhancedBookingForm() {
         </div>
         <div>
           <button onClick={() => {
+            if (onSuccess) { onSuccess(); return; }
             const base = userRole === "receptionist" ? "/app/receptionist" : "/app/admin";
             navigate(base + "/bookings");
           }} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: GOLD, fontSize: 13, fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "'Montserrat',sans-serif" }}>
@@ -354,109 +355,48 @@ export default function EnhancedBookingForm() {
         {/* ── STEP 2: SERVICE + DATETIME ── */}
         {step === 2 && (
           <>
-            {/* Service cards */}
+            {/* Service list */}
             <div style={card}>
-              <span style={sectionTitle}>SELECT A SERVICE</span>
+              <span style={sectionTitle}>SELECT SERVICE(S)</span>
+              <style>{`.svc-row:hover{background:#FBF6EE!important}`}</style>
+
               {loading ? (
-                <div style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
-                  <Loader2 size={28} style={{ color: GOLD, animation: "spin 0.8s linear infinite" }} />
+                <div style={{ display:"flex", justifyContent:"center", padding:"28px 0" }}>
+                  <Loader2 size={24} style={{ color:GOLD, animation:"spin 0.8s linear infinite" }} />
                   <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                 </div>
-              ) : services.length === 0 ? (
-                <p style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No services available at the moment.</p>
               ) : (
-                Object.entries(grouped).map(([cat, svcs]) => (
-                  <div key={cat} style={{ marginBottom: 20 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: TXT_SOFT, marginBottom: 10, textTransform: "uppercase" }}>{cat}</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      {(svcs as any[]).map((s: any) => {
-                        const sel = serviceIds.includes(s.id);
-                        return (
-                          <div key={s.id} style={{ gridColumn: sel ? "span 2" : "span 1" }}>
-                          <div className="svc-card" onClick={() => {
-                            const willSelect = !serviceIds.includes(s.id);
-                            if (willSelect) {
-                              loadServiceExtras(s.id);
-                              setExpandedSvc(s.id);
-                            } else {
-                              setExpandedSvc(null);
-                            }
-                            setServiceIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]);
-                          }}
-                            style={{ textAlign: "left", padding: "14px 16px", borderRadius: sel ? "12px 12px 0 0" : 12, background: sel ? GOLD_LIGHT : WHITE, border: `2px solid ${sel ? GOLD : BORDER}`, cursor: "pointer", transition: "all 0.15s", fontFamily: "'Montserrat',sans-serif" }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: sel ? GOLD_DARK : TXT, marginBottom: 4, lineHeight: 1.3 }}>{s.name}</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginTop: 8 }}>
-                              {(() => {
-                                const vars = allVariantsMap[s.id] || [];
-                                if (vars.length === 0) return Number(s.price) > 0 ? "GHS " + Number(s.price).toLocaleString() : "See pricing";
-                                const prices = vars.map((v: any) => Number(v.price_adjustment));
-                                const mn = Math.min(...prices), mx = Math.max(...prices);
-                                return mn === mx ? "GHS " + mn.toLocaleString() : "GHS " + mn.toLocaleString() + " – " + mx.toLocaleString();
-                              })()}
-                            </div>
-                            {sel && (
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: GOLD, letterSpacing: "0.08em" }}>✓ SELECTED</div>
-                                <div style={{ fontSize: 10, color: GOLD_DARK, fontFamily: "'Montserrat',sans-serif", fontWeight: 600 }}>{expandedSvc === s.id ? "▲ hide" : "▼ options"}</div>
-                              </div>
-                            )}
-                          </div>
-                          {sel && expandedSvc === s.id && (() => {
-                            const svcVars = svcVariantsMap[s.id] || [];
-                            const svcAdds = svcAddonsMap[s.id]   || [];
-                            const isLoading = !!svcLoading[s.id];
-                            if (!isLoading && svcVars.length === 0 && svcAdds.length === 0 && svcVariantsMap[s.id] !== undefined) return null;
-                            return (
-                              <div style={{ border: `1.5px solid ${GOLD}`, borderTop: "none", borderRadius: "0 0 12px 12px", padding: "12px 14px", background: GOLD_LIGHT, display: "flex", flexDirection: "column", gap: 12 }}>
-                                {isLoading && <p style={{ fontSize: 11, color: TXT_SOFT, fontFamily: "'Montserrat',sans-serif" }}>Loading options...</p>}
-                                {svcVars.length > 0 && (
-                                  <div>
-                                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", color: GOLD_DARK, marginBottom: 8, fontFamily: "'Montserrat',sans-serif" }}>SIZE / LENGTH <span style={{ color: "#C0392B" }}>*</span></p>
-                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                                      {svcVars.map((v: any) => {
-                                        const vActive = (svcVariantSel[s.id] || "") === v.id;
-                                        return (
-                                          <button type="button" key={v.id} onClick={() => setSvcVariantSel(prev => ({ ...prev, [s.id]: v.id }))}
-                                            style={{ background: vActive ? GOLD_DARK : WHITE, color: vActive ? WHITE : TXT, border: `1.5px solid ${vActive ? GOLD_DARK : BORDER}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, transition: "all 0.15s" }}>
-                                            {v.name}
-                                            <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: vActive ? "rgba(255,255,255,0.85)" : GOLD_DARK, marginTop: 2 }}>GHS {Number(v.price_adjustment).toLocaleString()}</span>
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-                                {svcAdds.length > 0 && (
-                                  <div>
-                                    <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.15em", color: "#7C3AED", marginBottom: 8, fontFamily: "'Montserrat',sans-serif" }}>ADD-ONS <span style={{ fontWeight: 400, color: TXT_SOFT, fontSize: 9 }}>(optional)</span></p>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                      {svcAdds.map((a: any) => {
-                                        const checked = (svcAddonsSel[s.id] || []).includes(a.id);
-                                        return (
-                                          <label key={a.id} onClick={() => setSvcAddonsSel(prev => ({ ...prev, [s.id]: checked ? (prev[s.id]||[]).filter((id:string) => id !== a.id) : [...(prev[s.id]||[]), a.id] }))}
-                                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: checked ? "#F5F3FF" : WHITE, border: `1.5px solid ${checked ? "#A78BFA" : BORDER}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", transition: "all 0.15s" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                              <div style={{ width: 14, height: 14, borderRadius: 3, border: `2px solid ${checked ? "#7C3AED" : "#D1C5B8"}`, background: checked ? "#7C3AED" : WHITE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                {checked && <span style={{ color: WHITE, fontSize: 9, fontWeight: 700 }}>✓</span>}
-                                              </div>
-                                              <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: TXT }}>{a.name}</span>
-                                            </div>
-                                            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap", marginLeft: 8 }}>+GHS {Number(a.price).toLocaleString()}</span>
-                                          </label>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))
+                <ServicePicker
+                  services={services}
+                  allVariantsMap={allVariantsMap}
+                  svcVariantsMap={svcVariantsMap}
+                  svcAddonsMap={svcAddonsMap}
+                  svcVariantSel={svcVariantSel}
+                  svcAddonsSel={svcAddonsSel}
+                  svcLoading={svcLoading}
+                  expandedSvc={expandedSvc}
+                  serviceIds={serviceIds}
+                  onToggle={(svcId) => {
+                    const willSelect = !serviceIds.includes(svcId);
+                    if (willSelect) {
+                      loadServiceExtras(svcId);
+                      setExpandedSvc(svcId);
+                    } else {
+                      setExpandedSvc(null);
+                    }
+                    setServiceIds(prev => prev.includes(svcId) ? prev.filter(id => id !== svcId) : [...prev, svcId]);
+                  }}
+                  onExpandToggle={(svcId) => {
+                    setExpandedSvc(prev => prev === svcId ? null : svcId);
+                    if (!svcVariantsMap[svcId]) loadServiceExtras(svcId);
+                  }}
+                  onVariantSel={(svcId, varId) => setSvcVariantSel(prev => ({ ...prev, [svcId]: varId }))}
+                  onAddonToggle={(svcId, addId, checked) => setSvcAddonsSel(prev => ({
+                    ...prev,
+                    [svcId]: checked ? (prev[svcId]||[]).filter((id:string)=>id!==addId) : [...(prev[svcId]||[]), addId]
+                  }))}
+                  GOLD={GOLD} GOLD_DARK={GOLD_DARK} GOLD_LIGHT={GOLD_LIGHT} BORDER={BORDER} WHITE={WHITE} TXT={TXT} TXT_SOFT={TXT_SOFT} TXT_MID={TXT_MID} inp={inp}
+                />
               )}
               {errors.service && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.service}</p>}
             </div>
