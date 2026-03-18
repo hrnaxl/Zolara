@@ -191,6 +191,13 @@ export default function LandingPage() {
           .landing-footer-grid { grid-template-columns: 1fr !important; }
           .desktop-nav { display: none !important; }
           .mobile-ham { display: flex !important; }
+          .lyl-stamp-grid { grid-template-columns: repeat(4,1fr) !important; }
+          .lyl-tier-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .svc-db-card { min-width: 0 !important; }
+        }
+        @media (max-width: 480px) {
+          .lyl-stamp-grid { grid-template-columns: repeat(4,1fr) !important; gap: 6px !important; }
+          .lyl-stamp-grid > div { height: 30px !important; font-size: 11px !important; }
         }
       `}</style>
 
@@ -206,7 +213,7 @@ export default function LandingPage() {
         boxShadow: scrolled ? "0 4px 40px rgba(28,22,14,0.06)" : "none",
         transition: "all 0.4s ease",
       }}>
-        <a href="#" style={{ display: "flex", alignItems: "center", gap: "11px", textDecoration: "none" }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: "11px", textDecoration: "none" }}>
           <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", background: "#fff", flexShrink: 0 }}>
             <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
@@ -256,7 +263,7 @@ export default function LandingPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "36px" }}>
           <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: `2px solid ${gold}`, overflow: "hidden" }}>
-            <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+             <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
           </div>
           <div>
             <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 800, letterSpacing: "0.2em", color: "#F5EFE6" }}>ZOLARA</div>
@@ -278,8 +285,8 @@ export default function LandingPage() {
           STAFF LOGIN
         </Link>
         <div style={{ marginTop: "auto", paddingTop: "28px" }}>
-          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", marginBottom: "5px" }}>059 436 5314</p>
-          <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)" }}>020 884 8707</p>
+          <a href="tel:+233594365314" style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", marginBottom: "5px", display: "block", textDecoration: "none" }}>059 436 5314</a>
+          <a href="tel:+233208848707" style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.28)", display: "block", textDecoration: "none" }}>020 884 8707</a>
         </div>
       </div>
 
@@ -295,7 +302,7 @@ export default function LandingPage() {
         <div className="hero-floating-card-wrapper float" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "18%", width: "300px", pointerEvents: "none" }}>
           <div className="hero-floating-card" style={{ width: "300px", border: "1px solid rgba(200,169,126,0.4)", borderRadius: "5px", background: "rgba(252,249,244,0.92)", backdropFilter: "blur(24px)", padding: "36px 30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
             <div style={{ width: "70px", height: "70px", borderRadius: "50%", border: "2.5px solid #C8A97E", overflow: "hidden", background: "#fff", boxShadow: "0 0 0 5px rgba(200,169,126,0.15)" }}>
-              <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+               <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
             </div>
             <div style={{ width: "40px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
             <p style={{ fontStyle: "italic", fontSize: "17px", color: dark, textAlign: "center", lineHeight: 1.7, letterSpacing: "0.01em", fontWeight: 500 }}>
@@ -313,8 +320,8 @@ export default function LandingPage() {
               </div>
               <div>
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>CALL</p>
-                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>059 436 5314</p>
-                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500, marginTop: "2px" }}>020 884 8707</p>
+                <a href="tel:+233594365314" className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500, textDecoration: "none", display: "block" }}>059 436 5314</a>
+                <a href="tel:+233208848707" className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500, marginTop: "2px", textDecoration: "none", display: "block" }}>020 884 8707</a>
               </div>
             </div>
           </div>
@@ -504,7 +511,7 @@ export default function LandingPage() {
               <div style={{ position: "absolute", top: "0", left: "0", right: "0", height: "3px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
               {/* Logo in circle, top right */}
               <div style={{ position: "absolute", top: "20px", right: "20px", width: "52px", height: "52px", border: "2px solid rgba(200,169,126,0.5)", borderRadius: "50%", overflow: "hidden", background: "#fff", boxShadow: "0 0 0 4px rgba(200,169,126,0.12)" }}>
-                <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                 <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
               </div>
               <p style={{ fontStyle: "italic", fontSize: "clamp(18px,2.5vw,27px)", color: "#F5EFE6", lineHeight: 1.65, marginBottom: "32px", position: "relative", zIndex: 1, fontWeight: 400 }}>
                 "Not just a salon. A complete luxury experience."
@@ -700,7 +707,7 @@ export default function LandingPage() {
                   <div className="gc-chip" style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.75)", border: `1px solid ${t.chip}44` }}>{t.label}</div>
                 </div>
                 <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.3)", overflow: "hidden", background: "#fff" }}>
-                  <img src={LOGO} alt="Z" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                   <img src={LOGO} alt="Z" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
                 </div>
               </div>
               {/* Amount */}
@@ -776,7 +783,7 @@ export default function LandingPage() {
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 0%, rgba(200,169,126,0.18) 0%, transparent 55%)", pointerEvents: "none" }} />
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg,transparent,#C8A97E,transparent)" }} />
               <div style={{ position: "absolute", top: "20px", right: "20px", width: "48px", height: "48px", border: "2px solid rgba(200,169,126,0.5)", borderRadius: "50%", overflow: "hidden", background: "#fff" }}>
-                <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                 <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
               </div>
 
               {/* Card title */}
@@ -786,7 +793,7 @@ export default function LandingPage() {
               </div>
 
               {/* Stamps */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "8px", marginBottom: "20px", position: "relative", zIndex: 1 }}>
+              <div className="lyl-stamp-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "8px", marginBottom: "20px", position: "relative", zIndex: 1 }}>
                 {Array.from({length:20}, (_,i) => (
                   <div key={i} className={"lyl-stamp" + (i<15?" on":i===19?" gift":" off")} style={{ height: "36px", fontSize: 13, color: i<15?"rgba(255,255,255,0.85)":i===19?"#90CAF9":"transparent" }}>
                     {i < 15 ? "✦" : i === 19 ? "★" : ""}
@@ -806,7 +813,7 @@ export default function LandingPage() {
 
               {/* Divider + tier row */}
               <div style={{ marginTop: "28px", paddingTop: "24px", borderTop: "1px solid rgba(200,169,126,0.15)", position: "relative", zIndex: 1 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", textAlign: "center" }}>
+                <div className="lyl-tier-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", textAlign: "center" }}>
                   {[["Bronze","#CD7F32"],["Silver","#9CA3AF"],["Gold","#C8A97E"],["Diamond","#818CF8"]].map(([name,col]) => (
                     <div key={name}>
                       <div className="sans" style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.14em", color: col, opacity: 0.9 }}>{name.toUpperCase()}</div>
@@ -900,7 +907,7 @@ export default function LandingPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 60px", position: "relative", zIndex: 1 }}>
           {[
             { icon: "◉", label: "LOCATION", lines: ["Sakasaka, Opposite CalBank", "Tamale, Ghana"] },
-            { icon: "◈", label: "CALL US", lines: ["059 436 5314", "020 884 8707"] },
+            { icon: "◈", label: "CALL US", lines: ["059 436 5314", "020 884 8707"], tel: true },
             { icon: "◇", label: "HOURS", lines: ["Monday – Saturday", "8:30 AM – 9:00 PM"] },
             { icon: "✦", label: "CLOSED", lines: ["Every Sunday", "We rest so we can serve you better"] },
           ].map(item => (
@@ -908,7 +915,10 @@ export default function LandingPage() {
               <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "48px", height: "2px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
               <div style={{ fontSize: "26px", color: gold, marginBottom: "18px" }}>{item.icon}</div>
               <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "14px" }}>{item.label}</p>
-              {item.lines.map(l => <p key={l} className="sans" style={{ fontSize: "14px", color: dark, lineHeight: 1.75, fontWeight: 400 }}>{l}</p>)}
+              {item.lines.map(l => (item as any).tel
+  ? <a key={l} href={`tel:+233${l.replace(/^0/, "").replace(/\s/g,"")}`} className="sans" style={{ fontSize: "14px", color: dark, lineHeight: 1.75, fontWeight: 400, textDecoration: "none", display: "block" }}>{l}</a>
+  : <p key={l} className="sans" style={{ fontSize: "14px", color: dark, lineHeight: 1.75, fontWeight: 400 }}>{l}</p>
+)}
             </div>
           ))}
         </div>
@@ -934,7 +944,7 @@ export default function LandingPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
               <div style={{ width: "38px", height: "38px", borderRadius: "50%", border: "1.5px solid rgba(200,169,126,0.55)", overflow: "hidden", flexShrink: 0 }}>
-                <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                 <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
               </div>
               <div>
                 <div className="sans" style={{ fontSize: "15px", fontWeight: 800, letterSpacing: "0.2em", color: cream, lineHeight: 1 }}>ZOLARA</div>
@@ -946,7 +956,7 @@ export default function LandingPage() {
             </p>
             <div className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.9 }}>
               <div>Sakasaka, Opposite CalBank, Tamale</div>
-              <div>059 436 5314 · 020 884 8707</div>
+              <div><a href="tel:+233594365314" style={{ color: "inherit", textDecoration: "none" }}>059 436 5314</a> · <a href="tel:+233208848707" style={{ color: "inherit", textDecoration: "none" }}>020 884 8707</a></div>
               <div>Mon – Sat · 8:30 AM – 9:00 PM</div>
             </div>
           </div>

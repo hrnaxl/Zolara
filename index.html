@@ -2,9 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
-    <title>Zolara Beauty Studio</title>
-    <meta name="description" content="Premium beauty salon in Tamale, Ghana. Book appointments online." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <title>Zolara Beauty Studio — Premium Salon in Tamale, Ghana</title>
+    <meta name="description" content="Zolara Beauty Studio is Tamale's premier luxury salon. Book braids, lashes, nails, pedicures, wigs and more online. Located in Sakasaka, opposite CalBank." />
+    <link rel="canonical" href="https://zolarasalon.com" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
@@ -13,13 +20,56 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Zolara" />
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
 
     <!-- Open Graph -->
-    <meta property="og:title" content="Zolara Beauty Studio" />
-    <meta property="og:description" content="Premium beauty salon in Tamale, Ghana." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/icons/icon-512x512.png" />
+    <meta property="og:site_name" content="Zolara Beauty Studio" />
+    <meta property="og:title" content="Zolara Beauty Studio — Premium Salon in Tamale, Ghana" />
+    <meta property="og:description" content="Tamale's premier luxury salon. Braids, lashes, nails, pedicures, wigs and more. Book online in minutes. Located in Sakasaka, opposite CalBank." />
+    <meta property="og:image" content="https://zolarasalon.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Zolara Beauty Studio — Premium Salon in Tamale" />
+    <meta property="og:url" content="https://zolarasalon.com" />
+    <meta property="og:locale" content="en_GH" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Zolara Beauty Studio — Premium Salon in Tamale, Ghana" />
+    <meta name="twitter:description" content="Tamale's premier luxury salon. Braids, lashes, nails, pedicures, wigs and more. Book online in minutes." />
+    <meta name="twitter:image" content="https://zolarasalon.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Zolara Beauty Studio" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BeautySalon",
+      "name": "Zolara Beauty Studio",
+      "description": "Premium beauty salon in Tamale, Ghana offering braids, lashes, nails, pedicures, wigs and more.",
+      "url": "https://zolarasalon.com",
+      "telephone": "+233594365314",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Sakasaka, Opposite CalBank",
+        "addressLocality": "Tamale",
+        "addressCountry": "GH"
+      },
+      "openingHours": "Mo-Sa 08:30-21:00",
+      "image": "https://zolarasalon.com/og-image.jpg",
+      "priceRange": "GHS 30 - GHS 650",
+      "sameAs": [
+        "https://www.instagram.com/zolarastudio",
+        "https://www.tiktok.com/@zolarastudio",
+        "https://www.facebook.com/zolarastudio"
+      ]
+    }
+    </script>
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://ekvjnydomfresnkealpb.supabase.co" />
   </head>
   <body>
     <div id="root"></div>
