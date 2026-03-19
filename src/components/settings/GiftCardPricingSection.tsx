@@ -7,7 +7,7 @@ const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
 const TXT = "#1C160E", TXT_SOFT = "#A8A29E";
 const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%", boxSizing: "border-box" };
 
-const TIER_COLORS: Record<string, string> = { Bronze: "#CD7F32", Silver: "#9CA3AF", Gold: "#B8975A", Platinum: "#6B7280", Diamond: "#6366F1" };
+const TIER_COLORS: Record<string, string> = { Silver: "#9CA3AF", Gold: "#B8975A", Platinum: "#6B7280", Diamond: "#6366F1" };
 
 export function GiftCardPricingSection() {
   const [prices, setPrices] = useState<Record<string, number>>({});

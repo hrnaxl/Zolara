@@ -22,7 +22,6 @@ const TXT_S  = "#9C8878";
 const WHITE  = "#FFFFFF";
 
 const TIER_GRAD: Record<string, string> = {
-  Bronze:   "linear-gradient(135deg,#CD7F32,#E8A55A,#8B5A1A)",
   Silver:   "linear-gradient(135deg,#b0b0b0,#e8e8e8,#909090)",
   Gold:     "linear-gradient(135deg,#B8975A,#F5D98A,#8C6A30)",
   Platinum: "linear-gradient(135deg,#4B5563,#9CA3AF,#374151)",
@@ -34,7 +33,7 @@ const TIER_GRAD: Record<string, string> = {
 };
 
 const TIER_ACCENT: Record<string, string> = {
-  Bronze: "#CD7F32", BRZ: "#CD7F32",
+  BRZ: "#CD7F32",
   Silver: "#9CA3AF", SLV: "#9CA3AF",
   Gold: "#B8975A",   GLD: "#B8975A",
   Platinum: "#6B7280", PLT: "#6B7280",

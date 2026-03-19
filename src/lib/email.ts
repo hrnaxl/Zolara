@@ -1,5 +1,5 @@
-const COLORS: Record<string,string> = { Bronze:"#CD7F32", Silver:"#9CA3AF", Gold:"#B8975A", Platinum:"#6B7280", Diamond:"#6366F1" };
-const GRACE: Record<string,number>  = { Bronze:0, Silver:15, Gold:15, Platinum:15, Diamond:50 };
+const COLORS: Record<string,string> = { Silver:"#9CA3AF", Gold:"#B8975A", Platinum:"#6B7280", Diamond:"#6366F1" };
+const GRACE: Record<string,number>  = { Silver:15, Gold:15, Platinum:15, Diamond:50 };
 
 function gcHtml(p: { tier:string; amount:number; code:string; recipient_name?:string; buyer_name?:string; message?:string }) {
   const col = COLORS[p.tier] || "#B8975A";
