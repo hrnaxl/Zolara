@@ -412,7 +412,9 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
                   transition: "all 0.2s",
                 }}
               >
-                <span style={{ fontSize: 16 }}>📷</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: imageFile ? "#fff" : "#8B6914" }}>
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M8 3v2M16 3v2"/>
+                </svg>
               </button>
               <input
                 ref={inputRef}

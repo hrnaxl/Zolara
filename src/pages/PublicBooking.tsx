@@ -720,13 +720,23 @@ export default function PublicBooking() {
 
               {/* Category tabs */}
               {!serviceSearch && (
-                <div style={{ display: "flex", gap: "6px", flexWrap: "nowrap", overflowX: "auto", marginBottom: "14px", paddingBottom: "4px", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any }}>
-                  {allCategories.filter(c => !isPackage(c)).map(cat => (
-                    <button key={cat} onClick={() => setActiveCategory(cat)}
-                      style={{ background: activeCategory === cat ? GOLD_DARK : "white", color: activeCategory === cat ? "white" : TXT_MID, border: `1.5px solid ${activeCategory === cat ? GOLD_DARK : BORDER}`, borderRadius: "20px", padding: "5px 14px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", transition: "all 0.15s", whiteSpace: "nowrap" }}>
-                      {cat === "all" ? "All" : cat} {cat !== "all" && <span style={{ opacity: 0.6, fontSize: "10px" }}>({(grouped[cat] || []).length})</span>}
-                    </button>
-                  ))}
+                <div style={{ position: "relative", marginBottom: "14px" }}>
+                  <style>{`
+                    .cat-scroll::-webkit-scrollbar { display: none; }
+                    .cat-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+                  `}</style>
+                  {/* Left fade */}
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 24, background: "linear-gradient(to right, white, transparent)", zIndex: 1, pointerEvents: "none", borderRadius: "20px 0 0 20px" }} />
+                  {/* Right fade */}
+                  <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 24, background: "linear-gradient(to left, white, transparent)", zIndex: 1, pointerEvents: "none", borderRadius: "0 20px 20px 0" }} />
+                  <div className="cat-scroll" style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "4px", paddingLeft: "4px", paddingRight: "4px", WebkitOverflowScrolling: "touch" as any }}>
+                    {allCategories.filter(c => !isPackage(c)).map(cat => (
+                      <button key={cat} onClick={() => setActiveCategory(cat)}
+                        style={{ background: activeCategory === cat ? GOLD_DARK : "white", color: activeCategory === cat ? "white" : TXT_MID, border: `1.5px solid ${activeCategory === cat ? GOLD_DARK : BORDER}`, borderRadius: "20px", padding: "6px 16px", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "'Montserrat',sans-serif", transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0 }}>
+                        {cat === "all" ? "All" : cat} {cat !== "all" && <span style={{ opacity: 0.6, fontSize: "10px" }}>({(grouped[cat] || []).length})</span>}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
