@@ -132,9 +132,15 @@ ${cat.toUpperCase()}:
 }
 
 
+interface MessageContent {
+  type: "text" | "image";
+  text?: string;
+  source?: { type: "base64"; media_type: string; data: string };
+}
 interface Message {
   role: "user" | "assistant";
-  content: string;
+  content: string | MessageContent[];
+  imagePreview?: string; // local preview URL for UI only
 }
 
 const QUICK_ACTIONS = [
@@ -153,8 +159,10 @@ export default function AmandaWidget() {
   const [loading, setLoading] = useState(false);
   const [showQuick, setShowQuick] = useState(true);
   const [systemPrompt, setSystemPrompt] = useState(BASE_PROMPT);
+  const [imageFile, setImageFile] = useState<{ data: string; mime: string; preview: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -167,32 +175,79 @@ export default function AmandaWidget() {
     }
   }, [open]);
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      const [header, data] = result.split(",");
+      const mime = header.match(/data:([^;]+)/)?.[1] || "image/jpeg";
+      setImageFile({ data, mime, preview: result });
+      // Auto-fill input with prompt if empty
+      setInput(prev => prev || "Can you identify this hairstyle and tell me if Zolara does it?");
+    };
+    reader.readAsDataURL(file);
+    // Reset file input
+    e.target.value = "";
+  };
+
   const send = async (text: string) => {
-    if (!text.trim() || loading) return;
+    if ((!text.trim() && !imageFile) || loading) return;
     setShowQuick(false);
-    const userMsg: Message = { role: "user", content: text };
+
+    // Build content array for this message
+    let userContent: string | any[];
+    if (imageFile) {
+      userContent = [
+        { type: "image", source: { type: "base64", media_type: imageFile.mime, data: imageFile.data } },
+        { type: "text", text: text.trim() || "Can you identify this hairstyle and tell me if Zolara does it?" },
+      ];
+    } else {
+      userContent = text;
+    }
+
+    const userMsg: Message = { role: "user", content: userContent, imagePreview: imageFile?.preview };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
+    setImageFile(null);
     setLoading(true);
+
+    // Build messages for API — convert imagePreview out, keep content
+    const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
 
     try {
       const res = await fetch("/api/amanda", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 600,
-          system: systemPrompt,
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          model: "claude-opus-4-5",
+          max_tokens: 700,
+          system: systemPrompt + `
+
+IMAGE ANALYSIS INSTRUCTIONS:
+When a client sends a photo of a hairstyle, carefully analyze it and:
+1. Identify the specific hairstyle (e.g. knotless braids, box braids, cornrows, locs, wig, etc.)
+2. Describe the key features (length, size, pattern, color if relevant)
+3. State clearly whether Zolara does this style (YES or NO based on the services list above)
+4. If yes, give the price range from the live data
+5. End with a CTA to book`,
+          messages: apiMessages,
         }),
       });
 
-      if (!res.ok) throw new Error("API error");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Amanda API error:", res.status, errData);
+        throw new Error("API error " + res.status);
+      }
       const data = await res.json();
       const reply = data?.content?.[0]?.text || "I'm sorry, I had a small moment there. Please try again or call us at 059 436 5314!";
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
-    } catch {
+    } catch (err) {
+      console.error("Amanda error:", err);
       setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I'm having a moment. Please call us at 059 436 5314 and we'll help you directly!" }]);
     } finally {
       setLoading(false);
@@ -330,42 +385,66 @@ export default function AmandaWidget() {
           </div>
 
           {/* Input row */}
-          <div style={{
-            padding: "12px 14px",
-            borderTop: "1px solid rgba(200,169,126,0.2)",
-            background: "#EFE7DA",
-            display: "flex", gap: "8px", alignItems: "center",
-          }}>
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && send(input)}
-              placeholder="Ask Amanda anything..."
-              style={{
-                flex: 1, border: "1.5px solid rgba(200,169,126,0.3)",
-                borderRadius: "10px", padding: "10px 13px", fontSize: "13px",
-                background: "#fff", color: dark, outline: "none",
-                fontFamily: "'Montserrat', sans-serif", transition: "border-color 0.2s",
-              }}
-              onFocus={e => (e.target.style.borderColor = gold)}
-              onBlur={e => (e.target.style.borderColor = "rgba(200,169,126,0.3)")}
-            />
-            <button
-              onClick={() => send(input)}
-              disabled={loading || !input.trim()}
-              className="amanda-send-btn"
-              style={{
-                background: `linear-gradient(135deg, #8B6914, ${gold})`,
-                border: "none", borderRadius: "10px",
-                width: "38px", height: "38px", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                opacity: loading || !input.trim() ? 0.45 : 1,
-                transition: "opacity 0.2s", flexShrink: 0,
-              }}
-            >
-              <span style={{ color: "#fff", fontSize: "16px", lineHeight: 1 }}>→</span>
-            </button>
+          <div style={{ borderTop: "1px solid rgba(200,169,126,0.2)", background: "#EFE7DA" }}>
+            {/* Image preview */}
+            {imageFile && (
+              <div style={{ padding: "8px 14px 0", display: "flex", alignItems: "center", gap: 8 }}>
+                <img src={imageFile.preview} alt="Preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1.5px solid rgba(200,169,126,0.4)" }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, color: "#8B6914", fontWeight: 600, margin: 0 }}>Photo ready to send</p>
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, color: "#A8A29E", margin: 0 }}>Amanda will identify the hairstyle</p>
+                </div>
+                <button onClick={() => setImageFile(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#A8A29E", fontSize: 16, lineHeight: 1 }}>×</button>
+              </div>
+            )}
+            <div style={{ padding: "10px 14px", display: "flex", gap: "8px", alignItems: "center" }}>
+              {/* Hidden file input */}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
+              {/* Photo button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload a hairstyle photo"
+                style={{
+                  background: imageFile ? `linear-gradient(135deg, #8B6914, ${gold})` : "rgba(200,169,126,0.15)",
+                  border: `1.5px solid ${imageFile ? gold : "rgba(200,169,126,0.3)"}`,
+                  borderRadius: "10px", width: "38px", height: "38px", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  transition: "all 0.2s",
+                }}
+              >
+                <span style={{ fontSize: 16 }}>📷</span>
+              </button>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && send(input)}
+                placeholder={imageFile ? "Add a message (optional)..." : "Ask Amanda anything..."}
+                style={{
+                  flex: 1, border: "1.5px solid rgba(200,169,126,0.3)",
+                  borderRadius: "10px", padding: "10px 13px", fontSize: "13px",
+                  background: "#fff", color: dark, outline: "none",
+                  fontFamily: "'Montserrat', sans-serif", transition: "border-color 0.2s",
+                }}
+                onFocus={e => (e.target.style.borderColor = gold)}
+                onBlur={e => (e.target.style.borderColor = "rgba(200,169,126,0.3)")}
+              />
+              <button
+                onClick={() => send(input)}
+                disabled={loading || (!input.trim() && !imageFile)}
+                className="amanda-send-btn"
+                style={{
+                  background: `linear-gradient(135deg, #8B6914, ${gold})`,
+                  border: "none", borderRadius: "10px",
+                  width: "38px", height: "38px", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: loading || (!input.trim() && !imageFile) ? 0.45 : 1,
+                  transition: "opacity 0.2s", flexShrink: 0,
+                }}
+              >
+                <span style={{ color: "#fff", fontSize: "16px", lineHeight: 1 }}>→</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
