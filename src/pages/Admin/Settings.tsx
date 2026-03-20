@@ -179,83 +179,96 @@ export default function Settings() {
     setSaving(true);
     try {
       const logoUrl = await uploadLogo();
-      // Core columns — always exist
-      const coreData: any = {
-        business_name: settings.business_name, logo_url: logoUrl,
-        open_time: settings.open_time, close_time: settings.close_time,
-        currency: settings.currency, business_phone: settings.business_phone,
-        business_email: settings.business_email, business_address: settings.business_address,
-        payment_methods: settings.payment_methods,
-        deposit_amount: settings.deposit_amount ?? 50,
-      };
 
-      // Extended columns — saved separately so missing ones don't block core save
-      const extendedFields: Record<string, any> = {
-        gallery_images: (settings as any).gallery_images ?? [],
-        closed_dates: settings.closed_dates ?? [],
-        loyalty_stamp_per_ghs: settings.loyalty_stamp_per_ghs ?? 100,
-        loyalty_stamps_for_reward: settings.loyalty_stamps_for_reward ?? 20,
-        loyalty_reward_discount: settings.loyalty_reward_discount ?? 50,
+      const payload: any = {
+        // Core — always exist
+        business_name: settings.business_name,
+        logo_url: logoUrl ?? settings.logo_url ?? null,
+        open_time: settings.open_time,
+        close_time: settings.close_time,
+        currency: settings.currency,
+        business_phone: settings.business_phone ?? "",
+        business_email: settings.business_email ?? "",
+        business_address: settings.business_address ?? "",
+        payment_methods: settings.payment_methods ?? [],
+        deposit_amount: Number(settings.deposit_amount ?? 50),
+        // Loyalty
+        loyalty_stamp_per_ghs: Number(settings.loyalty_stamp_per_ghs ?? 100),
+        loyalty_stamps_for_reward: Number(settings.loyalty_stamps_for_reward ?? 20),
+        loyalty_reward_discount: Number(settings.loyalty_reward_discount ?? 50),
+        // Lists
         service_categories: settings.service_categories ?? [],
         staff_roles: settings.staff_roles ?? [],
         staff_specialties: (settings as any).staff_specialties ?? [],
+        closed_dates: settings.closed_dates ?? [],
+        gallery_images: (settings as any).gallery_images ?? [],
+        // Gift cards
         gift_card_prices: (settings as any).gift_card_prices ?? {},
         landing_sections: {
           show_gift_cards: (settings as any).landing_sections?.show_gift_cards ?? true,
           show_subscriptions: (settings as any).landing_sections?.show_subscriptions ?? false,
         },
+        // New columns (may not exist in DB yet — handled by fallback)
         promo_banner: (settings as any).promo_banner ?? null,
+        announcement: (settings as any).announcement ?? null,
         business_phone_2: (settings as any).business_phone_2 ?? "",
         whatsapp_number: (settings as any).whatsapp_number ?? "",
         instagram_handle: (settings as any).instagram_handle ?? "",
         tiktok_handle: (settings as any).tiktok_handle ?? "",
         facebook_handle: (settings as any).facebook_handle ?? "",
         cancellation_policy: (settings as any).cancellation_policy ?? "",
-        lateness_fee: (settings as any).lateness_fee ?? 50,
-        lateness_cutoff: (settings as any).lateness_cutoff ?? 15,
-        student_discount: (settings as any).student_discount ?? 10,
-        max_bookings_per_slot: (settings as any).max_bookings_per_slot ?? 6,
-        announcement: (settings as any).announcement ?? null,
+        lateness_fee: Number((settings as any).lateness_fee ?? 50),
+        lateness_cutoff: Number((settings as any).lateness_cutoff ?? 15),
+        student_discount: Number((settings as any).student_discount ?? 10),
+        max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("id").limit(1).maybeSingle();
-      if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
+      // Get existing row id
+      const { data: row } = await (supabase as any)
+        .from("settings").select("id").limit(1).maybeSingle();
 
-      // Single UPDATE with all fields at once — 1 network call total
-      const allFields = { ...coreData, ...extendedFields };
+      if (row?.id) {
+        // Try saving everything. If it fails due to unknown column, strip new columns and retry.
+        const { error: e1 } = await (supabase as any)
+          .from("settings").update(payload).eq("id", row.id);
 
-      if (existing?.id) {
-        // Try full update first
-        const { error: fullErr } = await (supabase as any).from("settings").update(allFields).eq("id", existing.id);
-        if (fullErr) {
-          // Some extended columns might not exist yet — fall back to core only
-          const { error: coreErr } = await (supabase as any).from("settings").update(coreData).eq("id", existing.id);
-          if (coreErr) throw coreErr;
-          // Try extended fields in one batch, ignoring error if columns missing
-          await (supabase as any).from("settings").update(extendedFields).eq("id", existing.id).then(() => {}).catch(() => {});
+        if (e1) {
+          // Strip columns that might not exist yet, save what we know works
+          const safePayload = { ...payload };
+          const newCols = ["promo_banner","announcement","business_phone_2","whatsapp_number",
+            "instagram_handle","tiktok_handle","facebook_handle","cancellation_policy",
+            "lateness_fee","lateness_cutoff","student_discount","max_bookings_per_slot"];
+          newCols.forEach(k => delete safePayload[k]);
+          const { error: e2 } = await (supabase as any)
+            .from("settings").update(safePayload).eq("id", row.id);
+          if (e2) throw new Error(e2.message);
+          // Silently try new columns separately
+          const newColPayload: any = {};
+          newCols.forEach(k => { if (payload[k] !== undefined) newColPayload[k] = payload[k]; });
+          await (supabase as any).from("settings").update(newColPayload).eq("id", row.id)
+            .then(() => {}).catch(() => {});
         }
       } else {
-        const { error } = await (supabase as any).from("settings").insert([allFields]);
-        if (error) {
-          // Fallback insert with just core
-          const { error: e2 } = await (supabase as any).from("settings").insert([coreData]);
-          if (e2) throw e2;
-        }
+        // No row — insert core only
+        const { error: insErr } = await (supabase as any).from("settings").insert([payload]);
+        if (insErr) throw new Error(insErr.message);
       }
-      // settingsData for local state merge
-      const settingsData = { ...coreData, ...extendedFields };
+
       toast.success("Settings saved");
       setLogoFile(null);
-      // Convert gift_card_prices to numbers before storing in context
-      const rawSavedPrices = settingsData.gift_card_prices || {};
-      const savedGCPrices: Record<string,number> = {};
-      for (const [k, v] of Object.entries(rawSavedPrices)) { savedGCPrices[k] = Number(v); }
-      const merged = { ...settings, ...settingsData, logo_url: logoUrl || settings.logo_url, gift_card_prices: savedGCPrices };
+      const gcPrices: Record<string,number> = {};
+      for (const [k, v] of Object.entries(payload.gift_card_prices || {})) {
+        gcPrices[k] = Number(v);
+      }
+      const merged = { ...settings, ...payload, logo_url: logoUrl || settings.logo_url, gift_card_prices: gcPrices };
       setSettings(merged as any);
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
+      console.error("Settings save error:", err);
       toast.error(err?.message || "Failed to save settings");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return (
