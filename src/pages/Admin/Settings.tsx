@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { BusinessInfoSection } from "@/components/settings/BusinessInfoSection";
@@ -219,16 +218,15 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      // Use service role client — bypasses RLS, no auth issues
-      const { data: row } = await (supabaseAdmin as any)
+      const { data: row } = await (supabase as any)
         .from("settings").select("id").limit(1).maybeSingle();
 
       if (row?.id) {
-        const { error } = await (supabaseAdmin as any)
+        const { error } = await (supabase as any)
           .from("settings").update(payload).eq("id", row.id);
         if (error) throw new Error(error.message);
       } else {
-        const { error } = await (supabaseAdmin as any)
+        const { error } = await (supabase as any)
           .from("settings").insert([payload]);
         if (error) throw new Error(error.message);
       }
@@ -246,7 +244,7 @@ export default function Settings() {
     } finally {
       setSaving(false);
     }
-  };;;
+  };;;;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM }}>
