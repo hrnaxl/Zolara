@@ -226,8 +226,9 @@ export default function Settings() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Save failed");
+      let data: any = {};
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       const gcPrices: Record<string,number> = {};
       for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);

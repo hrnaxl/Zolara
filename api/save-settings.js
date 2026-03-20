@@ -7,6 +7,22 @@ const H = {
   "Prefer": "return=minimal",
 };
 
+// Save only the columns we KNOW exist in the DB
+const SAFE_COLS = [
+  "business_name","logo_url","open_time","close_time","currency",
+  "business_phone","business_email","business_address","payment_methods",
+  "deposit_amount","loyalty_stamp_per_ghs","loyalty_stamps_for_reward",
+  "loyalty_reward_discount","service_categories","staff_roles","staff_specialties",
+  "closed_dates","gallery_images","gift_card_prices","landing_sections",
+];
+
+// Try-to-save columns added later via SQL
+const EXTENDED_COLS = [
+  "promo_banner","announcement","business_phone_2","whatsapp_number",
+  "instagram_handle","tiktok_handle","facebook_handle","cancellation_policy",
+  "lateness_fee","lateness_cutoff","student_discount","max_bookings_per_slot",
+];
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -22,49 +38,46 @@ export default async function handler(req, res) {
 
     // Get existing row id
     const findRes = await fetch(`${SB}/settings?select=id&limit=1`, { headers: H });
+    if (!findRes.ok) {
+      const t = await findRes.text();
+      return res.status(500).json({ error: "DB read failed: " + t });
+    }
     const rows = await findRes.json();
     const existingId = Array.isArray(rows) && rows[0]?.id ? rows[0].id : null;
 
+    // Build safe payload — only known columns
+    const safePayload = {};
+    for (const k of SAFE_COLS) {
+      if (payload[k] !== undefined) safePayload[k] = payload[k];
+    }
+
+    const url = existingId
+      ? `${SB}/settings?id=eq.${existingId}`
+      : `${SB}/settings`;
+    const method = existingId ? "PATCH" : "POST";
+
+    // Save core columns first
+    const r1 = await fetch(url, { method, headers: H, body: JSON.stringify(safePayload) });
+    if (!r1.ok) {
+      const e1 = await r1.text();
+      return res.status(500).json({ error: "Core save failed: " + e1 });
+    }
+
+    // Save extended columns one at a time, skip if column doesn't exist
     if (existingId) {
-      const r = await fetch(`${SB}/settings?id=eq.${existingId}`, {
-        method: "PATCH",
-        headers: H,
-        body: JSON.stringify(payload),
-      });
-      if (!r.ok) {
-        const errText = await r.text();
-        // Unknown column — strip new cols and retry
-        const NEW_COLS = ["promo_banner","announcement","business_phone_2","whatsapp_number",
-          "instagram_handle","tiktok_handle","facebook_handle","cancellation_policy",
-          "lateness_fee","lateness_cutoff","student_discount","max_bookings_per_slot"];
-        const safePayload = { ...payload };
-        NEW_COLS.forEach(k => delete safePayload[k]);
-        const r2 = await fetch(`${SB}/settings?id=eq.${existingId}`, {
-          method: "PATCH", headers: H, body: JSON.stringify(safePayload),
-        });
-        if (!r2.ok) {
-          const e2 = await r2.text();
-          return res.status(500).json({ error: "Save failed: " + e2 });
-        }
-        // Try new cols silently
-        fetch(`${SB}/settings?id=eq.${existingId}`, {
-          method: "PATCH", headers: H,
-          body: JSON.stringify(Object.fromEntries(NEW_COLS.filter(k => payload[k] !== undefined).map(k => [k, payload[k]]))),
-        }).catch(() => {});
-      }
-    } else {
-      const r = await fetch(`${SB}/settings`, {
-        method: "POST", headers: H, body: JSON.stringify(payload),
-      });
-      if (!r.ok) {
-        const errText = await r.text();
-        return res.status(500).json({ error: "Insert failed: " + errText });
+      for (const k of EXTENDED_COLS) {
+        if (payload[k] === undefined) continue;
+        await fetch(`${SB}/settings?id=eq.${existingId}`, {
+          method: "PATCH",
+          headers: H,
+          body: JSON.stringify({ [k]: payload[k] }),
+        }).catch(() => {}); // silently skip unknown columns
       }
     }
 
     return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("save-settings error:", err);
-    return res.status(500).json({ error: err.message || "Unknown error" });
+    console.error("save-settings:", err);
+    return res.status(500).json({ error: String(err?.message || err) });
   }
 }
