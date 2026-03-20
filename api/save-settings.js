@@ -1,5 +1,3 @@
-export const config = { api: { bodyParser: { sizeLimit: "10mb" } } };
-
 const SB = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
 const H = {
@@ -33,7 +31,20 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const payload = req.body;
+    // Parse body manually to bypass Vercel's 1MB body parser limit
+    let payload = req.body;
+    if (!payload || typeof payload !== "object") {
+      // Try reading raw body
+      const rawBody = await new Promise((resolve, reject) => {
+        let data = "";
+        req.on("data", chunk => { data += chunk; });
+        req.on("end", () => resolve(data));
+        req.on("error", reject);
+      });
+      try { payload = JSON.parse(rawBody); } catch(e) {
+        return res.status(400).json({ error: "Invalid JSON body" });
+      }
+    }
     if (!payload || typeof payload !== "object") {
       return res.status(400).json({ error: "Invalid payload" });
     }
