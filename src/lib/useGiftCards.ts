@@ -256,7 +256,7 @@ export async function markGiftCardSold(id: string) {
   try {
     const { error } = await (supabaseAdmin as any)
       .from("gift_cards")
-      .update({ payment_status: "paid", status: "active" })
+      .update({ payment_status: "sold", status: "active" })
       .eq("id", id);
     if (error) throw error;
     return { success: true, error: null };
@@ -279,7 +279,7 @@ export async function resendGiftCardEmail(id: string) {
       recipient_email: emailTo, buyer_name: card.buyer_name || undefined, message: card.message || undefined,
     });
     if (!sent) throw new Error("Email send failed — check Vercel logs");
-    await (supabaseAdmin as any).from("gift_cards").update({ status: "active", payment_status: "paid" }).eq("id", id);
+    await (supabaseAdmin as any).from("gift_cards").update({ status: "active", payment_status: "sold" }).eq("id", id);
     return { success: true, error: null };
   } catch (error: any) {
     console.error("resendGiftCardEmail:", error.message);

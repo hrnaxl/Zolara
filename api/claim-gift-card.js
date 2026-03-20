@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     if (promoTypeId) {
       // ── PROMO CARD: find an available pre-generated promo card from this type ──
-      findUrl = `${SB}/gift_cards?promo_type_id=eq.${promoTypeId}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&limit=1&select=id,code,serial_number,tier,amount,balance,promo_type_id`;
+      findUrl = `${SB}/gift_cards?promo_type_id=eq.${promoTypeId}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&limit=1&order=created_at.asc&select=id,code,serial_number,tier,amount,balance,promo_type_id`;
       const findRes = await fetch(findUrl, { headers: H });
       const found = await findRes.json();
 

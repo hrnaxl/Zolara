@@ -129,12 +129,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<TabId>("business");
 
   useEffect(() => { fetchSettings(); }, []);
-  useEffect(() => {
-    if (ctxSettings && ctxSettings.business_name !== undefined) {
-      setSettings(prev => ({ ...defaultSettings, ...ctxSettings, ...prev }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // ctxSettings sync removed — fetchSettings() loads from DB directly
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -158,7 +153,11 @@ export default function Settings() {
           ? data.payment_methods.map((m: any) => ({ ...m, name: m.name || nameMap[m.id] || m.id }))
           : DEFAULT_PAYMENT_METHODS;
         const methods = existing;
-        setSettings({ ...defaultSettings, ...data, payment_methods: methods });
+        // Convert gift_card_prices to numbers (DB can return mixed types)
+        const rawPrices = data.gift_card_prices || {};
+        const gift_card_prices: Record<string,number> = {};
+        for (const [k, v] of Object.entries(rawPrices)) { gift_card_prices[k] = Number(v); }
+        setSettings({ ...defaultSettings, ...data, payment_methods: methods, gift_card_prices } as any);
       }
     } catch (err: any) {
       console.error(err); toast.error("Failed to load settings");
@@ -241,8 +240,12 @@ export default function Settings() {
       }
       toast.success("Settings saved");
       setLogoFile(null);
-      const merged = { ...settings, ...settingsData, logo_url: logoUrl || settings.logo_url };
-      setSettings(merged);
+      // Convert gift_card_prices to numbers before storing in context
+      const rawSavedPrices = settingsData.gift_card_prices || {};
+      const savedGCPrices: Record<string,number> = {};
+      for (const [k, v] of Object.entries(rawSavedPrices)) { savedGCPrices[k] = Number(v); }
+      const merged = { ...settings, ...settingsData, logo_url: logoUrl || settings.logo_url, gift_card_prices: savedGCPrices };
+      setSettings(merged as any);
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
       toast.error(err?.message || "Failed to save settings");

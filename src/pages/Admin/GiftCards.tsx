@@ -51,6 +51,8 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
   voided:          { bg: "#FEE2E2", color: "#991B1B", label: "Void"             },
   expired:         { bg: "#FEF3C7", color: "#92400E", label: "Expired"          },
   void:            { bg: "#FEE2E2", color: "#991B1B", label: "Void"             },
+  sold:            { bg: "#DBEAFE", color: "#1E40AF", label: "Sold · Issued"    },
+  pending_pickup:  { bg: "#FEF9C3", color: "#854D0E", label: "Pending Pickup"   },
 };
 
 type Tab = "all" | "digital" | "physical";
@@ -130,7 +132,7 @@ export default function GiftCards() {
   const isPhys   = (c: any) => c.card_type === "physical" || c.delivery_type === "physical" || c.is_admin_generated;
 
   // ─── Stats ───────────────────────────────────────────────────
-  const isPaid        = (c: any) => ["paid","pending_send","pending_pickup"].includes(c.payment_status || "");
+  const isPaid        = (c: any) => ["paid","pending_send","pending_pickup","sold"].includes(c.payment_status || "");
   const totalActive   = cards.filter(c => ["active","available","pending_send"].includes(c.status) && c.payment_status !== "voided" && c.payment_status !== "expired").length;
   const totalPendingEmail = cards.filter(c => c.status === "pending_send" || (c.status === "unused" && c.payment_status === "paid" && isDigit(c) && !c.redeemed_at)).length;
   const thisMonth     = cards.filter(c => {
@@ -165,7 +167,7 @@ export default function GiftCards() {
     if (statusFilter !== "all") {
       // "void" filter matches voided, "active" matches all active-like states
       if (statusFilter === "void" && effectiveStatus !== "voided") return false;
-      if (statusFilter === "active" && !["active","available","pending_send","pending_pickup"].includes(effectiveStatus)) return false;
+      if (statusFilter === "active" && !["active","available","pending_send","pending_pickup","sold"].includes(effectiveStatus)) return false;
       if (statusFilter !== "void" && statusFilter !== "active" && effectiveStatus !== statusFilter) return false;
     }
     if (search) {
@@ -229,14 +231,14 @@ export default function GiftCards() {
 
   const handleSellPhysCard = async () => {
     if (!physPosCard) { toast.error("Find a card first"); return; }
-    if (physPosCard.payment_status === "paid") { toast.error("Card already sold"); return; }
+    if (physPosCard.payment_status === "paid" || physPosCard.payment_status === "sold") { toast.error("Card already sold"); return; }
     if (physPosCard.status === "redeemed") { toast.error("Card already redeemed"); return; }
     if (physPosCard.payment_status === "voided") { toast.error("Card is voided"); return; }
     setPhysPosSaving(true);
     try {
-      // Mark card as paid/active (only update columns that exist)
+      // Mark card as sold/active — payment_status "sold" = issued physically, awaiting redemption
       const { error: cardErr } = await (supabaseAdmin as any).from("gift_cards").update({
-        payment_status: "paid",
+        payment_status: "sold",
         status: "active",
       }).eq("id", physPosCard.id);
       if (cardErr) { console.error("Card update error:", cardErr); throw new Error(cardErr.message); }
@@ -455,7 +457,8 @@ export default function GiftCards() {
             const value    = getValue(card);
             const tier     = card.tier || "Gold";
             // payment_status overrides for voided/expired (avoids DB enum constraint)
-            const status = card.payment_status === "pending_pickup" ? "pending_pickup"
+            const status = card.payment_status === "sold" ? "sold"
+                         : card.payment_status === "pending_pickup" ? "pending_pickup"
                          : card.payment_status === "voided" ? "voided"
                          : card.payment_status === "expired" ? "expired"
                          : card.status || "active";
@@ -531,7 +534,7 @@ export default function GiftCards() {
                         </button>
                       )}
                       {/* Mark as sold — physical available cards */}
-                      {canOperate && !digital && (status === "unused" || status === "available" || status === "pending_pickup" || card.payment_status === "pending_pickup") && card.payment_status !== "paid" && (
+                      {canOperate && !digital && (status === "pending_pickup" || card.payment_status === "pending_pickup") && card.payment_status !== "sold" && (
                         <button className="gc-btn" style={{ background:"#DCFCE7", color:"#166534", fontSize:"10px", padding:"6px 12px" }}
                           onClick={() => { setConfirmCard(card); setConfirmAct("sold"); }}>
                           {card.payment_status === "pending_pickup" ? "✓ Hand Over" : "✓ Mark Sold"}
@@ -764,7 +767,7 @@ export default function GiftCards() {
             <p style={{ fontSize:"12px", color:TXT_M, textAlign:"center", marginBottom:"24px", lineHeight:1.6 }}>
               {confirmAct === "void"   && `${getCode(confirmCard)} will be permanently voided and cannot be used.`}
               {confirmAct === "delete" && `${getCode(confirmCard)} will be permanently deleted. This cannot be undone.`}
-              {confirmAct === "sold"   && `${getCode(confirmCard)} will be marked as sold/issued and set to Active. Do this when you physically hand the card to a client.`}
+              {confirmAct === "sold"   && `${getCode(confirmCard)} will be marked as Sold · Issued. It will be tagged permanently so it cannot be assigned to a new buyer.`}
               {confirmAct === "resend" && `The gift card code will be re-emailed to ${confirmCard.recipient_email || "the recipient"}. This will happen within 10–15 minutes.`}
               {confirmAct === "expire" && `${getCode(confirmCard)} will be marked as expired.`}
             </p>
