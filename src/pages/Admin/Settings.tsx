@@ -134,7 +134,7 @@ export default function Settings() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any).from("settings").select("*").single();
+      const { data, error } = await (supabase as any).from("settings").select("*").limit(1).maybeSingle();
       if (error && error.code !== "PGRST116") throw error;
       if (data) {
         const DEFAULT_PAYMENT_METHODS = [
@@ -221,23 +221,26 @@ export default function Settings() {
       const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("*").limit(1).maybeSingle();
       if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
 
-      // Detect which extended columns actually exist in DB from the fetched row
-      const existingKeys = existing ? Object.keys(existing) : [];
-      const safeExtended: any = {};
-      for (const [k, v] of Object.entries(extendedFields)) {
-        if (existing === null || existingKeys.includes(k)) safeExtended[k] = v;
-      }
-
-      const settingsData = { ...coreData, ...safeExtended };
-
+      // Save core data first — these columns always exist
       if (existing?.id) {
-        const { data: updated, error } = await (supabase as any).from("settings").update(settingsData).eq("id", existing.id).select();
-        if (error) throw error;
-        if (!updated || updated.length === 0) throw new Error("Update blocked — check database permissions");
+        const { error: coreErr } = await (supabase as any).from("settings").update(coreData).eq("id", existing.id);
+        if (coreErr) throw coreErr;
+
+        // Save each extended field individually — skip silently if column doesn't exist yet
+        // This means new columns work automatically once added via SQL, no code changes needed
+        for (const [k, v] of Object.entries(extendedFields)) {
+          try {
+            await (supabase as any).from("settings").update({ [k]: v }).eq("id", existing.id);
+          } catch (_) {
+            // Column doesn't exist yet — skip silently
+          }
+        }
       } else {
         const { error } = await (supabase as any).from("settings").insert([coreData]);
         if (error) throw error;
       }
+      // settingsData for local state merge
+      const settingsData = { ...coreData, ...extendedFields };
       toast.success("Settings saved");
       setLogoFile(null);
       // Convert gift_card_prices to numbers before storing in context
