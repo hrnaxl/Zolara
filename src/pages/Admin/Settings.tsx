@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { BusinessInfoSection } from "@/components/settings/BusinessInfoSection";
@@ -218,90 +219,24 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      // Use direct REST with a 15-second timeout — bypasses Supabase client hangs
-      const SB_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
-      const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
-      const HEADERS = {
-        "apikey": SB_KEY,
-        "Authorization": "Bearer " + SB_KEY,
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-      };
+      // Use service role client — bypasses RLS, no auth issues
+      const { data: row } = await (supabaseAdmin as any)
+        .from("settings").select("id").limit(1).maybeSingle();
 
-      const withTimeout = (promise: Promise<any>, ms: number) => {
-        const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Request timed out after " + ms/1000 + "s")), ms)
-        );
-        return Promise.race([promise, timeout]);
-      };
-
-      // Get existing row id
-      const rowRes: any = await withTimeout(
-        fetch(`${SB_URL}/settings?select=id&limit=1`, { headers: HEADERS }),
-        10000
-      );
-      const rowData = await rowRes.json();
-      const existingId = Array.isArray(rowData) && rowData[0] ? rowData[0].id : null;
-
-      if (existingId) {
-        // Update — try full payload first
-        const r: any = await withTimeout(
-          fetch(`${SB_URL}/settings?id=eq.${existingId}`, {
-            method: "PATCH",
-            headers: HEADERS,
-            body: JSON.stringify(payload),
-          }),
-          10000
-        );
-        if (!r.ok) {
-          const errText = await r.text();
-          // If column doesn't exist, strip new columns and retry
-          const NEW_COLS = ["promo_banner","announcement","business_phone_2","whatsapp_number",
-            "instagram_handle","tiktok_handle","facebook_handle","cancellation_policy",
-            "lateness_fee","lateness_cutoff","student_discount","max_bookings_per_slot"];
-          const safePayload = { ...payload };
-          NEW_COLS.forEach(k => delete safePayload[k]);
-          const r2: any = await withTimeout(
-            fetch(`${SB_URL}/settings?id=eq.${existingId}`, {
-              method: "PATCH",
-              headers: HEADERS,
-              body: JSON.stringify(safePayload),
-            }),
-            10000
-          );
-          if (!r2.ok) {
-            const err2 = await r2.text();
-            throw new Error("Save failed: " + err2);
-          }
-          // Try new cols silently in background
-          const newColPayload: any = {};
-          NEW_COLS.forEach(k => { if ((payload as any)[k] !== undefined) newColPayload[k] = (payload as any)[k]; });
-          fetch(`${SB_URL}/settings?id=eq.${existingId}`, {
-            method: "PATCH", headers: HEADERS, body: JSON.stringify(newColPayload),
-          }).catch(() => {});
-        }
+      if (row?.id) {
+        const { error } = await (supabaseAdmin as any)
+          .from("settings").update(payload).eq("id", row.id);
+        if (error) throw new Error(error.message);
       } else {
-        // Insert
-        const r: any = await withTimeout(
-          fetch(`${SB_URL}/settings`, {
-            method: "POST",
-            headers: { ...HEADERS, "Prefer": "return=minimal" },
-            body: JSON.stringify(payload),
-          }),
-          10000
-        );
-        if (!r.ok) {
-          const errText = await r.text();
-          throw new Error("Insert failed: " + errText);
-        }
+        const { error } = await (supabaseAdmin as any)
+          .from("settings").insert([payload]);
+        if (error) throw new Error(error.message);
       }
 
       toast.success("Settings saved");
       setLogoFile(null);
       const gcPrices: Record<string,number> = {};
-      for (const [k, v] of Object.entries(payload.gift_card_prices || {})) {
-        gcPrices[k] = Number(v);
-      }
+      for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
       const merged = { ...settings, ...payload, logo_url: logoUrl || settings.logo_url, gift_card_prices: gcPrices };
       setSettings(merged as any);
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
@@ -311,7 +246,7 @@ export default function Settings() {
     } finally {
       setSaving(false);
     }
-  };;
+  };;;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM }}>
