@@ -208,17 +208,39 @@ export default function LandingPage() {
         const pb = (salonSettings as any)?.promo_banner;
         if (!pb?.enabled || !pb?.message) return null;
         if (pb.expires && new Date(pb.expires) < new Date()) return null;
-        const bg =
-          pb.style === "dark"   ? "linear-gradient(90deg,#1C160E,#2D2318,#1C160E)" :
-          pb.style === "green"  ? "linear-gradient(90deg,#064E3B,#10B981,#064E3B)" :
-          pb.style === "purple" ? "linear-gradient(90deg,#4C1D95,#8B5CF6,#4C1D95)" :
-          pb.style === "red"    ? "linear-gradient(90deg,#7F1D1D,#EF4444,#7F1D1D)" :
-                                  "linear-gradient(90deg,#8B6914,#C8A97E,#8B6914)";
+        const gradients: Record<string,string> = {
+          gold:   "linear-gradient(100deg,#6B4E0A 0%,#C8A97E 40%,#8B6914 60%,#D4AF6A 80%,#6B4E0A 100%)",
+          dark:   "linear-gradient(100deg,#0D0A06 0%,#2D2318 40%,#1C160E 60%,#3A2D1A 80%,#0D0A06 100%)",
+          green:  "linear-gradient(100deg,#022C22 0%,#10B981 40%,#059669 60%,#34D399 80%,#022C22 100%)",
+          purple: "linear-gradient(100deg,#2E1065 0%,#7C3AED 40%,#4C1D95 60%,#A78BFA 80%,#2E1065 100%)",
+          red:    "linear-gradient(100deg,#450A0A 0%,#DC2626 40%,#7F1D1D 60%,#F87171 80%,#450A0A 100%)",
+        };
+        const bg = gradients[pb.style || "gold"] || gradients.gold;
         return (
-          <div style={{ background: bg, padding: "10px 20px", textAlign: "center", position: "relative", zIndex: 101 }}>
-            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 600, color: "white", letterSpacing: "0.04em" }}>
-              {pb.message}
-            </span>
+          <div style={{ position: "relative", zIndex: 101, overflow: "hidden", background: bg, backgroundSize: "200% 100%" }}>
+            <style>{`
+              @keyframes bannerShimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+              @keyframes bannerMarquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+              .promo-strip { animation: bannerShimmer 4s linear infinite; background-size: 200% 100%; }
+            `}</style>
+            {/* Shimmer overlay */}
+            <div style={{ position:"absolute", inset:0, background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.08) 45%,rgba(255,255,255,0.18) 50%,rgba(255,255,255,0.08) 55%,transparent 100%)", backgroundSize:"200% 100%", animation:"bannerShimmer 3s linear infinite", pointerEvents:"none" }} />
+            <div style={{ padding:"13px 20px", display:"flex", alignItems:"center", justifyContent:"center", gap:12, position:"relative" }}>
+              {/* Left sparkle */}
+              <span style={{ fontSize:14, opacity:0.9, flexShrink:0 }}>✦</span>
+              {/* Scrolling message on mobile, static on desktop */}
+              <div style={{ overflow:"hidden", flex:1, maxWidth:700, textAlign:"center" }}>
+                <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:"12.5px", fontWeight:700, color:"white", letterSpacing:"0.06em", textShadow:"0 1px 8px rgba(0,0,0,0.25)", whiteSpace:"nowrap" }}>
+                  {pb.message}
+                </span>
+              </div>
+              {/* Right sparkle */}
+              <span style={{ fontSize:14, opacity:0.9, flexShrink:0 }}>✦</span>
+              {/* Book Now CTA */}
+              <a href="/book" style={{ fontFamily:"'Montserrat',sans-serif", fontSize:"10px", fontWeight:800, color:"white", letterSpacing:"0.14em", textDecoration:"none", background:"rgba(255,255,255,0.2)", border:"1.5px solid rgba(255,255,255,0.5)", borderRadius:20, padding:"5px 14px", whiteSpace:"nowrap", flexShrink:0, transition:"all 0.2s", backdropFilter:"blur(4px)" }}>
+                BOOK NOW →
+              </a>
+            </div>
           </div>
         );
       })()}

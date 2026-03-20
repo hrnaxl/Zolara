@@ -184,6 +184,7 @@ export default function Settings() {
           show_gift_cards: (settings as any).landing_sections?.show_gift_cards ?? true,
           show_subscriptions: (settings as any).landing_sections?.show_subscriptions ?? false,
         },
+        promo_banner: (settings as any).promo_banner ?? null,
       };
 
       const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("*").limit(1).maybeSingle();
