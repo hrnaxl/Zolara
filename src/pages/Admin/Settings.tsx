@@ -149,9 +149,15 @@ export default function Settings() {
           { id: "bank_transfer", name: "Bank Transfer", enabled: false },
           { id: "gift_card",     name: "Gift Card",     enabled: true  },
         ];
-        const methods = (data.payment_methods && data.payment_methods.length > 0)
-          ? data.payment_methods
+        // Merge: if existing records lack name, backfill from defaults
+        const nameMap: Record<string,string> = {
+          cash: "Cash", mobile_money: "Mobile Money", card: "Card",
+          bank_transfer: "Bank Transfer", gift_card: "Gift Card",
+        };
+        const existing = data.payment_methods && data.payment_methods.length > 0
+          ? data.payment_methods.map((m: any) => ({ ...m, name: m.name || nameMap[m.id] || m.id }))
           : DEFAULT_PAYMENT_METHODS;
+        const methods = existing;
         setSettings({ ...defaultSettings, ...data, payment_methods: methods });
       }
     } catch (err: any) {

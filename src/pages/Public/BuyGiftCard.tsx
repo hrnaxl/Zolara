@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
-import { supabase } from "@/integrations/supabase/client";
 import { sendGiftCardEmail, sendPickupReceiptEmail, sendPurchaseReceiptEmail } from "@/lib/email";
 import { openPaystackPopup } from "@/lib/payment";
 import { toast } from "sonner";
@@ -32,33 +31,19 @@ export default function BuyGiftCard() {
     recipientName: "", recipientEmail: "", message: "",
   });
   const [loading, setLoading] = useState(false);
-  const [promoTypes, setPromoTypes] = useState<any[]>([]);
-  const [selectedPromo, setSelectedPromo] = useState<any | null>(null); // promo type selected instead of standard tier
+
 
   useEffect(() => {
     (supabase as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
       .then(({ data }: any) => { if (data?.gift_card_prices) setTierPrices(data.gift_card_prices); });
-    // Load active promotional gift card types
-    (supabase as any).from("promo_gift_card_types")
-      .select("*").eq("is_active", true)
-      .then(({ data }: any) => {
-        const now = new Date();
-        const active = (data || []).filter((p: any) => {
-          if (p.expires_at && new Date(p.expires_at) < now) return false;
-          if (p.max_uses && p.uses_count >= p.max_uses) return false;
-          return true;
-        });
-        setPromoTypes(active);
-      });
+
   }, []);
 
   const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
 
   const tierConfig = selectedTier ? GIFT_CARD_TIERS[selectedTier] : null;
   // Effective config — either standard tier or promo type
-  const effectiveAmount = selectedPromo ? selectedPromo.amount : (selectedTier ? getTierValue(selectedTier) : 0);
-  const effectiveName = selectedPromo ? selectedPromo.name : (selectedTier ? GIFT_CARD_TIERS[selectedTier]?.label || selectedTier : "");
-  const isPromo = !!selectedPromo;
+  const isPromo = false;
 
   const handleProceed = () => {
     if (!form.buyerName || !form.buyerPhone) { toast.error("Enter your name and phone number"); return; }
@@ -93,12 +78,12 @@ export default function BuyGiftCard() {
         },
         onSuccess: async (paymentRef: string) => {
           try {
-            const tierValue = isPromo ? selectedPromo!.amount : getTierValue(selectedTier!);
+            const tierValue = getTierValue(selectedTier!);
             if (isEmail) {
               // DIGITAL — create server-side then email
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tier: isPromo ? "Gold" : selectedTier, promoTypeId: selectedPromo?.id || null, promoName: selectedPromo?.name || null, amount: tierValue, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
+                body: JSON.stringify({ tier: selectedTier, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
               });
               const d = await r.json().catch(() => ({}));
               console.log("Create card:", r.status, JSON.stringify(d));
@@ -203,12 +188,7 @@ export default function BuyGiftCard() {
               </div>
             )}
 
-            {/* Standard Tiers */}
-            {promoTypes.length > 0 && (
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-                <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.18em", color:"#A8A29E", margin:0 }}>STANDARD GIFT CARDS</p>
-              </div>
-            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
                 const t = { ...GIFT_CARD_TIERS[tier], value: getTierValue(tier) };
