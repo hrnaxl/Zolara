@@ -1055,6 +1055,11 @@ export default function LandingPage() {
       {(() => {
         const ann = (salonSettings as any)?.announcement;
         if (!ann?.enabled || !ann?.title || announcementDismissed) return null;
+        // Check expiry
+        if (ann.expires_date) {
+          const expiry = new Date(`${ann.expires_date}T${ann.expires_time || "23:59"}:00`);
+          if (expiry < new Date()) return null;
+        }
         return (
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px", backdropFilter:"blur(4px)" }}
             onClick={dismissAnnouncement}>

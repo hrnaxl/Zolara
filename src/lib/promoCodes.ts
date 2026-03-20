@@ -40,10 +40,16 @@ export const deletePromoCode = async (id: string) => {
 };
 
 export const validatePromoCode = async (code: string, orderAmount?: number): Promise<{ valid: boolean; message: string; promo?: any }> => {
+  // Fetch without is_active filter so we can give specific expired/disabled messages
   const { data, error } = await (supabase as any).from("promo_codes")
-    .select("*").eq("code", code.toUpperCase()).eq("is_active", true).single();
+    .select("*").eq("code", code.toUpperCase()).maybeSingle();
   if (error || !data) return { valid: false, message: "Invalid or unrecognised promo code" };
-  if (data.expires_at && new Date(data.expires_at) < new Date()) return { valid: false, message: "This promo code has expired" };
+  // Check expiry first — gives clearest message
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+    return { valid: false, message: "This promo code has expired" };
+  }
+  // Then check active flag (manually disabled by admin)
+  if (!data.is_active) return { valid: false, message: "This promo code is no longer active" };
   if (data.max_uses && data.used_count >= data.max_uses) return { valid: false, message: "This promo code has reached its usage limit" };
   if (data.minimum_amount && orderAmount !== undefined && orderAmount < data.minimum_amount) {
     return { valid: false, message: `Minimum order of GHS ${data.minimum_amount} required for this code` };

@@ -14,7 +14,7 @@ export default function PromoCodesManagement() {
   const [codes, setCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ code:"", description:"", discount_type:"percentage" as "percentage"|"fixed_amount", discount_value:"", minimum_amount:"", max_uses:"", expires_at:"" });
+  const [form, setForm] = useState({ code:"", description:"", discount_type:"percentage" as "percentage"|"fixed_amount", discount_value:"", minimum_amount:"", max_uses:"", expires_date:"", expires_time:"23:59" });
 
   const load = async () => {
     try { setCodes(await getPromoCodes()); } catch { toast.error("Failed to load promo codes"); } finally { setLoading(false); }
@@ -25,9 +25,12 @@ export default function PromoCodesManagement() {
     if (!canEdit) return;
     if (!form.code || !form.discount_value) { toast.error("Code and discount value required"); return; }
     try {
-      await createPromoCode({ code:form.code, description:form.description, discount_type:form.discount_type, discount_value:parseFloat(form.discount_value), minimum_amount:form.minimum_amount ? parseFloat(form.minimum_amount) : 0, max_uses:form.max_uses ? parseInt(form.max_uses) : undefined, expires_at:form.expires_at || undefined, is_active:true });
+      const expiresAt = form.expires_date
+        ? new Date(`${form.expires_date}T${form.expires_time || "23:59"}:00`).toISOString()
+        : undefined;
+      await createPromoCode({ code:form.code, description:form.description, discount_type:form.discount_type, discount_value:parseFloat(form.discount_value), minimum_amount:form.minimum_amount ? parseFloat(form.minimum_amount) : 0, max_uses:form.max_uses ? parseInt(form.max_uses) : undefined, expires_at:expiresAt, is_active:true });
       toast.success("Promo code created"); setShowForm(false);
-      setForm({ code:"", description:"", discount_type:"percentage", discount_value:"", minimum_amount:"", max_uses:"", expires_at:"" });
+      setForm({ code:"", description:"", discount_type:"percentage", discount_value:"", minimum_amount:"", max_uses:"", expires_date:"", expires_time:"23:59" });
       load();
     } catch (e: any) { toast.error(e.message || "Failed to create"); }
   };
@@ -114,8 +117,11 @@ export default function PromoCodesManagement() {
               <input type="number" value={form.max_uses} onChange={e=>setForm(f=>({...f,max_uses:e.target.value}))} style={inp} placeholder="Unlimited" />
             </div>
             <div>
-              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Expiry Date</label>
-              <input type="date" value={form.expires_at} onChange={e=>setForm(f=>({...f,expires_at:e.target.value}))} style={inp} />
+              <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Expiry Date & Time</label>
+              <div style={{ display:"flex",gap:8 }}>
+                <input type="date" value={form.expires_date} onChange={e=>setForm(f=>({...f,expires_date:e.target.value}))} style={{ ...inp, flex:1 }} />
+                <input type="time" value={form.expires_time} onChange={e=>setForm(f=>({...f,expires_time:e.target.value}))} style={{ ...inp, width:110 }} />
+              </div>
             </div>
             <div style={{ gridColumn:"span 2" }}>
               <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Description</label>
@@ -154,11 +160,26 @@ export default function PromoCodesManagement() {
                 <span style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"16px",fontWeight:700,color:G_D }}>{c.discount_type==="percentage"?`${c.discount_value}%`:`GHS ${c.discount_value}`}</span>
                 <span style={{ fontSize:"12px",color:TXT_MID }}>{c.minimum_amount>0?`GHS ${c.minimum_amount}`:"—"}</span>
                 <span style={{ fontSize:"12px",color:TXT_MID }}>{c.used_count||0}{c.max_uses?` / ${c.max_uses}`:" / ∞"}</span>
-                <span style={{ fontSize:"11px",color:TXT_SOFT }}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-GH",{day:"numeric",month:"short",year:"2-digit"}) : "Never"}</span>
-                <span style={{ display:"inline-block",padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:700,background:c.is_active?"#F0FDF4":"#F5F5F5",color:c.is_active?"#16A34A":"#999" }}>{c.is_active?"Active":"Off"}</span>
+                <span style={{ fontSize:"11px",color:TXT_SOFT }}>{(() => {
+                    if (!c.expires_at) return "Never";
+                    const d = new Date(c.expires_at);
+                    const expired = d < new Date();
+                    const dateStr = d.toLocaleDateString("en-GH",{day:"numeric",month:"short",year:"2-digit"});
+                    const timeStr = d.toLocaleTimeString("en-GH",{hour:"2-digit",minute:"2-digit",hour12:true});
+                    return <span style={{ color: expired ? "#DC2626" : "inherit" }}>{dateStr} {timeStr}{expired ? " ⚠" : ""}</span>;
+                  })()}</span>
+                {(() => {
+                    const expired = c.expires_at && new Date(c.expires_at) < new Date();
+                    const label = !c.is_active ? "Disabled" : expired ? "Expired" : "Active";
+                    const bg = !c.is_active ? "#F5F5F5" : expired ? "#FEF2F2" : "#F0FDF4";
+                    const col = !c.is_active ? "#999" : expired ? "#DC2626" : "#16A34A";
+                    return <span style={{ display:"inline-block",padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:700,background:bg,color:col }}>{label}</span>;
+                  })()}
                 {canEdit && (
                   <div style={{ display:"flex",gap:"6px" }}>
-                    <button onClick={()=>handleToggle(c.id,c.is_active)} style={{ padding:"4px 10px",borderRadius:"8px",border:`1px solid ${BORDER}`,background:W,fontSize:"10px",fontWeight:600,cursor:"pointer",color:TXT_MID }}>{c.is_active?"Disable":"Enable"}</button>
+                    <button onClick={()=>handleToggle(c.id,c.is_active)} style={{ padding:"4px 10px",borderRadius:"8px",border:`1px solid ${BORDER}`,background:W,fontSize:"10px",fontWeight:600,cursor:"pointer",color:TXT_MID }}>
+                      {c.is_active ? "Disable" : (c.expires_at && new Date(c.expires_at) < new Date() ? "Re-enable" : "Enable")}
+                    </button>
                     <button onClick={()=>handleDelete(c.id)} style={{ padding:"4px 10px",borderRadius:"8px",border:"1px solid #FECACA",background:W,fontSize:"10px",fontWeight:600,cursor:"pointer",color:"#DC2626" }}>Del</button>
                   </div>
                 )}
