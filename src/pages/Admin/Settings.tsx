@@ -14,7 +14,7 @@ import { GiftCardPricingSection } from "@/components/settings/GiftCardPricingSec
 import { ReviewsSettingsSection } from "@/components/settings/ReviewsManagement";
 import {
   Settings as SettingsIcon, Save, RefreshCw, Building2, Clock, CreditCard,
-  Users, Tag, Calendar, Wrench, BarChart3, Star, Database, Loader2, CheckCircle2
+  Users, Tag, Calendar, Wrench, BarChart3, Star, Database, Loader2, CheckCircle2, Sparkles
 } from "lucide-react";
 
 const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
@@ -52,7 +52,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "categories", label: "Categories",       icon: Tag },
   { id: "closures",   label: "Closures",         icon: Calendar },
   { id: "loyalty",    label: "Loyalty",          icon: Star },
-  { id: "promo",      label: "Promo Banner",     icon: Megaphone },
+  { id: "promo",      label: "Promo Banner",     icon: Sparkles },
   { id: "data",       label: "Data",             icon: Database },
 ];
 
