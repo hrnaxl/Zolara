@@ -1,24 +1,25 @@
 /**
  * useSessionGuard
- * 
+ *
  * Validates single-session on every route focus/load.
- * If another device has logged in, forces logout with a message.
- * 
- * Usage: call once inside each protected layout.
+ * If another device has explicitly logged in (invalidating this session),
+ * forces logout with a message.
+ *
+ * Robustness: if local token is missing (cleared storage, new tab, fresh browser),
+ * we register a new session rather than treating it as displacement.
  */
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { validateSession, clearLocalSession, pingSession } from "@/lib/sessionManager";
+import { validateSession, clearLocalSession, pingSession, registerSession } from "@/lib/sessionManager";
 
-// Check every 60 seconds — enough to catch displacement quickly without hammering DB
 const CHECK_INTERVAL_MS = 60_000;
-const PING_INTERVAL_MS  = 5 * 60_000; // ping last_active every 5 min
+const PING_INTERVAL_MS  = 5 * 60_000;
 
 export function useSessionGuard() {
-  const navigate    = useNavigate();
-  const checkRef    = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pingRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const navigate = useNavigate();
+  const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pingRef  = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     let userId: string | null = null;
@@ -30,10 +31,21 @@ export function useSessionGuard() {
 
     const check = async () => {
       if (!userId) userId = await getUserId();
+      // No user authenticated at all — let normal auth redirect handle it
       if (!userId) return;
+
+      const localToken = localStorage.getItem("zolara_session_token");
+
+      if (!localToken) {
+        // No local token — this is NOT displacement. It means localStorage was
+        // cleared (refresh, new tab, incognito, etc.). Register a fresh session.
+        await registerSession(userId).catch(() => {});
+        return;
+      }
 
       const valid = await validateSession(userId);
       if (!valid) {
+        // Token exists but DB says it's inactive — REAL displacement
         clearLocalSession();
         await supabase.auth.signOut();
         navigate("/app/auth", { replace: true, state: { reason: "displaced" } });
@@ -45,14 +57,11 @@ export function useSessionGuard() {
       if (userId) pingSession(userId).catch(() => {});
     };
 
-    // Initial check on mount
     check();
 
-    // Periodic checks
     checkRef.current = setInterval(check, CHECK_INTERVAL_MS);
-    pingRef.current  = setInterval(ping,  PING_INTERVAL_MS);
+    pingRef.current  = setInterval(ping, PING_INTERVAL_MS);
 
-    // Also check when window regains focus (user switches tabs/devices)
     window.addEventListener("focus", check);
 
     return () => {

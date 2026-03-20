@@ -32,6 +32,7 @@ interface Settings {
   loyalty_stamps_for_reward: number;
   loyalty_reward_discount: number;
   closed_dates: string[];
+  gift_card_prices: Record<string, number>;
 }
 
 const defaultSettings: Settings = {
@@ -58,6 +59,7 @@ const defaultSettings: Settings = {
   loyalty_stamps_for_reward: 20,
   loyalty_reward_discount: 50,
   closed_dates: [],
+  gift_card_prices: {},
 };
 
 type UserRole = string | null;
@@ -104,10 +106,17 @@ export const SettingsProvider = ({ children }: Props) => {
       if (error && error.code !== "PGRST116") throw error;
 
       if (data) {
+        // Convert gift_card_prices values to numbers (DB can return strings)
+        const rawPrices = data?.gift_card_prices || {};
+        const gift_card_prices: Record<string, number> = {};
+        for (const [k, v] of Object.entries(rawPrices)) {
+          gift_card_prices[k] = Number(v);
+        }
         setSettings({
           ...defaultSettings,
           ...data,       //@ts-ignore
           payment_methods: data.payment_methods ?? defaultSettings.payment_methods,
+          gift_card_prices,
         });
       }
     } catch (err) {

@@ -73,14 +73,29 @@ export async function validateSession(userId: string): Promise<boolean> {
   const localToken = localStorage.getItem(SESSION_KEY);
   if (!localToken) return false;
 
-  const { data } = await (supabase as any)
-    .from("user_sessions")
-    .select("is_active")
-    .eq("user_id", userId)
-    .eq("session_token", localToken)
-    .maybeSingle();
+  try {
+    const { data, error } = await (supabase as any)
+      .from("user_sessions")
+      .select("is_active")
+      .eq("user_id", userId)
+      .eq("session_token", localToken)
+      .maybeSingle();
 
-  return data?.is_active === true;
+    // On DB error (table missing, network, RLS issue) — don't falsely displace
+    if (error) return true;
+
+    // Row found and active — valid session
+    if (data?.is_active === true) return true;
+
+    // Row found and inactive — real displacement
+    if (data && data.is_active === false) return false;
+
+    // No row found — token was never registered or was deleted. Treat as fresh, not displaced.
+    return true;
+  } catch {
+    // Any unexpected error — don't log user out
+    return true;
+  }
 }
 
 /** Update last_active timestamp — called on user interactions */

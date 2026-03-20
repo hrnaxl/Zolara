@@ -66,7 +66,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement").limit(1).maybeSingle()
+    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement, gift_card_prices").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
     // Load visible reviews from DB
     (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
@@ -859,12 +859,19 @@ export default function LandingPage() {
 
         {/* Tier cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "20px", maxWidth: "1100px", margin: "0 auto 64px", position: "relative", zIndex: 1 }}>
-          {[
-            { amount: "GHS 220", tier: "Silver", label: "SILVER", desc: "A perfect treat. Covers a wash, nail set or lashes.", gradient: "linear-gradient(145deg,#6B6B6B,#B8B8B8,#555)", glow: "rgba(180,180,180,0.15)", anim: "cardFloat 5s ease-in-out infinite", chip: "#9CA3AF" },
-            { amount: "GHS 450", tier: "Gold", label: "GOLD", desc: "A full pampering session. Braids, manicure and more.", gradient: "linear-gradient(145deg,#6B4E0A,#C8A97E,#8B6914)", glow: "rgba(200,169,126,0.2)", anim: "cardFloat2 5.5s ease-in-out infinite 0.4s", chip: "#C8A97E" },
-            { amount: "GHS 650", tier: "Platinum", label: "PLATINUM", desc: "Premium luxury. A full day of indulgence.", gradient: "linear-gradient(145deg,#2D3A45,#6B8090,#1E2830)", glow: "rgba(107,128,144,0.15)", anim: "cardFloat 6s ease-in-out infinite 0.2s", chip: "#94A3B8" },
-            { amount: "GHS 1,000", tier: "Diamond", label: "DIAMOND", desc: "The ultimate gift. Use across 3 visits. Balance carries forward.", gradient: "linear-gradient(145deg,#1a1660,#5B54C8,#12104A)", glow: "rgba(99,102,241,0.25)", anim: "cardFloat3 4.5s ease-in-out infinite 0.6s", chip: "#818CF8" },
-          ].map(t => (
+          {(() => {
+            const gcPrices = (salonSettings as any)?.gift_card_prices || {};
+            const getGCPrice = (tier: string, def: number) => {
+              const v = gcPrices[tier];
+              return (v !== undefined && v !== null) ? Number(v) : def;
+            };
+            return [
+              { amount: `GHS ${getGCPrice("Silver",220).toLocaleString()}`, tier: "Silver", label: "SILVER", desc: "A perfect treat. Covers a wash, nail set or lashes.", gradient: "linear-gradient(145deg,#6B6B6B,#B8B8B8,#555)", glow: "rgba(180,180,180,0.15)", anim: "cardFloat 5s ease-in-out infinite", chip: "#9CA3AF" },
+              { amount: `GHS ${getGCPrice("Gold",450).toLocaleString()}`, tier: "Gold", label: "GOLD", desc: "A full pampering session. Braids, manicure and more.", gradient: "linear-gradient(145deg,#6B4E0A,#C8A97E,#8B6914)", glow: "rgba(200,169,126,0.2)", anim: "cardFloat2 5.5s ease-in-out infinite 0.4s", chip: "#C8A97E" },
+              { amount: `GHS ${getGCPrice("Platinum",650).toLocaleString()}`, tier: "Platinum", label: "PLATINUM", desc: "Premium luxury. A full day of indulgence.", gradient: "linear-gradient(145deg,#2D3A45,#6B8090,#1E2830)", glow: "rgba(107,128,144,0.15)", anim: "cardFloat 6s ease-in-out infinite 0.2s", chip: "#94A3B8" },
+              { amount: `GHS ${getGCPrice("Diamond",1000).toLocaleString()}`, tier: "Diamond", label: "DIAMOND", desc: "The ultimate gift. Use across 3 visits. Balance carries forward.", gradient: "linear-gradient(145deg,#1a1660,#5B54C8,#12104A)", glow: "rgba(99,102,241,0.25)", anim: "cardFloat3 4.5s ease-in-out infinite 0.6s", chip: "#818CF8" },
+            ];
+          })().map(t => (
             <div key={t.tier} className="gc-tier-card" style={{ background: t.gradient, boxShadow: `0 20px 48px ${t.glow}, 0 2px 8px rgba(0,0,0,0.4)`, animation: t.anim }}>
               {/* Decorative circles */}
               <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />

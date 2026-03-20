@@ -52,7 +52,7 @@ export default function BuyGiftCard() {
         setPricesLoaded(true);
       })
       .catch(() => setPricesLoaded(true));
-    // Load active promo gift card types (for landing page integration)
+    // Load active promo gift card types
     (supabase as any).from("promo_gift_card_types").select("*").eq("is_active", true)
       .then(({ data }: any) => {
         const now = new Date();
@@ -63,6 +63,9 @@ export default function BuyGiftCard() {
         }));
       });
   }, []);
+
+  // Show a loading overlay on tier cards until prices are confirmed loaded
+  // This prevents the "flash" of hardcoded price before DB value arrives
 
   const getTierValue = (tier: string) => {
     // Always prefer custom price from settings if loaded and non-zero
@@ -243,7 +246,7 @@ export default function BuyGiftCard() {
                 <div style={{ flex:1, height:1, background:"#EDEBE5" }} />
               </div>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
+            <div key={`tiers-${JSON.stringify(tierPrices)}`} style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
                 const t = { ...GIFT_CARD_TIERS[tier], value: getTierValue(tier) };
                 const s = TIER_STYLES[tier];

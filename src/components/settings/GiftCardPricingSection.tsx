@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
+import { useSettings } from "@/context/SettingsContext";
 
 const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
 const TXT = "#1C160E", TXT_SOFT = "#A8A29E";
@@ -12,6 +13,7 @@ const TIER_COLORS: Record<string, string> = { Silver: "#9CA3AF", Gold: "#B8975A"
 export function GiftCardPricingSection() {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
+  const { setSettings } = useSettings();
 
   useEffect(() => {
     // Load saved prices from settings or use defaults
@@ -36,6 +38,8 @@ export function GiftCardPricingSection() {
         await (supabase as any).from("settings").update({ gift_card_prices: prices }).eq("id", existing.id);
       }
       toast.success("Gift card prices saved");
+      // Update context so all components get the new prices immediately
+      setSettings((prev: any) => ({ ...prev, gift_card_prices: prices }));
     } catch { toast.error("Failed to save"); } finally { setSaving(false); }
   };
 
