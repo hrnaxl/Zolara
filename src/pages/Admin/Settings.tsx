@@ -436,13 +436,20 @@ export default function Settings() {
             </div>
 
             <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px", marginBottom:24 }}>
-              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>AUTO-EXPIRE DATE (optional)</label>
-              <input type="date"
-                value={(settings as any).promo_banner?.expires || ""}
-                onChange={e => setSettings((p:any) => ({ ...p, promo_banner: { ...(p.promo_banner||{}), expires: e.target.value } }))}
-                style={{ padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }}
-              />
-              <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Banner hides automatically after this date. Leave blank to keep it until you toggle it off.</p>
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>AUTO-EXPIRE DATE & TIME (optional)</label>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <input type="date"
+                  value={(settings as any).promo_banner?.expires_date || ""}
+                  onChange={e => setSettings((p:any) => ({ ...p, promo_banner: { ...(p.promo_banner||{}), expires_date: e.target.value } }))}
+                  style={{ padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none", flex:1, minWidth:140 }}
+                />
+                <input type="time"
+                  value={(settings as any).promo_banner?.expires_time || "23:59"}
+                  onChange={e => setSettings((p:any) => ({ ...p, promo_banner: { ...(p.promo_banner||{}), expires_time: e.target.value } }))}
+                  style={{ padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none", width:130 }}
+                />
+              </div>
+              <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Banner hides automatically at this exact date and time. Leave blank to keep it until you toggle it off.</p>
             </div>
 
             {(settings as any).promo_banner?.message && (

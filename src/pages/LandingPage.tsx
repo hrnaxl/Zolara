@@ -214,7 +214,10 @@ export default function LandingPage() {
       {(() => {
         const pb = (salonSettings as any)?.promo_banner;
         if (!pb?.enabled || !pb?.message) return null;
-        if (pb.expires && new Date(pb.expires) < new Date()) return null;
+        if (pb.expires_date) {
+          const expiry = new Date(`${pb.expires_date}T${pb.expires_time || "23:59"}:00`);
+          if (expiry < new Date()) return null;
+        }
 
         const colors: Record<string,{a:string;b:string;c:string}> = {
           gold:   { a:"#6B4E0A", b:"#D4AF6A", c:"#8B6914" },
