@@ -218,26 +218,29 @@ export default function Settings() {
         announcement: (settings as any).announcement ?? null,
       };
 
-      const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("*").limit(1).maybeSingle();
+      const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("id").limit(1).maybeSingle();
       if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
 
-      // Save core data first — these columns always exist
-      if (existing?.id) {
-        const { error: coreErr } = await (supabase as any).from("settings").update(coreData).eq("id", existing.id);
-        if (coreErr) throw coreErr;
+      // Single UPDATE with all fields at once — 1 network call total
+      const allFields = { ...coreData, ...extendedFields };
 
-        // Save each extended field individually — skip silently if column doesn't exist yet
-        // This means new columns work automatically once added via SQL, no code changes needed
-        for (const [k, v] of Object.entries(extendedFields)) {
-          try {
-            await (supabase as any).from("settings").update({ [k]: v }).eq("id", existing.id);
-          } catch (_) {
-            // Column doesn't exist yet — skip silently
-          }
+      if (existing?.id) {
+        // Try full update first
+        const { error: fullErr } = await (supabase as any).from("settings").update(allFields).eq("id", existing.id);
+        if (fullErr) {
+          // Some extended columns might not exist yet — fall back to core only
+          const { error: coreErr } = await (supabase as any).from("settings").update(coreData).eq("id", existing.id);
+          if (coreErr) throw coreErr;
+          // Try extended fields in one batch, ignoring error if columns missing
+          await (supabase as any).from("settings").update(extendedFields).eq("id", existing.id).then(() => {}).catch(() => {});
         }
       } else {
-        const { error } = await (supabase as any).from("settings").insert([coreData]);
-        if (error) throw error;
+        const { error } = await (supabase as any).from("settings").insert([allFields]);
+        if (error) {
+          // Fallback insert with just core
+          const { error: e2 } = await (supabase as any).from("settings").insert([coreData]);
+          if (e2) throw e2;
+        }
       }
       // settingsData for local state merge
       const settingsData = { ...coreData, ...extendedFields };
