@@ -1,3 +1,5 @@
+export const config = { api: { bodyParser: { sizeLimit: "10mb" } } };
+
 const SB = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
 const H = {
@@ -13,7 +15,7 @@ const SAFE_COLS = [
   "business_phone","business_email","business_address","payment_methods",
   "deposit_amount","loyalty_stamp_per_ghs","loyalty_stamps_for_reward",
   "loyalty_reward_discount","service_categories","staff_roles","staff_specialties",
-  "closed_dates","gallery_images","gift_card_prices","landing_sections",
+  "closed_dates","gift_card_prices","landing_sections",
 ];
 
 // Try-to-save columns added later via SQL

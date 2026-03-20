@@ -199,7 +199,6 @@ export default function Settings() {
         staff_roles: settings.staff_roles ?? [],
         staff_specialties: (settings as any).staff_specialties ?? [],
         closed_dates: settings.closed_dates ?? [],
-        gallery_images: (settings as any).gallery_images ?? [],
         gift_card_prices: (settings as any).gift_card_prices ?? {},
         landing_sections: {
           show_gift_cards: (settings as any).landing_sections?.show_gift_cards ?? true,
