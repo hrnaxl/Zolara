@@ -43,7 +43,6 @@ export default function BuyGiftCard() {
 
   const tierConfig = selectedTier ? GIFT_CARD_TIERS[selectedTier] : null;
   // Effective config — either standard tier or promo type
-  const isPromo = false;
 
   const handleProceed = () => {
     if (!form.buyerName || !form.buyerPhone) { toast.error("Enter your name and phone number"); return; }
@@ -145,48 +144,7 @@ export default function BuyGiftCard() {
               Valid for 12 months. Redeemable for any service at Zolara Beauty Studio.
             </p>
 
-            {/* Promo Gift Cards — shown above standard tiers if any are active */}
-            {promoTypes.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <span style={{ fontSize: 14 }}>✦</span>
-                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "#8B6914", margin: 0 }}>SPECIAL EDITIONS</p>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }} className="admin-grid-2">
-                  {promoTypes.map((pt: any) => {
-                    const sel = selectedPromo?.id === pt.id;
-                    const THEME_GRADS: Record<string,string> = {
-                      valentines: "linear-gradient(135deg,#9F1239,#E11D48,#FB7185)",
-                      christmas:  "linear-gradient(135deg,#14532D,#16A34A,#DC2626)",
-                      eid:        "linear-gradient(135deg,#1E3A5F,#2563EB,#60A5FA)",
-                      birthday:   "linear-gradient(135deg,#7C2D8A,#A855F7,#F0ABFC)",
-                      mothers:    "linear-gradient(135deg,#9D174D,#EC4899,#FBCFE8)",
-                      graduation: "linear-gradient(135deg,#1E3A5F,#B8975A,#D4AF6A)",
-                      gold:       "linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)",
-                      custom:     "linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
-                    };
-                    const grad = THEME_GRADS[pt.theme] || THEME_GRADS.gold;
-                    return (
-                      <div key={pt.id}
-                        onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); }}
-                        style={{ cursor:"pointer", borderRadius:16, overflow:"hidden", border:`2px solid ${sel ? "#C8A97E" : "transparent"}`, boxShadow: sel ? "0 0 0 3px rgba(200,169,126,0.3)" : "0 2px 12px rgba(0,0,0,0.08)", transition:"all 0.2s" }}
-                      >
-                        <div style={{ background: grad, padding:"20px 18px", position:"relative", overflow:"hidden" }}>
-                          <div style={{ position:"absolute", top:-16, right:-16, width:60, height:60, borderRadius:"50%", background:"rgba(255,255,255,0.1)" }} />
-                          <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:8, fontWeight:700, letterSpacing:"0.2em", color:"rgba(255,255,255,0.55)", marginBottom:8 }}>SPECIAL EDITION</div>
-                          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:300, color:"white", marginBottom:4 }}>GHS {pt.amount.toLocaleString()}</div>
-                          <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.9)" }}>{pt.emoji} {pt.name}</div>
-                        </div>
-                        <div style={{ background: sel ? "#FDF6E3" : "#FAFAF8", padding:"10px 14px", borderTop:"1px solid rgba(0,0,0,0.06)" }}>
-                          {pt.description && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, color:"#57534E", margin:0, lineHeight:1.4 }}>{pt.description}</p>}
-                          {sel && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, color:"#8B6914", margin:"4px 0 0" }}>✓ Selected</p>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+
 
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
