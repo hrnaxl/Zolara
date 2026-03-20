@@ -58,7 +58,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections").limit(1).maybeSingle()
+    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
     // Load visible reviews from DB
     (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
@@ -202,6 +202,26 @@ export default function LandingPage() {
           .lyl-stamp-grid > div { height: 30px !important; font-size: 11px !important; }
         }
       `}</style>
+
+      {/* PROMO BANNER */}
+      {(() => {
+        const pb = (salonSettings as any)?.promo_banner;
+        if (!pb?.enabled || !pb?.message) return null;
+        if (pb.expires && new Date(pb.expires) < new Date()) return null;
+        const bg =
+          pb.style === "dark"   ? "linear-gradient(90deg,#1C160E,#2D2318,#1C160E)" :
+          pb.style === "green"  ? "linear-gradient(90deg,#064E3B,#10B981,#064E3B)" :
+          pb.style === "purple" ? "linear-gradient(90deg,#4C1D95,#8B5CF6,#4C1D95)" :
+          pb.style === "red"    ? "linear-gradient(90deg,#7F1D1D,#EF4444,#7F1D1D)" :
+                                  "linear-gradient(90deg,#8B6914,#C8A97E,#8B6914)";
+        return (
+          <div style={{ background: bg, padding: "10px 20px", textAlign: "center", position: "relative", zIndex: 101 }}>
+            <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 600, color: "white", letterSpacing: "0.04em" }}>
+              {pb.message}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* NAVBAR */}
       <nav style={{

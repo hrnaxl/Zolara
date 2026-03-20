@@ -316,6 +316,7 @@ export default function PublicBooking() {
       const notesFull = [
         notes,
         `Balance payment preference: ${PAYMENT_LABELS[paymentPref] || paymentPref}`,
+        appliedPromo ? `Promo code applied: ${appliedPromo.code} (${appliedPromo.discount_type === "percentage" ? appliedPromo.discount_value + "%" : "GHS " + appliedPromo.discount_value} off, saved GHS ${promoDiscount.toFixed(0)})` : null,
       ].filter(Boolean).join("\n");
 
       // 1. Insert booking as pending BEFORE opening payment popup
@@ -550,6 +551,7 @@ export default function PublicBooking() {
     <div style={{ background: MID, minHeight: "100vh", fontFamily: "'Cormorant Garamond',serif", overflowX: "hidden", width: "100%" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        * { font-variant-numeric: lining-nums; }
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(200,169,126,0.18); }
         .pay-btn:hover { border-color: ${GOLD} !important; background: rgba(200,169,126,0.08) !important; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -647,7 +649,7 @@ export default function PublicBooking() {
         </div>
 
         {/* RIGHT: Form */}
-        <div id="booking-form-top" style={{ minWidth: 0, overflow: "hidden" }}>
+        <div id="booking-form-top" style={{ minWidth: 0 }}>
           <div style={{ marginBottom: mob ? "16px" : "32px" }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", letterSpacing: "0.26em", color: GOLD_DARK, fontWeight: 700, marginBottom: "8px" }}>BOOK YOUR APPOINTMENT</p>
             <h1 style={{ fontSize: "clamp(28px,4vw,44px)", fontWeight: 500, color: DARK, lineHeight: 1.15, marginBottom: "8px" }}>Reserve Your <em>Zolara</em> Experience</h1>

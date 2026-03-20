@@ -47,7 +47,7 @@ If someone asks "what should I get" or wants a recommendation or says "Zolara Ma
 Then give a personalised recommendation with exact prices from the live service data below.
 
 BOOKING:
-Always end with: "Ready to book? Visit zolarasalon.com/book or call 059 436 5314"
+Always end with: "Ready to book? Visit zolarasalon.com/book or call 059 436 5314 / 020 884 8707"
 
 Keep responses concise: 2 to 4 sentences max unless recommending services. Be warm and welcoming.
 
@@ -215,15 +215,25 @@ export default function AmandaWidget() {
     setImageFile(null);
     setLoading(true);
 
-    // Build messages for API — convert imagePreview out, keep content
-    const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
+    // Build messages for API — strip base64 from old history (keep only text),
+    // only the last message gets full image data to avoid huge payloads
+    const apiMessages = newMessages.map((m, idx) => {
+      const isLast = idx === newMessages.length - 1;
+      if (Array.isArray(m.content)) {
+        if (isLast) return { role: m.role, content: m.content };
+        // For older image messages: strip to text only
+        const textPart = (m.content as any[]).find((p: any) => p.type === "text");
+        return { role: m.role, content: textPart?.text || "[Image]" };
+      }
+      return { role: m.role, content: m.content };
+    });
 
     try {
       const res = await fetch("/api/amanda", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-opus-4-5",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 700,
           system: systemPrompt + `
 
@@ -244,11 +254,11 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
         throw new Error("API error " + res.status);
       }
       const data = await res.json();
-      const reply = data?.content?.[0]?.text || "I'm sorry, I had a small moment there. Please try again or call us at 059 436 5314!";
+      const reply = data?.content?.[0]?.text || "I'm sorry, I had a small moment there. Please try again or call us at 059 436 5314 or 020 884 8707!";
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
     } catch (err) {
       console.error("Amanda error:", err);
-      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I'm having a moment. Please call us at 059 436 5314 and we'll help you directly!" }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I'm having a moment. Please call us at 059 436 5314 or 020 884 8707 and we'll help you directly!" }]);
     } finally {
       setLoading(false);
     }

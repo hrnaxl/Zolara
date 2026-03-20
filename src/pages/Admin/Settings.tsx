@@ -43,7 +43,7 @@ const defaultSettings: Settings = {
   loyalty_stamp_per_ghs: 100, loyalty_stamps_for_reward: 20, loyalty_reward_discount: 50,
 };
 
-type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "data";
+type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "promo" | "data";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "business",   label: "Business",        icon: Building2 },
@@ -52,6 +52,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "categories", label: "Categories",       icon: Tag },
   { id: "closures",   label: "Closures",         icon: Calendar },
   { id: "loyalty",    label: "Loyalty",          icon: Star },
+  { id: "promo",      label: "Promo Banner",     icon: Megaphone },
   { id: "data",       label: "Data",             icon: Database },
 ];
 
@@ -367,6 +368,85 @@ export default function Settings() {
               onRewardDiscountChange={v => setSettings(p => ({ ...p, loyalty_reward_discount: v }))}
             />
             <RecalcLoyaltyButton />
+          </div>
+        ))}
+
+        {tab("promo", (
+          <div>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:600, color:TXT, marginBottom:6 }}>Promo Banner</h2>
+            <p style={{ fontSize:13, color:TXT_SOFT, marginBottom:24, fontFamily:"'Montserrat',sans-serif" }}>Show a promotional strip on the landing page. Use it for Eid, Christmas, seasonal deals, or any campaign. Goes live immediately when enabled.</p>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div>
+                <p style={{ fontSize:13, fontWeight:600, color:TXT, margin:"0 0 3px", fontFamily:"'Montserrat',sans-serif" }}>Show Promo Banner</p>
+                <p style={{ fontSize:12, color:TXT_SOFT, margin:0, fontFamily:"'Montserrat',sans-serif" }}>Toggles the banner on/off on the public landing page</p>
+              </div>
+              <div onClick={() => setSettings((p:any) => ({ ...p, promo_banner: { ...(p.promo_banner||{}), enabled: !(p.promo_banner?.enabled) } }))}
+                style={{ width:44, height:24, borderRadius:12, background:(settings as any).promo_banner?.enabled ? "#C8A97E" : "#D1C5B8", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                <div style={{ position:"absolute", top:3, left:(settings as any).promo_banner?.enabled ? 23 : 3, width:18, height:18, borderRadius:"50%", background:"white", transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.2)" }} />
+              </div>
+            </div>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px", marginBottom:16 }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>BANNER MESSAGE</label>
+              <input
+                value={(settings as any).promo_banner?.message || ""}
+                onChange={e => setSettings((p:any) => ({ ...p, promo_banner: { ...(p.promo_banner||{}), message: e.target.value } }))}
+                placeholder="e.g. 🌙 Eid Special: 15% off all braids this week! Use code EID15"
+                style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }}
+              />
+              <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Include the promo code in the message so clients can copy it easily.</p>
+            </div>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px", marginBottom:16 }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:12, fontFamily:"'Montserrat',sans-serif" }}>BANNER STYLE</label>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                {([
+                  { val:"gold",   bg:"linear-gradient(90deg,#8B6914,#C8A97E,#8B6914)", label:"Gold" },
+                  { val:"dark",   bg:"linear-gradient(90deg,#1C160E,#2D2318,#1C160E)", label:"Dark" },
+                  { val:"green",  bg:"linear-gradient(90deg,#064E3B,#10B981,#064E3B)", label:"Green" },
+                  { val:"purple", bg:"linear-gradient(90deg,#4C1D95,#8B5CF6,#4C1D95)", label:"Purple" },
+                  { val:"red",    bg:"linear-gradient(90deg,#7F1D1D,#EF4444,#7F1D1D)", label:"Red" },
+                ] as const).map(s => {
+                  const current = (settings as any).promo_banner?.style || "gold";
+                  return (
+                    <div key={s.val} onClick={() => setSettings((p:any) => ({ ...p, promo_banner: { ...(p.promo_banner||{}), style: s.val } }))}
+                      style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 14px", borderRadius:20, border:`2px solid ${current === s.val ? "#C8A97E" : BORDER}`, cursor:"pointer", background:"white" }}>
+                      <div style={{ width:16, height:16, borderRadius:"50%", background:s.bg, flexShrink:0 }} />
+                      <span style={{ fontSize:12, fontWeight:600, color:TXT, fontFamily:"'Montserrat',sans-serif" }}>{s.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px", marginBottom:24 }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>AUTO-EXPIRE DATE (optional)</label>
+              <input type="date"
+                value={(settings as any).promo_banner?.expires || ""}
+                onChange={e => setSettings((p:any) => ({ ...p, promo_banner: { ...(p.promo_banner||{}), expires: e.target.value } }))}
+                style={{ padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }}
+              />
+              <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Banner hides automatically after this date. Leave blank to keep it until you toggle it off.</p>
+            </div>
+
+            {(settings as any).promo_banner?.message && (
+              <div style={{ marginBottom:8 }}>
+                <p style={{ fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>PREVIEW</p>
+                <div style={{
+                  background: (settings as any).promo_banner?.style === "dark" ? "linear-gradient(90deg,#1C160E,#2D2318,#1C160E)"
+                    : (settings as any).promo_banner?.style === "green" ? "linear-gradient(90deg,#064E3B,#10B981,#064E3B)"
+                    : (settings as any).promo_banner?.style === "purple" ? "linear-gradient(90deg,#4C1D95,#8B5CF6,#4C1D95)"
+                    : (settings as any).promo_banner?.style === "red" ? "linear-gradient(90deg,#7F1D1D,#EF4444,#7F1D1D)"
+                    : "linear-gradient(90deg,#8B6914,#C8A97E,#8B6914)",
+                  padding:"12px 20px", textAlign:"center", borderRadius:8
+                }}>
+                  <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:13, fontWeight:600, color:"white", letterSpacing:"0.04em" }}>
+                    {(settings as any).promo_banner?.message}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         ))}
 
