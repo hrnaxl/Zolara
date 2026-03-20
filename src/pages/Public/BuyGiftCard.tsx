@@ -27,6 +27,9 @@ export default function BuyGiftCard() {
   const [selectedTier, setSelectedTier] = useState<GiftCardTier | null>(null);
   const [deliveryType, setDeliveryType] = useState<"email" | "physical">("email");
   const [tierPrices, setTierPrices] = useState<Record<string,number>>({});
+  const [pricesLoaded, setPricesLoaded] = useState(false);
+  const [promoTypes, setPromoTypes] = useState<any[]>([]);
+  const [selectedPromo, setSelectedPromo] = useState<any | null>(null);
   const [form, setForm] = useState({
     buyerName: "", buyerEmail: "", buyerPhone: "",
     recipientName: "", recipientEmail: "", message: "",
@@ -35,12 +38,30 @@ export default function BuyGiftCard() {
 
 
   useEffect(() => {
-    (supabase as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
-      .then(({ data }: any) => { if (data?.gift_card_prices) setTierPrices(data.gift_card_prices); });
-
+    // Load custom tier prices
+    (supabase as any).from("settings").select("gift_card_prices").limit(1).single()
+      .then(({ data }: any) => {
+        if (data?.gift_card_prices) setTierPrices(data.gift_card_prices);
+        setPricesLoaded(true);
+      })
+      .catch(() => setPricesLoaded(true));
+    // Load active promo gift card types (for landing page integration)
+    (supabase as any).from("promo_gift_card_types").select("*").eq("is_active", true)
+      .then(({ data }: any) => {
+        const now = new Date();
+        setPromoTypes((data || []).filter((p: any) => {
+          if (p.expires_at && new Date(p.expires_at) < now) return false;
+          if (p.max_uses && p.uses_count >= p.max_uses) return false;
+          return true;
+        }));
+      });
   }, []);
 
-  const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
+  const getTierValue = (tier: string) => {
+    if (pricesLoaded && tierPrices[tier] !== undefined) return tierPrices[tier];
+    return GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
+  };
+  const getPromoValue = (pt: any) => pt.amount;
 
   const tierConfig = selectedTier ? GIFT_CARD_TIERS[selectedTier] : null;
   // Effective config — either standard tier or promo type
@@ -55,20 +76,21 @@ export default function BuyGiftCard() {
   };
 
   const handlePay = async () => {
-    if (!selectedTier) return;
+    if (!selectedTier && !selectedPromo) return;
     setLoading(true);
 
     try {
       const isEmail = deliveryType === "email";
       const ref = `GC-${Date.now().toString(36).toUpperCase()}`;
       await openPaystackPopup({
-        amount: getTierValue(selectedTier),
+        amount: selectedPromo ? getPromoValue(selectedPromo) : getTierValue(selectedTier!),
         email: form.buyerEmail || `${form.buyerPhone}@zolara.com`,
         reference: ref,
         metadata: {
           create_gift_card: true,
-          tier: selectedTier,
-          card_type: isEmail ? "digital" : "physical",
+          tier: selectedPromo ? "Gold" : selectedTier,
+          promo_type_id: selectedPromo?.id || null,
+          card_type: selectedPromo ? "physical" : (isEmail ? "digital" : "physical"),
           buyer_name: form.buyerName,
           buyer_email: form.buyerEmail,
           buyer_phone: form.buyerPhone,
@@ -78,8 +100,8 @@ export default function BuyGiftCard() {
         },
         onSuccess: async (paymentRef: string) => {
           try {
-            const tierValue = getTierValue(selectedTier!);
-            if (isEmail) {
+            const tierValue = selectedPromo ? getPromoValue(selectedPromo) : getTierValue(selectedTier!);
+            if (isEmail && !selectedPromo) {
               // DIGITAL — create server-side then email
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
@@ -95,10 +117,17 @@ export default function BuyGiftCard() {
                 if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
               }
             } else {
-              // PHYSICAL — reserve a pre-printed card
+              // PHYSICAL — reserve a pre-printed card (standard or promo)
               const r = await fetch("/api/claim-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tier: selectedTier, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, paymentRef }),
+                body: JSON.stringify({
+                  tier: selectedPromo ? "promo" : selectedTier,
+                  promoTypeId: selectedPromo?.id || null,
+                  buyerName: form.buyerName,
+                  buyerEmail: form.buyerEmail,
+                  buyerPhone: form.buyerPhone,
+                  paymentRef,
+                }),
               });
               const d = await r.json().catch(() => ({}));
               console.log("Claim card:", r.status, JSON.stringify(d));
@@ -148,6 +177,64 @@ export default function BuyGiftCard() {
 
 
 
+            {/* Promo Gift Cards — in-store pickup only */}
+            {promoTypes.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:16 }}>
+                  <span style={{ color:"#8B6914", fontSize:12 }}>✦</span>
+                  <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.22em", color:"#8B6914", margin:0 }}>SPECIAL EDITIONS</p>
+                  <span style={{ color:"#8B6914", fontSize:12 }}>✦</span>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:14 }} className="admin-grid-2">
+                  {promoTypes.map((pt: any) => {
+                    const sel = selectedPromo?.id === pt.id;
+                    const GRADS: Record<string,string> = {
+                      valentines:"linear-gradient(135deg,#9F1239,#E11D48,#FB7185)",
+                      christmas:"linear-gradient(135deg,#14532D,#16A34A,#DC2626)",
+                      eid:"linear-gradient(135deg,#1E3A5F,#2563EB,#60A5FA)",
+                      birthday:"linear-gradient(135deg,#7C2D8A,#A855F7,#F0ABFC)",
+                      mothers:"linear-gradient(135deg,#9D174D,#EC4899,#FBCFE8)",
+                      graduation:"linear-gradient(135deg,#1E3A5F,#B8975A,#D4AF6A)",
+                      gold:"linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)",
+                      custom:"linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
+                    };
+                    const grad = GRADS[pt.theme] || GRADS.gold;
+                    return (
+                      <div key={pt.id}
+                        onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); setDeliveryType("physical"); }}
+                        style={{ cursor:"pointer", borderRadius:16, overflow:"hidden", border:`2px solid ${sel?"#C8A97E":"transparent"}`, boxShadow:sel?"0 0 0 3px rgba(200,169,126,0.3)":"0 2px 12px rgba(0,0,0,0.08)", transition:"all 0.2s" }}>
+                        <div style={{ background:grad, padding:"24px 20px", aspectRatio:"1.6/1", display:"flex", flexDirection:"column", justifyContent:"space-between", position:"relative", overflow:"hidden" }}>
+                          <div style={{ position:"absolute", top:-20, right:-20, width:80, height:80, borderRadius:"50%", background:"rgba(255,255,255,0.08)" }} />
+                          <div style={{ fontFamily:"'Cormorant Garamond',serif", color:"white", fontSize:11, letterSpacing:"0.15em", opacity:0.85 }}>ZOLARA · SPECIAL EDITION</div>
+                          <div>
+                            <div style={{ color:"rgba(255,255,255,0.95)", fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:700 }}>GH₵ {pt.amount.toLocaleString()}</div>
+                            <div style={{ color:"rgba(255,255,255,0.85)", fontSize:11, letterSpacing:"0.15em", marginTop:2 }}>{pt.emoji} {pt.name.toUpperCase()}</div>
+                          </div>
+                        </div>
+                        <div style={{ background:sel?"#FDF8EE":"white", padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <div>
+                            <span style={{ color:TXT, fontWeight:600, fontSize:13 }}>{pt.name}</span>
+                            {pt.description && <div style={{ fontSize:11, color:TXT_MID, marginTop:2 }}>{pt.description}</div>}
+                          </div>
+                          <div style={{ textAlign:"right" }}>
+                            <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, color:"#8B6914", background:"#FDF6E3", padding:"2px 8px", borderRadius:10 }}>🏪 Pickup only</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Standard Gift Cards */}
+            {promoTypes.length > 0 && (
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                <div style={{ flex:1, height:1, background:"#EDEBE5" }} />
+                <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.18em", color:"#A8A29E", margin:0, whiteSpace:"nowrap" }}>STANDARD GIFT CARDS</p>
+                <div style={{ flex:1, height:1, background:"#EDEBE5" }} />
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
                 const t = { ...GIFT_CARD_TIERS[tier], value: getTierValue(tier) };
@@ -196,41 +283,34 @@ export default function BuyGiftCard() {
               })}
             </div>
 
-            {selectedTier && (
+            {(selectedTier || selectedPromo) && (
               <div>
-                {/* Delivery type */}
-                <div style={{ background: "white", borderRadius: 12, padding: 20, border: `1px solid ${BORDER}`, marginBottom: 20 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Delivery Method</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} className="admin-grid-2">
-                    {(["email", "physical"] as const).map(type => (
-                      <div
-                        key={type}
-                        onClick={() => setDeliveryType(type)}
-                        style={{
-                          padding: "14px 16px",
-                          borderRadius: 10,
-                          border: `2px solid ${deliveryType === type ? G : BORDER}`,
-                          cursor: "pointer",
-                          background: deliveryType === type ? "#FDF8EE" : "white",
-                          transition: "all 0.15s",
-                        }}
-                      >
-                        <div style={{ fontSize: 18, marginBottom: 4 }}>{type === "email" ? "✉️" : "🏪"}</div>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: TXT }}>
-                          {type === "email" ? "Send by Email" : "Pick Up In Store"}
-                        </div>
-                        <div style={{ fontSize: 11, color: TXT_MID, marginTop: 2 }}>
-                          {type === "email" ? "Instant digital delivery" : "Physical card at Zolara"}
-                        </div>
-                      </div>
-                    ))}
+                {/* Delivery type — pickup only for promo cards */}
+                {selectedPromo ? (
+                  <div style={{ background:"#FDF8EE", borderRadius:12, padding:16, border:"1px solid #F0E4CC", marginBottom:20, display:"flex", alignItems:"center", gap:12 }}>
+                    <span style={{ fontSize:24 }}>🏪</span>
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:13, color:TXT }}>Pick Up In Store — Only</div>
+                      <div style={{ fontSize:11, color:TXT_MID, marginTop:2 }}>Promotional gift cards are physical cards. Collect at Zolara Beauty Studio, Sakasaka.</div>
+                    </div>
                   </div>
-                </div>
-
-                <button
-                  onClick={() => setStep("details")}
-                  style={{ width: "100%", background: G, color: "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 15, fontWeight: 600, cursor: "pointer", letterSpacing: "0.05em" }}
-                >
+                ) : (
+                  <div style={{ background: "white", borderRadius: 12, padding: 20, border: `1px solid ${BORDER}`, marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Delivery Method</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} className="admin-grid-2">
+                      {(["email", "physical"] as const).map(type => (
+                        <div key={type} onClick={() => setDeliveryType(type)}
+                          style={{ padding:"14px 16px", borderRadius:10, border:`2px solid ${deliveryType===type?G:BORDER}`, cursor:"pointer", background:deliveryType===type?"#FDF8EE":"white", transition:"all 0.15s" }}>
+                          <div style={{ fontSize:18, marginBottom:4 }}>{type==="email"?"✉️":"🏪"}</div>
+                          <div style={{ fontWeight:600, fontSize:13, color:TXT }}>{type==="email"?"Send by Email":"Pick Up In Store"}</div>
+                          <div style={{ fontSize:11, color:TXT_MID, marginTop:2 }}>{type==="email"?"Instant digital delivery":"Physical card at Zolara"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button onClick={() => setStep("details")}
+                  style={{ width:"100%", background:G, color:"white", border:"none", borderRadius:12, padding:"16px", fontSize:15, fontWeight:600, cursor:"pointer", letterSpacing:"0.05em" }}>
                   Continue →
                 </button>
               </div>
@@ -239,7 +319,7 @@ export default function BuyGiftCard() {
         )}
 
         {/* Step: DETAILS */}
-        {step === "details" && selectedTier && (
+        {step === "details" && (selectedTier || selectedPromo) && (
           <div>
             <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 13, marginBottom: 20 }}>
               ← Back
@@ -251,7 +331,7 @@ export default function BuyGiftCard() {
               <Field label="Your Phone Number" value={form.buyerPhone} onChange={v => setForm(p => ({ ...p, buyerPhone: v }))} placeholder="0XX XXX XXXX" type="tel" />
               <Field label="Your Email *" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — receipt will be sent here" type="email" />
 
-              {deliveryType === "email" && (
+              {deliveryType === "email" && !selectedPromo && (
                 <>
                   <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 4 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Recipient Details</div>
@@ -284,7 +364,7 @@ export default function BuyGiftCard() {
         )}
 
         {/* Step: CONFIRM */}
-        {step === "confirm" && selectedTier && tierConfig && (
+        {step === "confirm" && (selectedTier || selectedPromo) && (
           <div>
             <button onClick={() => setStep("details")} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 13, marginBottom: 20 }}>
               ← Back
@@ -297,7 +377,7 @@ export default function BuyGiftCard() {
                 <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", color: "white", fontSize: 12, letterSpacing: "0.15em", marginBottom: 16, opacity: 0.9 }}>ZOLARA BEAUTY STUDIO</div>
                 <div style={{ color: TIER_STYLES[selectedTier].shine, fontFamily: "'Cormorant Garamond', serif", fontSize: 34, fontWeight: 700 }}>
-                  GH₵ {tierConfig.value.toLocaleString()}
+                  GH₵ {selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()}
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, letterSpacing: "0.2em", marginTop: 4 }}>{tierConfig.label.toUpperCase()} GIFT CARD</div>
               </div>

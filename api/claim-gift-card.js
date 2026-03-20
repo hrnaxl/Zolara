@@ -1,7 +1,7 @@
 const SB = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
 const H = { "apikey": SK, "Authorization": "Bearer " + SK, "Content-Type": "application/json", "Prefer": "return=representation" };
-const TV = { Bronze: 1, Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
+const TV = { Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -9,30 +9,67 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  const { tier, buyerName, buyerEmail, buyerPhone, paymentRef } = req.body || {};
-  if (!tier) return res.status(400).json({ error: "Missing tier" });
+
+  const { tier, promoTypeId, buyerName, buyerEmail, buyerPhone, paymentRef } = req.body || {};
+  const note = `RESERVED. Buyer: ${buyerName||""} | ${buyerPhone||""} | Ref: ${paymentRef||""} | ${new Date().toISOString()}`;
+
   try {
-    const findRes = await fetch(
-      SB + "/gift_cards?tier=eq." + encodeURIComponent(tier) + "&card_type=eq.physical&payment_status=eq.pending&status=eq.active&limit=1&select=id,code,serial_number,tier,amount,balance",
-      { headers: H }
-    );
-    const found = await findRes.json();
-    console.log("Find:", findRes.status, JSON.stringify(found));
-    if (Array.isArray(found) && found.length > 0) {
-      const card = found[0];
-      await fetch(SB + "/gift_cards?id=eq." + card.id, {
-        method: "PATCH", headers: H,
-        body: JSON.stringify({ payment_status: "pending_pickup", buyer_name: buyerName || null, buyer_email: buyerEmail || null, buyer_phone: buyerPhone || null, notes: "RESERVED. Buyer: " + (buyerName||"") + " | " + (buyerPhone||"") + " | Ref: " + (paymentRef||"") + " | " + new Date().toISOString() }),
+    let findUrl, card;
+
+    if (promoTypeId) {
+      // ── PROMO CARD: find an available pre-generated promo card from this type ──
+      findUrl = `${SB}/gift_cards?promo_type_id=eq.${promoTypeId}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&limit=1&select=id,code,serial_number,tier,amount,balance,promo_type_id`;
+      const findRes = await fetch(findUrl, { headers: H });
+      const found = await findRes.json();
+
+      if (Array.isArray(found) && found.length > 0) {
+        card = found[0];
+        await fetch(`${SB}/gift_cards?id=eq.${card.id}`, {
+          method: "PATCH", headers: H,
+          body: JSON.stringify({ payment_status: "pending_pickup", buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: note }),
+        });
+        return res.status(200).json({ claimed: true, card: { ...card, payment_status: "pending_pickup" } });
+      }
+
+      // No pre-generated cards in stock — create a placeholder
+      const ptRes = await fetch(`${SB}/promo_gift_card_types?id=eq.${promoTypeId}&select=name,amount`, { headers: H });
+      const ptData = await ptRes.json();
+      const pt = Array.isArray(ptData) ? ptData[0] : null;
+      const amount = pt?.amount || 0;
+      const expires = new Date(); expires.setFullYear(expires.getFullYear() + 1);
+      const ins = await fetch(`${SB}/gift_cards`, {
+        method: "POST", headers: H,
+        body: JSON.stringify({ code: "PROMO-" + Date.now().toString(36).toUpperCase(), tier: "Gold", amount, balance: amount, status: "active", payment_status: "pending_pickup", card_type: "physical", promo_type_id: promoTypeId, buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: "NO STOCK. " + note, expires_at: expires.toISOString() }),
       });
-      return res.status(200).json({ claimed: true, card: { ...card, payment_status: "pending_pickup" } });
+      const inserted = await ins.json();
+      return res.status(200).json({ claimed: false, card: Array.isArray(inserted) ? inserted[0] : inserted, message: "No promo stock. Placeholder created — assign card manually." });
+
+    } else {
+      // ── STANDARD TIER: find pre-printed card ──
+      if (!tier) return res.status(400).json({ error: "Missing tier" });
+      findUrl = `${SB}/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&promo_type_id=is.null&limit=1&select=id,code,serial_number,tier,amount,balance`;
+      const findRes = await fetch(findUrl, { headers: H });
+      const found = await findRes.json();
+
+      if (Array.isArray(found) && found.length > 0) {
+        card = found[0];
+        await fetch(`${SB}/gift_cards?id=eq.${card.id}`, {
+          method: "PATCH", headers: H,
+          body: JSON.stringify({ payment_status: "pending_pickup", buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: note }),
+        });
+        return res.status(200).json({ claimed: true, card: { ...card, payment_status: "pending_pickup" } });
+      }
+
+      // No stock — create placeholder
+      const amount = TV[tier] || 0;
+      const expires = new Date(); expires.setFullYear(expires.getFullYear() + 1);
+      const ins = await fetch(`${SB}/gift_cards`, {
+        method: "POST", headers: H,
+        body: JSON.stringify({ code: "PICKUP-" + Date.now().toString(36).toUpperCase(), tier, amount, balance: amount, status: "active", payment_status: "pending_pickup", card_type: "physical", buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: "NO STOCK. Assign manually. " + note, expires_at: expires.toISOString() }),
+      });
+      const inserted = await ins.json();
+      return res.status(200).json({ claimed: false, card: Array.isArray(inserted) ? inserted[0] : inserted, message: "No stock. Placeholder created." });
     }
-    const expires = new Date(); expires.setFullYear(expires.getFullYear() + 1);
-    const ins = await fetch(SB + "/gift_cards", {
-      method: "POST", headers: H,
-      body: JSON.stringify({ code: "PICKUP-" + Date.now().toString(36).toUpperCase(), tier, amount: TV[tier] || 0, balance: TV[tier] || 0, status: "active", payment_status: "pending_pickup", card_type: "physical", buyer_name: buyerName || null, buyer_email: buyerEmail || null, buyer_phone: buyerPhone || null, notes: "NO STOCK. Assign manually. Buyer: " + (buyerName||"") + " | Ref: " + (paymentRef||""), expires_at: expires.toISOString() }),
-    });
-    const inserted = await ins.json();
-    return res.status(200).json({ claimed: false, card: Array.isArray(inserted) ? inserted[0] : inserted, message: "No stock. Placeholder created." });
   } catch (err) {
     console.error("claim error:", err.message);
     return res.status(500).json({ error: err.message });
