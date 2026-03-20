@@ -212,6 +212,8 @@ export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => v
         preferred_date: preferredDate, preferred_time: normalizedTime,
         price: total, notes: notesFull, status: "pending", client_id: clientId || null,
         booking_source: isWalkIn ? "walk_in" : "online",
+        promo_code: promoApplied?.code || null,
+        promo_discount: discount > 0 ? discount : null,
       } as any).select("id").single();
       if (error) throw error;
       // Auto-assign staff for online bookings only — walk-ins assigned manually by receptionist

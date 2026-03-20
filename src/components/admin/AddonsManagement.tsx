@@ -17,14 +17,27 @@ export default function AddonsManagement() {
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async () => {
-    if (!form.name || !form.price) { toast.error("Name and price required"); return; }
+    if (!form.name) { toast.error("Name is required"); return; }
+    if (form.is_range) {
+      if (!form.price_min || !form.price_max) { toast.error("Enter both min and max price"); return; }
+    } else {
+      if (!form.price) { toast.error("Price is required"); return; }
+    }
     try {
-      await createAddon({ ...form, price: parseFloat(form.price) });
+      const addonData: any = {
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        price: form.is_range ? parseFloat(form.price_min) : parseFloat(form.price),
+        price_min: form.is_range ? parseFloat(form.price_min) : null,
+        price_max: form.is_range ? parseFloat(form.price_max) : null,
+      };
+      await createAddon(addonData);
       toast.success("Add-on created");
       setForm({ name: "", description: "", price: "", price_min: "", price_max: "", is_range: false, category: "general" });
       setShowForm(false);
       load();
-    } catch { toast.error("Failed to create"); }
+    } catch (e: any) { toast.error(e?.message || "Failed to create"); }
   };
 
   const handleToggle = async (id: string, is_active: boolean) => {
