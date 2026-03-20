@@ -177,28 +177,30 @@ export default function Settings() {
 
   const updateSettings = async () => {
     setSaving(true);
-
-    const doSave = async () => {
+    try {
       const logoUrl = await uploadLogo();
 
-      const payload: any = {
+      const coreData: any = {
         business_name: settings.business_name,
-        logo_url: logoUrl ?? settings.logo_url ?? null,
+        logo_url: logoUrl,
         open_time: settings.open_time,
         close_time: settings.close_time,
         currency: settings.currency,
-        business_phone: settings.business_phone ?? "",
-        business_email: settings.business_email ?? "",
-        business_address: settings.business_address ?? "",
-        payment_methods: settings.payment_methods ?? [],
+        business_phone: settings.business_phone,
+        business_email: settings.business_email,
+        business_address: settings.business_address,
+        payment_methods: settings.payment_methods,
         deposit_amount: Number(settings.deposit_amount ?? 50),
+      };
+
+      const extendedFields: Record<string, any> = {
+        closed_dates: settings.closed_dates ?? [],
         loyalty_stamp_per_ghs: Number(settings.loyalty_stamp_per_ghs ?? 100),
         loyalty_stamps_for_reward: Number(settings.loyalty_stamps_for_reward ?? 20),
         loyalty_reward_discount: Number(settings.loyalty_reward_discount ?? 50),
         service_categories: settings.service_categories ?? [],
         staff_roles: settings.staff_roles ?? [],
         staff_specialties: (settings as any).staff_specialties ?? [],
-        closed_dates: settings.closed_dates ?? [],
         gift_card_prices: (settings as any).gift_card_prices ?? {},
         landing_sections: {
           show_gift_cards: (settings as any).landing_sections?.show_gift_cards ?? true,
@@ -218,45 +220,43 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      // POST to our own Vercel serverless function — no CORS, no browser timeout
-      const bodyStr = JSON.stringify(payload);
-      const bodySize = bodyStr.length;
-      // Log size breakdown
-      const sizes: Record<string,number> = {};
-      for (const [k,v] of Object.entries(payload)) sizes[k] = JSON.stringify(v).length;
-      console.log("Payload total:", bodySize, "bytes. Fields:", sizes);
-      // Show toast with size so we can debug
-      if (bodySize > 100_000) {
-        const biggest = Object.entries(sizes).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k}:${v}`).join(", ");
-        toast.error(`Payload too large: ${Math.round(bodySize/1024)}KB. Biggest: ${biggest}`);
-        return;
+      const { data: existing, error: fetchErr } = await (supabase as any)
+        .from("settings").select("*").limit(1).maybeSingle();
+      if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
+
+      // Only save extended fields that exist as columns in the DB
+      const existingKeys = existing ? Object.keys(existing) : [];
+      const safeExtended: any = {};
+      for (const [k, v] of Object.entries(extendedFields)) {
+        if (existing === null || existingKeys.includes(k)) safeExtended[k] = v;
       }
-      const res = await fetch("/api/save-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: bodyStr,
-      });
 
-      let data: any = {};
-      try { data = await res.json(); } catch (_) {}
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const settingsData = { ...coreData, ...safeExtended };
 
-      const gcPrices: Record<string,number> = {};
-      for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
-      const merged = { ...settings, ...payload, logo_url: logoUrl || settings.logo_url, gift_card_prices: gcPrices };
-      setSettings(merged as any);
-      setCtxSettings((prev: any) => ({ ...prev, ...merged }));
+      if (existing?.id) {
+        const { error } = await (supabase as any)
+          .from("settings").update(settingsData).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("settings").insert([coreData]);
+        if (error) throw error;
+      }
+
       toast.success("Settings saved");
       setLogoFile(null);
-    };
-
-    doSave()
-      .catch((err: any) => {
-        console.error("Settings save error:", err);
-        toast.error(err?.message || "Save failed");
-      })
-      .finally(() => setSaving(false));
-  };;;;;;
+      const gcPrices: Record<string,number> = {};
+      for (const [k,v] of Object.entries(settingsData.gift_card_prices || {})) gcPrices[k] = Number(v);
+      const merged = { ...settings, ...settingsData, logo_url: logoUrl || settings.logo_url, gift_card_prices: gcPrices };
+      setSettings(merged as any);
+      setCtxSettings((prev: any) => ({ ...prev, ...merged }));
+    } catch (err: any) {
+      console.error("Settings save error:", err);
+      toast.error(err?.message || "Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };;;;;;;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM }}>
