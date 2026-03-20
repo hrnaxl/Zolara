@@ -58,6 +58,7 @@ const Checkout = () => {
   const [redeemedCard, setRedeemedCard] = useState<{ id: string; value: number } | null>(null);
   const [finalAmountCharged, setFinalAmountCharged] = useState<number>(0);
   const [promoCode, setPromoCode] = useState<string>("");
+  const [bookingUsedPromo, setBookingUsedPromo] = useState<string | null>(null); // promo used at booking time
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
   const [promoDiscount, setPromoDiscount] = useState<number>(0);
@@ -143,6 +144,10 @@ const Checkout = () => {
       setBooking(data as any);
       if ((data as any).staff?.id) setSelectedStaff((data as any).staff.id);
       if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
+      // Detect if a promo code was already used at booking time
+      const bookingNotes: string = (data as any).notes || "";
+      const promoMatch = bookingNotes.match(/Promo code applied:\s*([A-Z0-9]+)/i);
+      if (promoMatch) setBookingUsedPromo(promoMatch[1].toUpperCase());
 
       // booking.price is set at booking time with the correct total (variant price or service base + addons)
       // Always trust booking.price — it is the source of truth
@@ -330,6 +335,11 @@ const Checkout = () => {
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
+    // Block if this code was already used at booking time
+    if (bookingUsedPromo && promoCode.trim().toUpperCase() === bookingUsedPromo) {
+      toast.error(`Promo code ${bookingUsedPromo} was already applied when this booking was made. It cannot be used again.`);
+      return;
+    }
     setValidatingPromo(true);
     try {
       const dep3 = depositPaid ? depositAmount : 0;
@@ -944,6 +954,14 @@ const Checkout = () => {
 
               <div>
                 <label style={lbl}>Promo Code</label>
+                {bookingUsedPromo && (
+                  <div style={{ background:"#FEF3C7", border:"1px solid #FDE68A", borderRadius:8, padding:"8px 12px", marginBottom:8, display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:14 }}>⚠️</span>
+                    <p style={{ fontSize:11, fontWeight:600, color:"#92400E", margin:0, fontFamily:"Montserrat,sans-serif" }}>
+                      Promo <strong>{bookingUsedPromo}</strong> was already used at booking. Applying it again would be a double discount.
+                    </p>
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input placeholder="Enter promo code" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} disabled={!!appliedPromo} style={{ ...inp, flex: 1 }} />
                   {appliedPromo ? (
