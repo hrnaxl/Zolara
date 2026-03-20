@@ -38,12 +38,16 @@ export default function BuyGiftCard() {
 
 
   useEffect(() => {
-    // Load custom tier prices — use limit(1) then take first row
-    (supabase as any).from("settings").select("gift_card_prices").limit(1)
-      .then(({ data }: any) => {
-        const row = Array.isArray(data) ? data[0] : data;
-        if (row?.gift_card_prices && Object.keys(row.gift_card_prices).length > 0) {
-          setTierPrices(row.gift_card_prices);
+    // Load custom tier prices
+    (supabase as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
+      .then(({ data, error }: any) => {
+        if (!error && data?.gift_card_prices) {
+          // Convert all values to numbers to be safe
+          const prices: Record<string,number> = {};
+          for (const [k, v] of Object.entries(data.gift_card_prices as Record<string,any>)) {
+            prices[k] = Number(v);
+          }
+          setTierPrices(prices);
         }
         setPricesLoaded(true);
       })
@@ -62,7 +66,7 @@ export default function BuyGiftCard() {
 
   const getTierValue = (tier: string) => {
     // Always prefer custom price from settings if loaded and non-zero
-    if (pricesLoaded && tierPrices[tier] !== undefined && tierPrices[tier] > 0) return tierPrices[tier];
+    if (pricesLoaded && tierPrices[tier] !== undefined) return tierPrices[tier];
     return GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
   };
   const getPromoValue = (pt: any) => pt.amount;
@@ -375,15 +379,33 @@ export default function BuyGiftCard() {
             </button>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: NAVY, marginBottom: 24 }}>Review Your Order</h2>
 
+            {(() => {
+              const PROMO_GRADS: Record<string,string> = {
+                valentines:"linear-gradient(135deg,#9F1239,#E11D48,#FB7185)",
+                christmas:"linear-gradient(135deg,#14532D,#16A34A,#DC2626)",
+                eid:"linear-gradient(135deg,#1E3A5F,#2563EB,#60A5FA)",
+                birthday:"linear-gradient(135deg,#7C2D8A,#A855F7,#F0ABFC)",
+                mothers:"linear-gradient(135deg,#9D174D,#EC4899,#FBCFE8)",
+                graduation:"linear-gradient(135deg,#1E3A5F,#B8975A,#D4AF6A)",
+                gold:"linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)",
+                custom:"linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
+              };
+              const confirmBg = selectedPromo
+                ? (PROMO_GRADS[selectedPromo.theme] || PROMO_GRADS.gold)
+                : (selectedTier ? TIER_STYLES[selectedTier].bg : TIER_STYLES.Gold.bg);
+              const confirmShine = selectedPromo ? "rgba(255,255,255,0.95)" : (selectedTier ? TIER_STYLES[selectedTier].shine : "#F5D98A");
+              const confirmLabel = selectedPromo ? selectedPromo.name : (tierConfig?.label || "");
+              const confirmAmount = selectedPromo ? selectedPromo.amount : getTierValue(selectedTier!);
+              return (
             <div style={{ background: "white", borderRadius: 16, border: `1px solid ${BORDER}`, overflow: "hidden", marginBottom: 20 }}>
               {/* Card preview */}
-              <div style={{ background: TIER_STYLES[selectedTier].bg, padding: "28px 24px", position: "relative", overflow: "hidden" }}>
+              <div style={{ background: confirmBg, padding: "28px 24px", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", color: "white", fontSize: 12, letterSpacing: "0.15em", marginBottom: 16, opacity: 0.9 }}>ZOLARA BEAUTY STUDIO</div>
-                <div style={{ color: TIER_STYLES[selectedTier].shine, fontFamily: "'Cormorant Garamond', serif", fontSize: 34, fontWeight: 700 }}>
-                  GH₵ {selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()}
+                <div style={{ color: confirmShine, fontFamily: "'Cormorant Garamond', serif", fontSize: 34, fontWeight: 700 }}>
+                  GH₵ {confirmAmount.toLocaleString()}
                 </div>
-                <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, letterSpacing: "0.2em", marginTop: 4 }}>{tierConfig.label.toUpperCase()} GIFT CARD</div>
+                <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, letterSpacing: "0.2em", marginTop: 4 }}>{confirmLabel.toUpperCase()}{selectedPromo ? " · SPECIAL EDITION" : " GIFT CARD"}</div>
               </div>
 
               <div style={{ padding: "20px 24px" }}>
@@ -398,6 +420,8 @@ export default function BuyGiftCard() {
                 </div>
               </div>
             </div>
+              );
+            })()}
 
             <div style={{ background: "#FDF8EE", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: TXT_MID, marginBottom: 20, border: `1px solid #F5ECD6` }}>
               {deliveryType === "email"
@@ -423,14 +447,14 @@ export default function BuyGiftCard() {
         )}
 
         {/* Step: DONE */}
-        {step === "done" && selectedTier && tierConfig && (
+        {step === "done" && (selectedTier || selectedPromo) && (
           <div style={{ textAlign: "center", padding: "40px 20px" }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>🎁</div>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, color: NAVY, marginBottom: 12 }}>Order Received</h2>
             {deliveryType === "email" ? (
               <>
                 <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
-                  Your <strong>{tierConfig.label} Gift Card</strong> order has been placed.
+                  Your <strong>{selectedPromo ? selectedPromo.name : tierConfig?.label} Gift Card</strong> order has been placed.
                 </p>
                 <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
                   Once payment is confirmed, the gift card will be emailed to <strong>{form.recipientEmail}</strong> within 10–15 minutes.
@@ -442,7 +466,7 @@ export default function BuyGiftCard() {
             ) : (
               <>
                 <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
-                  Your <strong>{tierConfig.label} Gift Card</strong> is ready for pickup.
+                  Your <strong>{selectedPromo ? selectedPromo.name : tierConfig?.label} Gift Card</strong> is ready for pickup.
                 </p>
                 <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
                   Visit us at <strong>Sakasaka, Opposite CalBank, Tamale</strong>.<br />
