@@ -208,38 +208,101 @@ export default function LandingPage() {
         const pb = (salonSettings as any)?.promo_banner;
         if (!pb?.enabled || !pb?.message) return null;
         if (pb.expires && new Date(pb.expires) < new Date()) return null;
-        const gradients: Record<string,string> = {
-          gold:   "linear-gradient(100deg,#6B4E0A 0%,#C8A97E 40%,#8B6914 60%,#D4AF6A 80%,#6B4E0A 100%)",
-          dark:   "linear-gradient(100deg,#0D0A06 0%,#2D2318 40%,#1C160E 60%,#3A2D1A 80%,#0D0A06 100%)",
-          green:  "linear-gradient(100deg,#022C22 0%,#10B981 40%,#059669 60%,#34D399 80%,#022C22 100%)",
-          purple: "linear-gradient(100deg,#2E1065 0%,#7C3AED 40%,#4C1D95 60%,#A78BFA 80%,#2E1065 100%)",
-          red:    "linear-gradient(100deg,#450A0A 0%,#DC2626 40%,#7F1D1D 60%,#F87171 80%,#450A0A 100%)",
+
+        const colors: Record<string,{a:string;b:string;c:string}> = {
+          gold:   { a:"#6B4E0A", b:"#D4AF6A", c:"#8B6914" },
+          dark:   { a:"#0D0A06", b:"#5C4A2A", c:"#1C160E" },
+          green:  { a:"#022C22", b:"#34D399", c:"#059669" },
+          purple: { a:"#2E1065", b:"#A78BFA", c:"#6D28D9" },
+          red:    { a:"#450A0A", b:"#F87171", c:"#B91C1C" },
         };
-        const bg = gradients[pb.style || "gold"] || gradients.gold;
+        const col = colors[pb.style || "gold"] || colors.gold;
+        // Repeat message 6× so marquee loop is seamless
+        const msg = pb.message;
+        const repeated = Array(6).fill(`${msg}    ✦    `).join("");
+
         return (
-          <div style={{ position: "relative", zIndex: 101, overflow: "hidden", background: bg, backgroundSize: "200% 100%" }}>
+          <div style={{ position:"relative", zIndex:101, overflow:"hidden" }}>
             <style>{`
-              @keyframes bannerShimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
-              @keyframes bannerMarquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-              .promo-strip { animation: bannerShimmer 4s linear infinite; background-size: 200% 100%; }
+              /* Animated gradient background */
+              @keyframes pbGrad {
+                0%   { background-position: 0% 50%; }
+                50%  { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+              }
+              /* Sweeping light sweep */
+              @keyframes pbSweep {
+                0%   { transform: translateX(-100%); }
+                100% { transform: translateX(400%); }
+              }
+              /* Continuous marquee scroll */
+              @keyframes pbScroll {
+                0%   { transform: translateX(0); }
+                100% { transform: translateX(-50%); }
+              }
+              /* Sparkle pulse */
+              @keyframes pbSpark {
+                0%,100% { opacity:0.5; transform:scale(1) rotate(0deg); }
+                50%     { opacity:1;   transform:scale(1.3) rotate(20deg); }
+              }
+              /* Book Now button pulse */
+              @keyframes pbBtn {
+                0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+                50%     { box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+              }
+              .pb-bg {
+                background: linear-gradient(120deg, ${col.a}, ${col.b}, ${col.c}, ${col.b}, ${col.a});
+                background-size: 300% 300%;
+                animation: pbGrad 5s ease infinite;
+              }
+              .pb-sweep {
+                position:absolute; inset:0; pointer-events:none;
+                background: linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.22) 50%,transparent 100%);
+                width:60%; animation: pbSweep 3.5s ease-in-out infinite;
+              }
+              .pb-scroll-track {
+                display:flex; white-space:nowrap;
+                animation: pbScroll 22s linear infinite;
+              }
+              .pb-spark { animation: pbSpark 2s ease-in-out infinite; display:inline-block; }
+              .pb-spark-2 { animation: pbSpark 2s ease-in-out infinite 0.7s; display:inline-block; }
+              .pb-btn {
+                animation: pbBtn 2s ease-in-out infinite;
+                font-family:'Montserrat',sans-serif; font-size:10px; font-weight:800;
+                color:white; letter-spacing:0.14em; text-decoration:none;
+                background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.55);
+                border-radius:20px; padding:6px 16px; white-space:nowrap; flex-shrink:0;
+                backdrop-filter:blur(4px); transition:background 0.2s;
+              }
+              .pb-btn:hover { background:rgba(255,255,255,0.32) !important; }
             `}</style>
-            {/* Shimmer overlay */}
-            <div style={{ position:"absolute", inset:0, background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.08) 45%,rgba(255,255,255,0.18) 50%,rgba(255,255,255,0.08) 55%,transparent 100%)", backgroundSize:"200% 100%", animation:"bannerShimmer 3s linear infinite", pointerEvents:"none" }} />
-            <div style={{ padding:"13px 20px", display:"flex", alignItems:"center", justifyContent:"center", gap:12, position:"relative" }}>
-              {/* Left sparkle */}
-              <span style={{ fontSize:14, opacity:0.9, flexShrink:0 }}>✦</span>
-              {/* Scrolling message on mobile, static on desktop */}
-              <div style={{ overflow:"hidden", flex:1, maxWidth:700, textAlign:"center" }}>
-                <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:"12.5px", fontWeight:700, color:"white", letterSpacing:"0.06em", textShadow:"0 1px 8px rgba(0,0,0,0.25)", whiteSpace:"nowrap" }}>
-                  {pb.message}
-                </span>
+
+            <div className="pb-bg" style={{ position:"relative", overflow:"hidden" }}>
+              {/* Sweep light */}
+              <div className="pb-sweep" />
+
+              <div style={{ padding:"12px 20px", display:"flex", alignItems:"center", gap:14, position:"relative" }}>
+                {/* Left sparkle */}
+                <span className="pb-spark" style={{ fontSize:15, color:"rgba(255,255,255,0.9)", flexShrink:0 }}>✦</span>
+
+                {/* Scrolling message */}
+                <div style={{ flex:1, overflow:"hidden", maskImage:"linear-gradient(90deg,transparent,black 8%,black 92%,transparent)", WebkitMaskImage:"linear-gradient(90deg,transparent,black 8%,black 92%,transparent)" }}>
+                  <div className="pb-scroll-track">
+                    <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:"12.5px", fontWeight:700, color:"white", letterSpacing:"0.07em", textShadow:"0 1px 10px rgba(0,0,0,0.3)" }}>
+                      {repeated}
+                    </span>
+                    <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:"12.5px", fontWeight:700, color:"white", letterSpacing:"0.07em", textShadow:"0 1px 10px rgba(0,0,0,0.3)" }}>
+                      {repeated}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right sparkle */}
+                <span className="pb-spark-2" style={{ fontSize:15, color:"rgba(255,255,255,0.9)", flexShrink:0 }}>✦</span>
+
+                {/* CTA */}
+                <a href="/book" className="pb-btn">BOOK NOW →</a>
               </div>
-              {/* Right sparkle */}
-              <span style={{ fontSize:14, opacity:0.9, flexShrink:0 }}>✦</span>
-              {/* Book Now CTA */}
-              <a href="/book" style={{ fontFamily:"'Montserrat',sans-serif", fontSize:"10px", fontWeight:800, color:"white", letterSpacing:"0.14em", textDecoration:"none", background:"rgba(255,255,255,0.2)", border:"1.5px solid rgba(255,255,255,0.5)", borderRadius:20, padding:"5px 14px", whiteSpace:"nowrap", flexShrink:0, transition:"all 0.2s", backdropFilter:"blur(4px)" }}>
-                BOOK NOW →
-              </a>
             </div>
           </div>
         );
