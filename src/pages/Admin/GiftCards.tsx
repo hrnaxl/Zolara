@@ -457,7 +457,8 @@ export default function GiftCards() {
             const value    = getValue(card);
             const tier     = card.tier || "Gold";
             // payment_status overrides for voided/expired (avoids DB enum constraint)
-            const status = card.payment_status === "sold" ? "sold"
+            const status = card.status === "redeemed" ? "redeemed"
+                         : card.payment_status === "sold" ? "sold"
                          : card.payment_status === "pending_pickup" ? "pending_pickup"
                          : card.payment_status === "voided" ? "voided"
                          : card.payment_status === "expired" ? "expired"

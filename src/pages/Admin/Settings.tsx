@@ -220,11 +220,16 @@ export default function Settings() {
 
       // POST to our own Vercel serverless function — no CORS, no browser timeout
       const bodyStr = JSON.stringify(payload);
-      console.log("Settings payload size:", bodyStr.length, "bytes");
-      // Log any large fields
-      for (const [k,v] of Object.entries(payload)) {
-        const sz = JSON.stringify(v).length;
-        if (sz > 500) console.warn("Large field:", k, sz, "bytes");
+      const bodySize = bodyStr.length;
+      // Log size breakdown
+      const sizes: Record<string,number> = {};
+      for (const [k,v] of Object.entries(payload)) sizes[k] = JSON.stringify(v).length;
+      console.log("Payload total:", bodySize, "bytes. Fields:", sizes);
+      // Show toast with size so we can debug
+      if (bodySize > 100_000) {
+        const biggest = Object.entries(sizes).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k}:${v}`).join(", ");
+        toast.error(`Payload too large: ${Math.round(bodySize/1024)}KB. Biggest: ${biggest}`);
+        return;
       }
       const res = await fetch("/api/save-settings", {
         method: "POST",

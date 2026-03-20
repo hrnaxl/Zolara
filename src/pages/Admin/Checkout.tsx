@@ -461,6 +461,7 @@ const Checkout = () => {
           // Update card directly via supabaseAdmin — no API route needed
           const updatePayload: any = {
             status: fullyUsed ? "redeemed" : "active",
+            payment_status: fullyUsed ? "redeemed" : "sold",
             balance: newBalance,
           };
           // Only set extended columns if they exist in the card row

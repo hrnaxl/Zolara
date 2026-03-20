@@ -8,7 +8,7 @@ export default function AddonsManagement() {
   const [addons, setAddons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", category: "general" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", price_min: "", price_max: "", is_range: false, category: "general" });
 
   const load = async () => {
     try { setAddons(await getAddons()); } catch { toast.error("Failed to load add-ons"); } finally { setLoading(false); }
@@ -21,7 +21,7 @@ export default function AddonsManagement() {
     try {
       await createAddon({ ...form, price: parseFloat(form.price) });
       toast.success("Add-on created");
-      setForm({ name: "", description: "", price: "", category: "general" });
+      setForm({ name: "", description: "", price: "", price_min: "", price_max: "", is_range: false, category: "general" });
       setShowForm(false);
       load();
     } catch { toast.error("Failed to create"); }
@@ -52,7 +52,24 @@ export default function AddonsManagement() {
           <h3 className="font-semibold">New Add-on</h3>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Name *</label><input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
-            <div><label className="text-sm font-medium">Price (GHS) *</label><input type="number" value={form.price} onChange={e => setForm(f => ({...f, price: e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm" /></div>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <label className="text-sm font-medium">Price (GHS) *</label>
+                <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                  <input type="checkbox" checked={form.is_range} onChange={e => setForm(f => ({...f, is_range: e.target.checked}))} />
+                  Price Range
+                </label>
+              </div>
+              {form.is_range ? (
+                <div className="flex gap-2">
+                  <input type="number" placeholder="Min e.g. 50" value={form.price_min} onChange={e => setForm(f => ({...f, price_min: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <span className="self-center text-gray-400">–</span>
+                  <input type="number" placeholder="Max e.g. 200" value={form.price_max} onChange={e => setForm(f => ({...f, price_max: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                </div>
+              ) : (
+                <input type="number" placeholder="Fixed price" value={form.price} onChange={e => setForm(f => ({...f, price: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              )}
+            </div>
             <div><label className="text-sm font-medium">Category</label>
               <select value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} className="w-full mt-1 border rounded-lg px-3 py-2 text-sm">
                 {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
@@ -75,7 +92,11 @@ export default function AddonsManagement() {
                 <p className="font-semibold">{a.name}</p>
                 <p className="text-xs text-muted-foreground">{a.category}</p>
               </div>
-              <p className="font-bold text-primary">GHS {a.price}</p>
+              <p className="font-bold text-primary">
+                {a.price_min && a.price_max
+                  ? `GHS ${a.price_min} – ${a.price_max}`
+                  : `GHS ${a.price}`}
+              </p>
             </div>
             {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
             <div className="flex gap-2 pt-1">
