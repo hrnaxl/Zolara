@@ -48,6 +48,7 @@ export default function LandingPage() {
     setAnnouncementDismissed(true);
     try { localStorage.setItem("zolara_announcement_dismissed", "true"); } catch {}
   };
+  const [promoGiftCards, setPromoGiftCards] = useState<any[]>([]);
   const [dbServices, setDbServices] = useState<any[]>([]);
   const [subPlans, setSubPlans] = useState<any[]>([]);
   const [dbVariantsMap, setDbVariantsMap] = useState<Record<string,any[]>>({});
@@ -70,6 +71,17 @@ export default function LandingPage() {
     // Load visible reviews from DB
     (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
       .then(({ data }: any) => { if (data && data.length > 0) setDbReviews(data); });
+    // Load active promotional gift card types
+    (supabase as any).from("promo_gift_card_types").select("*").eq("is_active", true)
+      .then(({ data }: any) => {
+        const now = new Date();
+        const active = (data || []).filter((p: any) => {
+          if (p.expires_at && new Date(p.expires_at) < now) return false;
+          if (p.max_uses && p.uses_count >= p.max_uses) return false;
+          return true;
+        });
+        setPromoGiftCards(active);
+      });
   }, []);
 
   useEffect(() => {
@@ -804,6 +816,46 @@ export default function LandingPage() {
             BUY A GIFT CARD
           </Link>
         </div>
+
+        {/* Promotional Gift Cards — shown first if any active */}
+        {promoGiftCards.length > 0 && (
+          <div style={{ maxWidth:"1100px", margin:"0 auto 32px", position:"relative", zIndex:1 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:20 }}>
+              <span style={{ color: gold, fontSize:12 }}>✦</span>
+              <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.22em", color: gold, margin:0 }}>SPECIAL EDITIONS</p>
+              <span style={{ color: gold, fontSize:12 }}>✦</span>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:"20px" }}>
+              {promoGiftCards.map((pt: any) => {
+                const THEME_GRADS: Record<string,string> = {
+                  valentines:"linear-gradient(145deg,#7F1D1D,#E11D48,#FB7185)",
+                  christmas:"linear-gradient(145deg,#14532D,#16A34A,#DC2626)",
+                  eid:"linear-gradient(145deg,#1E3A5F,#2563EB,#60A5FA)",
+                  birthday:"linear-gradient(145deg,#4C1D95,#A855F7,#F0ABFC)",
+                  mothers:"linear-gradient(145deg,#831843,#EC4899,#FBCFE8)",
+                  graduation:"linear-gradient(145deg,#1E3A5F,#B8975A,#D4AF6A)",
+                  gold:"linear-gradient(145deg,#6B4E0A,#C8A97E,#D4AF6A)",
+                  custom:"linear-gradient(145deg,#1C160E,#3A2D1A,#C8A97E)",
+                };
+                const grad = THEME_GRADS[pt.theme] || THEME_GRADS.gold;
+                return (
+                  <div key={pt.id} className="gc-tier-card" style={{ background: grad, boxShadow:"0 20px 48px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.3)", animation:"cardFloat 5.5s ease-in-out infinite" }}>
+                    <div style={{ position:"absolute", top:-20, right:-20, width:80, height:80, borderRadius:"50%", background:"rgba(255,255,255,0.06)" }} />
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"20px", position:"relative" }}>
+                      <div>
+                        <div className="sans" style={{ fontSize:"8px", letterSpacing:"0.22em", color:"rgba(255,255,255,0.5)", marginBottom:"8px", fontWeight:600 }}>SPECIAL EDITION</div>
+                        <div className="gc-chip" style={{ background:"rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.85)", border:"1px solid rgba(255,255,255,0.25)" }}>{pt.emoji} {pt.name}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(28px,3vw,38px)", fontWeight:300, color:"white", lineHeight:1, marginBottom:"14px" }}>GHS {pt.amount.toLocaleString()}</div>
+                    <div style={{ height:"1px", background:"rgba(255,255,255,0.12)", marginBottom:"14px" }} />
+                    <p className="sans" style={{ fontSize:"12px", color:"rgba(255,255,255,0.62)", lineHeight:1.65, margin:0 }}>{pt.description || "A special gift for a special occasion."}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Tier cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "20px", maxWidth: "1100px", margin: "0 auto 64px", position: "relative", zIndex: 1 }}>

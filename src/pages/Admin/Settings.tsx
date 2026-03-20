@@ -141,7 +141,19 @@ export default function Settings() {
     try {
       const { data, error } = await (supabase as any).from("settings").select("*").single();
       if (error && error.code !== "PGRST116") throw error;
-      if (data) setSettings({ ...defaultSettings, ...data, payment_methods: data.payment_methods });
+      if (data) {
+        const DEFAULT_PAYMENT_METHODS = [
+          { id: "cash",          name: "Cash",          enabled: true  },
+          { id: "mobile_money",  name: "Mobile Money",  enabled: true  },
+          { id: "card",          name: "Card",          enabled: false },
+          { id: "bank_transfer", name: "Bank Transfer", enabled: false },
+          { id: "gift_card",     name: "Gift Card",     enabled: true  },
+        ];
+        const methods = (data.payment_methods && data.payment_methods.length > 0)
+          ? data.payment_methods
+          : DEFAULT_PAYMENT_METHODS;
+        setSettings({ ...defaultSettings, ...data, payment_methods: methods });
+      }
     } catch (err: any) {
       console.error(err); toast.error("Failed to load settings");
     } finally { setLoading(false); }

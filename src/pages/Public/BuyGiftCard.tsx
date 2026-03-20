@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { GIFT_CARD_TIERS, GiftCardTier, createDigitalPurchase } from "@/lib/giftCardEcommerce";
+import { supabase } from "@/integrations/supabase/client";
 import { sendGiftCardEmail, sendPickupReceiptEmail, sendPurchaseReceiptEmail } from "@/lib/email";
 import { openPaystackPopup } from "@/lib/payment";
 import { toast } from "sonner";
@@ -31,17 +32,33 @@ export default function BuyGiftCard() {
     recipientName: "", recipientEmail: "", message: "",
   });
   const [loading, setLoading] = useState(false);
+  const [promoTypes, setPromoTypes] = useState<any[]>([]);
+  const [selectedPromo, setSelectedPromo] = useState<any | null>(null); // promo type selected instead of standard tier
 
   useEffect(() => {
-    import("@/integrations/supabase/client").then(({ supabase: sb }) => {
-      (sb as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
-        .then(({ data }: any) => { if (data?.gift_card_prices) setTierPrices(data.gift_card_prices); });
-    });
+    (supabase as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
+      .then(({ data }: any) => { if (data?.gift_card_prices) setTierPrices(data.gift_card_prices); });
+    // Load active promotional gift card types
+    (supabase as any).from("promo_gift_card_types")
+      .select("*").eq("is_active", true)
+      .then(({ data }: any) => {
+        const now = new Date();
+        const active = (data || []).filter((p: any) => {
+          if (p.expires_at && new Date(p.expires_at) < now) return false;
+          if (p.max_uses && p.uses_count >= p.max_uses) return false;
+          return true;
+        });
+        setPromoTypes(active);
+      });
   }, []);
 
   const getTierValue = (tier: string) => tierPrices[tier] ?? GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
 
   const tierConfig = selectedTier ? GIFT_CARD_TIERS[selectedTier] : null;
+  // Effective config — either standard tier or promo type
+  const effectiveAmount = selectedPromo ? selectedPromo.amount : (selectedTier ? getTierValue(selectedTier) : 0);
+  const effectiveName = selectedPromo ? selectedPromo.name : (selectedTier ? GIFT_CARD_TIERS[selectedTier]?.label || selectedTier : "");
+  const isPromo = !!selectedPromo;
 
   const handleProceed = () => {
     if (!form.buyerName || !form.buyerPhone) { toast.error("Enter your name and phone number"); return; }
@@ -76,12 +93,12 @@ export default function BuyGiftCard() {
         },
         onSuccess: async (paymentRef: string) => {
           try {
-            const tierValue = getTierValue(selectedTier!);
+            const tierValue = isPromo ? selectedPromo!.amount : getTierValue(selectedTier!);
             if (isEmail) {
               // DIGITAL — create server-side then email
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tier: selectedTier, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
+                body: JSON.stringify({ tier: isPromo ? "Gold" : selectedTier, promoTypeId: selectedPromo?.id || null, promoName: selectedPromo?.name || null, amount: tierValue, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
               });
               const d = await r.json().catch(() => ({}));
               console.log("Create card:", r.status, JSON.stringify(d));
@@ -143,6 +160,55 @@ export default function BuyGiftCard() {
               Valid for 12 months. Redeemable for any service at Zolara Beauty Studio.
             </p>
 
+            {/* Promo Gift Cards — shown above standard tiers if any are active */}
+            {promoTypes.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <span style={{ fontSize: 14 }}>✦</span>
+                  <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", color: "#8B6914", margin: 0 }}>SPECIAL EDITIONS</p>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }} className="admin-grid-2">
+                  {promoTypes.map((pt: any) => {
+                    const sel = selectedPromo?.id === pt.id;
+                    const THEME_GRADS: Record<string,string> = {
+                      valentines: "linear-gradient(135deg,#9F1239,#E11D48,#FB7185)",
+                      christmas:  "linear-gradient(135deg,#14532D,#16A34A,#DC2626)",
+                      eid:        "linear-gradient(135deg,#1E3A5F,#2563EB,#60A5FA)",
+                      birthday:   "linear-gradient(135deg,#7C2D8A,#A855F7,#F0ABFC)",
+                      mothers:    "linear-gradient(135deg,#9D174D,#EC4899,#FBCFE8)",
+                      graduation: "linear-gradient(135deg,#1E3A5F,#B8975A,#D4AF6A)",
+                      gold:       "linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)",
+                      custom:     "linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
+                    };
+                    const grad = THEME_GRADS[pt.theme] || THEME_GRADS.gold;
+                    return (
+                      <div key={pt.id}
+                        onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); }}
+                        style={{ cursor:"pointer", borderRadius:16, overflow:"hidden", border:`2px solid ${sel ? "#C8A97E" : "transparent"}`, boxShadow: sel ? "0 0 0 3px rgba(200,169,126,0.3)" : "0 2px 12px rgba(0,0,0,0.08)", transition:"all 0.2s" }}
+                      >
+                        <div style={{ background: grad, padding:"20px 18px", position:"relative", overflow:"hidden" }}>
+                          <div style={{ position:"absolute", top:-16, right:-16, width:60, height:60, borderRadius:"50%", background:"rgba(255,255,255,0.1)" }} />
+                          <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:8, fontWeight:700, letterSpacing:"0.2em", color:"rgba(255,255,255,0.55)", marginBottom:8 }}>SPECIAL EDITION</div>
+                          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:300, color:"white", marginBottom:4 }}>GHS {pt.amount.toLocaleString()}</div>
+                          <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.9)" }}>{pt.emoji} {pt.name}</div>
+                        </div>
+                        <div style={{ background: sel ? "#FDF6E3" : "#FAFAF8", padding:"10px 14px", borderTop:"1px solid rgba(0,0,0,0.06)" }}>
+                          {pt.description && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, color:"#57534E", margin:0, lineHeight:1.4 }}>{pt.description}</p>}
+                          {sel && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, color:"#8B6914", margin:"4px 0 0" }}>✓ Selected</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Standard Tiers */}
+            {promoTypes.length > 0 && (
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.18em", color:"#A8A29E", margin:0 }}>STANDARD GIFT CARDS</p>
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
                 const t = { ...GIFT_CARD_TIERS[tier], value: getTierValue(tier) };

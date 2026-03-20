@@ -28,6 +28,7 @@ import Attendance from "./pages/Admin/Attendance";
 import AttendanceReports from "./pages/Admin/AttendanceReports";
 import Checkout from "./pages/Admin/Checkout";
 import GiftCards from "./pages/Admin/GiftCards";
+import PromoGiftCards from "./pages/Admin/PromoGiftCards";
 
 import StaffBookings from "./pages/Staff/StaffBookings";
 import MyAttendance from "./pages/Staff/MyAttendance";
@@ -108,6 +109,7 @@ const App = () => (
               <Route path="/app/admin/attendance" element={<Attendance />} />
               <Route path="/app/admin/attendance-reports" element={<AttendanceReports />} />
               <Route path="/app/admin/gift-cards" element={<GiftCards />} />
+              <Route path="/app/admin/promo-gift-cards" element={<PromoGiftCards />} />
               <Route path="/app/admin/gift-card-batches" element={<GiftCardBatchGenerator />} />
               <Route path="/app/admin/loyalty" element={<Loyalty />} />
               <Route path="/app/admin/sms-test" element={<SMSTest />} />
@@ -130,6 +132,7 @@ const App = () => (
               <Route path="/app/receptionist/clients" element={<Clients />} />
               <Route path="/app/receptionist/staff" element={<Staff />} />
               <Route path="/app/receptionist/gift-cards" element={<GiftCards />} />
+              <Route path="/app/receptionist/promo-gift-cards" element={<PromoGiftCards />} />
               <Route path="/app/receptionist/checkout" element={<Checkout />} />
               <Route path="/app/receptionist/attendance" element={<Attendance />} />
               <Route path="/app/receptionist/services" element={<ViewServices />} />
