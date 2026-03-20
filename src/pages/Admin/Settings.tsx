@@ -177,7 +177,8 @@ export default function Settings() {
 
   const updateSettings = async () => {
     setSaving(true);
-    try {
+
+    const doSave = async () => {
       const logoUrl = await uploadLogo();
 
       const payload: any = {
@@ -218,33 +219,113 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      const { data: row } = await (supabase as any)
-        .from("settings").select("id").limit(1).maybeSingle();
-
-      if (row?.id) {
-        const { error } = await (supabase as any)
-          .from("settings").update(payload).eq("id", row.id);
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await (supabase as any)
-          .from("settings").insert([payload]);
-        if (error) throw new Error(error.message);
+      // Get existing row id with 8s timeout
+      const ctrl1 = new AbortController();
+      const t1 = setTimeout(() => ctrl1.abort(), 8000);
+      let existingId: string | null = null;
+      try {
+        const res = await fetch(
+          "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1/settings?select=id&limit=1",
+          {
+            signal: ctrl1.signal,
+            headers: {
+              "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+              "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+            },
+          }
+        );
+        clearTimeout(t1);
+        const rows = await res.json();
+        existingId = Array.isArray(rows) && rows[0] ? rows[0].id : null;
+      } catch (e: any) {
+        clearTimeout(t1);
+        throw new Error("Could not reach database: " + (e?.message || "timeout"));
       }
 
-      toast.success("Settings saved");
-      setLogoFile(null);
+      const method = existingId ? "PATCH" : "POST";
+      const url = existingId
+        ? `https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1/settings?id=eq.${existingId}`
+        : "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1/settings";
+
+      const ctrl2 = new AbortController();
+      const t2 = setTimeout(() => ctrl2.abort(), 8000);
+      let saveOk = false;
+      let saveErr = "";
+      try {
+        const res2 = await fetch(url, {
+          method,
+          signal: ctrl2.signal,
+          headers: {
+            "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+          },
+          body: JSON.stringify(payload),
+        });
+        clearTimeout(t2);
+        if (res2.ok) {
+          saveOk = true;
+        } else {
+          saveErr = await res2.text();
+        }
+      } catch (e: any) {
+        clearTimeout(t2);
+        throw new Error("Save request failed: " + (e?.message || "timeout"));
+      }
+
+      if (!saveOk) {
+        // Unknown column — strip new cols and retry
+        const NEW_COLS = ["promo_banner","announcement","business_phone_2","whatsapp_number",
+          "instagram_handle","tiktok_handle","facebook_handle","cancellation_policy",
+          "lateness_fee","lateness_cutoff","student_discount","max_bookings_per_slot"];
+        const safePayload: any = { ...payload };
+        NEW_COLS.forEach(k => delete safePayload[k]);
+
+        const ctrl3 = new AbortController();
+        const t3 = setTimeout(() => ctrl3.abort(), 8000);
+        try {
+          const res3 = await fetch(url, {
+            method,
+            signal: ctrl3.signal,
+            headers: {
+              "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+              "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54",
+              "Content-Type": "application/json",
+              "Prefer": "return=minimal",
+            },
+            body: JSON.stringify(safePayload),
+          });
+          clearTimeout(t3);
+          if (!res3.ok) {
+            const e3 = await res3.text();
+            throw new Error("Save failed: " + e3);
+          }
+        } catch (e: any) {
+          clearTimeout(t3);
+          throw new Error("Retry failed: " + (e?.message || "unknown"));
+        }
+      }
+
+      // Update local state
       const gcPrices: Record<string,number> = {};
       for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
       const merged = { ...settings, ...payload, logo_url: logoUrl || settings.logo_url, gift_card_prices: gcPrices };
       setSettings(merged as any);
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
-    } catch (err: any) {
-      console.error("Settings save error:", err);
-      toast.error(err?.message || "Save failed");
-    } finally {
-      setSaving(false);
-    }
-  };;;;
+      toast.success("Settings saved");
+      setLogoFile(null);
+    };
+
+    doSave()
+      .catch((err: any) => {
+        console.error("Settings save error:", err);
+        toast.error(err?.message || "Save failed — check your connection");
+      })
+      .finally(() => {
+        setSaving(false);
+      });
+  };;;;;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM }}>
