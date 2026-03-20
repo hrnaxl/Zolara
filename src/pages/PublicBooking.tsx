@@ -622,10 +622,10 @@ export default function PublicBooking() {
             {[
               { icon: "◈", title: "Expert Stylists, Every Time", body: "All staff are trained specialists. You will never be assigned an untrained stylist at Zolara." },
               { icon: "✦", title: "The Luxury Difference", body: "Free WiFi, chilled water, Arctic AC, and a perfume spritz with chocolate on your way out." },
-              { icon: "◇", title: "Cancellation Policy", body: "Cancel 24 or more hours out for a full reschedule at no cost. Less than 12 hours forfeits the deposit. Call to cancel. SMS cancellations are not accepted." },
-              { icon: "◉", title: "Lateness Policy", body: "Arrive 5 to 10 minutes early. 15 or more minutes late incurs a GHS 50 lateness fee. 30 or more minutes may result in cancellation." },
+              { icon: "◇", title: "Cancellation Policy", body: (settings as any)?.cancellation_policy || "Cancel 24 or more hours out for a full reschedule at no cost. Less than 12 hours forfeits the deposit. Call to cancel. SMS cancellations are not accepted." },
+              { icon: "◉", title: "Lateness Policy", body: `Arrive 5 to 10 minutes early. ${(settings as any)?.lateness_cutoff ?? 15} or more minutes late incurs a GHS ${(settings as any)?.lateness_fee ?? 50} lateness fee. 30 or more minutes may result in cancellation.` },
               { icon: "❋", title: "Loyalty Rewards", body: "1 stamp per GHS 100 spent. 20 stamps = GHS 50 discount. Double stamps in your birthday month." },
-              { icon: "★", title: "Student Discount", body: "10% off all services Mon to Thu with a valid student ID. Present ID when booking." },
+              { icon: "★", title: "Student Discount", body: `${(settings as any)?.student_discount ?? 10}% off all services Mon to Thu with a valid student ID. Present ID when booking.` },
             ].map(({ icon, title, body }) => (
               <div key={title} style={{ padding: mob ? "12px 16px" : "17px 28px", borderBottom: "1px solid rgba(200,169,126,0.08)", display: "flex", gap: "12px", alignItems: "flex-start" }}>
                 <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "rgba(200,169,126,0.14)", border: "1px solid rgba(200,169,126,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

@@ -43,7 +43,7 @@ const defaultSettings: Settings = {
   loyalty_stamp_per_ghs: 100, loyalty_stamps_for_reward: 20, loyalty_reward_discount: 50,
 };
 
-type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "promo" | "data";
+type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "promo" | "rules" | "social" | "announcement" | "data";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "business",   label: "Business",        icon: Building2 },
@@ -53,6 +53,9 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "closures",   label: "Closures",         icon: Calendar },
   { id: "loyalty",    label: "Loyalty",          icon: Star },
   { id: "promo",      label: "Promo Banner",     icon: Sparkles },
+  { id: "rules",      label: "Business Rules",   icon: Wrench },
+  { id: "social",     label: "Social & Contact", icon: Users },
+  { id: "announcement", label: "Announcement",   icon: Star },
   { id: "data",       label: "Data",             icon: Database },
 ];
 
@@ -185,6 +188,17 @@ export default function Settings() {
           show_subscriptions: (settings as any).landing_sections?.show_subscriptions ?? false,
         },
         promo_banner: (settings as any).promo_banner ?? null,
+        business_phone_2: (settings as any).business_phone_2 ?? "",
+        whatsapp_number: (settings as any).whatsapp_number ?? "",
+        instagram_handle: (settings as any).instagram_handle ?? "",
+        tiktok_handle: (settings as any).tiktok_handle ?? "",
+        facebook_handle: (settings as any).facebook_handle ?? "",
+        cancellation_policy: (settings as any).cancellation_policy ?? "",
+        lateness_fee: (settings as any).lateness_fee ?? 50,
+        lateness_cutoff: (settings as any).lateness_cutoff ?? 15,
+        student_discount: (settings as any).student_discount ?? 10,
+        max_bookings_per_slot: (settings as any).max_bookings_per_slot ?? 6,
+        announcement: (settings as any).announcement ?? null,
       };
 
       const { data: existing, error: fetchErr } = await (supabase as any).from("settings").select("*").limit(1).maybeSingle();
@@ -445,6 +459,155 @@ export default function Settings() {
                   <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:13, fontWeight:600, color:"white", letterSpacing:"0.04em" }}>
                     {(settings as any).promo_banner?.message}
                   </span>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {tab("rules", (
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:600, color:TXT, marginBottom:4 }}>Business Rules</h2>
+            <p style={{ fontSize:13, color:TXT_SOFT, fontFamily:"'Montserrat',sans-serif", marginBottom:8 }}>These values appear on the booking page and guide client behaviour. Change them here — no code needed.</p>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>CANCELLATION POLICY TEXT</label>
+              <textarea rows={3} value={(settings as any).cancellation_policy || ""}
+                onChange={e => setSettings((p:any) => ({ ...p, cancellation_policy: e.target.value }))}
+                style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none", resize:"vertical" }}
+              />
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>LATENESS FEE (GHS)</label>
+                <input type="number" value={(settings as any).lateness_fee ?? 50}
+                  onChange={e => setSettings((p:any) => ({ ...p, lateness_fee: Number(e.target.value) }))}
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+                <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Fee charged when client is late</p>
+              </div>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>LATENESS CUTOFF (mins)</label>
+                <input type="number" value={(settings as any).lateness_cutoff ?? 15}
+                  onChange={e => setSettings((p:any) => ({ ...p, lateness_cutoff: Number(e.target.value) }))}
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+                <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Minutes late before fee applies</p>
+              </div>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>STUDENT DISCOUNT (%)</label>
+                <input type="number" value={(settings as any).student_discount ?? 10}
+                  onChange={e => setSettings((p:any) => ({ ...p, student_discount: Number(e.target.value) }))}
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+                <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Mon–Thu with valid student ID</p>
+              </div>
+            </div>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>MAX BOOKINGS PER TIME SLOT</label>
+              <input type="number" min={1} max={20} value={(settings as any).max_bookings_per_slot ?? 6}
+                onChange={e => setSettings((p:any) => ({ ...p, max_bookings_per_slot: Number(e.target.value) }))}
+                style={{ width:120, padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+              <p style={{ fontSize:11, color:TXT_SOFT, marginTop:6, fontFamily:"'Montserrat',sans-serif" }}>Currently set to 6. When a slot has this many confirmed bookings, new clients go to the waitlist.</p>
+            </div>
+          </div>
+        ))}
+
+        {tab("social", (
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:600, color:TXT, marginBottom:4 }}>Social & Contact</h2>
+            <p style={{ fontSize:13, color:TXT_SOFT, fontFamily:"'Montserrat',sans-serif", marginBottom:8 }}>Update once here and it changes everywhere on the site.</p>
+
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>PRIMARY PHONE</label>
+                <input value={settings.business_phone || ""}
+                  onChange={e => setSettings((p:any) => ({ ...p, business_phone: e.target.value }))}
+                  placeholder="059 436 5314"
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+              </div>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>SECOND PHONE</label>
+                <input value={(settings as any).business_phone_2 || ""}
+                  onChange={e => setSettings((p:any) => ({ ...p, business_phone_2: e.target.value }))}
+                  placeholder="020 884 8707"
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+              </div>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>WHATSAPP NUMBER</label>
+                <input value={(settings as any).whatsapp_number || ""}
+                  onChange={e => setSettings((p:any) => ({ ...p, whatsapp_number: e.target.value }))}
+                  placeholder="233594365314 (include country code, no +)"
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+              </div>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>INSTAGRAM HANDLE</label>
+                <input value={(settings as any).instagram_handle || ""}
+                  onChange={e => setSettings((p:any) => ({ ...p, instagram_handle: e.target.value }))}
+                  placeholder="zolarastudio"
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+                <p style={{ fontSize:11, color:TXT_SOFT, marginTop:4, fontFamily:"'Montserrat',sans-serif" }}>Without @</p>
+              </div>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>TIKTOK HANDLE</label>
+                <input value={(settings as any).tiktok_handle || ""}
+                  onChange={e => setSettings((p:any) => ({ ...p, tiktok_handle: e.target.value }))}
+                  placeholder="zolarastudio"
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+                <p style={{ fontSize:11, color:TXT_SOFT, marginTop:4, fontFamily:"'Montserrat',sans-serif" }}>Without @</p>
+              </div>
+              <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+                <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>FACEBOOK PAGE</label>
+                <input value={(settings as any).facebook_handle || ""}
+                  onChange={e => setSettings((p:any) => ({ ...p, facebook_handle: e.target.value }))}
+                  placeholder="zolarastudio"
+                  style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none" }} />
+                <p style={{ fontSize:11, color:TXT_SOFT, marginTop:4, fontFamily:"'Montserrat',sans-serif" }}>Page name from facebook.com/</p>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {tab("announcement", (
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:600, color:TXT, marginBottom:4 }}>Announcement Modal</h2>
+            <p style={{ fontSize:13, color:TXT_SOFT, fontFamily:"'Montserrat',sans-serif", marginBottom:8 }}>A popup shown once per visitor on the landing page. Use it for openings, new services, seasonal news, or anything important.</p>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div>
+                <p style={{ fontSize:13, fontWeight:600, color:TXT, margin:"0 0 3px", fontFamily:"'Montserrat',sans-serif" }}>Show Announcement</p>
+                <p style={{ fontSize:12, color:TXT_SOFT, margin:0, fontFamily:"'Montserrat',sans-serif" }}>Shows once per visitor (stored in their browser)</p>
+              </div>
+              <div onClick={() => setSettings((p:any) => ({ ...p, announcement: { ...(p.announcement||{}), enabled: !(p.announcement?.enabled) } }))}
+                style={{ width:44, height:24, borderRadius:12, background:(settings as any).announcement?.enabled ? "#C8A97E" : "#D1C5B8", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+                <div style={{ position:"absolute", top:3, left:(settings as any).announcement?.enabled ? 23 : 3, width:18, height:18, borderRadius:"50%", background:"white", transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.2)" }} />
+              </div>
+            </div>
+
+            <div style={{ background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:"18px 20px" }}>
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>TITLE</label>
+              <input value={(settings as any).announcement?.title || ""}
+                onChange={e => setSettings((p:any) => ({ ...p, announcement: { ...(p.announcement||{}), title: e.target.value } }))}
+                placeholder="e.g. We're Now Open! 🎉"
+                style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none", marginBottom:12 }} />
+              <label style={{ display:"block", fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>MESSAGE</label>
+              <textarea rows={3} value={(settings as any).announcement?.message || ""}
+                onChange={e => setSettings((p:any) => ({ ...p, announcement: { ...(p.announcement||{}), message: e.target.value } }))}
+                placeholder="e.g. Zolara Beauty Studio is officially open in Sakasaka! Book your first appointment today and get 10% off."
+                style={{ width:"100%", padding:"11px 14px", border:`1.5px solid ${BORDER}`, borderRadius:10, fontSize:13, color:TXT, fontFamily:"'Montserrat',sans-serif", outline:"none", resize:"vertical" }} />
+            </div>
+
+            {(settings as any).announcement?.title && (
+              <div>
+                <p style={{ fontSize:11, fontWeight:700, letterSpacing:"0.12em", color:TXT_SOFT, marginBottom:8, fontFamily:"'Montserrat',sans-serif" }}>PREVIEW</p>
+                <div style={{ background:"rgba(0,0,0,0.5)", borderRadius:12, padding:32, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <div style={{ background:"white", borderRadius:16, padding:"32px 28px", maxWidth:400, width:"100%", textAlign:"center", boxShadow:"0 32px 80px rgba(0,0,0,0.4)" }}>
+                    <div style={{ fontSize:32, marginBottom:12 }}>✦</div>
+                    <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:600, color:"#1C160E", marginBottom:12 }}>{(settings as any).announcement?.title}</h3>
+                    {(settings as any).announcement?.message && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:13, color:"#57534E", lineHeight:1.7, marginBottom:20 }}>{(settings as any).announcement?.message}</p>}
+                    <div style={{ background:"linear-gradient(135deg,#8B6914,#C8A97E)", borderRadius:8, padding:"12px 24px", display:"inline-block" }}>
+                      <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, fontWeight:700, color:"white", letterSpacing:"0.14em" }}>BOOK NOW →</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

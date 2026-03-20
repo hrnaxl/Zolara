@@ -41,6 +41,13 @@ export default function LandingPage() {
   const [expVisible, setExpVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [salonSettings, setSalonSettings] = useState<any>(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(() => {
+    try { return localStorage.getItem("zolara_announcement_dismissed") === "true"; } catch { return false; }
+  });
+  const dismissAnnouncement = () => {
+    setAnnouncementDismissed(true);
+    try { localStorage.setItem("zolara_announcement_dismissed", "true"); } catch {}
+  };
   const [dbServices, setDbServices] = useState<any[]>([]);
   const [subPlans, setSubPlans] = useState<any[]>([]);
   const [dbVariantsMap, setDbVariantsMap] = useState<Record<string,any[]>>({});
@@ -58,7 +65,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner").limit(1).maybeSingle()
+    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
     // Load visible reviews from DB
     (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
@@ -997,7 +1004,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "680px", margin: "0 auto", background: "#fff", border: "1px solid rgba(200,169,126,0.2)", borderRadius: "4px", padding: "28px 32px", textAlign: "center", boxShadow: "0 4px 20px rgba(28,22,14,0.06)", position: "relative", zIndex: 1 }}>
           <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: 400, color: dark, marginBottom: "8px" }}>Custom plans available for groups and businesses</p>
           <p className="sans" style={{ fontSize: "13px", color: "#78716C", lineHeight: 1.75, marginBottom: "20px", fontWeight: 400 }}>Bridal parties, corporate teams and student groups get tailored packages. Call us to discuss.</p>
-          <a href="https://wa.me/233594365314" target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: goldDark, textDecoration: "none" }}>
+          <a href={`https://wa.me/${(salonSettings as any)?.whatsapp_number || "233594365314"}`} target="_blank" rel="noreferrer" className="sans" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: goldDark, textDecoration: "none" }}>
             CONTACT US ON WHATSAPP →
           </a>
         </div>
@@ -1040,6 +1047,32 @@ export default function LandingPage() {
           }}>BOOK YOUR APPOINTMENT</Link>
         </div>
       </section>
+
+      {/* ANNOUNCEMENT MODAL */}
+      {(() => {
+        const ann = (salonSettings as any)?.announcement;
+        if (!ann?.enabled || !ann?.title || announcementDismissed) return null;
+        return (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px", backdropFilter:"blur(4px)" }}
+            onClick={dismissAnnouncement}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background:"white", borderRadius:20, padding:"40px 36px", maxWidth:460, width:"100%",
+              textAlign:"center", boxShadow:"0 40px 100px rgba(0,0,0,0.45)", position:"relative",
+              animation:"fadeUp 0.4s cubic-bezier(0.16,1,0.3,1)"
+            }}>
+              <button onClick={dismissAnnouncement} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", cursor:"pointer", color:"#A8A29E", fontSize:22, lineHeight:1 }}>×</button>
+              <div style={{ width:52, height:52, borderRadius:"50%", background:"linear-gradient(135deg,#8B6914,#C8A97E)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px", fontSize:22 }}>✦</div>
+              <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:600, color:"#1C160E", marginBottom:12, lineHeight:1.2 }}>{ann.title}</h3>
+              {ann.message && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:13, color:"#57534E", lineHeight:1.75, marginBottom:24 }}>{ann.message}</p>}
+              <a href="/book" onClick={dismissAnnouncement}
+                style={{ display:"inline-block", background:"linear-gradient(135deg,#8B6914,#C8A97E)", color:"white", textDecoration:"none", padding:"14px 36px", borderRadius:8, fontFamily:"'Montserrat',sans-serif", fontSize:12, fontWeight:700, letterSpacing:"0.1em" }}>
+                BOOK NOW →
+              </a>
+              <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"#A8A29E", marginTop:16, cursor:"pointer" }} onClick={dismissAnnouncement}>Dismiss</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* FOOTER */}
       <footer style={{ background: "linear-gradient(160deg,#1A1208,#0D0A06)", borderTop: "1px solid rgba(200,169,126,0.14)" }}>
@@ -1085,10 +1118,10 @@ export default function LandingPage() {
             <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FOLLOW US</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {[
-                { label: "Instagram", handle: "@zolarastudio", href: "https://www.instagram.com/zolarastudio", icon: "IG" },
-                { label: "TikTok",    handle: "@zolarastudio", href: "https://www.tiktok.com/@zolarastudio",    icon: "TK" },
-                { label: "Facebook",  handle: "Zolara Studio", href: "https://www.facebook.com/zolarastudio",  icon: "FB" },
-                { label: "WhatsApp",  handle: "Message us",    href: "https://wa.me/233594365314",             icon: "WA" },
+                { label: "Instagram", handle: "@" + ((salonSettings as any)?.instagram_handle || "zolarastudio"), href: "https://www.instagram.com/" + ((salonSettings as any)?.instagram_handle || "zolarastudio"), icon: "IG" },
+                { label: "TikTok",   handle: "@" + ((salonSettings as any)?.tiktok_handle || "zolarastudio"),   href: "https://www.tiktok.com/@" + ((salonSettings as any)?.tiktok_handle || "zolarastudio"),   icon: "TK" },
+                { label: "Facebook", handle: (salonSettings as any)?.facebook_handle || "Zolara Studio", href: "https://www.facebook.com/" + ((salonSettings as any)?.facebook_handle || "zolarastudio"), icon: "FB" },
+                { label: "WhatsApp", handle: "Message us", href: "https://wa.me/" + ((salonSettings as any)?.whatsapp_number || "233594365314"), icon: "WA" },
               ].map(s => (
                 <a key={s.label} href={s.href} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", transition: "all 0.2s", padding: "6px 0" }}
                   onMouseEnter={e => { const el = e.currentTarget; el.style.opacity="1"; }}

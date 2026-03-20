@@ -362,7 +362,12 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
                   boxShadow: "0 2px 10px rgba(28,22,14,0.08)",
                   border: m.role === "assistant" ? "1px solid rgba(200,169,126,0.18)" : "none",
                 }}>
-                  {m.content}
+                  {m.imagePreview && (
+                    <img src={m.imagePreview} alt="Uploaded" style={{ width:"100%", maxWidth:180, borderRadius:8, marginBottom:6, display:"block" }} />
+                  )}
+                  {typeof m.content === "string"
+                    ? m.content
+                    : (m.content as any[]).find((p:any) => p.type === "text")?.text || ""}
                 </div>
               </div>
             ))}
