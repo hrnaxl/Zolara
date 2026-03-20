@@ -577,11 +577,17 @@ export default function Bookings() {
             <div style={{ padding: "16px 20px", flex: 1 }}>
               {/* Status badge */}
               {(() => { const ss = STATUS[selected.status] || STATUS.pending; return (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
                   <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: ss.bg, color: ss.color }}>
                     {ss.label}
                   </span>
                   {selected.deposit_paid && <span style={{ fontSize: 11, color: "#15803D", fontWeight: 600 }}>· Deposit paid ✓</span>}
+                  {(selected as any).promo_code && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A" }}>
+                      🏷 {(selected as any).promo_code}
+                      {(selected as any).promo_discount > 0 && <span style={{ fontWeight: 400 }}>· GHS {Number((selected as any).promo_discount).toFixed(0)} off</span>}
+                    </span>
+                  )}
                 </div>
               );})()}
 

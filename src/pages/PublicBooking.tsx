@@ -350,6 +350,8 @@ export default function PublicBooking() {
           booking_ref: bRef,
           client_id: null,
           duration_minutes: 0,
+          promo_code: appliedPromo?.code || null,
+          promo_discount: promoDiscount > 0 ? promoDiscount : null,
         } as any);
 
       if (bookingError) throw bookingError;

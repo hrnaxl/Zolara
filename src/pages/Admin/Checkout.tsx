@@ -144,10 +144,16 @@ const Checkout = () => {
       setBooking(data as any);
       if ((data as any).staff?.id) setSelectedStaff((data as any).staff.id);
       if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
-      // Detect if a promo code was already used at booking time
-      const bookingNotes: string = (data as any).notes || "";
-      const promoMatch = bookingNotes.match(/Promo code applied:\s*([A-Z0-9]+)/i);
-      if (promoMatch) setBookingUsedPromo(promoMatch[1].toUpperCase());
+      // Detect promo used at booking time — first check promo_code column, fallback to notes
+      const existingPromoCode = (data as any).promo_code;
+      if (existingPromoCode) {
+        setBookingUsedPromo(existingPromoCode.toUpperCase());
+      } else {
+        // Fallback: parse from notes for older bookings
+        const bookingNotes: string = (data as any).notes || "";
+        const promoMatch = bookingNotes.match(/Promo code applied:\s*([A-Z0-9]+)/i);
+        if (promoMatch) setBookingUsedPromo(promoMatch[1].toUpperCase());
+      }
 
       // booking.price is set at booking time with the correct total (variant price or service base + addons)
       // Always trust booking.price — it is the source of truth
