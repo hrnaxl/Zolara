@@ -38,10 +38,13 @@ export default function BuyGiftCard() {
 
 
   useEffect(() => {
-    // Load custom tier prices
-    (supabase as any).from("settings").select("gift_card_prices").limit(1).single()
+    // Load custom tier prices — use limit(1) then take first row
+    (supabase as any).from("settings").select("gift_card_prices").limit(1)
       .then(({ data }: any) => {
-        if (data?.gift_card_prices) setTierPrices(data.gift_card_prices);
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row?.gift_card_prices && Object.keys(row.gift_card_prices).length > 0) {
+          setTierPrices(row.gift_card_prices);
+        }
         setPricesLoaded(true);
       })
       .catch(() => setPricesLoaded(true));
@@ -58,7 +61,8 @@ export default function BuyGiftCard() {
   }, []);
 
   const getTierValue = (tier: string) => {
-    if (pricesLoaded && tierPrices[tier] !== undefined) return tierPrices[tier];
+    // Always prefer custom price from settings if loaded and non-zero
+    if (pricesLoaded && tierPrices[tier] !== undefined && tierPrices[tier] > 0) return tierPrices[tier];
     return GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
   };
   const getPromoValue = (pt: any) => pt.amount;
@@ -243,7 +247,7 @@ export default function BuyGiftCard() {
                 return (
                   <div
                     key={tier}
-                    onClick={() => setSelectedTier(tier)}
+                    onClick={() => { setSelectedTier(tier); setSelectedPromo(null); setDeliveryType("email"); }}
                     style={{
                       cursor: "pointer",
                       borderRadius: 16,
@@ -383,14 +387,14 @@ export default function BuyGiftCard() {
               </div>
 
               <div style={{ padding: "20px 24px" }}>
-                <Row label="Card Value" value={`GH₵ ${tierConfig.value.toLocaleString()}`} />
+                <Row label="Card Value" value={`GH₵ ${selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()}`} />
                 <Row label="Delivery" value={deliveryType === "email" ? `Email to ${form.recipientEmail}` : "Pick up at Zolara, Sakasaka"} />
                 {deliveryType === "email" && <Row label="Recipient" value={form.recipientName} />}
                 <Row label="From" value={form.buyerName} />
                 <Row label="Phone" value={form.buyerPhone} />
                 <div style={{ borderTop: `1px solid ${BORDER}`, marginTop: 16, paddingTop: 16, display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontWeight: 700, fontSize: 16, color: TXT }}>Total</span>
-                  <span style={{ fontWeight: 700, fontSize: 18, color: G }}>GH₵ {tierConfig.value.toLocaleString()}</span>
+                  <span style={{ fontWeight: 700, fontSize: 18, color: G }}>GH₵ {selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -410,7 +414,7 @@ export default function BuyGiftCard() {
                 fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {loading ? "Processing..." : `Pay GH₵ ${tierConfig.value.toLocaleString()} via Paystack`}
+              {loading ? "Processing..." : `Pay GH₵ ${selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()} via Paystack`}
             </button>
             <p style={{ textAlign: "center", fontSize: 11, color: TXT_MID, marginTop: 10 }}>
               Secured by Paystack. Card, Mobile Money, and Bank Transfer accepted.
