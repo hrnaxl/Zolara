@@ -70,11 +70,14 @@ const DashboardLayout = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      // Clear stale role immediately on sign-out so it never bleeds into next login
-      if (!session?.user) {
+      if (event === "SIGNED_OUT") {
+        // Only navigate on explicit sign-out, never on token refresh or initial session
         setCurrentRole("");
         setRoleLoading(true);
-        if (event !== "INITIAL_SESSION") navigate("/app/auth");
+        navigate("/app/auth");
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        // Session refreshed — stay on current page
+        if (session?.user) setUser(session.user);
       }
     });
 

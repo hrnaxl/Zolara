@@ -139,7 +139,7 @@ export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => v
   }, 0);
   const addonTotal = selectedServices.reduce((total, s) => {
     const selAddons = svcAddonsSel[s.id] || [];
-    return total + (svcAddonsMap[s.id] || []).filter((a: any) => selAddons.includes(a.id)).reduce((sum: number, a: any) => sum + Number(a.price), 0);
+    return total + (svcAddonsMap[s.id] || []).filter((a: any) => selAddons.includes(a.id)).reduce((sum: number, a: any) => sum + Number(a.price_min || a.price || 0), 0);
   }, 0);
   const discount = promoApplied
     ? promoApplied.discount_type === "percentage"

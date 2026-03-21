@@ -253,7 +253,7 @@ export default function PublicBooking() {
   const addonTotal = selectedServices.reduce((total, s) => {
     const selAddons = svcAddonsSel[s.id] || [];
     const svcAddons = svcAddonsMap[s.id] || [];
-    return total + svcAddons.filter((a: any) => selAddons.includes(a.id)).reduce((sum: number, a: any) => sum + Number(a.price), 0);
+    return total + svcAddons.filter((a: any) => selAddons.includes(a.id)).reduce((sum: number, a: any) => sum + Number(a.price_min || a.price || 0), 0);
   }, 0);
   const subtotal = basePrice + variantAdj + addonTotal;
   const [promoCode, setPromoCode] = useState("");

@@ -220,18 +220,13 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
+      // Fetch only the id — avoids downloading large gallery_images etc.
       const { data: existing, error: fetchErr } = await (supabase as any)
-        .from("settings").select("*").limit(1).maybeSingle();
+        .from("settings").select("id").limit(1).maybeSingle();
       if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
 
-      // Only save extended fields that exist as columns in the DB
-      const existingKeys = existing ? Object.keys(existing) : [];
-      const safeExtended: any = {};
-      for (const [k, v] of Object.entries(extendedFields)) {
-        if (existing === null || existingKeys.includes(k)) safeExtended[k] = v;
-      }
-
-      const settingsData = { ...coreData, ...safeExtended };
+      // All fields in one payload — Supabase handles unknown columns gracefully
+      const settingsData = { ...coreData, ...extendedFields };
 
       if (existing?.id) {
         const { error } = await (supabase as any)
@@ -239,7 +234,7 @@ export default function Settings() {
         if (error) throw error;
       } else {
         const { error } = await (supabase as any)
-          .from("settings").insert([coreData]);
+          .from("settings").insert([settingsData]);
         if (error) throw error;
       }
 
