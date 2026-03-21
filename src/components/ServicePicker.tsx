@@ -226,7 +226,7 @@ export default function ServicePicker({
                                     <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 600, color: TXT }}>{a.name}</span>
                                   </div>
                                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap", marginLeft: 8 }}>
-                                    +GHS {Number(a.price).toLocaleString()}
+                                    +GHS {a.price_min && a.price_max ? `${Number(a.price_min).toLocaleString()} – ${Number(a.price_max).toLocaleString()}` : Number(a.price).toLocaleString()}
                                   </span>
                                 </label>
                               );

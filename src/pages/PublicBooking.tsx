@@ -830,7 +830,7 @@ export default function PublicBooking() {
                                         </div>
                                       </div>
                                       <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap", marginLeft: "12px" }}>
-                                        +GHS {Number(a.price).toLocaleString()}
+                                        +GHS {a.price_min && a.price_max ? `${Number(a.price_min).toLocaleString()} – ${Number(a.price_max).toLocaleString()}` : Number(a.price).toLocaleString()}
                                       </span>
                                     </label>
                                   );
@@ -1034,7 +1034,7 @@ export default function PublicBooking() {
               }).map(a => (
                 <div key={a.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "10px" }}>
                   <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.1em" }}>+ {a.name}</span>
-                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#C4B5FD" }}>+GHS {Number(a.price).toLocaleString()}</span>
+                  <span style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 600, color: "#C4B5FD" }}>+GHS {a.price_min && a.price_max ? `${Number(a.price_min).toLocaleString()} – ${Number(a.price_max).toLocaleString()}` : Number(a.price).toLocaleString()}</span>
                 </div>
               ))}
               {promoDiscount > 0 && (
