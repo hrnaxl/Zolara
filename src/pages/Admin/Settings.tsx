@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { BusinessInfoSection } from "@/components/settings/BusinessInfoSection";
@@ -183,7 +182,7 @@ export default function Settings() {
 
       const payload: any = {
         business_name: settings.business_name,
-        logo_url: (logoUrl || settings.logo_url || null),
+        logo_url: logoUrl || settings.logo_url || null,
         open_time: settings.open_time,
         close_time: settings.close_time,
         currency: settings.currency,
@@ -218,17 +217,15 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      // Get id first using the regular (already-authenticated) client
-      const { data: rowCheck } = await (supabase as any)
+      const { data: row, error: rowErr } = await (supabase as any)
         .from("settings").select("id").limit(1).maybeSingle();
 
-      if (rowCheck?.id) {
-        // Update via supabaseAdmin (service role, bypasses RLS)
-        const { error } = await (supabaseAdmin as any)
-          .from("settings").update(payload).eq("id", rowCheck.id);
+      if (row?.id) {
+        const { error } = await (supabase as any)
+          .from("settings").update(payload).eq("id", row.id);
         if (error) throw new Error(error.message);
       } else {
-        const { error } = await (supabaseAdmin as any)
+        const { error } = await (supabase as any)
           .from("settings").insert([payload]);
         if (error) throw new Error(error.message);
       }
@@ -242,12 +239,13 @@ export default function Settings() {
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
       console.error("Settings save error:", err);
-      const msg = err?.message || "Save failed";
-      toast.error(msg.length > 80 ? msg.slice(0, 80) + "…" : msg);
+      toast.error(err?.message || "Save failed");
     } finally {
       setSaving(false);
     }
   }
+
+
 
 
 
