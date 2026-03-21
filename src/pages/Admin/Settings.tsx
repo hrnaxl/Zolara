@@ -179,15 +179,12 @@ export default function Settings() {
     setSaving(true);
     try {
       const logoUrl = await uploadLogo();
-
-      // Build payload — explicitly exclude anything that could be large (gallery_images, base64 data)
-      const logoToSave = (logoUrl || settings.logo_url || "");
-      // Never store base64 data URLs in settings — only store CDN URLs
-      const safeLogoUrl = logoToSave.startsWith("data:") ? (settings.logo_url || null) : (logoToSave || null);
+      const safeLogoUrl = (logoUrl && !logoUrl.startsWith("data:")) ? logoUrl
+        : (!settings.logo_url?.startsWith("data:") ? settings.logo_url : null);
 
       const payload: any = {
         business_name: settings.business_name || "",
-        logo_url: safeLogoUrl,
+        logo_url: safeLogoUrl || null,
         open_time: settings.open_time || "08:30",
         close_time: settings.close_time || "21:00",
         currency: settings.currency || "GH₵",
@@ -204,7 +201,7 @@ export default function Settings() {
         staff_roles: settings.staff_roles || [],
         staff_specialties: (settings as any).staff_specialties || [],
         gift_card_prices: (settings as any).gift_card_prices || {},
-        landing_sections: (settings as any).landing_sections || { show_gift_cards: true, show_subscriptions: false },
+        landing_sections: (settings as any).landing_sections || { show_gift_cards: true },
         promo_banner: (settings as any).promo_banner || null,
         announcement: (settings as any).announcement || null,
         business_phone_2: (settings as any).business_phone_2 || "",
@@ -219,49 +216,31 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot || 6),
       };
 
-      // Debug: show payload size
-      const payloadJson = JSON.stringify(payload);
-      const sizeKB = Math.round(payloadJson.length / 1024);
-      if (sizeKB > 100) {
-        // Find the largest field
-        let bigField = "";
-        let bigSize = 0;
-        for (const [k, v] of Object.entries(payload)) {
-          const s = JSON.stringify(v).length;
-          if (s > bigSize) { bigSize = s; bigField = k; }
-        }
-        toast.error(`Payload too large (${sizeKB}KB). Biggest field: ${bigField} (${Math.round(bigSize/1024)}KB)`);
-        setSaving(false);
-        return;
-      }
+      const res = await fetch("/api/save-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      const { data: row } = await (supabase as any)
-        .from("settings").select("id").limit(1).maybeSingle();
-
-      if (row?.id) {
-        const { error } = await (supabase as any)
-          .from("settings").update(payload).eq("id", row.id);
-        if (error) throw new Error("Update failed: " + error.message + " (code: " + error.code + ")");
-      } else {
-        const { error } = await (supabase as any)
-          .from("settings").insert([payload]);
-        if (error) throw new Error("Insert failed: " + error.message + " (code: " + error.code + ")");
-      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       toast.success("Settings saved");
       setLogoFile(null);
       const gcPrices: Record<string,number> = {};
       for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
-      const merged = { ...settings, ...payload, logo_url: safeLogoUrl || settings.logo_url, gift_card_prices: gcPrices };
+      const merged = { ...settings, ...payload, gift_card_prices: gcPrices };
       setSettings(merged as any);
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
       console.error("Settings save error:", err);
-      toast.error(String(err?.message || err) || "Save failed");
+      toast.error(String(err?.message || "Save failed"));
     } finally {
       setSaving(false);
     }
   }
+
+
 
 
 
