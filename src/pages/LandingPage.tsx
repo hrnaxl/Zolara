@@ -128,8 +128,9 @@ export default function LandingPage() {
   const dark = "#1C160E";
   const mid = "#EDE3D5";
 
-  // Compute live open/closed status
+  // Compute live open/closed status — null means settings not loaded yet (show nothing)
   const isOpenNow = (() => {
+    if (salonSettings === null) return null; // not loaded yet — don't flash open
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD in UTC, use local
     const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -464,15 +465,15 @@ export default function LandingPage() {
               <span style={{ fontSize: "10.5px", letterSpacing: "0.22em", color: gold, fontWeight: 700 }}>TAMALE'S FINEST BEAUTY STUDIO</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "7px",
-              background: isOpenNow ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.10)",
-              border: isOpenNow ? "1px solid rgba(74,222,128,0.35)" : "1px solid rgba(239,68,68,0.3)",
+              background: isOpenNow === null ? "transparent" : isOpenNow ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.10)",
+              border: isOpenNow === null ? "none" : isOpenNow ? "1px solid rgba(74,222,128,0.35)" : "1px solid rgba(239,68,68,0.3)",
               borderRadius: "100px", padding: "4px 12px" }}>
               <div style={{ width: 7, height: 7, borderRadius: "50%",
-                background: isOpenNow ? "#16a34a" : "#dc2626",
-                boxShadow: isOpenNow ? "0 0 0 2px rgba(22,163,74,0.25)" : "none" }} />
+                background: isOpenNow === null ? "transparent" : isOpenNow ? "#16a34a" : "#dc2626",
+                boxShadow: isOpenNow === null ? "none" : isOpenNow ? "0 0 0 2px rgba(22,163,74,0.25)" : "none" }} />
               <span className="sans" style={{ fontSize: "9px", letterSpacing: "0.15em",
-                color: isOpenNow ? "#15803d" : "#dc2626", fontWeight: 700 }}>
-                {isOpenNow ? "NOW OPEN" : "CLOSED"}
+                color: isOpenNow === null ? "transparent" : isOpenNow ? "#15803d" : "#dc2626", fontWeight: 700 }}>
+                {isOpenNow === null ? "..." : isOpenNow ? "NOW OPEN" : "CLOSED"}
               </span>
             </div>
           </div>
