@@ -183,7 +183,7 @@ export default function Settings() {
 
       const payload: any = {
         business_name: settings.business_name,
-        logo_url: logoUrl ?? settings.logo_url ?? null,
+        logo_url: (logoUrl || settings.logo_url || null),
         open_time: settings.open_time,
         close_time: settings.close_time,
         currency: settings.currency,
@@ -218,13 +218,14 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      // Use service-role client — bypasses RLS, identical to how GiftCards saves
-      const { data: row } = await (supabaseAdmin as any)
+      // Get id first using the regular (already-authenticated) client
+      const { data: rowCheck } = await (supabase as any)
         .from("settings").select("id").limit(1).maybeSingle();
 
-      if (row?.id) {
+      if (rowCheck?.id) {
+        // Update via supabaseAdmin (service role, bypasses RLS)
         const { error } = await (supabaseAdmin as any)
-          .from("settings").update(payload).eq("id", row.id);
+          .from("settings").update(payload).eq("id", rowCheck.id);
         if (error) throw new Error(error.message);
       } else {
         const { error } = await (supabaseAdmin as any)
@@ -241,7 +242,8 @@ export default function Settings() {
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
       console.error("Settings save error:", err);
-      toast.error(err?.message || "Save failed");
+      const msg = err?.message || "Save failed";
+      toast.error(msg.length > 80 ? msg.slice(0, 80) + "…" : msg);
     } finally {
       setSaving(false);
     }

@@ -27,6 +27,7 @@ import NotFound from "./pages/Admin/NotFound";
 import Attendance from "./pages/Admin/Attendance";
 import AttendanceReports from "./pages/Admin/AttendanceReports";
 import Checkout from "./pages/Admin/Checkout";
+import AddonsPage from "./pages/Admin/Addons";
 import GiftCards from "./pages/Admin/GiftCards";
 import PromoGiftCards from "./pages/Admin/PromoGiftCards";
 
@@ -101,6 +102,7 @@ const App = () => (
               <Route path="/app/admin/dashboard" element={<AdminLayout />} />
               <Route path="/app/admin/bookings" element={<Bookings />} />
               <Route path="/app/admin/checkout" element={<Checkout />} />
+              <Route path="/app/admin/addons" element={<AddonsPage />} />
               <Route path="/app/admin/services" element={<Services />} />
               <Route path="/app/admin/clients" element={<Clients />} />
               <Route path="/app/admin/staff" element={<Staff />} />
@@ -135,6 +137,7 @@ const App = () => (
               <Route path="/app/receptionist/promo-gift-cards" element={<PromoGiftCards />} />
               <Route path="/app/receptionist/checkout" element={<Checkout />} />
               <Route path="/app/receptionist/attendance" element={<Attendance />} />
+              <Route path="/app/receptionist/addons" element={<AddonsPage />} />
               <Route path="/app/receptionist/services" element={<ViewServices />} />
               <Route path="/app/receptionist/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/receptionist/loyalty" element={<Loyalty />} />
