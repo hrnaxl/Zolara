@@ -8,6 +8,7 @@ export const getAddons = async () => {
 
 export const createAddon = async (addon: {
   name: string; description?: string; price: number;
+  price_min?: number | null; price_max?: number | null;
   duration_minutes?: number; category?: string; display_order?: number;
 }) => {
   const { data, error } = await supabase.from("addons").insert(addon).select().single();
@@ -15,7 +16,7 @@ export const createAddon = async (addon: {
   return data;
 };
 
-export const updateAddon = async (id: string, updates: Partial<{ name: string; description: string; price: number; duration_minutes: number; category: string; is_active: boolean; display_order: number }>) => {
+export const updateAddon = async (id: string, updates: Partial<{ name: string; description: string; price: number; price_min: number | null; price_max: number | null; duration_minutes: number; category: string; is_active: boolean; display_order: number }>) => {
   const { error } = await supabase.from("addons").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) throw error;
 };
