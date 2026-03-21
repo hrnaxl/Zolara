@@ -947,7 +947,7 @@ const AdminDashboard = () => {
         ))}
       </div>
       {/* ── GIFT CARD PANEL ──────────────────────────────── */}
-      {(stats.giftCardLiability > 0 || stats.giftCardsSoldCount > 0 || stats.giftCardsRedeemedCount > 0) && (
+      {(
         <div style={{ background:"linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
           <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(199,210,254,0.5)", textTransform:"uppercase", margin:"0 0 14px" }}>◆ GIFT CARDS</p>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
