@@ -216,10 +216,19 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot || 6),
       };
 
+      const bodyStr = JSON.stringify(payload);
+      // Show exact sizes to diagnose 413
+      const fieldSizes = Object.entries(payload).map(([k,v]) => 
+        `${k}:${JSON.stringify(v).length}`
+      ).sort((a,b) => Number(b.split(":")[1]) - Number(a.split(":")[1])).slice(0,5).join(" | ");
+      console.error("PAYLOAD SIZE:", bodyStr.length, "bytes | TOP FIELDS:", fieldSizes);
+      toast.info(`Payload: ${bodyStr.length} bytes | ${fieldSizes}`);
+      return; // STOP HERE - don't actually send yet
+
       const res = await fetch("/api/save-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: bodyStr,
       });
 
       const data = await res.json().catch(() => ({}));
