@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 import { BusinessInfoSection } from "@/components/settings/BusinessInfoSection";
@@ -180,20 +181,17 @@ export default function Settings() {
     try {
       const logoUrl = await uploadLogo();
 
-      const coreData: any = {
+      const payload: any = {
         business_name: settings.business_name,
-        logo_url: logoUrl,
+        logo_url: logoUrl ?? settings.logo_url ?? null,
         open_time: settings.open_time,
         close_time: settings.close_time,
         currency: settings.currency,
-        business_phone: settings.business_phone,
-        business_email: settings.business_email,
-        business_address: settings.business_address,
-        payment_methods: settings.payment_methods,
+        business_phone: settings.business_phone ?? "",
+        business_email: settings.business_email ?? "",
+        business_address: settings.business_address ?? "",
+        payment_methods: settings.payment_methods ?? [],
         deposit_amount: Number(settings.deposit_amount ?? 50),
-      };
-
-      const extendedFields: Record<string, any> = {
         closed_dates: settings.closed_dates ?? [],
         loyalty_stamp_per_ghs: Number(settings.loyalty_stamp_per_ghs ?? 100),
         loyalty_stamps_for_reward: Number(settings.loyalty_stamps_for_reward ?? 20),
@@ -220,38 +218,36 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot ?? 6),
       };
 
-      // Fetch only the id — avoids downloading large gallery_images etc.
-      const { data: existing, error: fetchErr } = await (supabase as any)
+      // Use service-role client — bypasses RLS, identical to how GiftCards saves
+      const { data: row } = await (supabaseAdmin as any)
         .from("settings").select("id").limit(1).maybeSingle();
-      if (fetchErr && fetchErr.code !== "PGRST116") throw fetchErr;
 
-      // All fields in one payload — Supabase handles unknown columns gracefully
-      const settingsData = { ...coreData, ...extendedFields };
-
-      if (existing?.id) {
-        const { error } = await (supabase as any)
-          .from("settings").update(settingsData).eq("id", existing.id);
-        if (error) throw error;
+      if (row?.id) {
+        const { error } = await (supabaseAdmin as any)
+          .from("settings").update(payload).eq("id", row.id);
+        if (error) throw new Error(error.message);
       } else {
-        const { error } = await (supabase as any)
-          .from("settings").insert([settingsData]);
-        if (error) throw error;
+        const { error } = await (supabaseAdmin as any)
+          .from("settings").insert([payload]);
+        if (error) throw new Error(error.message);
       }
 
       toast.success("Settings saved");
       setLogoFile(null);
       const gcPrices: Record<string,number> = {};
-      for (const [k,v] of Object.entries(settingsData.gift_card_prices || {})) gcPrices[k] = Number(v);
-      const merged = { ...settings, ...settingsData, logo_url: logoUrl || settings.logo_url, gift_card_prices: gcPrices };
+      for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
+      const merged = { ...settings, ...payload, logo_url: logoUrl || settings.logo_url, gift_card_prices: gcPrices };
       setSettings(merged as any);
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
       console.error("Settings save error:", err);
-      toast.error(err?.message || "Failed to save settings");
+      toast.error(err?.message || "Save failed");
     } finally {
       setSaving(false);
     }
-  };;;;;;;
+  }
+
+
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: CREAM }}>
