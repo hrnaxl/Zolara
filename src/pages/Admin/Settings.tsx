@@ -216,19 +216,19 @@ export default function Settings() {
         max_bookings_per_slot: Number((settings as any).max_bookings_per_slot || 6),
       };
 
-      const bodyStr = JSON.stringify(payload);
-      // Show exact sizes to diagnose 413
-      const fieldSizes = Object.entries(payload).map(([k,v]) => 
-        `${k}:${JSON.stringify(v).length}`
-      ).sort((a,b) => Number(b.split(":")[1]) - Number(a.split(":")[1])).slice(0,5).join(" | ");
-      console.error("PAYLOAD SIZE:", bodyStr.length, "bytes | TOP FIELDS:", fieldSizes);
-      toast.info(`Payload: ${bodyStr.length} bytes | ${fieldSizes}`);
-      return; // STOP HERE - don't actually send yet
+      // Sanitise payment_methods — only keep known valid entries, discard any corrupt data
+      const VALID_PM_IDS = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
+      const VALID_PM_NAMES: Record<string,string> = { cash:"Cash", mobile_money:"Mobile Money", card:"Card", bank_transfer:"Bank Transfer", gift_card:"Gift Card" };
+      const rawMethods = Array.isArray(payload.payment_methods) ? payload.payment_methods : [];
+      payload.payment_methods = VALID_PM_IDS.map(id => {
+        const existing = rawMethods.find((m:any) => m?.id === id);
+        return { id, name: VALID_PM_NAMES[id], enabled: existing ? !!existing.enabled : (id === "cash" || id === "mobile_money" || id === "gift_card") };
+      });
 
       const res = await fetch("/api/save-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: bodyStr,
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json().catch(() => ({}));
