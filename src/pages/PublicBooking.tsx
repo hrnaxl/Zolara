@@ -9,6 +9,7 @@ import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { openPaystackPopup } from "@/lib/payment";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeNotes } from "@/lib/sanitize";
 import { useSettings } from "@/context/SettingsContext";
 import AmandaWidget from "@/components/AmandaWidget";
 
@@ -319,7 +320,13 @@ export default function PublicBooking() {
         appliedPromo ? `Promo code applied: ${appliedPromo.code} (${appliedPromo.discount_type === "percentage" ? appliedPromo.discount_value + "%" : "GHS " + appliedPromo.discount_value} off, saved GHS ${promoDiscount.toFixed(0)})` : null,
       ].filter(Boolean).join("\n");
 
-      // 1. Insert booking as pending BEFORE opening payment popup
+      // Sanitize inputs before submission
+    name = sanitizeName(name);
+    phone = sanitizePhone(phone);
+    email = sanitizeEmail(email);
+    notes = sanitizeNotes(notes);
+
+    // 1. Insert booking as pending BEFORE opening payment popup
       const { error: bookingError } = await supabase
         .from("bookings")
         .insert({

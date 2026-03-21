@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { sanitizePromoCode } from "@/lib/sanitize";
 import { getPromoCodes, createPromoCode, updatePromoCode, deletePromoCode } from "@/lib/promoCodes";
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
@@ -95,7 +96,7 @@ export default function PromoCodesManagement() {
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"14px",marginBottom:"14px" }}>
             <div>
               <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Code *</label>
-              <input value={form.code} onChange={e=>setForm(f=>({...f,code:e.target.value.toUpperCase()}))} style={{ ...inp,fontFamily:"'Courier New',monospace",fontWeight:700,letterSpacing:"0.12em" }} placeholder="e.g. SAVE20" />
+              <input value={form.code} onChange={e=>setForm(f=>({...f,code:sanitizePromoCode(e.target.value)}))} style={{ ...inp,fontFamily:"'Courier New',monospace",fontWeight:700,letterSpacing:"0.12em" }} placeholder="e.g. SAVE20" />
             </div>
             <div>
               <label style={{ fontSize:"11px",fontWeight:600,color:TXT_SOFT,textTransform:"uppercase",letterSpacing:"0.1em",display:"block",marginBottom:"6px" }}>Discount Type</label>

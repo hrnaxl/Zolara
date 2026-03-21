@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Loader2, Calendar, Clock, User, Sparkles, CreditCard, Banknote, Smartphone, Building, CheckCircle2, ArrowLeft, Receipt, UserCheck, Search } from "lucide-react";
 import { format } from "date-fns";
 import { sendSMS, SMS } from "@/lib/sms";
+import { sanitizeNotes, sanitizePromoCode } from "@/lib/sanitize";
 import LineItemsPanel from "@/components/checkout/LineItemsPanel";
 
 type PaymentMethod = "cash" | "mobile_money" | "card" | "bank_transfer" | "gift_card";
@@ -282,6 +283,9 @@ const Checkout = () => {
 
   const handleRedeemGiftCard = async () => {
     if (!booking) return;
+    // Sanitize inputs
+    if (notes) setNotes(sanitizeNotes(notes));
+    if (promoCode) setPromoCode(sanitizePromoCode(promoCode));
     if (!giftCode || !giftCode.trim()) { toast.error("Enter a gift card code"); return; }
     if (!selectedStaff) { toast.error("Assign a staff member before redeeming"); return; }
     setRedeeming(true);

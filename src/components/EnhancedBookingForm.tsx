@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { autoAssignBooking } from "@/lib/autoAssign";
 import { sendSMS, SMS } from "@/lib/sms";
 import { validatePromoCode } from "@/lib/promoCodes";
+import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeNotes, sanitizePromoCode } from "@/lib/sanitize";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
@@ -62,15 +63,15 @@ export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => v
   const [step, setStep]           = useState<1|2|3>(1);
 
   // Step 1 — personal
-  const [name, setName]   = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [nameRaw, setName]   = useState("");
+  const [phoneRaw, setPhone] = useState("");
+  const [emailRaw, setEmail] = useState("");
 
   // Step 2 — service + datetime
   const [serviceIds, setServiceIds]   = useState<string[]>([]);
   const [preferredDate, setDate]      = useState("");
   const [preferredTime, setTime]      = useState("");
-  const [notes, setNotes]             = useState("");
+  const [notesRaw, setNotes]             = useState("");
 
   // Step 3 — promo + payment
   const [promoCode, setPromoCode]     = useState("");
@@ -188,6 +189,11 @@ export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => v
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      // Sanitize all user inputs before processing
+      const name = sanitizeName(nameRaw);
+      const phone = sanitizePhone(phoneRaw);
+      const email = sanitizeEmail(emailRaw);
+      const notes = sanitizeNotes(notesRaw);
       const normalizedTime = normalizeTimeTo24(preferredTime);
       const day = new Date(`${preferredDate}T00:00:00`).getDay();
       if (day === 0) { toast.error("We are closed on Sundays."); return; }

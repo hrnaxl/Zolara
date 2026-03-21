@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendGiftCardEmail, sendPickupReceiptEmail, sendPurchaseReceiptEmail } from "@/lib/email";
 import { openPaystackPopup } from "@/lib/payment";
 import { toast } from "sonner";
+import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeNotes } from "@/lib/sanitize";
 
 const G = "#B8975A";
 const CREAM = "#FAFAF8";
@@ -78,6 +79,16 @@ export default function BuyGiftCard() {
   // Effective config — either standard tier or promo type
 
   const handleProceed = () => {
+    // Sanitize inputs
+    setForm(f => ({
+      ...f,
+      buyerName: sanitizeName(f.buyerName),
+      buyerPhone: sanitizePhone(f.buyerPhone),
+      buyerEmail: sanitizeEmail(f.buyerEmail),
+      recipientName: sanitizeName(f.recipientName),
+      recipientEmail: sanitizeEmail(f.recipientEmail),
+      message: sanitizeNotes(f.message),
+    }));
     if (!form.buyerName || !form.buyerPhone) { toast.error("Enter your name and phone number"); return; }
     if (!form.buyerEmail) { toast.error("Enter your email address — we'll send you a purchase receipt"); return; }
     if (deliveryType === "email" && (!form.recipientName || !form.recipientEmail)) {

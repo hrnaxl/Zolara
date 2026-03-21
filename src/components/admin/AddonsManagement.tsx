@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAddons, createAddon, updateAddon, deleteAddon } from "@/lib/addons";
+import { sanitizeText } from "@/lib/sanitize";
 import { toast } from "sonner";
 
 const GOLD = "#C8A97E", G_D = "#8B6914", G_L = "#FDF6E3";
@@ -59,8 +60,8 @@ export default function AddonsManagement() {
     setSaving(true);
     try {
       await createAddon({
-        name: form.name.trim(),
-        description: form.description.trim(),
+        name: sanitizeText(form.name),
+        description: sanitizeText(form.description),
         category: form.category,
         price,
         ...(price_min !== null ? { price_min, price_max } : { price_min: null, price_max: null }),

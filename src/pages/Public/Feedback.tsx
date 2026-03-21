@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sanitizeName, sanitizeNotes } from "@/lib/sanitize";
 import { Link } from "react-router-dom";
 
 const G = "#C8A97E", G_D = "#8B6914", NAVY = "#0F1E35", CREAM = "#FAFAF8";
@@ -20,7 +21,7 @@ export default function Feedback() {
     if (!comment.trim()) { toast.error("Please write a short review"); return; }
     setSubmitting(true);
     const { error } = await (supabase as any).from("reviews").insert({
-      name: name.trim(), rating, comment: comment.trim(), visible: false,
+      name: sanitizeName(name), rating, comment: sanitizeNotes(comment), visible: false,
     });
     if (error) { toast.error("Failed to submit. Please try again."); setSubmitting(false); return; }
     setDone(true);
