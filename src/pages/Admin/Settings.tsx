@@ -43,7 +43,7 @@ const defaultSettings: Settings = {
   loyalty_stamp_per_ghs: 100, loyalty_stamps_for_reward: 20, loyalty_reward_discount: 50,
 };
 
-type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "promo" | "rules" | "social" | "announcement" | "data";
+type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "promo" | "rules" | "social" | "announcement" | "reviews" | "data";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "business",   label: "Business",        icon: Building2 },
@@ -56,6 +56,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "rules",      label: "Business Rules",   icon: Wrench },
   { id: "social",     label: "Social & Contact", icon: Users },
   { id: "announcement", label: "Announcement",   icon: Star },
+  { id: "reviews",    label: "Reviews",          icon: Star },
   { id: "data",       label: "Data",             icon: Database },
 ];
 
@@ -333,7 +334,22 @@ export default function Settings() {
 
         {tab("payments", <PaymentMethodsSection
           paymentMethods={settings.payment_methods}
-          onPaymentMethodToggle={(id, enabled) => setSettings(p => ({ ...p, payment_methods: p.payment_methods.map(m => m.id === id ? { ...m, enabled } : m) }))}
+          onPaymentMethodToggle={async (id, enabled) => {
+            const updated = settings.payment_methods.map(m => m.id === id ? { ...m, enabled } : m);
+            setSettings(p => ({ ...p, payment_methods: updated }));
+            // Auto-save immediately so toggle persists without clicking Save
+            const VALID_PM_IDS = ["cash","mobile_money","card","bank_transfer","gift_card"];
+            const VALID_PM_NAMES: Record<string,string> = { cash:"Cash", mobile_money:"Mobile Money", card:"Card", bank_transfer:"Bank Transfer", gift_card:"Gift Card" };
+            const sanitized = VALID_PM_IDS.map(pmId => {
+              const ex = updated.find((m:any) => m?.id === pmId);
+              return { id: pmId, name: VALID_PM_NAMES[pmId], enabled: ex ? !!ex.enabled : (pmId === "cash" || pmId === "mobile_money" || pmId === "gift_card") };
+            });
+            await fetch("/api/save-settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ payment_methods: sanitized }),
+            });
+          }}
         />)}
 
         {tab("categories", (
@@ -664,9 +680,10 @@ export default function Settings() {
           </div>
         ))}
 
+        {tab("reviews", <ReviewsSettingsSection settingsId={settings.id} />)}
+
         {tab("data", (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <ReviewsSettingsSection settingsId={settings.id} />
             <DataManagementSection />
             <BackupRestoreSection settings={settings} onRestore={(r) => setSettings({ ...defaultSettings, ...r, payment_methods: r.payment_methods })} />
           </div>

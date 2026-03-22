@@ -1211,44 +1211,59 @@ const AdminDashboard = () => {
         </div>
 
         <div className="zc-flat au" style={{ animationDelay:"0.78s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>PERFORMANCE</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"20px" }}>Top Staff · {filterLabel}</div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"20px" }}>
+            <div>
+              <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"4px" }}>PERFORMANCE</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT }}>Top Staff · {filterLabel}</div>
+            </div>
+            {topStaff.length > 0 && (
+              <div style={{ textAlign:"right" }}>
+                <div style={{ fontSize:"9px", color: TXT_SOFT, marginBottom:"2px" }}>Top earner</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"16px", fontWeight:700, color:"#8B6914" }}>GHS {(topStaff[0]?.revenue||0).toLocaleString()}</div>
+              </div>
+            )}
+          </div>
           {topStaff.length === 0
-            ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>No staff data yet</div>
+            ? <div style={{ padding:"32px 0", textAlign:"center" }}>
+                <div style={{ fontSize:"28px", marginBottom:"8px" }}>👥</div>
+                <div style={{ fontSize:"12px", color: TXT_SOFT }}>No completed bookings yet</div>
+              </div>
             : topStaff.slice(0, 5).map((s: any, i: number) => {
                 const maxRev = topStaff.slice(0,5).reduce((mx: number, x: any) => Math.max(mx, x.revenue || 0), 1);
-                const medals = ["🥇","🥈","🥉"];
-                const rankBg = i === 0 ? "linear-gradient(135deg,#C8A97E,#8B6914)" : i === 1 ? "#F0F0F0" : i === 2 ? "#FDE8D0" : "#F5F5F5";
-                const rankBorder = i === 0 ? "#C8A97E" : i === 1 ? "#D0D0D0" : i === 2 ? "#F0B080" : "#E0E0E0";
-                const rankText = i === 0 ? "#fff" : i === 1 ? "#5C5C5C" : i === 2 ? "#8B4513" : "#78716C";
-                const barColor = i === 0 ? "linear-gradient(90deg,#8B6914,#C8A97E)" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#D0CCC8";
                 const pct = Math.round(((s.revenue || 0) / maxRev) * 100);
+                const isTop = i === 0;
+                const medals = ["🥇","🥈","🥉"];
+                const initials = (s.name||"?").split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
+                const avatarBg = isTop ? "linear-gradient(135deg,#C8A97E,#8B6914)"
+                  : i === 1 ? "linear-gradient(135deg,#D0D0D0,#A0A0A0)"
+                  : i === 2 ? "linear-gradient(135deg,#F0B080,#CD7F32)"
+                  : G_LIGHT;
+                const avatarText = i < 3 ? "#fff" : "#8B6914";
                 return (
-                  <div key={s.id || i} style={{ marginBottom: i < Math.min(topStaff.length, 5) - 1 ? "14px" : 0 }}>
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                        <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: rankBg, border:`1.5px solid ${rankBorder}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize: i < 3 ? "13px" : "11px", fontWeight:700, color: rankText, flexShrink:0 }}>
-                          {i < 3 ? medals[i] : i + 1}
-                        </div>
-                        <div>
-                          <div style={{ fontSize:"13px", fontWeight:700, color: TXT, lineHeight:1.2 }}>{s.name}</div>
-                          {s.specialization && <div style={{ fontSize:"9px", color: TXT_SOFT, letterSpacing:"0.08em", textTransform:"uppercase", marginTop:"1px" }}>{s.specialization}</div>}
-                        </div>
+                  <div key={s.id || i} style={{ marginBottom: i < Math.min(topStaff.length,5)-1 ? "16px" : 0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"6px" }}>
+                      {/* Avatar with initials */}
+                      <div style={{ width:"36px", height:"36px", borderRadius:"50%", background: avatarBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"12px", fontWeight:700, color: avatarText, position:"relative" }}>
+                        {initials}
+                        {i < 3 && <span style={{ position:"absolute", top:"-4px", right:"-4px", fontSize:"10px", lineHeight:1 }}>{medals[i]}</span>}
                       </div>
-                      <div style={{ textAlign:"right", flexShrink:0, marginLeft:"8px" }}>
-                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 0 ? "#8B6914" : TXT, lineHeight:1 }}>GHS {(s.revenue || 0).toLocaleString()}</div>
-                        <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>{s.bookings} booking{s.bookings !== 1 ? "s" : ""}</div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:"4px" }}>
+                          <div style={{ fontSize:"13px", fontWeight:700, color: TXT, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</div>
+                          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"16px", fontWeight:700, color: isTop ? "#8B6914" : TXT, flexShrink:0, marginLeft:"8px" }}>GHS {(s.revenue||0).toLocaleString()}</div>
+                        </div>
+                        {/* Bar */}
+                        <div style={{ height:"3px", background: BORDER, borderRadius:"2px", overflow:"hidden" }}>
+                          <div style={{ height:"100%", width: pct+"%", borderRadius:"2px", transition:"width 0.9s ease",
+                            background: isTop ? "linear-gradient(90deg,#8B6914,#C8A97E)" : i===1 ? "#B0B0B0" : i===2 ? "#CD7F32" : "#D5D0CB" }} />
+                        </div>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginTop:"3px" }}>
+                          <div style={{ fontSize:"9px", color: TXT_SOFT }}>{s.bookings} booking{s.bookings!==1?"s":""}</div>
+                          {s.bookings > 0 && <div style={{ fontSize:"9px", color: TXT_SOFT }}>avg GHS {Math.round((s.revenue||0)/s.bookings).toLocaleString()}</div>}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ height:"4px", background: BORDER, borderRadius:"2px", overflow:"hidden" }}>
-                      <div style={{ height:"100%", width: pct + "%", background: barColor, borderRadius:"2px", transition:"width 0.8s ease" }} />
-                    </div>
-                    {s.bookings > 0 && (
-                      <div style={{ fontSize:"9px", color: TXT_SOFT, marginTop:"4px", textAlign:"right" }}>
-                        avg GHS {Math.round((s.revenue || 0) / s.bookings).toLocaleString()} / booking
-                      </div>
-                    )}
-                    {i < Math.min(topStaff.length, 5) - 1 && <div style={{ borderTop:`1px solid ${BORDER}`, marginTop:"10px" }} />}
+                    {i < Math.min(topStaff.length,5)-1 && <div style={{ borderTop:`1px solid ${BORDER}`, marginTop:"12px" }} />}
                   </div>
                 );
               })
