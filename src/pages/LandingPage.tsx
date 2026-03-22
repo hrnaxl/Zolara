@@ -577,7 +577,6 @@ export default function LandingPage() {
             const remaining = Math.max(0, maxSlots - taken);
             const urgencyColor = pct >= 80 ? "#DC2626" : pct >= 60 ? "#D97706" : "#16A34A";
             const urgencyLabel = pct >= 80 ? "Almost Full" : pct >= 60 ? "Filling Fast" : "Slots Available";
-            if (taken === 0) return null;
             return (
               <div className="fade-up delay-3" style={{ marginBottom: "28px", padding: "16px 20px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderLeft: "3px solid #8B6914", borderRadius: "4px", maxWidth: 400 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
