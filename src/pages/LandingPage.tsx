@@ -571,8 +571,8 @@ export default function LandingPage() {
             A sanctuary crafted for women who demand the finest. Every appointment at Zolara is a ritual, every stylist an artist, every result extraordinary.
           </p>
 
-          {/* URGENCY CARD */}
-          {(() => {
+          {/* URGENCY CARD — hidden on Sundays */}
+          {new Date().getDay() !== 0 && (() => {
             const maxPerDay = salonSettings?.max_bookings_per_slot || 6;
             const remaining = Math.max(0, maxPerDay - todayBookings);
             const braidingRemaining = Math.max(0, Math.ceil(maxPerDay * 0.4) - todayBraidingBookings);
