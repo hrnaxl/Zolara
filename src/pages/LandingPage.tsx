@@ -40,6 +40,8 @@ export default function LandingPage() {
   const [reviewVisible, setReviewVisible] = useState(false);
   const [expVisible, setExpVisible] = useState(false);
   const [visitVisible, setVisitVisible] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [pageLoaded, setPageLoaded] = useState(false);
   const visitRef = useRef<HTMLDivElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [salonSettings, setSalonSettings] = useState<any>(null);
@@ -62,9 +64,19 @@ export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 40);
+      const el = document.documentElement;
+      const progress = (el.scrollTop) / (el.scrollHeight - el.clientHeight);
+      setScrollProgress(Math.min(1, Math.max(0, progress)));
+    };
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setPageLoaded(true), 80);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -179,7 +191,9 @@ export default function LandingPage() {
 
 
   return (
-    <div style={{ fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif", background: cream, color: dark, overflowX: "hidden" }}>
+    <div className={"page-fade" + (pageLoaded ? " loaded" : "")} style={{ fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif", background: cream, color: dark, overflowX: "hidden" }}>
+      {/* SCROLL PROGRESS BAR */}
+      <div style={{ position: "fixed", top: 0, left: 0, zIndex: 9999, height: "2px", width: (scrollProgress * 100) + "%", background: "linear-gradient(90deg,#8B6914,#C8A97E,#D4B896)", transition: "width 0.1s linear", pointerEvents: "none" }} />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -241,6 +255,30 @@ export default function LandingPage() {
         .review-card { cursor:default; }
         .review-card:hover { transform:translateY(-6px); box-shadow:0 24px 60px rgba(200,169,126,0.15); border-color:rgba(200,169,126,0.55) !important; }
         .orb-bg { position: absolute; border-radius: 50%; pointer-events: none; }
+        @keyframes pageFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+        .page-fade { opacity:0; }
+        .page-fade.loaded { animation: pageFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }
+        .nav-glass { backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); }
+        .nav-link-item { position:relative; }
+        .nav-link-item::after { content:''; position:absolute; bottom:-3px; left:0; width:0; height:1px; background:#C8A97E; transition:width 0.3s ease; }
+        .nav-link-item:hover::after { width:100%; }
+        .nav-link-item:hover { color:#C8A97E !important; }
+        .section-label { font-size:9px; font-weight:700; letter-spacing:0.28em; color:#C8A97E; text-transform:uppercase; margin-bottom:14px; display:block; }
+        .heading-xl { font-size:clamp(38px,5.5vw,72px); font-weight:400; line-height:0.95; letter-spacing:-0.01em; }
+        .heading-lg { font-size:clamp(30px,4vw,54px); font-weight:400; line-height:1.05; }
+        .body-copy { font-size:14px; line-height:1.95; color:#3D2E1A; font-family:'Montserrat',sans-serif; font-weight:400; }
+        .craft-card { border-top:1px solid rgba(200,169,126,0.18); padding:36px 0; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:24px; transition:background 0.3s,padding 0.3s,margin 0.3s,border-color 0.3s; cursor:pointer; opacity:0; transform:translateY(28px); }
+        .craft-card.craft-visible { animation:craftIn 0.65s cubic-bezier(0.16,1,0.3,1) forwards; }
+        .craft-card:last-child { border-bottom:1px solid rgba(200,169,126,0.18); }
+        .craft-card:hover { background:rgba(200,169,126,0.06); margin:0 -28px; padding:36px 28px; border-radius:6px; border-top-color:transparent; box-shadow:0 4px 32px rgba(200,169,126,0.08); }
+        .craft-card:hover+.craft-card { border-top-color:transparent; }
+        .craft-num { font-size:clamp(42px,5.5vw,72px); font-weight:600; line-height:1; background:linear-gradient(135deg,#8B6914,#C8A97E); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; opacity:0.7; transition:opacity 0.3s; font-family:'Cormorant Garamond',serif; }
+        .craft-card:hover .craft-num { opacity:1; }
+        .craft-arrow { opacity:0; transform:translateX(-10px); transition:all 0.3s ease; }
+        .craft-card:hover .craft-arrow { opacity:1; transform:none; }
+        .craft-tag { display:inline-block; padding:3px 10px; background:rgba(200,169,126,0.12); border:1px solid rgba(200,169,126,0.3); border-radius:20px; font-size:9px; font-weight:700; letter-spacing:0.18em; color:#8B6914; text-transform:uppercase; margin-bottom:8px; transition:background 0.2s,border-color 0.2s; font-family:'Montserrat',sans-serif; }
+        .craft-card:hover .craft-tag { background:linear-gradient(135deg,#8B6914,#C8A97E); border-color:transparent; color:white; }
+        @keyframes craftIn { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:none; } }
         @media (max-width: 768px) {
           .hero-floating-card-wrapper { display: none !important; }
           .landing-experience-grid { grid-template-columns: 1fr !important; }
@@ -251,10 +289,16 @@ export default function LandingPage() {
           .lyl-stamp-grid { grid-template-columns: repeat(4,1fr) !important; }
           .lyl-tier-grid { grid-template-columns: repeat(2,1fr) !important; }
           .svc-db-card { min-width: 0 !important; }
+          .craft-card { grid-template-columns:1fr !important; gap:16px !important; }
+          .visit-cards-visible .visit-card-reveal { animation-duration:0.5s; }
         }
         @media (max-width: 480px) {
           .lyl-stamp-grid { grid-template-columns: repeat(4,1fr) !important; gap: 6px !important; }
           .lyl-stamp-grid > div { height: 30px !important; font-size: 11px !important; }
+          .craft-card:hover { margin:0 !important; padding:20px 0 !important; }
+          .hero-actions-wrap { flex-direction:column !important; }
+          .hero-actions-wrap a { width:100% !important; text-align:center !important; }
+          .exp-moment-grid { grid-template-columns:1fr !important; }
         }
       `}</style>
 
@@ -390,7 +434,7 @@ export default function LandingPage() {
 
         <div className="desktop-nav" style={{ display: "flex", gap: "36px", alignItems: "center" }}>
           {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#subscriptions","PLANS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
-            <a key={label} href={href} className="nav-link sans" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", color: dark, textDecoration: "none" }}>{label}</a>
+            <a key={label} href={href} className="nav-link-item sans" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", color: dark, textDecoration: "none" }}>{label}</a>
           ))}
         </div>
 
@@ -552,7 +596,7 @@ export default function LandingPage() {
             );
           })()}
 
-          <div className="fade-up delay-4" style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+          <div className="fade-up delay-4 hero-actions-wrap" style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
             <Link to="/book" className="btn-primary" style={{
               textDecoration: "none", display: "inline-block",
               fontFamily: "'Montserrat', sans-serif", fontSize: "11px", fontWeight: 700,
@@ -619,7 +663,7 @@ export default function LandingPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "clamp(40px,6vw,72px)", flexWrap: "wrap", gap: 20 }}>
             <div>
               <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "14px" }}>OUR CRAFT</div>
-              <h2 style={{ fontSize: "clamp(36px,5vw,62px)", fontWeight: 400, letterSpacing: "-0.01em", lineHeight: 1 }}>What we <em>do best.</em></h2>
+              <h2 className="heading-xl" style={{ fontWeight: 400, lineHeight: 1 }}>What we <em>do best.</em></h2>
             </div>
             <Link to="/book" className="sans" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.16em", color: goldDark, textDecoration: "none", borderBottom: "1px solid rgba(139,105,20,0.4)", paddingBottom: "2px", transition: "all 0.2s", whiteSpace: "nowrap" }}>
               FULL MENU INSIDE BOOKING →
@@ -668,7 +712,7 @@ export default function LandingPage() {
         <div className="landing-experience-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center", maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div ref={expRef} className={expVisible ? "exp-visible" : ""}>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
-            <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
+            <h2 className="heading-lg" style={{ fontWeight: 400, lineHeight: 1.1, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
             <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", lineHeight: 2, marginBottom: "44px", fontWeight: 400 }}>
               You walk in. Cold water waiting. Your name already known.
               Your stylist ready, products pulled, station prepared.
@@ -801,7 +845,7 @@ export default function LandingPage() {
 
         <div ref={reviewRef} className={reviewVisible ? "review-visible" : ""} style={{ position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>CLIENT STORIES</div>
-          <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, color: cream, marginBottom: "16px" }}>What Our <em>Clients</em> Say</h2>
+          <h2 className="heading-xl" style={{ fontWeight: 400, color: cream, marginBottom: "16px" }}>What Our <em>Clients</em> Say</h2>
           <p className="sans" style={{ fontSize: "14px", color: "rgba(245,239,230,0.55)", maxWidth: "420px", margin: "0 auto 60px", lineHeight: 1.8, fontWeight: 400 }}>
             Real women. Real results. Real luxury.
           </p>
@@ -887,7 +931,7 @@ export default function LandingPage() {
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE PERFECT PRESENT</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,64px)", fontWeight: 400, color: "#F5EFE6", lineHeight: 1.05, marginBottom: "20px" }}>Gift the <em style={{ color: gold }}>Experience</em></h2>
           <p className="sans" style={{ fontSize: "14px", color: "rgba(245,239,230,0.55)", lineHeight: 1.85, maxWidth: "480px", margin: "0 auto 32px", fontWeight: 400 }}>
-            Give someone you love a luxury beauty experience at Zolara. Valid for 12 months. Redeemable for any service.
+            When you do not know what to give, give them a choice. Every Zolara Gift Card is valid for 12 months and redeemable for any service. Buy it now, book it whenever she is ready.
           </p>
           <Link to="/buy-gift-card" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", color: "#fff", background: "linear-gradient(135deg,#8B6914,#C8A97E)", padding: "15px 40px", borderRadius: "1px", boxShadow: "0 8px 32px rgba(139,105,20,0.35)" }}>
             BUY A GIFT CARD
@@ -1004,8 +1048,8 @@ export default function LandingPage() {
           <div>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>LOYALTY REWARDS</div>
             <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "24px" }}>Your Loyalty,<br /><em>Beautifully Rewarded</em></h2>
-            <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", lineHeight: 1.95, marginBottom: "36px", fontWeight: 400 }}>
-              Every GHS 100 you spend earns a stamp. Hit 20 stamps and receive GHS 50 off your next service. No app needed.
+            <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", lineHeight: 2, marginBottom: "36px", fontWeight: 400 }}>
+              The Zolara Rewards Card is not a points system. It is a thank-you. Every GHS 100 you spend earns one stamp. Reach 20 and your next service gets GHS 50 off. No app, no sign-up. Your card lives in the system the moment you book.
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "36px" }}>
@@ -1238,7 +1282,7 @@ export default function LandingPage() {
               </div>
             </div>
             <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.8, marginBottom: "14px", maxWidth: "240px", fontWeight: 400 }}>
-              Tamale's premier luxury beauty studio.
+              Built in Tamale for the women of the North. Where precision craft meets genuine care.
             </p>
             <div className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.9 }}>
               <div>Sakasaka, Opposite CalBank, Tamale</div>
