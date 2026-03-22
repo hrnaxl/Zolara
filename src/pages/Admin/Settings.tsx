@@ -124,12 +124,15 @@ function RecalcLoyaltyButton() {
 export default function Settings() {
   const { settings: ctxSettings, setSettings: setCtxSettings } = useSettings();
   const [settings, setSettings] = useState<Settings>({ ...defaultSettings, ...ctxSettings });
+  const settingsRef = React.useRef(settings);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("business");
 
   useEffect(() => { fetchSettings(); }, []);
+  // Keep ref in sync so handleSave always reads latest settings
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
   // ctxSettings sync removed — fetchSettings() loads from DB directly
 
   const fetchSettings = async () => {
@@ -183,23 +186,24 @@ export default function Settings() {
       const safeLogoUrl = (logoUrl && !logoUrl.startsWith("data:")) ? logoUrl
         : (!settings.logo_url?.startsWith("data:") ? settings.logo_url : null);
 
+      const currentSettings = settingsRef.current;
       const payload: any = {
-        business_name: settings.business_name || "",
+        business_name: currentSettings.business_name || "",
         logo_url: safeLogoUrl || null,
-        open_time: settings.open_time || "08:30",
-        close_time: settings.close_time || "21:00",
-        currency: settings.currency || "GH₵",
-        business_phone: settings.business_phone || "",
-        business_email: settings.business_email || "",
-        business_address: settings.business_address || "",
-        payment_methods: settings.payment_methods || [],
-        deposit_amount: Number(settings.deposit_amount || 50),
-        closed_dates: settings.closed_dates || [],
-        loyalty_stamp_per_ghs: Number(settings.loyalty_stamp_per_ghs || 100),
-        loyalty_stamps_for_reward: Number(settings.loyalty_stamps_for_reward || 20),
-        loyalty_reward_discount: Number(settings.loyalty_reward_discount || 50),
-        service_categories: settings.service_categories || [],
-        staff_roles: settings.staff_roles || [],
+        open_time: currentSettings.open_time || "08:30",
+        close_time: currentSettings.close_time || "21:00",
+        currency: currentSettings.currency || "GH₵",
+        business_phone: currentSettings.business_phone || "",
+        business_email: currentSettings.business_email || "",
+        business_address: currentSettings.business_address || "",
+        payment_methods: currentSettings.payment_methods || [],
+        deposit_amount: Number(currentSettings.deposit_amount || 50),
+        closed_dates: currentSettings.closed_dates || [],
+        loyalty_stamp_per_ghs: Number(currentSettings.loyalty_stamp_per_ghs || 100),
+        loyalty_stamps_for_reward: Number(currentSettings.loyalty_stamps_for_reward || 20),
+        loyalty_reward_discount: Number(currentSettings.loyalty_reward_discount || 50),
+        service_categories: currentSettings.service_categories || [],
+        staff_roles: currentSettings.staff_roles || [],
         staff_specialties: (settings as any).staff_specialties || [],
         gift_card_prices: (settings as any).gift_card_prices || {},
         landing_sections: (settings as any).landing_sections || { show_gift_cards: true },
