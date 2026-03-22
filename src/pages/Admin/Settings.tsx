@@ -294,8 +294,8 @@ export default function Settings() {
       </div>
 
       {/* ── Tab nav ── */}
-      <div style={{ background: WHITE, borderBottom: `1px solid ${BORDER}`, overflowX: "auto" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 clamp(16px,4vw,40px)", display: "flex", gap: 0 }}>
+      <div style={{ background: WHITE, borderBottom: `1px solid ${BORDER}` }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 clamp(16px,4vw,40px)", display: "flex", gap: 0, flexWrap: "wrap" }}>
           {TABS.map(t => {
             const active = activeTab === t.id;
             const Icon = t.icon;
