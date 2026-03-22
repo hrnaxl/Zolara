@@ -147,9 +147,9 @@ export default function LandingPage() {
   const dark = "#1C160E";
   const mid = "#EDE3D5";
 
-  // Compute live open/closed status — null means settings not loaded yet (show nothing)
+  // Compute live open/closed status: null means settings not loaded yet (show nothing)
   const isOpenNow = (() => {
-    if (salonSettings === null) return null; // not loaded yet — don't flash open
+    if (salonSettings === null) return null; // not loaded yet, don't flash open
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD in UTC, use local
     const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -175,7 +175,7 @@ export default function LandingPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        /* Force lining numerals — Cormorant Garamond defaults to oldstyle (1 looks like I) */
+        /* Force lining numerals: Cormorant Garamond defaults to oldstyle (1 looks like I) */
         * { font-variant-numeric: lining-nums; }
         html { scroll-behavior: smooth; }
         body { overflow-x: hidden; }
@@ -606,7 +606,7 @@ export default function LandingPage() {
           </div>
 
           {[
-            { num: "01", name: "Braids & Protective Styles", desc: "The art we are known for across the North. Box braids, knotless, cornrows, Senegalese twists — every length, every texture, executed with precision.", tag: "Signature Service" },
+            { num: "01", name: "Braids & Protective Styles", desc: "The art we are known for across the North. Box braids, knotless, cornrows, Senegalese twists. Every length, every texture, executed with precision.", tag: "Signature Service" },
             { num: "02", name: "Nail Artistry", desc: "Acrylic sets, gel overlays, classic pedicures and manicures. Clean lines, lasting colour, flawless finish every time.", tag: "Nails" },
             { num: "03", name: "Lash Extensions & Makeup", desc: "Classic, hybrid and volume lash sets by certified technicians. Everyday glam to full event-ready makeup that lasts.", tag: "Beauty" },
             { num: "04", name: "Wigs, Installs & Hair Treatments", desc: "Frontal installs, closure setups, wig customisation and deep conditioning treatments. Your crown, perfected.", tag: "Hair" },
@@ -850,7 +850,7 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Promotional Gift Cards — shown first if any active */}
+        {/* Promotional Gift Cards: shown first if any active */}
         {promoGiftCards.length > 0 && (
           <div style={{ maxWidth:"1100px", margin:"0 auto 32px", position:"relative", zIndex:1 }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:20 }}>
