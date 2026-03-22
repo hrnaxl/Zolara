@@ -344,11 +344,18 @@ export default function Settings() {
               const ex = updated.find((m:any) => m?.id === pmId);
               return { id: pmId, name: VALID_PM_NAMES[pmId], enabled: ex ? !!ex.enabled : (pmId === "cash" || pmId === "mobile_money" || pmId === "gift_card") };
             });
-            await fetch("/api/save-settings", {
+            const pmRes = await fetch("/api/save-settings", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ payment_methods: sanitized }),
             });
+            if (pmRes.ok) {
+              toast.success("Payment method updated");
+              // Also update context so re-mount reads correct value
+              setCtxSettings((prev: any) => ({ ...prev, payment_methods: sanitized }));
+            } else {
+              toast.error("Failed to save payment method");
+            }
           }}
         />)}
 
