@@ -705,6 +705,133 @@ const Checkout = () => {
     );
   }
 
+  const printReceipt = () => {
+    const receiptId = "zolara-receipt-" + Date.now();
+    const businessPhone = (settings as any)?.business_phone || "059 436 5314";
+    const businessPhone2 = (settings as any)?.business_phone_2 || "020 884 8707";
+    const instagram = (settings as any)?.instagram_handle || "@zolarastudio";
+    const staffName = staff.find(s => s.id === selectedStaff)?.name || "Zolara Team";
+    const payLabel: Record<string, string> = {
+      cash: "Cash", mobile_money: "Mobile Money", card: "Card",
+      bank_transfer: "Bank Transfer", gift_card: "Gift Card",
+    };
+    const now = new Date();
+    const receiptNo = "ZB-" + now.getFullYear().toString().slice(2) +
+      String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0") +
+      "-" + Math.floor(1000 + Math.random()*9000);
+
+    const rows = lineItems.map(item => {
+      const price = item.coveredBySubscription ? "Included" : "GHS " + (item.unitPrice * item.quantity).toFixed(2);
+      const qty = item.quantity > 1 ? " x" + item.quantity : "";
+      return `<tr><td style="padding:5px 0;font-size:12px;color:#3D2E1A">${item.name}${qty}</td><td style="padding:5px 0;font-size:12px;text-align:right;font-weight:600;color:${item.coveredBySubscription?"#16A34A":"#1C160E"}">${price}</td></tr>`;
+    }).join("");
+
+    const deductions = [
+      depositPaid ? `<tr><td style="font-size:11px;color:#16A34A">Deposit paid</td><td style="font-size:11px;text-align:right;color:#16A34A">- GHS ${depositAmount.toFixed(2)}</td></tr>` : "",
+      promoDiscount > 0 ? `<tr><td style="font-size:11px;color:#16A34A">Promo ${appliedPromo ? "("+appliedPromo.code+")" : ""}</td><td style="font-size:11px;text-align:right;color:#16A34A">- GHS ${promoDiscount.toFixed(2)}</td></tr>` : "",
+      redeemedCard && redeemedCard.value > 0 ? `<tr><td style="font-size:11px;color:#16A34A">Gift card</td><td style="font-size:11px;text-align:right;color:#16A34A">- GHS ${redeemedCard.value.toFixed(2)}</td></tr>` : "",
+    ].join("");
+
+    const logoUrl = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
+
+    const html = `
+      <div id="${receiptId}" style="font-family:'Montserrat',Arial,sans-serif;width:72mm;margin:0 auto;padding:12px 8px;color:#1C160E;background:#fff">
+        <!-- Header -->
+        <div style="text-align:center;margin-bottom:14px">
+          <img src="${logoUrl}" style="width:52px;height:52px;border-radius:50%;border:2px solid #C8A97E;object-fit:cover;margin-bottom:8px" onerror="this.style.display='none'"/>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;letter-spacing:0.06em;color:#1C160E">ZOLARA</div>
+          <div style="font-size:8px;font-weight:700;letter-spacing:0.2em;color:#8B6914;margin-top:1px">BEAUTY STUDIO</div>
+          <div style="font-size:9px;color:#78716C;margin-top:4px">Sakasaka, Opposite CalBank, Tamale</div>
+          <div style="font-size:9px;color:#78716C">${businessPhone} · ${businessPhone2}</div>
+          <div style="font-size:9px;color:#8B6914;margin-top:1px">${instagram}</div>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:1px dashed #C8A97E;margin:10px 0"></div>
+
+        <!-- Receipt info -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:9px;color:#78716C;font-weight:700;letter-spacing:0.1em">RECEIPT</span>
+          <span style="font-size:9px;color:#78716C">${receiptNo}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:9px;color:#78716C">${now.toLocaleDateString("en-GH",{day:"2-digit",month:"short",year:"numeric"})}</span>
+          <span style="font-size:9px;color:#78716C">${now.toLocaleTimeString("en-GH",{hour:"2-digit",minute:"2-digit"})}</span>
+        </div>
+
+        <!-- Client + staff -->
+        <div style="background:#FBF7F2;border-radius:6px;padding:8px 10px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:10px;color:#78716C">Client</span>
+            <span style="font-size:11px;font-weight:600">${booking?.client_name || ""}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:10px;color:#78716C">Stylist</span>
+            <span style="font-size:11px;font-weight:600">${staffName}</span>
+          </div>
+        </div>
+
+        <!-- Line items -->
+        <div style="border-top:1px solid #EDEBE5;margin-bottom:2px"></div>
+        <table style="width:100%;border-collapse:collapse">${rows}</table>
+        <div style="border-top:1px solid #EDEBE5;margin:6px 0 2px"></div>
+
+        <!-- Deductions -->
+        ${deductions ? `<table style="width:100%;border-collapse:collapse">${deductions}</table><div style="border-top:1px solid #EDEBE5;margin:6px 0 2px"></div>` : ""}
+
+        <!-- Total -->
+        <div style="display:flex;justify-content:space-between;padding:6px 0;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:700">Total Paid</span>
+          <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:700;color:#8B6914">GHS ${finalAmountCharged.toFixed(2)}</span>
+        </div>
+
+        <!-- Payment method -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:10px;color:#78716C">Payment</span>
+          <span style="font-size:11px;font-weight:600">${payLabel[paymentMethod as string] || paymentMethod}</span>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:1px dashed #C8A97E;margin:10px 0"></div>
+
+        <!-- Footer -->
+        <div style="text-align:center">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-style:italic;color:#8B6914;margin-bottom:4px">"Not just a salon. A complete luxury experience."</div>
+          <div style="font-size:9px;color:#78716C">Thank you for visiting Zolara Beauty Studio.</div>
+          <div style="font-size:9px;color:#78716C">Mon to Sat · 8:30 AM to 9:00 PM</div>
+          <div style="font-size:9px;color:#78716C;margin-top:3px">zolarasalon.com</div>
+        </div>
+      </div>
+    `;
+
+    const win = window.open("", "_blank", "width=400,height=700");
+    if (!win) { alert("Please allow popups to print receipts."); return; }
+    win.document.write(`
+      <!DOCTYPE html><html><head>
+      <title>Zolara Receipt — ${receiptNo}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet"/>
+      <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:#fff;display:flex;align-items:flex-start;justify-content:center;padding:16px}
+        @media print{
+          body{padding:0}
+          .no-print{display:none!important}
+          @page{margin:6mm;size:80mm auto}
+        }
+      </style>
+      </head><body>
+      <div>
+        <div class="no-print" style="text-align:center;padding:12px 0 16px;font-family:sans-serif">
+          <button onclick="window.print()" style="padding:10px 32px;background:#8B6914;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px">🖨 Print</button>
+          <button onclick="window.close()" style="padding:10px 20px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer">Close</button>
+        </div>
+        ${html}
+      </div>
+      </body></html>
+    `);
+    win.document.close();
+  };
+
   if (completed) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAF8", fontFamily: "Montserrat,sans-serif", padding: "24px" }}>
@@ -753,9 +880,14 @@ const Checkout = () => {
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1C160E" }}>Total Paid</span>
               <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "24px", fontWeight: 700, color: "#8B6914" }}>GHS {finalAmountCharged.toFixed(2)}</span>
             </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Back</button>
-              <button onClick={() => { setCompleted(false); navigate(userRole === "owner" || userRole === "admin" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#C8A97E,#8B6914)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Done</button>
+            <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
+              <button onClick={printReceipt} style={{ width: "100%", padding: "13px", borderRadius: "12px", background: "#1C160E", color: "#C8A97E", border: "none", fontSize: "13px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", letterSpacing: "0.06em" }}>
+                <Receipt style={{ width: "16px", height: "16px" }} /> PRINT RECEIPT
+              </button>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button onClick={() => navigate(-1)} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "#FAFAF8", color: "#78716C", border: "1px solid #EDEBE5", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Back</button>
+                <button onClick={() => { setCompleted(false); navigate(userRole === "owner" || userRole === "admin" ? "/app/admin/bookings" : "/app/receptionist/bookings"); }} style={{ flex: 1, padding: "11px", borderRadius: "12px", background: "linear-gradient(135deg,#C8A97E,#8B6914)", color: "#FFFFFF", border: "none", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Done</button>
+              </div>
             </div>
           </div>
         </div>
