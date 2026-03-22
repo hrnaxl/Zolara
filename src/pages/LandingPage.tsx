@@ -584,13 +584,18 @@ export default function LandingPage() {
       {/* SERVICES */}
       <section id="services" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
         <style>{`
-          .craft-card { border-top: 1px solid rgba(200,169,126,0.18); padding: 36px 0; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; transition: all 0.3s; cursor: default; }
+          @keyframes craftIn { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:none; } }
+          .craft-card { border-top: 1px solid rgba(200,169,126,0.18); padding: 36px 0; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; transition: background 0.3s, padding 0.3s, margin 0.3s, border-color 0.3s; cursor: pointer; opacity:0; transform:translateY(28px); }
+          .craft-card.craft-visible { animation: craftIn 0.65s cubic-bezier(0.16,1,0.3,1) forwards; }
           .craft-card:last-child { border-bottom: 1px solid rgba(200,169,126,0.18); }
-          .craft-card:hover { background: rgba(200,169,126,0.04); margin: 0 -24px; padding: 36px 24px; border-radius: 4px; border-top-color: transparent; }
+          .craft-card:hover { background: rgba(200,169,126,0.06); margin: 0 -28px; padding: 36px 28px; border-radius: 6px; border-top-color: transparent; box-shadow: 0 4px 32px rgba(200,169,126,0.08); }
           .craft-card:hover + .craft-card { border-top-color: transparent; }
-          .craft-num { font-family: 'Cormorant Garamond',serif; font-size: clamp(52px,7vw,88px); font-weight: 300; color: rgba(200,169,126,0.15); line-height: 1; }
-          .craft-arrow { opacity: 0; transform: translateX(-8px); transition: all 0.3s; }
+          .craft-num { font-family: 'Cormorant Garamond',serif; font-size: clamp(42px,5.5vw,72px); font-weight: 600; line-height: 1; background: linear-gradient(135deg,#8B6914,#C8A97E); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; opacity:0.7; transition: opacity 0.3s; }
+          .craft-card:hover .craft-num { opacity:1; }
+          .craft-arrow { opacity: 0; transform: translateX(-10px); transition: all 0.3s ease; }
           .craft-card:hover .craft-arrow { opacity: 1; transform: none; }
+          .craft-tag { display:inline-block; padding: 3px 10px; background: rgba(200,169,126,0.12); border: 1px solid rgba(200,169,126,0.3); border-radius: 20px; font-size:9px; font-weight:700; letter-spacing:0.18em; color:#8B6914; text-transform:uppercase; margin-bottom:8px; transition: background 0.2s, border-color 0.2s; }
+          .craft-card:hover .craft-tag { background: linear-gradient(135deg,#8B6914,#C8A97E); border-color:transparent; color:white; }
         `}</style>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 85% 15%, rgba(200,169,126,0.06) 0%, transparent 50%)", pointerEvents: "none" }} />
 
@@ -606,23 +611,26 @@ export default function LandingPage() {
           </div>
 
           {[
-            { num: "01", name: "Braids & Protective Styles", desc: "The art we are known for across the North. Box braids, knotless, cornrows, Senegalese twists. Every length, every texture, executed with precision.", tag: "Signature Service" },
-            { num: "02", name: "Nail Artistry", desc: "Acrylic sets, gel overlays, classic pedicures and manicures. Clean lines, lasting colour, flawless finish every time.", tag: "Nails" },
-            { num: "03", name: "Lash Extensions & Makeup", desc: "Classic, hybrid and volume lash sets by certified technicians. Everyday glam to full event-ready makeup that lasts.", tag: "Beauty" },
-            { num: "04", name: "Wigs, Installs & Hair Treatments", desc: "Frontal installs, closure setups, wig customisation and deep conditioning treatments. Your crown, perfected.", tag: "Hair" },
-          ].map(({ num, name, desc, tag }) => (
+            { num: "01", name: "Braids & Protective Styles", desc: "Box braids, knotless, cornrows, Senegalese twists. Every length, every texture, executed with precision.", tag: "Signature Service", icon: "🪢" },
+            { num: "02", name: "Nails, Pedicure & Manicure", desc: "Acrylic sets, gel overlays, pedicures and classic manicures. Clean lines, lasting colour, flawless finish.", tag: "Nails", icon: "💅" },
+            { num: "03", name: "Lash Extensions & Makeup", desc: "Classic, hybrid and volume lash sets by certified technicians. Everyday glam to full event-ready makeup.", tag: "Beauty", icon: "✨" },
+            { num: "04", name: "Wigs, Installs & Hair Treatments", desc: "Frontal installs, closure setups, wig customisation and deep conditioning treatments. Your crown, perfected.", tag: "Hair", icon: "👑" },
+          ].map(({ num, name, desc, tag, icon }, idx) => (
             <Link key={num} to="/book" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-              <div className="craft-card">
+              <div className={"craft-card"} ref={(el) => { if (el) { setTimeout(() => el.classList.add("craft-visible"), idx * 120); } }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "clamp(16px,3vw,40px)" }}>
-                  <div className="craft-num">{num}</div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    <div className="craft-num">{num}</div>
+                    <span style={{ fontSize: 22 }}>{icon}</span>
+                  </div>
                   <div>
-                    <div className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.2em", color: gold, marginBottom: "8px", textTransform: "uppercase" }}>{tag}</div>
+                    <span className="craft-tag">{tag}</span>
                     <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(22px,2.8vw,34px)", fontWeight: 600, color: dark, lineHeight: 1.1 }}>{name}</div>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
                   <p className="sans" style={{ fontSize: "13px", color: "#5C4A2A", lineHeight: 1.8, fontWeight: 400, maxWidth: 360 }}>{desc}</p>
-                  <div className="craft-arrow sans" style={{ fontSize: "11px", fontWeight: 700, color: goldDark, whiteSpace: "nowrap" }}>BOOK →</div>
+                  <div className="craft-arrow sans" style={{ fontSize: "11px", fontWeight: 700, color: goldDark, whiteSpace: "nowrap", flexShrink: 0 }}>BOOK →</div>
                 </div>
               </div>
             </Link>
