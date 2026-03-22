@@ -58,7 +58,7 @@ import ClientLoyalty from "./pages/Client/ClientLoyalty";
 import ClientProfile from "./pages/Client/ClientProfile";
 import SMSTest from "./pages/Admin/SMSTest";
 import ViewServices from "./pages/Client/ViewServices";
-import SettingsPage from "./pages/Admin/Settings";
+const SettingsPage = React.lazy(() => import("./pages/Admin/Settings"));
 import Loyalty from "./pages/Admin/Loyalty";
 import PromoCodesPage from "./pages/Admin/PromoCodes";
 import BuyGiftCard from "./pages/Public/BuyGiftCard";
@@ -137,7 +137,7 @@ const App = () => (
               <Route path="/app/admin/products" element={<ProductsPage />} />
               <Route path="/app/admin/product-sale" element={<ProductSale />} />
               <Route path="/app/admin/subscriptions" element={<SubscriptionsPage />} />
-              <Route path="/app/admin/settings" element={<SettingsPage />} />
+              <Route path="/app/admin/settings" element={<React.Suspense fallback={null}><SettingsPage /></React.Suspense>} />
               <Route path="/app/admin/security" element={<SecuritySettings />} />
               <Route path="/app/admin/waitlist" element={<WaitlistPage />} />
             </Route>
