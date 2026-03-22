@@ -39,6 +39,8 @@ export default function LandingPage() {
   const [dbReviews, setDbReviews] = useState<any[]>([]);
   const [reviewVisible, setReviewVisible] = useState(false);
   const [expVisible, setExpVisible] = useState(false);
+  const [visitVisible, setVisitVisible] = useState(false);
+  const visitRef = useRef<HTMLDivElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [salonSettings, setSalonSettings] = useState<any>(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(() => {
@@ -135,6 +137,12 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisitVisible(true); }, { threshold: 0.1 });
+    if (visitRef.current) obs.observe(visitRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
     if (!svcRef.current) return;
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setSvcVisible(true); }, { threshold: 0.05 });
     obs.observe(svcRef.current);
@@ -224,6 +232,14 @@ export default function LandingPage() {
         .gift-card-tile:hover { transform: translateY(-9px) scale(1.03); box-shadow: 0 36px 72px rgba(0,0,0,0.32); }
         .kpi-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
         .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(28,22,14,0.1) !important; }
+        @keyframes visitCardIn { from { opacity:0; transform:translateY(36px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .visit-card-reveal { opacity:0; }
+        .visit-cards-visible .visit-card-reveal { animation: visitCardIn 0.65s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes parallaxFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+        .section-divider { height:1px; background:linear-gradient(90deg,transparent,rgba(200,169,126,0.3),transparent); margin:0; }
+        .rev-card-visible { animation: reviewPop 0.7s cubic-bezier(0.16,1,0.3,1) forwards !important; }
+        .review-card { cursor:default; }
+        .review-card:hover { transform:translateY(-6px); box-shadow:0 24px 60px rgba(200,169,126,0.15); border-color:rgba(200,169,126,0.55) !important; }
         .orb-bg { position: absolute; border-radius: 50%; pointer-events: none; }
         @media (max-width: 768px) {
           .hero-floating-card-wrapper { display: none !important; }
@@ -465,7 +481,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>HOURS</p>
-                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Mon – Sat · 8:30 AM – 9:00 PM</p>
+                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
               </div>
               <div>
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>CALL</p>
@@ -644,6 +660,8 @@ export default function LandingPage() {
         </div>
       </section>
 
+            {/* DIVIDER */}
+      <div className="section-divider" />
             {/* EXPERIENCE */}
       <section id="experience" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: "-60px", top: "50%", transform: "translateY(-50%)", fontSize: "380px", color: "rgba(200,169,126,0.045)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
@@ -651,22 +669,27 @@ export default function LandingPage() {
           <div ref={expRef} className={expVisible ? "exp-visible" : ""}>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
             <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
-            <p className="sans" style={{ fontSize: "14.5px", color: "#3D2E1A", lineHeight: 1.95, marginBottom: "36px", fontWeight: 400 }}>
-              Every visit to Zolara is designed to be more than just a salon appointment. From the moment you walk in to your Exit Ritual, a perfume spritz, a piece of chocolate, and a final mirror check, you leave feeling extraordinary.
+            <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", lineHeight: 2, marginBottom: "44px", fontWeight: 400 }}>
+              You walk in. Cold water waiting. Your name already known.
+              Your stylist ready, products pulled, station prepared.
+              You leave with a perfume spritz, a piece of chocolate, and a final mirror check.
+              That is the Zolara standard. Every single visit.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 0, borderTop: "1px solid rgba(200,169,126,0.15)" }}>
               {[
-                ["Free WiFi and complimentary bottled water for every client","✦"],
-                ["Ghana's first salon loyalty rewards program","◈"],
-                ["Certified stylists with specialised training","◇"],
-                ["Premium products only. No compromises.","❋"],
-                ["Private, comfortable styling stations","◉"],
-              ].map(([item, icon], idx) => (
-                <div key={item} className="exp-kpi" style={{ animationDelay: `${idx * 0.12}s`, display: "flex", alignItems: "flex-start", gap: "14px", background: "#fff", border: "1px solid rgba(200,169,126,0.18)", borderRadius: "8px", padding: "16px 18px", boxShadow: "0 2px 12px rgba(28,22,14,0.05)" }}>
-                  <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <span style={{ color: "#fff", fontSize: "13px" }}>{icon}</span>
+                { moment: "The Welcome", detail: "Cold water. WiFi connected. Your stylist waiting.", icon: "◉" },
+                { moment: "The Craft", detail: "Certified hands. Premium products. Zero shortcuts.", icon: "✦" },
+                { moment: "The Loyalty", detail: "Every GHS 100 earns a stamp. 20 stamps, GHS 50 off.", icon: "◈" },
+                { moment: "The Exit Ritual", detail: "Perfume spritz. Chocolate. One last mirror check.", icon: "◇" },
+              ].map(({ moment, detail, icon }, idx) => (
+                <div key={moment} className="exp-kpi" style={{ animationDelay: `${idx * 0.12}s`, display: "flex", alignItems: "center", gap: "20px", padding: "20px 0", borderBottom: "1px solid rgba(200,169,126,0.12)" }}>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #8B6914, #C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 16px rgba(139,105,20,0.2)" }}>
+                    <span style={{ color: "#fff", fontSize: "14px" }}>{icon}</span>
                   </div>
-                  <span className="sans" style={{ fontSize: "13.5px", color: "#3D2E1A", lineHeight: 1.65, fontWeight: 400, paddingTop: "6px" }}>{item}</span>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: 600, color: "#1C160E", marginBottom: "2px" }}>{moment}</div>
+                    <div className="sans" style={{ fontSize: "12px", color: "#5C4A2A", lineHeight: 1.65, fontWeight: 400 }}>{detail}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -783,29 +806,45 @@ export default function LandingPage() {
             Real women. Real results. Real luxury.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", maxWidth: "1100px", margin: "0 auto 60px" }}>
-            {(() => { const reviews = dbReviews.length > 0 ? dbReviews.map((r: any) => ({ name: r.name, text: r.comment, stars: r.rating })) : FALLBACK_REVIEWS; return reviews.map((r, i) => (
-              <div key={r.name} className={`review-card review-card-anim`}
-                style={{
-                  background: i === activeReview ? "rgba(200,169,126,0.13)" : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${i === activeReview ? "rgba(200,169,126,0.42)" : "rgba(255,255,255,0.07)"}`,
-                  borderRadius: "3px", padding: "36px 28px", textAlign: "left",
-                  boxShadow: i === activeReview ? "0 16px 48px rgba(200,169,126,0.12)" : "none",
-                  animationDelay: `${i * 0.15}s`,
-                }}>
-                <div style={{ display: "flex", gap: "4px", marginBottom: "20px" }}>
-                  {[1,2,3,4,5].map(s => <span key={s} style={{ color: gold, fontSize: "15px" }}>★</span>)}
-                </div>
-                <p style={{ fontStyle: "italic", fontSize: "17px", color: "rgba(245,239,230,0.92)", lineHeight: 1.8, marginBottom: "24px", fontWeight: 400 }}>"{r.text}"</p>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #C8A97E, #8B6914)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <span className="sans" style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{r.name[0]}</span>
+          {(() => {
+            const allReviews = dbReviews.length > 0 ? dbReviews.map((r: any) => ({ name: r.name, text: r.comment, stars: r.rating })) : FALLBACK_REVIEWS;
+            const visible = allReviews.slice(0, 3);
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px", maxWidth: "1100px", margin: "0 auto 48px" }}>
+                {visible.map((r, i) => (
+                  <div key={r.name}
+                    onClick={() => setActiveReview(i)}
+                    className="review-card review-card-anim"
+                    style={{
+                      background: i === activeReview ? "rgba(200,169,126,0.13)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${i === activeReview ? "rgba(200,169,126,0.5)" : "rgba(255,255,255,0.07)"}`,
+                      borderRadius: "4px", padding: "32px 28px", textAlign: "left",
+                      boxShadow: i === activeReview ? "0 20px 56px rgba(200,169,126,0.15)" : "none",
+                      animationDelay: `${i * 0.15}s`,
+                      transition: "all 0.4s ease",
+                      cursor: "pointer",
+                    }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+                      <div style={{ display: "flex", gap: "3px" }}>
+                        {[1,2,3,4,5].map(s => <span key={s} style={{ color: gold, fontSize: "13px" }}>★</span>)}
+                      </div>
+                      <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.16em", color: "rgba(200,169,126,0.45)", textTransform: "uppercase" }}>Verified</span>
+                    </div>
+                    <p style={{ fontStyle: "italic", fontSize: "clamp(15px,1.8vw,18px)", color: "rgba(245,239,230,0.92)", lineHeight: 1.85, marginBottom: "24px", fontWeight: 400 }}>"{r.text}"</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", paddingTop: "20px", borderTop: "1px solid rgba(200,169,126,0.12)" }}>
+                      <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "linear-gradient(135deg, #C8A97E, #8B6914)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span className="sans" style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{r.name[0]}</span>
+                      </div>
+                      <div>
+                        <p className="sans" style={{ fontSize: "12px", fontWeight: 700, color: gold, letterSpacing: "0.06em" }}>{r.name}</p>
+                        <p className="sans" style={{ fontSize: "10px", color: "rgba(245,239,230,0.35)", marginTop: "1px" }}>Zolara Client</p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="sans" style={{ fontSize: "13px", fontWeight: 600, color: gold }}>{r.name}</p>
-                </div>
+                ))}
               </div>
-            )); })()}
-          </div>
+            );
+          })()}
 
           {/* Active indicator dots */}
           <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "40px" }}>
@@ -1112,27 +1151,29 @@ export default function LandingPage() {
       </>
       )}
 
+      <div className="section-divider" />
       <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
         <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FIND US</div>
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400 }}>Come <em>Visit Us</em></h2>
+          <p className="sans" style={{ fontSize: "14px", color: "#78716C", marginTop: "12px", fontWeight: 400 }}>Sakasaka, Tamale. Walk in or book ahead.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 60px", position: "relative", zIndex: 1 }}>
+        <div ref={visitRef} className={visitVisible ? "visit-cards-visible" : ""} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 60px", position: "relative", zIndex: 1 }}>
           {[
-            { icon: "◉", label: "LOCATION", lines: ["Sakasaka, Opposite CalBank", "Tamale, Ghana"] },
-            { icon: "◈", label: "CALL US", lines: ["059 436 5314", "020 884 8707"], tel: true },
-            { icon: "◇", label: "HOURS", lines: ["Monday – Saturday", "8:30 AM – 9:00 PM"] },
-            { icon: "✦", label: "CLOSED", lines: ["Every Sunday", "We rest so we can serve you better"] },
+            { icon: "◉", label: "LOCATION", lines: ["Sakasaka, Opposite CalBank", "Tamale, Northern Region"], delay: "0s" },
+            { icon: "◈", label: "CALL US", lines: ["059 436 5314", "020 884 8707"], tel: true, delay: "0.1s" },
+            { icon: "◇", label: "HOURS", lines: ["Monday to Saturday", "8:30 AM until 9:00 PM"], delay: "0.2s" },
+            { icon: "✦", label: "SUNDAYS", lines: ["We are closed", "Rest day. Back Monday, ready for you."], delay: "0.3s" },
           ].map(item => (
-            <div key={item.label} className="visit-card" style={{ background: mid, border: "1px solid rgba(200,169,126,0.22)", borderRadius: "3px", padding: "40px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+            <div key={item.label} className="visit-card visit-card-reveal" style={{ background: mid, border: "1px solid rgba(200,169,126,0.22)", borderRadius: "3px", padding: "40px 28px", textAlign: "center", position: "relative", overflow: "hidden", animationDelay: (item as any).delay }}>
               <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "48px", height: "2px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
               <div style={{ fontSize: "26px", color: gold, marginBottom: "18px" }}>{item.icon}</div>
               <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "14px" }}>{item.label}</p>
-              {item.lines.map(l => (item as any).tel
-  ? <a key={l} href={`tel:+233${l.replace(/^0/, "").replace(/\s/g,"")}`} className="sans" style={{ fontSize: "14px", color: dark, lineHeight: 1.75, fontWeight: 400, textDecoration: "none", display: "block" }}>{l}</a>
-  : <p key={l} className="sans" style={{ fontSize: "14px", color: dark, lineHeight: 1.75, fontWeight: 400 }}>{l}</p>
-)}
+              {item.lines.map((l, li) => (item as any).tel
+                ? <a key={l} href={`tel:+233${l.replace(/^0/, "").replace(/\s/g,"")}`} className="sans" style={{ fontSize: li === 0 ? "17px" : "14px", color: dark, lineHeight: 1.75, fontWeight: li === 0 ? 600 : 400, textDecoration: "none", display: "block" }}>{l}</a>
+                : <p key={l} className="sans" style={{ fontSize: li === 0 ? "17px" : "13px", color: li === 0 ? dark : "#78716C", lineHeight: 1.75, fontWeight: li === 0 ? 600 : 400 }}>{l}</p>
+              )}
             </div>
           ))}
         </div>
@@ -1202,7 +1243,7 @@ export default function LandingPage() {
             <div className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.9 }}>
               <div>Sakasaka, Opposite CalBank, Tamale</div>
               <div><a href="tel:+233594365314" style={{ color: "inherit", textDecoration: "none" }}>059 436 5314</a> · <a href="tel:+233208848707" style={{ color: "inherit", textDecoration: "none" }}>020 884 8707</a></div>
-              <div>Mon – Sat · 8:30 AM – 9:00 PM</div>
+              <div>Mon to Sat · 8:30 AM to 9:00 PM</div>
             </div>
           </div>
 
