@@ -611,18 +611,15 @@ export default function LandingPage() {
           </div>
 
           {[
-            { num: "01", name: "Braids & Protective Styles", desc: "Box braids, knotless, cornrows, Senegalese twists. Every length, every texture, executed with precision.", tag: "Signature Service", icon: "🪢" },
-            { num: "02", name: "Nails, Pedicure & Manicure", desc: "Acrylic sets, gel overlays, pedicures and classic manicures. Clean lines, lasting colour, flawless finish.", tag: "Nails", icon: "💅" },
-            { num: "03", name: "Lash Extensions & Makeup", desc: "Classic, hybrid and volume lash sets by certified technicians. Everyday glam to full event-ready makeup.", tag: "Beauty", icon: "✨" },
-            { num: "04", name: "Wigs, Installs & Hair Treatments", desc: "Frontal installs, closure setups, wig customisation and deep conditioning treatments. Your crown, perfected.", tag: "Hair", icon: "👑" },
-          ].map(({ num, name, desc, tag, icon }, idx) => (
+            { num: "01", name: "Braids & Protective Styles", desc: "Box braids, knotless, cornrows, Senegalese twists. Every length, every texture, executed with precision.", tag: "Signature Service" },
+            { num: "02", name: "Nails, Pedicure & Manicure", desc: "Acrylic sets, gel overlays, pedicures and classic manicures. Clean lines, lasting colour, flawless finish.", tag: "Nails" },
+            { num: "03", name: "Lash Extensions & Makeup", desc: "Classic, hybrid and volume lash sets by certified technicians. Everyday glam to full event-ready makeup.", tag: "Beauty" },
+            { num: "04", name: "Wigs, Installs & Hair Treatments", desc: "Frontal installs, closure setups, wig customisation and deep conditioning treatments. Your crown, perfected.", tag: "Hair" },
+          ].map(({ num, name, desc, tag }, idx) => (
             <Link key={num} to="/book" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
               <div className={"craft-card"} ref={(el) => { if (el) { setTimeout(() => el.classList.add("craft-visible"), idx * 120); } }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "clamp(16px,3vw,40px)" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                    <div className="craft-num">{num}</div>
-                    <span style={{ fontSize: 22 }}>{icon}</span>
-                  </div>
+                  <div className="craft-num" style={{ flexShrink: 0 }}>{num}</div>
                   <div>
                     <span className="craft-tag">{tag}</span>
                     <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(22px,2.8vw,34px)", fontWeight: 600, color: dark, lineHeight: 1.1 }}>{name}</div>
