@@ -320,20 +320,20 @@ export default function PublicBooking() {
         appliedPromo ? `Promo code applied: ${appliedPromo.code} (${appliedPromo.discount_type === "percentage" ? appliedPromo.discount_value + "%" : "GHS " + appliedPromo.discount_value} off, saved GHS ${promoDiscount.toFixed(0)})` : null,
       ].filter(Boolean).join("\n");
 
-      // Sanitize inputs before submission
-    name = sanitizeName(name);
-    phone = sanitizePhone(phone);
-    email = sanitizeEmail(email);
-    notes = sanitizeNotes(notes);
+      // Sanitize inputs before submission — use local vars, can't reassign state consts
+      const safeName = sanitizeName(name);
+      const safePhone = sanitizePhone(phone);
+      const safeEmail = sanitizeEmail(email);
+      const safeNotes = sanitizeNotes(notes);
 
     // 1. Insert booking as pending BEFORE opening payment popup
       const { error: bookingError } = await supabase
         .from("bookings")
         .insert({
           id: bookingId,
-          client_name: name,
-          client_email: email || null,
-          client_phone: cleanPhone,
+          client_name: safeName,
+          client_email: safeEmail || null,
+          client_phone: sanitizePhone(cleanPhone),
           service_id: serviceId || null,
           service_name: selectedServices.map(s => s.name).join(", ") || selectedService?.name || null,
           variant_id: selectedVariantId || null,
