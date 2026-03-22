@@ -349,7 +349,7 @@ const AdminDashboard = () => {
         (supabaseAdmin as any).from("gift_cards")
           .select("balance, amount, tier, status, payment_status")
           .in("status", ["active", "available", "pending_send", "pending_pickup"])
-          .in("payment_status", ["paid", "pending_pickup", "pending_send"]),
+          .in("payment_status", ["paid", "pending_pickup", "pending_send", "sold"]),
         // gift cards redeemed (all time count)
         (supabaseAdmin as any).from("gift_cards")
           .select("id", { count: "exact", head: true })
@@ -357,7 +357,7 @@ const AdminDashboard = () => {
         // gift cards sold — payment received (paid + pending_pickup + pending_send)
         (supabaseAdmin as any).from("gift_cards")
           .select("id", { count: "exact", head: true })
-          .in("payment_status", ["paid", "pending_pickup", "pending_send"]),
+          .in("payment_status", ["paid", "pending_pickup", "pending_send", "sold"]),
         // pre-printed physical cards in stock (not yet sold — pure inventory)
         (supabaseAdmin as any).from("gift_cards")
           .select("id", { count: "exact", head: true })

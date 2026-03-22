@@ -535,10 +535,10 @@ export default function GiftCards() {
                         </button>
                       )}
                       {/* Mark as sold — physical available cards */}
-                      {canOperate && !digital && (status === "pending_pickup" || card.payment_status === "pending_pickup") && card.payment_status !== "sold" && (
+                      {canOperate && !digital && (status === "pending_pickup" || card.payment_status === "pending_pickup" || card.payment_status === "pending") && card.payment_status !== "sold" && card.payment_status !== "paid" && (
                         <button className="gc-btn" style={{ background:"#DCFCE7", color:"#166534", fontSize:"10px", padding:"6px 12px" }}
                           onClick={() => { setConfirmCard(card); setConfirmAct("sold"); }}>
-                          {card.payment_status === "pending_pickup" ? "✓ Hand Over" : "✓ Mark Sold"}
+                          "✓ Mark Sold / Hand Over"
                         </button>
                       )}
                       {/* Expand */}
