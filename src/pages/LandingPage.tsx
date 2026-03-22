@@ -66,7 +66,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement, gift_card_prices").limit(1).maybeSingle()
+    supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement, gift_card_prices, max_bookings_per_slot").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
     // Load visible reviews from DB
     (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
@@ -88,6 +88,25 @@ export default function LandingPage() {
     const reviews = dbReviews.length > 0 ? dbReviews.map((r: any) => ({ name: r.name, text: r.comment, stars: r.rating })) : FALLBACK_REVIEWS;
     const iv = setInterval(() => setActiveReview(r => (r + 1) % reviews.length), 4500);
     return () => clearInterval(iv);
+  }, []);
+
+  // Urgency: count this week's bookings
+  const [weeklyBookings, setWeeklyBookings] = React.useState(0);
+  useEffect(() => {
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    monday.setHours(0,0,0,0);
+    const saturday = new Date(monday);
+    saturday.setDate(monday.getDate() + 5);
+    saturday.setHours(23,59,59,999);
+    supabase.from("bookings")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["pending","confirmed"])
+      .gte("preferred_date", monday.toISOString().slice(0,10))
+      .lte("preferred_date", saturday.toISOString().slice(0,10))
+      .then(({ count }: any) => { if (count != null) setWeeklyBookings(count); });
   }, []);
 
   useEffect(() => {
@@ -489,6 +508,34 @@ export default function LandingPage() {
             A sanctuary crafted for women who demand the finest. Every appointment at Zolara is a ritual, every stylist an artist, every result extraordinary.
           </p>
 
+          {/* URGENCY CARD */}
+          {(() => {
+            const maxSlots = (salonSettings?.max_bookings_per_slot || 6) * 6; // 6 days × max per slot
+            const taken = Math.min(weeklyBookings, maxSlots);
+            const pct = maxSlots > 0 ? Math.round((taken / maxSlots) * 100) : 0;
+            const remaining = Math.max(0, maxSlots - taken);
+            const urgencyColor = pct >= 80 ? "#DC2626" : pct >= 60 ? "#D97706" : "#16A34A";
+            const urgencyLabel = pct >= 80 ? "Almost Full" : pct >= 60 ? "Filling Fast" : "Slots Available";
+            if (taken === 0) return null;
+            return (
+              <div className="fade-up delay-3" style={{ marginBottom: "28px", padding: "16px 20px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "4px", maxWidth: 400 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.2em", color: goldDark, textTransform: "uppercase" }}>This Week's Bookings</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: urgencyColor, display: "inline-block", boxShadow: `0 0 6px ${urgencyColor}88` }} />
+                    <span className="sans" style={{ fontSize: "9px", fontWeight: 700, color: urgencyColor, letterSpacing: "0.12em", textTransform: "uppercase" }}>{urgencyLabel}</span>
+                  </span>
+                </div>
+                <div style={{ height: 4, background: "rgba(200,169,126,0.15)", borderRadius: 2, overflow: "hidden", marginBottom: 8 }}>
+                  <div style={{ height: "100%", width: pct + "%", background: `linear-gradient(90deg, #8B6914, ${urgencyColor})`, borderRadius: 2, transition: "width 1s ease" }} />
+                </div>
+                <span className="sans" style={{ fontSize: "11px", color: "#5C4A2A", fontWeight: 500 }}>
+                  <strong style={{ color: dark }}>{remaining} {remaining === 1 ? "slot" : "slots"}</strong> remaining this week
+                </span>
+              </div>
+            );
+          })()}
+
           <div className="fade-up delay-4" style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
             <Link to="/book" className="btn-primary" style={{
               textDecoration: "none", display: "inline-block",
@@ -504,7 +551,7 @@ export default function LandingPage() {
               color: dark, border: "1.5px solid #1C160E",
               padding: "16px 32px", borderRadius: "1px",
               transition: "all 0.3s ease", background: "transparent",
-            }}>VIEW SERVICES</a>
+            }}>OUR SERVICES</a>
           </div>
 
           <div className="fade-up delay-5" style={{ display: "flex", gap: "44px", marginTop: "60px", paddingTop: "40px", borderTop: "1px solid rgba(200,169,126,0.3)" }}>
@@ -535,79 +582,64 @@ export default function LandingPage() {
       </div>
 
       {/* SERVICES */}
-      <section id="services" ref={svcRef} style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
+      <section id="services" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
         <style>{`
-          .svc-db-card { background:#FDFCF9; border-radius:3px; border:1px solid rgba(200,169,126,0.2); overflow:hidden; transition:all 0.25s; opacity:0; transform:translateY(20px); }
-          .svc-db-card.visible { opacity:1; transform:none; transition:opacity 0.5s ease, transform 0.5s ease, box-shadow 0.25s, border-color 0.25s; }
-          .svc-db-card:hover { transform:translateY(-4px) !important; box-shadow:0 16px 48px rgba(28,22,14,0.1); border-color:rgba(200,169,126,0.5); }
-          .svc-cat-tab { font-family:'Montserrat',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.08em; padding:8px 20px; border-radius:20px; cursor:pointer; border:1.5px solid #D4B896; background:transparent; color:#5C3D1A; transition:all 0.2s; }
-          .svc-cat-tab.active, .svc-cat-tab:hover { background:linear-gradient(135deg,#8B6914,#C8A97E); color:white; border-color:transparent; }
-          .svc-book-link { font-family:'Montserrat',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.1em; color:#8B6914; background:rgba(200,169,126,0.12); border:1.5px solid rgba(200,169,126,0.4); padding:8px 16px; border-radius:1px; cursor:pointer; text-decoration:none; transition:all 0.2s; white-space:nowrap; }
-          .svc-book-link:hover { background:linear-gradient(135deg,#8B6914,#C8A97E); color:white; border-color:transparent; }
+          .craft-card { border-top: 1px solid rgba(200,169,126,0.18); padding: 36px 0; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; transition: all 0.3s; cursor: default; }
+          .craft-card:last-child { border-bottom: 1px solid rgba(200,169,126,0.18); }
+          .craft-card:hover { background: rgba(200,169,126,0.04); margin: 0 -24px; padding: 36px 24px; border-radius: 4px; border-top-color: transparent; }
+          .craft-card:hover + .craft-card { border-top-color: transparent; }
+          .craft-num { font-family: 'Cormorant Garamond',serif; font-size: clamp(52px,7vw,88px); font-weight: 300; color: rgba(200,169,126,0.15); line-height: 1; }
+          .craft-arrow { opacity: 0; transform: translateX(-8px); transition: all 0.3s; }
+          .craft-card:hover .craft-arrow { opacity: 1; transform: none; }
         `}</style>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 85% 15%, rgba(200,169,126,0.08) 0%, transparent 45%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 85% 15%, rgba(200,169,126,0.06) 0%, transparent 50%)", pointerEvents: "none" }} />
 
-        <div style={{ textAlign: "center", marginBottom: "56px", position: "relative", zIndex: 1 }}>
-          <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>WHAT WE OFFER</div>
-          <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400, marginBottom: "16px", letterSpacing: "-0.01em" }}>Our <em>Services</em></h2>
-          <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", maxWidth: "420px", margin: "0 auto", lineHeight: 1.85, fontWeight: 400 }}>
-            From precision braids to flawless nails. Click any service to book it directly.
-          </p>
-        </div>
-
-        {/* Category tabs */}
-        {dbServices.length > 0 && (() => {
-          const cats = ["all", ...Array.from(new Set(dbServices.map(s => s.category).filter(Boolean)))];
-          const filtered = activeSvcCat === "all" ? dbServices : dbServices.filter(s => s.category === activeSvcCat);
-          return (
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginBottom: 40 }}>
-                {cats.map(cat => (
-                  <button key={cat} className={"svc-cat-tab" + (activeSvcCat === cat ? " active" : "")} onClick={() => setActiveSvcCat(cat)}>
-                    {cat === "all" ? "All Services" : cat}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px,1fr))", gap: 16, marginBottom: 48 }}>
-                {filtered.map((svc, i) => {
-                  const vars = dbVariantsMap[svc.id] || [];
-                  const priceDisplay = (() => {
-                    if (vars.length === 0) return Number(svc.price) > 0 ? "GHS " + Number(svc.price).toLocaleString() : "See pricing";
-                    const prices = vars.map((v:any) => Number(v.price_adjustment));
-                    const mn = Math.min(...prices), mx = Math.max(...prices);
-                    return mn === mx ? "GHS " + mn.toLocaleString() : "GHS " + mn.toLocaleString() + " – " + mx.toLocaleString();
-                  })();
-                  return (
-                    <div key={svc.id} className={"svc-db-card" + (svcVisible ? " visible" : "")} style={{ transitionDelay: (i * 0.05) + "s" }}>
-                      <div style={{ height: 3, background: "linear-gradient(90deg,#C8A97E,#8B6914)" }} />
-                      <div style={{ padding: "22px 20px" }}>
-                        <div className="sans" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: gold, marginBottom: 8 }}>{svc.category?.toUpperCase()}</div>
-                        <div style={{ fontSize: 20, fontWeight: 600, color: "#1C160E", marginBottom: 8, lineHeight: 1.2 }}>{svc.name}</div>
-                        {svc.description && <div className="sans" style={{ fontSize: 12, color: "#5C4A2A", lineHeight: 1.75, marginBottom: 16 }}>{svc.description.slice(0,80)}{svc.description.length>80?"…":""}</div>}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: svc.description ? 0 : 16 }}>
-                          <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 22, fontWeight: 700, color: goldDark }}>{priceDisplay}</span>
-                          <Link to={"/book?prefill_service=" + encodeURIComponent(svc.name)} className="svc-book-link">BOOK →</Link>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "clamp(40px,6vw,72px)", flexWrap: "wrap", gap: 20 }}>
+            <div>
+              <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "14px" }}>OUR CRAFT</div>
+              <h2 style={{ fontSize: "clamp(36px,5vw,62px)", fontWeight: 400, letterSpacing: "-0.01em", lineHeight: 1 }}>What we <em>do best.</em></h2>
             </div>
-          );
-        })()}
+            <Link to="/book" className="sans" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.16em", color: goldDark, textDecoration: "none", borderBottom: "1px solid rgba(139,105,20,0.4)", paddingBottom: "2px", transition: "all 0.2s", whiteSpace: "nowrap" }}>
+              FULL MENU INSIDE BOOKING →
+            </Link>
+          </div>
 
-        <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
-          <Link to="/book" className="btn-primary" style={{
-            textDecoration: "none", display: "inline-block", fontFamily: "'Montserrat',sans-serif",
-            fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", color: "#fff",
-            background: "linear-gradient(135deg,#8B6914,#C8A97E)", padding: "17px 52px",
-            borderRadius: "1px", boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
-          }}>VIEW ALL SERVICES & BOOK</Link>
+          {[
+            { num: "01", name: "Braids & Protective Styles", desc: "The art we are known for across the North. Box braids, knotless, cornrows, Senegalese twists — every length, every texture, executed with precision.", tag: "Signature Service" },
+            { num: "02", name: "Nail Artistry", desc: "Acrylic sets, gel overlays, classic pedicures and manicures. Clean lines, lasting colour, flawless finish every time.", tag: "Nails" },
+            { num: "03", name: "Lash Extensions & Makeup", desc: "Classic, hybrid and volume lash sets by certified technicians. Everyday glam to full event-ready makeup that lasts.", tag: "Beauty" },
+            { num: "04", name: "Wigs, Installs & Hair Treatments", desc: "Frontal installs, closure setups, wig customisation and deep conditioning treatments. Your crown, perfected.", tag: "Hair" },
+          ].map(({ num, name, desc, tag }) => (
+            <Link key={num} to="/book" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+              <div className="craft-card">
+                <div style={{ display: "flex", alignItems: "center", gap: "clamp(16px,3vw,40px)" }}>
+                  <div className="craft-num">{num}</div>
+                  <div>
+                    <div className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.2em", color: gold, marginBottom: "8px", textTransform: "uppercase" }}>{tag}</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(22px,2.8vw,34px)", fontWeight: 600, color: dark, lineHeight: 1.1 }}>{name}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+                  <p className="sans" style={{ fontSize: "13px", color: "#5C4A2A", lineHeight: 1.8, fontWeight: 400, maxWidth: 360 }}>{desc}</p>
+                  <div className="craft-arrow sans" style={{ fontSize: "11px", fontWeight: 700, color: goldDark, whiteSpace: "nowrap" }}>BOOK →</div>
+                </div>
+              </div>
+            </Link>
+          ))}
+
+          <div style={{ textAlign: "center", marginTop: "clamp(40px,5vw,64px)" }}>
+            <Link to="/book" style={{
+              textDecoration: "none", display: "inline-block", fontFamily: "'Montserrat',sans-serif",
+              fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", color: "#fff",
+              background: "linear-gradient(135deg,#8B6914,#C8A97E)", padding: "17px 52px",
+              borderRadius: "1px", boxShadow: "0 8px 32px rgba(139,105,20,0.3)",
+            }}>BOOK YOUR APPOINTMENT</Link>
+          </div>
         </div>
       </section>
 
-      {/* EXPERIENCE */}
+            {/* EXPERIENCE */}
       <section id="experience" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: "-60px", top: "50%", transform: "translateY(-50%)", fontSize: "380px", color: "rgba(200,169,126,0.045)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
         <div className="landing-experience-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center", maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
