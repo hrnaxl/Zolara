@@ -268,8 +268,8 @@ export default function LandingPage() {
         .heading-xl { font-size:clamp(38px,5.5vw,72px); font-weight:400; line-height:0.95; letter-spacing:-0.01em; }
         .heading-lg { font-size:clamp(30px,4vw,54px); font-weight:400; line-height:1.05; }
         .body-copy { font-size:14px; line-height:1.95; color:#3D2E1A; font-family:'Montserrat',sans-serif; font-weight:400; }
-        .craft-card { border-top:1px solid rgba(200,169,126,0.18); padding:36px 0; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:24px; transition:background 0.3s,padding 0.3s,margin 0.3s,border-color 0.3s; cursor:pointer; opacity:0; transform:translateY(28px); }
-        .craft-card.craft-visible { animation:craftIn 0.65s cubic-bezier(0.16,1,0.3,1) forwards; }
+        .craft-card { border-top:1px solid rgba(200,169,126,0.18); padding:36px 0; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:24px; transition:background 0.3s,padding 0.3s,margin 0.3s,border-color 0.3s,opacity 0.65s cubic-bezier(0.16,1,0.3,1),transform 0.65s cubic-bezier(0.16,1,0.3,1); cursor:pointer; opacity:0; transform:translateY(28px); }
+        .craft-card.craft-visible { opacity:1; transform:none; }
         .craft-card:last-child { border-bottom:1px solid rgba(200,169,126,0.18); }
         .craft-card:hover { background:rgba(200,169,126,0.06); margin:0 -28px; padding:36px 28px; border-radius:6px; border-top-color:transparent; box-shadow:0 4px 32px rgba(200,169,126,0.08); }
         .craft-card:hover+.craft-card { border-top-color:transparent; }
@@ -646,8 +646,8 @@ export default function LandingPage() {
       <section id="services" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
         <style>{`
           @keyframes craftIn { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:none; } }
-          .craft-card { border-top: 1px solid rgba(200,169,126,0.18); padding: 36px 0; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; transition: background 0.3s, padding 0.3s, margin 0.3s, border-color 0.3s; cursor: pointer; opacity:0; transform:translateY(28px); }
-          .craft-card.craft-visible { animation: craftIn 0.65s cubic-bezier(0.16,1,0.3,1) forwards; }
+          .craft-card { border-top: 1px solid rgba(200,169,126,0.18); padding: 36px 0; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; transition: background 0.3s, padding 0.3s, margin 0.3s, border-color 0.3s, opacity 0.65s cubic-bezier(0.16,1,0.3,1), transform 0.65s cubic-bezier(0.16,1,0.3,1); cursor: pointer; opacity:0; transform:translateY(28px); }
+          .craft-card.craft-visible { opacity:1; transform:none; }
           .craft-card:last-child { border-bottom: 1px solid rgba(200,169,126,0.18); }
           .craft-card:hover { background: rgba(200,169,126,0.06); margin: 0 -28px; padding: 36px 28px; border-radius: 6px; border-top-color: transparent; box-shadow: 0 4px 32px rgba(200,169,126,0.08); }
           .craft-card:hover + .craft-card { border-top-color: transparent; }
@@ -678,7 +678,19 @@ export default function LandingPage() {
             { num: "04", name: "Wigs, Installs & Hair Treatments", desc: "Frontal installs, closure setups, wig customisation and deep conditioning treatments. Your crown, perfected.", tag: "Hair" },
           ].map(({ num, name, desc, tag }, idx) => (
             <Link key={num} to="/book" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-              <div className={"craft-card"} ref={(el) => { if (el) { setTimeout(() => el.classList.add("craft-visible"), idx * 120); } }}>
+              <div
+                className="craft-card"
+                ref={(el) => {
+                  if (!el) return;
+                  const obs = new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting) {
+                      setTimeout(() => el.classList.add("craft-visible"), idx * 120);
+                      obs.disconnect();
+                    }
+                  }, { threshold: 0.1 });
+                  obs.observe(el);
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: "clamp(16px,3vw,40px)" }}>
                   <div className="craft-num" style={{ flexShrink: 0 }}>{num}</div>
                   <div>
