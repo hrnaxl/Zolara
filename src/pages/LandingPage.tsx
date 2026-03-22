@@ -579,7 +579,7 @@ export default function LandingPage() {
             const urgencyLabel = pct >= 80 ? "Almost Full" : pct >= 60 ? "Filling Fast" : "Slots Available";
             if (taken === 0) return null;
             return (
-              <div className="fade-up delay-3" style={{ marginBottom: "28px", padding: "16px 20px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderRadius: "4px", maxWidth: 400 }}>
+              <div className="fade-up delay-3" style={{ marginBottom: "28px", padding: "16px 20px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderLeft: "3px solid #8B6914", borderRadius: "4px", maxWidth: 400 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                   <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.2em", color: goldDark, textTransform: "uppercase" }}>This Week's Bookings</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
