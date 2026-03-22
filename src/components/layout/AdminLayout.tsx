@@ -992,104 +992,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* ── CHARTS ROW ───────────────────────────────────── */}
-      <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-3fr-2fr">
-
-        {/* Revenue trend — interactive */}
-        <RevenueTrendChart data={revenueData} />
-
-        {/* Booking status donut */}
-        <div className="zc au" style={{ animationDelay:"0.54s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>BOOKING STATUS</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"20px" }}>Distribution</div>
-          <div style={{ display:"flex", alignItems:"center", gap:"16px" }}>
-            <svg width="176" height="176" viewBox="0 0 176 176" style={{ flexShrink:0 }}>
-              {donutPaths.length > 0 ? donutPaths.map((s, i) => (
-                <path key={i} d={s.path} fill={s.color} opacity="0.9" />
-              )) : <circle cx="88" cy="88" r="70" fill={G_LIGHT} />}
-              <circle cx="88" cy="88" r="44" fill={WHITE} />
-              <text x="88" y="83" textAnchor="middle" fill={TXT_SOFT} fontSize="8" fontFamily="Montserrat" fontWeight="700" letterSpacing="2">TOTAL</text>
-              <text x="88" y="102" textAnchor="middle" fill={TXT} fontSize="24" fontFamily="Cormorant Garamond" fontWeight="700">
-                {statusTotal}
-              </text>
-            </svg>
-            <div style={{ display:"flex", flexDirection:"column", gap:"10px", flex:1 }}>
-              {bookingStatusData.length === 0
-                ? <span style={{ fontSize:"11px", color: TXT_SOFT }}>No bookings yet</span>
-                : bookingStatusData.map((d, i) => (
-                  <div key={i}>
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"4px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:"7px" }}>
-                        <div style={{ width:"7px", height:"7px", borderRadius:"50%", background: SLOT_COLORS[i % SLOT_COLORS.length] }} />
-                        <span style={{ fontSize:"11px", color: TXT_MID, fontWeight:500 }}>{d.name}</span>
-                      </div>
-                      <span style={{ fontSize:"12px", fontWeight:700, color: TXT }}>{d.value}</span>
-                    </div>
-                    <div style={{ height:"3px", borderRadius:"2px", background: BORDER }}>
-                      <div style={{ height:"100%", width:`${statusTotal > 0 ? (d.value/statusTotal)*100 : 0}%`, background: SLOT_COLORS[i % SLOT_COLORS.length], borderRadius:"2px" }} />
-                    </div>
-                  </div>
-                ))
-              }
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── BOTTOM ROW ───────────────────────────────────── */}
-      <div className="admin-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }}>
-
-        {/* Upcoming appointments */}
-        <div className="zc-flat au" style={{ animationDelay:"0.6s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>UPCOMING</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Today's Schedule</div>
-          {upcomingAppointments.length === 0
-            ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>No upcoming appointments</div>
-            : <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-              {upcomingAppointments.slice(0, 5).map(a => (
-                <div key={a.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", borderRadius:"10px", background: CREAM, border:`1px solid ${BORDER}` }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-                    <div style={{ width:"36px", height:"36px", borderRadius:"50%", background: G_LIGHT, border:`1.5px solid ${G}33`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"15px", flexShrink:0 }}>💆</div>
-                    <div>
-                      <div style={{ fontSize:"12px", fontWeight:600, color: TXT }}>{a.clientName}</div>
-                      <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"1px" }}>{a.serviceName || a.service}</div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:"12px", fontWeight:700, color: G }}>{a.time}</div>
-                    <div style={{ fontSize:"10px", color: TXT_SOFT }}>{a.date ? format(new Date(a.date), "MMM d") : ""}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          }
-        </div>
-
-        {/* Alerts */}
-        <div className="zc-flat au" style={{ animationDelay:"0.66s", padding:"28px" }}>
-          <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"5px" }}>ALERTS</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"18px" }}>Action Items</div>
-          <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-            {alerts.length === 0
-              ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>All clear. No alerts.</div>
-              : alerts.map((a, i) => {
-                const cfg = {
-                  warning:{ bg:"#FFFBEB", border:"#FDE68A", icon:"⚠️" },
-                  info:   { bg:"#EFF6FF", border:"#BFDBFE", icon:"ℹ️" },
-                  success:{ bg:"#F0FDF4", border:"#BBF7D0", icon:"✓" },
-                }[a.type];
-                return (
-                  <div key={a.id} style={{ display:"flex", gap:"10px", padding:"12px 14px", borderRadius:"10px", background: cfg.bg, border:`1px solid ${cfg.border}` }}>
-                    <span style={{ fontSize:"14px", flexShrink:0, lineHeight:1.5 }}>{cfg.icon}</span>
-                    <span style={{ fontSize:"12px", color: TXT_MID, lineHeight:1.5 }}>{a.message}</span>
-                  </div>
-                );
-              })
-            }
-          </div>
-        </div>
-      </div>
-
       {/* ── DEPOSITS + PROMO SAVINGS ──────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-2">
 
@@ -1156,6 +1058,32 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* ── TOP SERVICE BANNER ────────────────────────────── */}
+      <div className="au" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"16px", overflow:"hidden", marginBottom:"14px", padding:"24px 32px", background:`linear-gradient(120deg, ${NAVY} 0%, #1E3558 100%)` }}>
+        <div style={{ position:"absolute", top:"-40px", right:"120px", width:"160px", height:"160px", borderRadius:"50%", background:"rgba(201,168,76,0.08)", pointerEvents:"none" }} />
+        <div style={{ position:"absolute", bottom:"-50px", right:"-20px", width:"140px", height:"140px", borderRadius:"50%", background:"rgba(255,255,255,0.04)", pointerEvents:"none" }} />
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"16px" }}>
+          <div>
+            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(201,168,76,0.7)", marginBottom:"8px" }}>TOP SERVICE THIS PERIOD</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,24px)", fontWeight:700, color:"#fff", marginBottom:"4px" }}>
+              {stats.topService === "N/A" ? "No data yet" : stats.topService}
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:"40px" }}>
+            {[
+              { l:"BOOKINGS", v: String(stats.topServiceCount) },
+              { l:"REVENUE",  v:`GHS ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:0})}` },
+              { l:"GROWTH",   v: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
+            ].map((s, i) => (
+              <div key={i}>
+                <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.4)", marginBottom:"6px" }}>{s.l}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color: G }}>{s.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ── CHARTS ROW ───────────────────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-3fr-2fr">
 
@@ -1250,32 +1178,6 @@ const AdminDashboard = () => {
                 );
               })
             }
-          </div>
-        </div>
-      </div>
-
-      {/* ── TOP SERVICE BANNER ────────────────────────────── */}
-      <div className="au" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"16px", overflow:"hidden", marginBottom:"14px", padding:"24px 32px", background:`linear-gradient(120deg, ${NAVY} 0%, #1E3558 100%)` }}>
-        <div style={{ position:"absolute", top:"-40px", right:"120px", width:"160px", height:"160px", borderRadius:"50%", background:"rgba(201,168,76,0.08)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", bottom:"-50px", right:"-20px", width:"140px", height:"140px", borderRadius:"50%", background:"rgba(255,255,255,0.04)", pointerEvents:"none" }} />
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"16px" }}>
-          <div>
-            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(201,168,76,0.7)", marginBottom:"8px" }}>TOP SERVICE THIS PERIOD</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,24px)", fontWeight:700, color:"#fff", marginBottom:"4px" }}>
-              {stats.topService === "N/A" ? "No data yet" : stats.topService}
-            </div>
-          </div>
-          <div style={{ display:"flex", gap:"40px" }}>
-            {[
-              { l:"BOOKINGS", v: String(stats.topServiceCount) },
-              { l:"REVENUE",  v:`GHS ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:0})}` },
-              { l:"GROWTH",   v: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
-            ].map((s, i) => (
-              <div key={i}>
-                <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.4)", marginBottom:"6px" }}>{s.l}</div>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color: G }}>{s.v}</div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
