@@ -433,7 +433,7 @@ export default function LandingPage() {
         </a>
 
         <div className="desktop-nav" style={{ display: "flex", gap: "36px", alignItems: "center" }}>
-          {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#subscriptions","PLANS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
+          {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],...((salonSettings as any)?.landing_sections?.show_subscriptions === true ? [["#subscriptions","PLANS"]] : []),["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (
             <a key={label} href={href} className="nav-link-item sans" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em", color: dark, textDecoration: "none" }}>{label}</a>
           ))}
         </div>
@@ -479,7 +479,7 @@ export default function LandingPage() {
             <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "8px", letterSpacing: "0.2em", color: gold, fontWeight: 600 }}>BEAUTY STUDIO</div>
           </div>
         </div>
-        {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],["#subscriptions","PLANS"],["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href, label]) => (
+        {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],...((salonSettings as any)?.landing_sections?.show_subscriptions === true ? [["#subscriptions","PLANS"]] : []),["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href, label]) => (
           <a key={label} href={href} onClick={() => setMobileMenuOpen(false)}
             style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", fontWeight: 700, letterSpacing: "0.18em", color: "rgba(245,239,230,0.7)", textDecoration: "none", padding: "15px 0", borderBottom: "1px solid rgba(200,169,126,0.1)" }}>
             {label}
@@ -1308,7 +1308,7 @@ export default function LandingPage() {
           {/* Navigate */}
           <div>
             <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "16px" }}>NAVIGATE</p>
-            {[["#services","Services"],["#experience","Experience"],["#gift-cards","Gift Cards"],["#loyalty","Loyalty"],["#subscriptions","Plans"],["#visit-us","Visit Us"]].map(([href,label]) => (
+            {[["#services","Services"],["#experience","Experience"],["#gift-cards","Gift Cards"],["#loyalty","Loyalty"],...((salonSettings as any)?.landing_sections?.show_subscriptions === true ? [["#subscriptions","Plans"]] : []),["#visit-us","Visit Us"]].map(([href,label]) => (
               <div key={label} style={{ marginBottom: "11px" }}>
                 <a href={href} className="sans" style={{ fontSize: "13px", color: "rgba(245,239,230,0.65)", textDecoration: "none", fontWeight: 400, transition: "color 0.2s" }}
                   onMouseEnter={e => (e.target as HTMLElement).style.color = gold}
