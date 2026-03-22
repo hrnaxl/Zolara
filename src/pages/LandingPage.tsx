@@ -267,8 +267,8 @@ export default function LandingPage() {
         .nav-link-item:hover::after { width:100%; }
         .nav-link-item:hover { color:#C8A97E !important; }
         .section-label { font-size:9px; font-weight:700; letter-spacing:0.28em; color:#C8A97E; text-transform:uppercase; margin-bottom:14px; display:block; }
-        .heading-xl { font-size:clamp(38px,5.5vw,72px); font-weight:400; line-height:0.95; letter-spacing:-0.01em; }
-        .heading-lg { font-size:clamp(30px,4vw,54px); font-weight:400; line-height:1.05; }
+        .heading-xl { font-size:clamp(36px,5.2vw,68px); font-weight:300; line-height:0.94; letter-spacing:-0.015em; }
+        .heading-lg { font-size:clamp(28px,3.8vw,52px); font-weight:300; line-height:1.05; letter-spacing:-0.01em; }
         .body-copy { font-size:14px; line-height:1.95; color:#3D2E1A; font-family:'Montserrat',sans-serif; font-weight:400; }
         .craft-card { border-top:1px solid rgba(200,169,126,0.18); padding:36px 0; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:24px; transition:background 0.3s,padding 0.3s,margin 0.3s,border-color 0.3s,opacity 0.65s cubic-bezier(0.16,1,0.3,1),transform 0.65s cubic-bezier(0.16,1,0.3,1); cursor:pointer; opacity:0; transform:translateY(28px); }
         .craft-card.craft-visible { opacity:1; transform:none; }
@@ -563,7 +563,7 @@ export default function LandingPage() {
           <h1 className="fade-up delay-1" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 300, lineHeight: 1.0, marginBottom: "8px", letterSpacing: "-0.01em" }}>
             Where Luxury
           </h1>
-          <h1 className="fade-up delay-2" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 600, fontStyle: "italic", color: gold, lineHeight: 1.0, marginBottom: "36px", letterSpacing: "-0.01em" }}>
+          <h1 className="fade-up delay-2" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 400, fontStyle: "italic", color: gold, lineHeight: 1.0, marginBottom: "36px", letterSpacing: "-0.01em" }}>
             Meets Beauty.
           </h1>
 
@@ -678,7 +678,7 @@ export default function LandingPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "clamp(40px,6vw,72px)", flexWrap: "wrap", gap: 20 }}>
             <div>
               <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "14px" }}>OUR CRAFT</div>
-              <h2 className="heading-xl" style={{ fontWeight: 400, lineHeight: 1 }}>What we <em>do best.</em></h2>
+              <h2 className="heading-xl" style={{ fontWeight: 300, lineHeight: 0.94 }}>What we <em>do best.</em></h2>
             </div>
             <Link to="/book" className="sans" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.16em", color: goldDark, textDecoration: "none", borderBottom: "1px solid rgba(139,105,20,0.4)", paddingBottom: "2px", transition: "all 0.2s", whiteSpace: "nowrap" }}>
               FULL MENU INSIDE BOOKING →
@@ -739,7 +739,7 @@ export default function LandingPage() {
         <div className="landing-experience-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(40px,6vw,100px)", alignItems: "center", maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div ref={expRef} className={expVisible ? "exp-visible" : ""}>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE ZOLARA DIFFERENCE</div>
-            <h2 className="heading-lg" style={{ fontWeight: 400, lineHeight: 1.1, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
+            <h2 className="heading-lg" style={{ fontWeight: 300, lineHeight: 1.05, marginBottom: "28px" }}>A Complete <em>Luxury</em> Experience</h2>
             <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", lineHeight: 2, marginBottom: "44px", fontWeight: 400 }}>
               You walk in. Cold water waiting. Your name already known.
               Your stylist ready, products pulled, station prepared.
@@ -872,7 +872,7 @@ export default function LandingPage() {
 
         <div ref={reviewRef} className={reviewVisible ? "review-visible" : ""} style={{ position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>CLIENT STORIES</div>
-          <h2 className="heading-xl" style={{ fontWeight: 400, color: cream, marginBottom: "16px" }}>What Our <em>Clients</em> Say</h2>
+          <h2 className="heading-xl" style={{ fontWeight: 300, color: cream, marginBottom: "16px" }}>What Our <em>Clients</em> Say</h2>
           <p className="sans" style={{ fontSize: "14px", color: "rgba(245,239,230,0.55)", maxWidth: "420px", margin: "0 auto 60px", lineHeight: 1.8, fontWeight: 400 }}>
             Real women. Real results. Real luxury.
           </p>
@@ -956,7 +956,7 @@ export default function LandingPage() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(48px,6vw,80px)", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>THE PERFECT PRESENT</div>
-          <h2 style={{ fontSize: "clamp(36px,5vw,64px)", fontWeight: 400, color: "#F5EFE6", lineHeight: 1.05, marginBottom: "20px" }}>Gift the <em style={{ color: gold }}>Experience</em></h2>
+          <h2 className="heading-xl" style={{ fontWeight: 300, color: "#F5EFE6", lineHeight: 0.94, marginBottom: "20px" }}>Gift the <em style={{ color: gold }}>Experience</em></h2>
           <p className="sans" style={{ fontSize: "14px", color: "rgba(245,239,230,0.55)", lineHeight: 1.85, maxWidth: "480px", margin: "0 auto 32px", fontWeight: 400 }}>
             When you do not know what to give, give them a choice. Every Zolara Gift Card is valid for 12 months and redeemable for any service. Buy it now, book it whenever she is ready.
           </p>
@@ -1074,7 +1074,7 @@ export default function LandingPage() {
           {/* Left */}
           <div>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>LOYALTY REWARDS</div>
-            <h2 style={{ fontSize: "clamp(32px,4.5vw,54px)", fontWeight: 400, lineHeight: 1.15, marginBottom: "24px" }}>Your Loyalty,<br /><em>Beautifully Rewarded</em></h2>
+            <h2 className="heading-xl" style={{ fontWeight: 300, lineHeight: 0.94, marginBottom: "24px" }}>Your Loyalty,<br /><em>Beautifully Rewarded</em></h2>
             <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", lineHeight: 2, marginBottom: "36px", fontWeight: 400 }}>
               The Zolara Rewards Card is not a points system. It is a thank-you. Every GHS 100 you spend earns one stamp. Reach 20 and your next service gets GHS 50 off. No app, no sign-up. Your card lives in the system the moment you book.
             </p>
@@ -1156,7 +1156,7 @@ export default function LandingPage() {
         <div style={{ position: "absolute", right: "-40px", top: "50%", transform: "translateY(-50%)", fontSize: "320px", color: "rgba(200,169,126,0.04)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
         <div style={{ textAlign: "center", marginBottom: "clamp(40px,5vw,64px)", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>MONTHLY PLANS</div>
-          <h2 style={{ fontSize: "clamp(32px,4.5vw,56px)", fontWeight: 400, lineHeight: 1.1, marginBottom: "16px" }}>Beauty on <em>Subscription</em></h2>
+          <h2 className="heading-xl" style={{ fontWeight: 300, lineHeight: 0.94, marginBottom: "16px" }}>Beauty on <em>Subscription</em></h2>
           <p className="sans" style={{ fontSize: "14px", color: "#3D2E1A", lineHeight: 1.85, maxWidth: "440px", margin: "0 auto", fontWeight: 400 }}>
             Pay once a month, visit as often as your plan allows. Priority booking, fixed price, always ready.
           </p>
@@ -1239,7 +1239,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: "780px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ textAlign: "center", marginBottom: "clamp(40px,5vw,64px)" }}>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>GOOD TO KNOW</div>
-            <h2 className="heading-xl" style={{ fontWeight: 400, color: cream }}>Questions we <em>always</em> get.</h2>
+            <h2 className="heading-xl" style={{ fontWeight: 300, color: cream }}>Questions we <em>always</em> get.</h2>
           </div>
           {[
             { q: "How long do box braids take?", a: "It depends on the length and style. Short to medium box braids take 3 to 5 hours. Long or extra-large sets can take 6 to 8 hours. We will give you a time estimate when you book." },
@@ -1270,7 +1270,7 @@ export default function LandingPage() {
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
         <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
           <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>FIND US</div>
-          <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400 }}>Come <em>Visit Us</em></h2>
+          <h2 className="heading-xl" style={{ fontWeight: 300 }}>Come <em>Visit Us</em></h2>
           <p className="sans" style={{ fontSize: "14px", color: "#78716C", marginTop: "12px", fontWeight: 400 }}>Sakasaka, Tamale. Walk in or book ahead.</p>
         </div>
         <div ref={visitRef} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 60px", position: "relative", zIndex: 1 }}>
