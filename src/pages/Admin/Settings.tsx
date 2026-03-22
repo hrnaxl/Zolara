@@ -182,10 +182,11 @@ export default function Settings() {
   const updateSettings = async () => {
     setSaving(true);
     try {
-      const currentSettings = settingsRef.current;
       const logoUrl = await uploadLogo();
       const safeLogoUrl = (logoUrl && !logoUrl.startsWith("data:")) ? logoUrl
         : (!currentSettings.logo_url?.startsWith("data:") ? currentSettings.logo_url : null);
+
+      const currentSettings = settingsRef.current;
       const payload: any = {
         business_name: currentSettings.business_name || "",
         logo_url: safeLogoUrl || null,
@@ -220,15 +221,13 @@ export default function Settings() {
         max_bookings_per_slot: Number((currentSettings as any).max_bookings_per_slot || 6),
       };
 
-      // Sanitise payment_methods — preserve user's enabled/disabled choices exactly
+      // Sanitise payment_methods — only keep known valid entries, discard any corrupt data
       const VALID_PM_IDS = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
       const VALID_PM_NAMES: Record<string,string> = { cash:"Cash", mobile_money:"Mobile Money", card:"Card", bank_transfer:"Bank Transfer", gift_card:"Gift Card" };
       const rawMethods = Array.isArray(payload.payment_methods) ? payload.payment_methods : [];
       payload.payment_methods = VALID_PM_IDS.map(id => {
         const existing = rawMethods.find((m:any) => m?.id === id);
-        // Use existing enabled value exactly — no defaults that override user choices
-        const enabled = existing ? !!existing.enabled : false;
-        return { id, name: VALID_PM_NAMES[id], enabled };
+        return { id, name: VALID_PM_NAMES[id], enabled: existing ? !!existing.enabled : (id === "cash" || id === "mobile_money" || id === "gift_card") };
       });
 
       const res = await fetch("/api/save-settings", {
