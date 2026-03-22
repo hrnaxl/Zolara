@@ -91,7 +91,7 @@ export default function LandingPage() {
   }, []);
 
   // Urgency: count this week's bookings
-  const [weeklyBookings, setWeeklyBookings] = React.useState(0);
+  const [weeklyBookings, setWeeklyBookings] = useState(0);
   useEffect(() => {
     const now = new Date();
     const day = now.getDay(); // 0=Sun
