@@ -122,16 +122,19 @@ export default function ProductsPage() {
       .then(async ({ data }: any) => {
         const items = data || [];
         if (items.length === 0) {
-          // Fallback: estimate cost as 60% of revenue if no checkout_items
-          setActualProductCost(actualProductRevenue * 0.6);
+          // No checkout_items — skip, cost will be calculated from perProductRevenue
           return;
         }
         let totalCostSold = 0;
+        // Fetch all products once for cost lookup
+        const { data: allProds } = await (supabase as any).from("products").select("id, cost_price");
+        const costMap: Record<string, number> = {};
+        (allProds || []).forEach((p: any) => { costMap[p.id] = Number(p.cost_price || 0); });
         for (const item of items) {
-          const { data: prod } = await (supabase as any).from("products").select("cost_price").eq("id", item.item_id).single();
-          if (prod?.cost_price) totalCostSold += Number(prod.cost_price) * Number(item.quantity || 1);
+          const cp = costMap[item.item_id] ?? 0;
+          totalCostSold += cp * Number(item.quantity || 1);
         }
-        setActualProductCost(totalCostSold);
+        if (totalCostSold > 0) setActualProductCost(totalCostSold);
       });
   }, [actualProductRevenue]);
 

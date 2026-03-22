@@ -946,38 +946,7 @@ const AdminDashboard = () => {
           </div>
         ))}
       </div>
-      {/* ── GIFT CARD PANEL ──────────────────────────────── */}
-      {(
-        <div style={{ background:"linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
-          <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(199,210,254,0.5)", textTransform:"uppercase", margin:"0 0 14px" }}>◆ GIFT CARDS</p>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
-            {/* Liability */}
-            <div>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Liability</p>
-              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"white", margin:"0 0 3px" }}>GHS {stats.giftCardLiability.toLocaleString("en",{minimumFractionDigits:2})}</p>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Cash held, not yet revenue</p>
-            </div>
-            {/* Redeemed value this period */}
-            <div>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed ({dateFilter})</p>
-              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#A5B4FC", margin:"0 0 3px" }}>GHS {(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}</p>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Revenue from redemptions</p>
-            </div>
-            {/* Cards sold (all time) */}
-            <div>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Cards Sold</p>
-              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#6EE7B7", margin:"0 0 3px" }}>{stats.giftCardsSoldCount}</p>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Paid / in circulation</p>
-            </div>
-            {/* Cards redeemed (all time) + in stock */}
-            <div>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed / In Stock</p>
-              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#FCA5A5", margin:"0 0 3px" }}>{stats.giftCardsRedeemedCount} <span style={{ fontSize:14, color:"rgba(199,210,254,0.4)", fontWeight:400 }}>/ {stats.giftCardsInStock}</span></p>
-              <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>All-time used / physical stock</p>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* ── DEPOSITS + PROMO SAVINGS ──────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-2">
@@ -1045,28 +1014,59 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* ── TOP SERVICE BANNER ────────────────────────────── */}
-      <div className="au" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"16px", overflow:"hidden", marginBottom:"14px", padding:"24px 32px", background:`linear-gradient(120deg, ${NAVY} 0%, #1E3558 100%)` }}>
-        <div style={{ position:"absolute", top:"-40px", right:"120px", width:"160px", height:"160px", borderRadius:"50%", background:"rgba(201,168,76,0.08)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", bottom:"-50px", right:"-20px", width:"140px", height:"140px", borderRadius:"50%", background:"rgba(255,255,255,0.04)", pointerEvents:"none" }} />
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"16px" }}>
-          <div>
-            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(201,168,76,0.7)", marginBottom:"8px" }}>TOP SERVICE THIS PERIOD</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,24px)", fontWeight:700, color:"#fff", marginBottom:"4px" }}>
-              {stats.topService === "N/A" ? "No data yet" : stats.topService}
-            </div>
+      {/* ── TOP SERVICE + GIFT CARDS ROW ─────────────────── */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-2">
+
+        {/* Top Service — white card matching KPI style */}
+        <div className="zc-flat au" style={{ animationDelay:"0.42s", padding:"24px 28px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
+            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>TOP SERVICE · {filterLabel}</span>
+            <div style={{ width:"8px", height:"8px", borderRadius:"50%", background: G }} />
           </div>
-          <div style={{ display:"flex", gap:"40px" }}>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color: TXT, lineHeight:1.1, marginBottom:"16px" }}>
+            {stats.topService === "N/A" ? "No data yet" : stats.topService}
+          </div>
+          <div style={{ display:"flex", gap:"0", borderTop:`1px solid ${BORDER}`, paddingTop:"14px" }}>
             {[
-              { l:"BOOKINGS",  v: stats.topServiceCount },
-              { l:"REVENUE",   v:`GHS ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:0})}` },
-              { l:"GROWTH",    v: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
+              { l:"BOOKINGS", v: String(stats.topServiceCount) },
+              { l:"REVENUE",  v:`GHS ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:0})}` },
+              { l:"GROWTH",   v: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
             ].map((s, i) => (
-              <div key={i}>
-                <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.4)", marginBottom:"6px" }}>{s.l}</div>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color: G }}>{s.v}</div>
+              <div key={i} style={{ flex:1, borderRight: i < 2 ? `1px solid ${BORDER}` : "none", paddingRight: i < 2 ? "16px" : "0", marginRight: i < 2 ? "16px" : "0" }}>
+                <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"5px" }}>{s.l}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 2 ? (stats.topServiceGrowth >= 0 ? "#16A34A" : "#DC2626") : G_D }}>{s.v}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Gift Cards — white card matching KPI style */}
+        <div className="zc-flat au" style={{ animationDelay:"0.45s", padding:"24px 28px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
+            <span style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT }}>GIFT CARDS</span>
+            <div style={{ width:"8px", height:"8px", borderRadius:"50%", background:"#7C3AED" }} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px" }}>
+            <div>
+              <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"5px" }}>LIABILITY</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color: TXT, lineHeight:1.1 }}>GHS {stats.giftCardLiability.toLocaleString("en",{minimumFractionDigits:2})}</div>
+              <div style={{ fontSize:"9px", color: TXT_SOFT, marginTop:"3px" }}>Cash held, unredeemed</div>
+            </div>
+            <div>
+              <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"5px" }}>REDEEMED · {filterLabel}</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color:"#7C3AED", lineHeight:1.1 }}>GHS {(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}</div>
+              <div style={{ fontSize:"9px", color: TXT_SOFT, marginTop:"3px" }}>Revenue from redemptions</div>
+            </div>
+            <div style={{ borderTop:`1px solid ${BORDER}`, paddingTop:"12px" }}>
+              <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"5px" }}>CARDS SOLD</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color: TXT, lineHeight:1.1 }}>{stats.giftCardsSoldCount}</div>
+              <div style={{ fontSize:"9px", color: TXT_SOFT, marginTop:"3px" }}>In circulation</div>
+            </div>
+            <div style={{ borderTop:`1px solid ${BORDER}`, paddingTop:"12px" }}>
+              <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"5px" }}>IN STOCK</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color: TXT, lineHeight:1.1 }}>{stats.giftCardsInStockCount}</div>
+              <div style={{ fontSize:"9px", color: TXT_SOFT, marginTop:"3px" }}>Pre-printed, unsold</div>
+            </div>
           </div>
         </div>
       </div>
