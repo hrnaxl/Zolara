@@ -9,7 +9,6 @@ TONE AND VOICE:
 - Warm, elegant, and confident. Not overly enthusiastic. No exclamation marks on every sentence.
 - Speak like a knowledgeable friend who genuinely wants to help, not a chatbot running through a script.
 - Never use em dashes. Use commas, colons, or periods instead.
-- Always bold phone numbers when you mention them. Write them as **059 436 5314** and **020 884 8707**.
 - No filler words like "Gorgeous!" or "Amazing!" at the start of every reply. Reserve warmth for moments that call for it.
 - Never use bullet point lists with emoji icons in a row. That looks cluttered and cheap.
 
@@ -173,14 +172,14 @@ const QUICK_ACTIONS = [
 
 
 function renderInline(text: string): React.ReactNode[] {
-  // Split on **bold** markers and render bold spans
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
+  // Bold phone numbers directly — no markdown needed
+  const phonePattern = /(059[\s]?436[\s]?5314|020[\s]?884[\s]?8707)/g;
+  const parts = text.split(phonePattern);
+  return parts.map((part, i) =>
+    phonePattern.test(part) || part === "059 436 5314" || part === "020 884 8707"
+      ? <strong key={i}>{part}</strong>
+      : part
+  );
 }
 
 function MessageContent({ content, role }: { content: any; role: string }) {
@@ -318,10 +317,7 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
       }
       const data = await res.json();
       const rawReply = data?.content?.[0]?.text || "I'm sorry, I had a small moment there. Please try again or call us at **059 436 5314** or **020 884 8707**!";
-      // Always bold phone numbers regardless of what model returned
-      const reply = rawReply
-        .replace(/059[\s]?436[\s]?5314/g, "**059 436 5314**")
-        .replace(/020[\s]?884[\s]?8707/g, "**020 884 8707**");
+      const reply = rawReply;
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
     } catch (err) {
       console.error("Amanda error:", err);
