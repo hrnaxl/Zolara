@@ -184,7 +184,7 @@ export default function Settings() {
     try {
       const logoUrl = await uploadLogo();
       const safeLogoUrl = (logoUrl && !logoUrl.startsWith("data:")) ? logoUrl
-        : (!settings.logo_url?.startsWith("data:") ? settings.logo_url : null);
+        : (!currentSettings.logo_url?.startsWith("data:") ? currentSettings.logo_url : null);
 
       const currentSettings = settingsRef.current;
       const payload: any = {
@@ -204,24 +204,25 @@ export default function Settings() {
         loyalty_reward_discount: Number(currentSettings.loyalty_reward_discount || 50),
         service_categories: currentSettings.service_categories || [],
         staff_roles: currentSettings.staff_roles || [],
-        staff_specialties: (settings as any).staff_specialties || [],
-        gift_card_prices: (settings as any).gift_card_prices || {},
-        landing_sections: (settings as any).landing_sections || { show_gift_cards: true },
-        promo_banner: (settings as any).promo_banner || null,
-        announcement: (settings as any).announcement || null,
-        business_phone_2: (settings as any).business_phone_2 || "",
-        whatsapp_number: (settings as any).whatsapp_number || "",
-        instagram_handle: (settings as any).instagram_handle || "",
-        tiktok_handle: (settings as any).tiktok_handle || "",
-        facebook_handle: (settings as any).facebook_handle || "",
-        cancellation_policy: (settings as any).cancellation_policy || "",
-        lateness_fee: Number((settings as any).lateness_fee || 50),
-        lateness_cutoff: Number((settings as any).lateness_cutoff || 15),
-        student_discount: Number((settings as any).student_discount || 10),
-        max_bookings_per_slot: Number((settings as any).max_bookings_per_slot || 6),
+        staff_specialties: (currentSettings as any).staff_specialties || [],
+        gift_card_prices: (currentSettings as any).gift_card_prices || {},
+        landing_sections: (currentSettings as any).landing_sections || { show_gift_cards: true },
+        promo_banner: (currentSettings as any).promo_banner || null,
+        announcement: (currentSettings as any).announcement || null,
+        business_phone_2: (currentSettings as any).business_phone_2 || "",
+        whatsapp_number: (currentSettings as any).whatsapp_number || "",
+        instagram_handle: (currentSettings as any).instagram_handle || "",
+        tiktok_handle: (currentSettings as any).tiktok_handle || "",
+        facebook_handle: (currentSettings as any).facebook_handle || "",
+        cancellation_policy: (currentSettings as any).cancellation_policy || "",
+        lateness_fee: Number((currentSettings as any).lateness_fee || 50),
+        lateness_cutoff: Number((currentSettings as any).lateness_cutoff || 15),
+        student_discount: Number((currentSettings as any).student_discount || 10),
+        max_bookings_per_slot: Number((currentSettings as any).max_bookings_per_slot || 6),
       };
 
       // Sanitise payment_methods — only keep known valid entries, discard any corrupt data
+      console.log("[Settings] Saving payment_methods:", JSON.stringify(currentSettings.payment_methods));
       const VALID_PM_IDS = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
       const VALID_PM_NAMES: Record<string,string> = { cash:"Cash", mobile_money:"Mobile Money", card:"Card", bank_transfer:"Bank Transfer", gift_card:"Gift Card" };
       const rawMethods = Array.isArray(payload.payment_methods) ? payload.payment_methods : [];
