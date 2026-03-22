@@ -266,8 +266,6 @@ export default function LandingPage() {
         .review-visible .review-card-anim { animation: reviewPop 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
         .review-card { transition: all 0.5s ease; }
         .hero-floating-card { animation: cardFloat 7s ease-in-out infinite; }
-        .hero-floating-card::before { content:''; position:absolute; top:0; left:-100%; width:60%; height:100%; background:linear-gradient(108deg,transparent 0%,rgba(200,169,126,0.04) 25%,rgba(245,239,230,0.18) 50%,rgba(200,169,126,0.04) 75%,transparent 100%); animation:kpiShimmer 4.5s ease-in-out infinite; pointer-events:none; z-index:8; border-radius:5px; }
-        .hero-floating-card::after { content:''; position:absolute; inset:0; border-radius:5px; border:1px solid transparent; background:linear-gradient(rgba(252,249,244,0),rgba(252,249,244,0)) padding-box, linear-gradient(160deg,rgba(200,169,126,0.12),rgba(200,169,126,0.72),rgba(245,239,230,0.35),rgba(200,169,126,0.72),rgba(200,169,126,0.12)) border-box; animation:kpiBorderPulse 4s ease-in-out infinite; pointer-events:none; z-index:9; }
         .hero-floating-card-wrapper { animation: kpiGlowRing 4s ease-in-out infinite; }
         .kpi-div { animation:kpiDivBreath 4s ease-in-out infinite; }
         .kpi-logo { animation:kpiLogoBreath 4s ease-in-out infinite; }
