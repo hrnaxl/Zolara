@@ -170,6 +170,28 @@ const QUICK_ACTIONS = [
   "How do I book?",
 ];
 
+
+function MessageContent({ content, role }: { content: any; role: string }) {
+  const text = typeof content === "string"
+    ? content
+    : (Array.isArray(content) ? content.find((p: any) => p.type === "text")?.text : null) || "";
+
+  if (role !== "assistant" || !text.includes("\n\n")) {
+    return <>{text}</>;
+  }
+
+  const paras = text.split("\n\n").map((p: string) => p.trim()).filter(Boolean);
+  if (paras.length <= 1) return <>{text}</>;
+
+  return (
+    <>
+      {paras.map((para: string, i: number) => (
+        <p key={i} style={{ margin: i === 0 ? "0" : "10px 0 0", lineHeight: 1.75 }}>{para}</p>
+      ))}
+    </>
+  );
+}
+
 export default function AmandaWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -385,18 +407,7 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
                   {m.imagePreview && (
                     <img src={m.imagePreview} alt="Uploaded" style={{ width:"100%", maxWidth:180, borderRadius:8, marginBottom:6, display:"block" }} />
                   )}
-                  {(() => {
-                    const text = typeof m.content === "string"
-                      ? m.content
-                      : (m.content as any[]).find((p:any) => p.type === "text")?.text || "";
-                    if (m.role !== "assistant") return text;
-                    // Split on double newlines into paragraphs; single newlines stay inline
-                    const paras = text.split("\n\n").map((p: string) => p.trim()).filter(Boolean);
-                    if (paras.length <= 1) return text;
-                    return paras.map((para: string, i: number) => (
-                      <p key={i} style={{ margin: i === 0 ? 0 : "10px 0 0", lineHeight: 1.75 }}>{para}</p>
-                    ));
-                  })()}
+                  <MessageContent content={m.content} role={m.role} />
                 </div>
               </div>
             ))}
