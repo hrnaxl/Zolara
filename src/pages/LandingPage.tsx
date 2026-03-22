@@ -106,22 +106,24 @@ export default function LandingPage() {
   }, []);
 
   // Urgency: count this week's bookings
-  const [weeklyBookings, setWeeklyBookings] = useState(0);
+  const [todayBookings, setTodayBookings] = useState(0);
+  const [todayBraidingBookings, setTodayBraidingBookings] = useState(0);
   useEffect(() => {
-    const now = new Date();
-    const day = now.getDay(); // 0=Sun
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    monday.setHours(0,0,0,0);
-    const saturday = new Date(monday);
-    saturday.setDate(monday.getDate() + 5);
-    saturday.setHours(23,59,59,999);
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    // Total bookings today
     supabase.from("bookings")
       .select("id", { count: "exact", head: true })
       .in("status", ["pending","confirmed"])
-      .gte("preferred_date", monday.toISOString().slice(0,10))
-      .lte("preferred_date", saturday.toISOString().slice(0,10))
-      .then(({ count }: any) => { if (count != null) setWeeklyBookings(count); });
+      .eq("preferred_date", todayStr)
+      .then(({ count }: any) => { if (count != null) setTodayBookings(count); });
+    // Braiding bookings today
+    (supabase as any).from("bookings")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["pending","confirmed"])
+      .eq("preferred_date", todayStr)
+      .ilike("service_name", "%braid%")
+      .then(({ count }: any) => { if (count != null) setTodayBraidingBookings(count); });
   }, []);
 
   useEffect(() => {
@@ -571,27 +573,40 @@ export default function LandingPage() {
 
           {/* URGENCY CARD */}
           {(() => {
-            const maxSlots = (salonSettings?.max_bookings_per_slot || 6) * 6; // 6 days × max per slot
-            const taken = Math.min(weeklyBookings, maxSlots);
-            const pct = maxSlots > 0 ? Math.round((taken / maxSlots) * 100) : 0;
-            const remaining = Math.max(0, maxSlots - taken);
-            const urgencyColor = pct >= 80 ? "#DC2626" : pct >= 60 ? "#D97706" : "#16A34A";
-            const urgencyLabel = pct >= 80 ? "Almost Full" : pct >= 60 ? "Filling Fast" : "Slots Available";
+            const maxPerDay = salonSettings?.max_bookings_per_slot || 6;
+            const remaining = Math.max(0, maxPerDay - todayBookings);
+            const braidingRemaining = Math.max(0, Math.ceil(maxPerDay * 0.4) - todayBraidingBookings);
+            const pct = maxPerDay > 0 ? Math.round((todayBookings / maxPerDay) * 100) : 0;
+            const urgencyColor = pct >= 80 ? "#DC2626" : pct >= 50 ? "#D97706" : "#16A34A";
+            const urgencyLabel = pct >= 80 ? "Almost Full" : pct >= 50 ? "Filling Fast" : "Open";
+            const dotAnim = pct >= 50 ? "pulseGreen 1.5s infinite" : "pulseGreen 2s infinite";
+            const braidTag = braidingRemaining <= 0
+              ? "No braiding left today"
+              : braidingRemaining === 1
+              ? "Last braiding slot"
+              : `${braidingRemaining} braiding slots left`;
+            const tagColor = braidingRemaining === 0 ? "#DC2626" : braidingRemaining === 1 ? "#D97706" : "#8B6914";
+            const tagBg = braidingRemaining === 0 ? "rgba(220,38,38,.06)" : "rgba(200,169,126,.1)";
             return (
-              <div className="fade-up delay-3" style={{ marginBottom: "28px", padding: "16px 20px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderLeft: "3px solid #8B6914", borderRadius: "4px", maxWidth: 400 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                  <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.2em", color: goldDark, textTransform: "uppercase" }}>This Week's Bookings</span>
+              <div className="fade-up delay-3" style={{ marginBottom: "28px", padding: "16px 20px", background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.22)", borderLeft: "3px solid #8B6914", borderRadius: "4px", maxWidth: 380 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "9px" }}>
+                  <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.2em", color: goldDark, textTransform: "uppercase" }}>Today's Availability</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: urgencyColor, display: "inline-block", boxShadow: `0 0 6px ${urgencyColor}88` }} />
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: urgencyColor, display: "inline-block", boxShadow: `0 0 6px ${urgencyColor}88`, animation: dotAnim }} />
                     <span className="sans" style={{ fontSize: "9px", fontWeight: 700, color: urgencyColor, letterSpacing: "0.12em", textTransform: "uppercase" }}>{urgencyLabel}</span>
                   </span>
                 </div>
-                <div style={{ height: 4, background: "rgba(200,169,126,0.15)", borderRadius: 2, overflow: "hidden", marginBottom: 8 }}>
-                  <div style={{ height: "100%", width: pct + "%", background: `linear-gradient(90deg, #8B6914, ${urgencyColor})`, borderRadius: 2, transition: "width 1s ease" }} />
+                <div style={{ height: 3, background: "rgba(200,169,126,0.15)", borderRadius: 2, overflow: "hidden", marginBottom: 10 }}>
+                  <div style={{ height: "100%", width: pct + "%", background: `linear-gradient(90deg, #8B6914, ${urgencyColor})`, borderRadius: 2, transition: "width 1.2s ease" }} />
                 </div>
-                <span className="sans" style={{ fontSize: "11px", color: "#5C4A2A", fontWeight: 500 }}>
-                  <strong style={{ color: dark }}>{remaining} {remaining === 1 ? "slot" : "slots"}</strong> remaining this week
-                </span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <span className="sans" style={{ fontSize: "13px", color: "#5C4A2A", fontWeight: 500 }}>
+                    <strong style={{ color: dark, fontSize: "15px" }}>{remaining}</strong> {remaining === 1 ? "slot" : "slots"} left today
+                  </span>
+                  <span className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.14em", color: tagColor, background: tagBg, border: `1px solid ${tagColor}44`, borderRadius: "20px", padding: "3px 10px", textTransform: "uppercase" }}>
+                    ✦ {braidTag}
+                  </span>
+                </div>
               </div>
             );
           })()}
