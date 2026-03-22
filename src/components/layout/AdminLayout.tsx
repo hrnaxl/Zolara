@@ -1,4 +1,21 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Component } from "react";
+
+class DashboardErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean; error: string}> {
+  constructor(props: any) { super(props); this.state = { hasError: false, error: "" }; }
+  static getDerivedStateFromError(error: any) { return { hasError: true, error: String(error?.message || error) }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding:"40px", textAlign:"center", fontFamily:"Montserrat,sans-serif" }}>
+          <div style={{ fontSize:"13px", color:"#DC2626", marginBottom:"8px", fontWeight:600 }}>Dashboard error</div>
+          <div style={{ fontSize:"11px", color:"#A8A29E", marginBottom:"16px" }}>{this.state.error}</div>
+          <button onClick={() => this.setState({ hasError: false, error: "" })} style={{ padding:"8px 20px", background:"#C8A97E", color:"#fff", border:"none", borderRadius:"8px", cursor:"pointer", fontSize:"12px" }}>Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin } from "@/integrations/supabase/adminClient";
@@ -1202,23 +1219,19 @@ const AdminDashboard = () => {
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:600, color: TXT, marginBottom:"20px" }}>Top Staff · {filterLabel}</div>
           {topStaff.length === 0
             ? <div style={{ padding:"24px 0", textAlign:"center", fontSize:"12px", color: TXT_SOFT }}>No staff data yet</div>
-            : (() => {
-                const maxRev = Math.max(...topStaff.map((s: any) => s.revenue || 0), 1);
+            : topStaff.slice(0, 5).map((s: any, i: number) => {
+                const maxRev = topStaff.slice(0,5).reduce((mx: number, x: any) => Math.max(mx, x.revenue || 0), 1);
                 const medals = ["🥇","🥈","🥉"];
-                const rankColors = [
-                  { bg:"linear-gradient(135deg,#C8A97E,#8B6914)", text:"#fff", border:"#C8A97E" },
-                  { bg:"#F0F0F0", text:"#5C5C5C", border:"#D0D0D0" },
-                  { bg:"#FDE8D0", text:"#8B4513", border:"#F0B080" },
-                  { bg:"#F5F5F5", text:"#78716C", border:"#E0E0E0" },
-                  { bg:"#F5F5F5", text:"#78716C", border:"#E0E0E0" },
-                ];
-                return topStaff.slice(0, 5).map((s: any, i: number) => (
-                  <div key={s.id} style={{ marginBottom: i < topStaff.length-1 ? "14px" : 0 }}>
-                    {/* Name row */}
+                const rankBg = i === 0 ? "linear-gradient(135deg,#C8A97E,#8B6914)" : i === 1 ? "#F0F0F0" : i === 2 ? "#FDE8D0" : "#F5F5F5";
+                const rankBorder = i === 0 ? "#C8A97E" : i === 1 ? "#D0D0D0" : i === 2 ? "#F0B080" : "#E0E0E0";
+                const rankText = i === 0 ? "#fff" : i === 1 ? "#5C5C5C" : i === 2 ? "#8B4513" : "#78716C";
+                const barColor = i === 0 ? `linear-gradient(90deg,${G_D},${G})` : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#D0CCC8";
+                const pct = Math.round(((s.revenue || 0) / maxRev) * 100);
+                return (
+                  <div key={s.id || i} style={{ marginBottom: i < Math.min(topStaff.length, 5) - 1 ? "14px" : 0 }}>
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"6px" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                        {/* Rank badge */}
-                        <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: rankColors[i].bg, border:`1.5px solid ${rankColors[i].border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize: i < 3 ? "13px" : "11px", fontWeight:700, color: rankColors[i].text, flexShrink:0 }}>
+                        <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: rankBg, border:`1.5px solid ${rankBorder}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize: i < 3 ? "13px" : "11px", fontWeight:700, color: rankText, flexShrink:0 }}>
                           {i < 3 ? medals[i] : i + 1}
                         </div>
                         <div>
@@ -1226,26 +1239,23 @@ const AdminDashboard = () => {
                           {s.specialization && <div style={{ fontSize:"9px", color: TXT_SOFT, letterSpacing:"0.08em", textTransform:"uppercase", marginTop:"1px" }}>{s.specialization}</div>}
                         </div>
                       </div>
-                      {/* Stats */}
                       <div style={{ textAlign:"right", flexShrink:0, marginLeft:"8px" }}>
-                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 0 ? G_D : TXT, lineHeight:1 }}>GHS {(s.revenue||0).toLocaleString()}</div>
+                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 0 ? G_D : TXT, lineHeight:1 }}>GHS {(s.revenue || 0).toLocaleString()}</div>
                         <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>{s.bookings} booking{s.bookings !== 1 ? "s" : ""}</div>
                       </div>
                     </div>
-                    {/* Revenue bar */}
                     <div style={{ height:"4px", background: BORDER, borderRadius:"2px", overflow:"hidden" }}>
-                      <div style={{ height:"100%", width:`${Math.round(((s.revenue||0)/maxRev)*100)}%`, background: i === 0 ? `linear-gradient(90deg,${G_D},${G})` : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#D0CCC8", borderRadius:"2px", transition:"width 0.8s ease" }} />
+                      <div style={{ height:"100%", width: pct + "%", background: barColor, borderRadius:"2px", transition:"width 0.8s ease" }} />
                     </div>
-                    {/* Avg per booking */}
                     {s.bookings > 0 && (
                       <div style={{ fontSize:"9px", color: TXT_SOFT, marginTop:"4px", textAlign:"right" }}>
-                        avg GHS {Math.round((s.revenue||0)/s.bookings).toLocaleString()} / booking
+                        avg GHS {Math.round((s.revenue || 0) / s.bookings).toLocaleString()} / booking
                       </div>
                     )}
-                    {i < topStaff.slice(0,5).length-1 && <div style={{ borderTop:`1px solid ${BORDER}`, marginTop:"10px" }} />}
+                    {i < Math.min(topStaff.length, 5) - 1 && <div style={{ borderTop:`1px solid ${BORDER}`, marginTop:"10px" }} />}
                   </div>
-                ));
-              })()
+                );
+              })
           }
         </div>
       </div>
@@ -1253,7 +1263,12 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard// ── Revenue Trend Sub-component (isolated state, no parent re-render on hover) ──
+const WrappedAdminDashboard = () => (
+  <DashboardErrorBoundary>
+    <AdminDashboard />
+  </DashboardErrorBoundary>
+);
+export default WrappedAdminDashboard// ── Revenue Trend Sub-component (isolated state, no parent re-render on hover) ──
 const RevenueTrendChart = ({ data }: { data: Array<{ name: string; revenue: number; bookings?: number }> }) => {
   const [hovIdx, setHovIdx] = useState<number|null>(null);
   const G = "#C8A97E", G_D = "#8B6914";
