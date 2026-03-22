@@ -17,9 +17,6 @@ import {
   Users, Tag, Calendar, Wrench, BarChart3, Star, Database, Loader2, CheckCircle2, Sparkles
 } from "lucide-react";
 
-const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
-const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
 
 interface PaymentMethod { id: string; name: string; enabled: boolean; }
 
@@ -61,6 +58,8 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 ];
 
 function RecalcLoyaltyButton() {
+  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_SOFT = "#A8A29E";
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -122,6 +121,9 @@ function RecalcLoyaltyButton() {
 }
 
 export default function Settings() {
+  const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
   const { settings: ctxSettings, setSettings: setCtxSettings } = useSettings();
   const [settings, setSettings] = useState<Settings>({ ...defaultSettings, ...ctxSettings });
   const settingsRef = React.useRef(settings);
