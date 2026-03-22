@@ -15,9 +15,11 @@ TONE AND VOICE:
 FORMATTING RULES (critical):
 - When listing services, use clean plain text grouped by category. No emoji bullet rows.
 - Use short paragraphs. One idea per paragraph.
+- Separate distinct ideas with a blank line so they render as separate paragraphs. One idea per paragraph.
 - If you need to list items, use a simple line break between them, no dashes or bullets.
 - Keep replies concise. 3 to 5 sentences for simple questions. Only go longer for Zolara Match recommendations.
 - Never cram everything into one reply. If they ask what services are available, give a clean overview and invite them to ask about a specific one.
+- Short replies (one sentence, a greeting, a yes/no answer) do not need paragraphs. Use paragraphs only when the reply has 2 or more distinct ideas.
 
 LANGUAGE:
 - Match the client's language automatically. If they write in Dagbani, Twi, Hausa, or French, reply in that language.
@@ -383,9 +385,19 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
                   {m.imagePreview && (
                     <img src={m.imagePreview} alt="Uploaded" style={{ width:"100%", maxWidth:180, borderRadius:8, marginBottom:6, display:"block" }} />
                   )}
-                  {typeof m.content === "string"
-                    ? m.content
-                    : (m.content as any[]).find((p:any) => p.type === "text")?.text || ""}
+                  {(() => {
+                    const text = typeof m.content === "string"
+                      ? m.content
+                      : (m.content as any[]).find((p:any) => p.type === "text")?.text || "";
+                    if (m.role !== "assistant") return text;
+                    // Split on double newlines into paragraphs; single newlines stay inline
+                    const paras = text.split(/
+{2,}/).map((p: string) => p.trim()).filter(Boolean);
+                    if (paras.length <= 1) return text;
+                    return paras.map((para: string, i: number) => (
+                      <p key={i} style={{ margin: i === 0 ? 0 : "10px 0 0", lineHeight: 1.75 }}>{para}</p>
+                    ));
+                  })()}
                 </div>
               </div>
             ))}
