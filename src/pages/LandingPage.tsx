@@ -976,7 +976,7 @@ export default function LandingPage() {
       {((salonSettings as any)?.landing_sections?.show_gift_cards !== false) && (
       <section id="gift-cards" style={{ background: dark, padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", position: "relative", overflow: "hidden" }}>
         <style>{`
-          @keyframes cardFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-8px) rotate(-1deg)} }
+          @keyframes cardFloat { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-8px) rotate(0deg)} }
           @keyframes cardFloat2 { 0%,100%{transform:translateY(0) rotate(1.5deg)} 50%{transform:translateY(-6px) rotate(1.5deg)} }
           @keyframes cardFloat3 { 0%,100%{transform:translateY(0) rotate(-0.5deg)} 50%{transform:translateY(-10px) rotate(-0.5deg)} }
           .gc-tier-card { position:relative; overflow:hidden; border-radius:14px; padding:28px 24px; cursor:pointer; transition:transform 0.3s,box-shadow 0.3s; }
