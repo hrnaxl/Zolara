@@ -1203,19 +1203,33 @@ export default function LandingPage() {
           <h2 style={{ fontSize: "clamp(36px,5vw,60px)", fontWeight: 400 }}>Come <em>Visit Us</em></h2>
           <p className="sans" style={{ fontSize: "14px", color: "#78716C", marginTop: "12px", fontWeight: 400 }}>Sakasaka, Tamale. Walk in or book ahead.</p>
         </div>
-        <div ref={visitRef} className={visitVisible ? "visit-cards-visible" : ""} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 60px", position: "relative", zIndex: 1 }}>
+        <div ref={visitRef} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "900px", margin: "0 auto 60px", position: "relative", zIndex: 1 }}>
           {[
-            { icon: "◉", label: "LOCATION", lines: ["Sakasaka, Opposite CalBank", "Tamale, Northern Region"], delay: "0s" },
-            { icon: "◈", label: "CALL US", lines: ["059 436 5314", "020 884 8707"], tel: true, delay: "0.1s" },
-            { icon: "◇", label: "HOURS", lines: ["Monday to Saturday", "8:30 AM until 9:00 PM"], delay: "0.2s" },
-            { icon: "✦", label: "SUNDAYS", lines: ["We are closed", "Rest day. Back Monday, ready for you."], delay: "0.3s" },
+            { icon: "◉", label: "LOCATION", lines: ["Sakasaka, Opposite CalBank", "Tamale, Northern Region"], delay: 0 },
+            { icon: "◈", label: "CALL US", lines: ["059 436 5314", "020 884 8707"], tel: true, delay: 120 },
+            { icon: "◇", label: "HOURS", lines: ["Monday to Saturday", "8:30 AM until 9:00 PM"], delay: 240 },
+            { icon: "✦", label: "SUNDAYS", lines: ["We are closed", "Rest day. Back Monday, ready for you."], delay: 360 },
           ].map(item => (
-            <div key={item.label} className="visit-card visit-card-reveal" style={{ background: mid, border: "1px solid rgba(200,169,126,0.22)", borderRadius: "3px", padding: "40px 28px", textAlign: "center", position: "relative", overflow: "hidden", animationDelay: (item as any).delay }}>
+            <div key={item.label} className="visit-card"
+              ref={(el) => {
+                if (!el) return;
+                const obs = new IntersectionObserver(([e]) => {
+                  if (e.isIntersecting) {
+                    setTimeout(() => {
+                      el.style.opacity = "1";
+                      el.style.transform = "translateY(0) scale(1)";
+                    }, (item as any).delay);
+                    obs.disconnect();
+                  }
+                }, { threshold: 0.15 });
+                obs.observe(el);
+              }}
+              style={{ background: mid, border: "1px solid rgba(200,169,126,0.22)", borderRadius: "3px", padding: "40px 28px", textAlign: "center", position: "relative", overflow: "hidden", opacity: 0, transform: "translateY(32px) scale(0.97)", transition: "opacity 0.65s cubic-bezier(0.16,1,0.3,1), transform 0.65s cubic-bezier(0.16,1,0.3,1)" }}>
               <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "48px", height: "2px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
               <div style={{ fontSize: "26px", color: gold, marginBottom: "18px" }}>{item.icon}</div>
               <p className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, fontWeight: 700, marginBottom: "14px" }}>{item.label}</p>
               {item.lines.map((l, li) => (item as any).tel
-                ? <a key={l} href={`tel:+233${l.replace(/^0/, "").replace(/\s/g,"")}`} className="sans" style={{ fontSize: li === 0 ? "17px" : "14px", color: dark, lineHeight: 1.75, fontWeight: li === 0 ? 600 : 400, textDecoration: "none", display: "block" }}>{l}</a>
+                ? <a key={l} href={`tel:+233${l.replace(/^0/, "").replace(/\s/g,"")}`} className="sans" style={{ fontSize: "16px", color: dark, lineHeight: 1.75, fontWeight: 600, textDecoration: "none", display: "block" }}>{l}</a>
                 : <p key={l} className="sans" style={{ fontSize: li === 0 ? "17px" : "13px", color: li === 0 ? dark : "#78716C", lineHeight: 1.75, fontWeight: li === 0 ? 600 : 400 }}>{l}</p>
               )}
             </div>

@@ -391,8 +391,7 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
                       : (m.content as any[]).find((p:any) => p.type === "text")?.text || "";
                     if (m.role !== "assistant") return text;
                     // Split on double newlines into paragraphs; single newlines stay inline
-                    const paras = text.split(/
-{2,}/).map((p: string) => p.trim()).filter(Boolean);
+                    const paras = text.split("\n\n").map((p: string) => p.trim()).filter(Boolean);
                     if (paras.length <= 1) return text;
                     return paras.map((para: string, i: number) => (
                       <p key={i} style={{ margin: i === 0 ? 0 : "10px 0 0", lineHeight: 1.75 }}>{para}</p>
