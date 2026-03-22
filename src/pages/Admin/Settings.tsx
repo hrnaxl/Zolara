@@ -222,7 +222,6 @@ export default function Settings() {
       };
 
       // Sanitise payment_methods — only keep known valid entries, discard any corrupt data
-      console.log("[Settings] Saving payment_methods:", JSON.stringify(currentSettings.payment_methods));
       const VALID_PM_IDS = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
       const VALID_PM_NAMES: Record<string,string> = { cash:"Cash", mobile_money:"Mobile Money", card:"Card", bank_transfer:"Bank Transfer", gift_card:"Gift Card" };
       const rawMethods = Array.isArray(payload.payment_methods) ? payload.payment_methods : [];
@@ -240,7 +239,8 @@ export default function Settings() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
-      toast.success("Settings saved");
+      const enabledMethods = payload.payment_methods.filter((m:any) => m.enabled).map((m:any) => m.name).join(", ");
+      toast.success(`Settings saved · Active payments: ${enabledMethods || "none"}`);
       setLogoFile(null);
       const gcPrices: Record<string,number> = {};
       for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
@@ -339,28 +339,8 @@ export default function Settings() {
 
         {tab("payments", <PaymentMethodsSection
           paymentMethods={settings.payment_methods}
-          onPaymentMethodToggle={async (id, enabled) => {
-            const updated = settings.payment_methods.map(m => m.id === id ? { ...m, enabled } : m);
-            setSettings(p => ({ ...p, payment_methods: updated }));
-            // Auto-save immediately so toggle persists without clicking Save
-            const VALID_PM_IDS = ["cash","mobile_money","card","bank_transfer","gift_card"];
-            const VALID_PM_NAMES: Record<string,string> = { cash:"Cash", mobile_money:"Mobile Money", card:"Card", bank_transfer:"Bank Transfer", gift_card:"Gift Card" };
-            const sanitized = VALID_PM_IDS.map(pmId => {
-              const ex = updated.find((m:any) => m?.id === pmId);
-              return { id: pmId, name: VALID_PM_NAMES[pmId], enabled: ex ? !!ex.enabled : (pmId === "cash" || pmId === "mobile_money" || pmId === "gift_card") };
-            });
-            const pmRes = await fetch("/api/save-settings", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ payment_methods: sanitized }),
-            });
-            if (pmRes.ok) {
-              toast.success("Payment method updated");
-              // Also update context so re-mount reads correct value
-              setCtxSettings((prev: any) => ({ ...prev, payment_methods: sanitized }));
-            } else {
-              toast.error("Failed to save payment method");
-            }
+          onPaymentMethodToggle={(id, enabled) => {
+            setSettings(p => ({ ...p, payment_methods: p.payment_methods.map(m => m.id === id ? { ...m, enabled } : m) }));
           }}
         />)}
 
