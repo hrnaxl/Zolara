@@ -1058,28 +1058,28 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── GIFT CARD PANEL ──────────────────────────────── */}
-      <div style={{ background:"linear-gradient(135deg,#1E1B4B,#312E81)", border:"1px solid rgba(99,102,241,0.3)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(99,102,241,0.1)" }}>
-        <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(199,210,254,0.5)", textTransform:"uppercase", margin:"0 0 14px" }}>◆ GIFT CARDS</p>
+      <div style={{ background:`linear-gradient(120deg, ${NAVY} 0%, #1E3558 100%)`, border:"1px solid rgba(201,168,76,0.15)", borderRadius:14, padding:"18px 22px", marginBottom:14, boxShadow:"0 4px 20px rgba(15,30,53,0.3)" }}>
+        <p style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:"rgba(201,168,76,0.7)", textTransform:"uppercase", margin:"0 0 14px" }}>◆ GIFT CARDS</p>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
           <div>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Liability</p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.55)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Liability</p>
             <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"white", margin:"0 0 3px" }}>GHS {stats.giftCardLiability.toLocaleString("en",{minimumFractionDigits:2})}</p>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Cash held, not yet revenue</p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.4)", margin:0 }}>Cash held, not yet revenue</p>
           </div>
           <div>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed ({dateFilter})</p>
-            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#A5B4FC", margin:"0 0 3px" }}>GHS {(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}</p>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Revenue from redemptions</p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.55)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed ({dateFilter})</p>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#C8A97E", margin:"0 0 3px" }}>GHS {(dateFilter==="today"?stats.todayGiftCardRevenue:stats.periodGiftCardRevenue||0).toLocaleString("en",{minimumFractionDigits:2})}</p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.4)", margin:0 }}>Revenue from redemptions</p>
           </div>
           <div>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Cards Sold</p>
-            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#6EE7B7", margin:"0 0 3px" }}>{stats.giftCardsSoldCount}</p>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>Paid / in circulation</p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.55)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Cards Sold</p>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#C8A97E", margin:"0 0 3px" }}>{stats.giftCardsSoldCount}</p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.4)", margin:0 }}>Paid / in circulation</p>
           </div>
           <div>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.5)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed / In Stock</p>
-            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#FCA5A5", margin:"0 0 3px" }}>{stats.giftCardsRedeemedCount} <span style={{ fontSize:14, color:"rgba(199,210,254,0.4)", fontWeight:400 }}>/ {stats.giftCardsInStock}</span></p>
-            <p style={{ fontSize:9, color:"rgba(199,210,254,0.4)", margin:0 }}>All-time used / physical stock</p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.55)", margin:"0 0 4px", letterSpacing:"0.12em", textTransform:"uppercase" }}>Redeemed / In Stock</p>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2vw,26px)", fontWeight:700, color:"#C8A97E", margin:"0 0 3px" }}>{stats.giftCardsRedeemedCount} <span style={{ fontSize:14, color:"rgba(201,168,76,0.4)", fontWeight:400 }}>/ {stats.giftCardsInStock}</span></p>
+            <p style={{ fontSize:9, color:"rgba(201,168,76,0.4)", margin:0 }}>All-time used / physical stock</p>
           </div>
         </div>
       </div>
