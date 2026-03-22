@@ -9,6 +9,7 @@ TONE AND VOICE:
 - Warm, elegant, and confident. Not overly enthusiastic. No exclamation marks on every sentence.
 - Speak like a knowledgeable friend who genuinely wants to help, not a chatbot running through a script.
 - Never use em dashes. Use commas, colons, or periods instead.
+- Always bold phone numbers when you mention them. Write them as **059 436 5314** and **020 884 8707**.
 - No filler words like "Gorgeous!" or "Amazing!" at the start of every reply. Reserve warmth for moments that call for it.
 - Never use bullet point lists with emoji icons in a row. That looks cluttered and cheap.
 
@@ -171,22 +172,34 @@ const QUICK_ACTIONS = [
 ];
 
 
+function renderInline(text: string): React.ReactNode[] {
+  // Split on **bold** markers and render bold spans
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 function MessageContent({ content, role }: { content: any; role: string }) {
   const text = typeof content === "string"
     ? content
     : (Array.isArray(content) ? content.find((p: any) => p.type === "text")?.text : null) || "";
 
-  if (role !== "assistant" || !text.includes("\n\n")) {
-    return <>{text}</>;
-  }
+  if (role !== "assistant") return <>{text}</>;
 
   const paras = text.split("\n\n").map((p: string) => p.trim()).filter(Boolean);
-  if (paras.length <= 1) return <>{text}</>;
+
+  if (paras.length <= 1) {
+    return <>{renderInline(text)}</>;
+  }
 
   return (
     <>
       {paras.map((para: string, i: number) => (
-        <p key={i} style={{ margin: i === 0 ? "0" : "10px 0 0", lineHeight: 1.75 }}>{para}</p>
+        <p key={i} style={{ margin: i === 0 ? "0" : "10px 0 0", lineHeight: 1.75 }}>{renderInline(para)}</p>
       ))}
     </>
   );
@@ -304,7 +317,11 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
         throw new Error("API error " + res.status);
       }
       const data = await res.json();
-      const reply = data?.content?.[0]?.text || "I'm sorry, I had a small moment there. Please try again or call us at 059 436 5314 or 020 884 8707!";
+      const rawReply = data?.content?.[0]?.text || "I'm sorry, I had a small moment there. Please try again or call us at **059 436 5314** or **020 884 8707**!";
+      // Always bold phone numbers regardless of what model returned
+      const reply = rawReply
+        .replace(/059[\s]?436[\s]?5314/g, "**059 436 5314**")
+        .replace(/020[\s]?884[\s]?8707/g, "**020 884 8707**");
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
     } catch (err) {
       console.error("Amanda error:", err);
