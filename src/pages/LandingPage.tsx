@@ -81,6 +81,23 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    const container = document.getElementById("kpiParticles");
+    if (!container) return;
+    const configs = [
+      ...Array.from({length:12}, () => ({x:8+Math.random()*84,b:Math.random()*12,w:'2px',h:'2px',bg:'#C8A97E',d:3+Math.random()*4,dl:Math.random()*7})),
+      ...Array.from({length:7},  () => ({x:15+Math.random()*70,b:Math.random()*18,w:'1.5px',h:'1.5px',bg:'rgba(245,239,230,0.6)',d:4+Math.random()*3,dl:Math.random()*6})),
+      ...Array.from({length:3},  () => ({x:20+Math.random()*60,b:Math.random()*8,w:'3px',h:'3px',bg:'rgba(200,169,126,0.5)',d:5+Math.random()*3,dl:Math.random()*8})),
+    ];
+    configs.forEach(cfg => {
+      const p = document.createElement("div");
+      p.className = "kpi-particle";
+      p.style.cssText = `left:${cfg.x}%;bottom:${cfg.b}%;width:${cfg.w};height:${cfg.h};background:${cfg.bg};--kd:${cfg.d}s;--kdl:${cfg.dl}s`;
+      container.appendChild(p);
+    });
+    return () => { if (container) container.innerHTML = ""; };
+  }, []);
+
+  useEffect(() => {
     supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement, gift_card_prices, max_bookings_per_slot").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
     // Load visible reviews from DB
@@ -211,6 +228,13 @@ export default function LandingPage() {
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @keyframes pulseGreen { 0%,100% { opacity:1; } 60% { opacity:0.7; } }
         @keyframes borderGlow { 0%,100% { box-shadow: 0 24px 64px rgba(28,22,14,0.10), 0 0 0 1px rgba(200,169,126,0.22); } 50% { box-shadow: 0 32px 80px rgba(200,169,126,0.18), 0 0 0 1.5px rgba(200,169,126,0.58); } }
+        @keyframes kpiGlowRing { 0%,100% { box-shadow: 0 0 0 0 rgba(200,169,126,0), 0 22px 60px rgba(200,169,126,0.10); } 50% { box-shadow: 0 0 0 10px rgba(200,169,126,0.07), 0 38px 90px rgba(200,169,126,0.26); } }
+        @keyframes kpiShimmer { 0% { left:-100%; opacity:0; } 14% { opacity:1; } 62% { left:160%; opacity:0.8; } 76%,100% { left:160%; opacity:0; } }
+        @keyframes kpiBorderPulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
+        @keyframes kpiParticle { 0% { opacity:0; transform:translateY(0) scale(0); } 15% { opacity:0.85; } 75% { opacity:0.25; } 100% { opacity:0; transform:translateY(-88px) scale(0.2); } }
+        @keyframes kpiDivBreath { 0%,100% { width:36px; opacity:0.5; } 50% { width:54px; opacity:1; } }
+        @keyframes kpiLogoBreath { 0%,100% { box-shadow:0 0 0 4px rgba(200,169,126,0.13),0 3px 14px rgba(200,169,126,0.09); } 50% { box-shadow:0 0 0 7px rgba(200,169,126,0.22),0 7px 28px rgba(200,169,126,0.26); } }
+        @keyframes kpiInfoReveal { 0% { opacity:0; transform:translateX(-5px); } 8%,82% { opacity:1; transform:none; } 93%,100% { opacity:0; transform:translateX(4px); } }
         @keyframes orb { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,-30px) scale(1.1); } 66% { transform: translate(-20px,20px) scale(0.95); } }
         @keyframes goldPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
         @keyframes slideInLeft { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: translateX(0); } }
@@ -241,7 +265,17 @@ export default function LandingPage() {
         .review-card-anim { opacity: 0; }
         .review-visible .review-card-anim { animation: reviewPop 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
         .review-card { transition: all 0.5s ease; }
-        .hero-floating-card { animation: borderGlow 4.5s ease-in-out infinite; }
+        .hero-floating-card { animation: cardFloat 7s ease-in-out infinite; }
+        .hero-floating-card::before { content:''; position:absolute; top:0; left:-100%; width:60%; height:100%; background:linear-gradient(108deg,transparent 0%,rgba(200,169,126,0.04) 25%,rgba(245,239,230,0.18) 50%,rgba(200,169,126,0.04) 75%,transparent 100%); animation:kpiShimmer 4.5s ease-in-out infinite; pointer-events:none; z-index:8; border-radius:5px; }
+        .hero-floating-card::after { content:''; position:absolute; inset:0; border-radius:5px; border:1px solid transparent; background:linear-gradient(rgba(252,249,244,0),rgba(252,249,244,0)) padding-box, linear-gradient(160deg,rgba(200,169,126,0.12),rgba(200,169,126,0.72),rgba(245,239,230,0.35),rgba(200,169,126,0.72),rgba(200,169,126,0.12)) border-box; animation:kpiBorderPulse 4s ease-in-out infinite; pointer-events:none; z-index:9; }
+        .hero-floating-card-wrapper { animation: kpiGlowRing 4s ease-in-out infinite; }
+        .kpi-div { animation:kpiDivBreath 4s ease-in-out infinite; }
+        .kpi-logo { animation:kpiLogoBreath 4s ease-in-out infinite; }
+        .kpi-info { opacity:0; animation:kpiInfoReveal 9s ease-in-out infinite; }
+        .kpi-info:nth-child(1) { animation-delay:0.3s; }
+        .kpi-info:nth-child(2) { animation-delay:0.85s; }
+        .kpi-info:nth-child(3) { animation-delay:1.4s; }
+        .kpi-particle { position:absolute; border-radius:50%; animation:kpiParticle var(--kd,4s) var(--kdl,0s) ease-in-out infinite; opacity:0; pointer-events:none; }
         .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulseGreen 2s ease-in-out infinite; flex-shrink: 0; }
         .visit-card { transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease; }
         .visit-card:hover { transform: translateY(-7px); box-shadow: 0 24px 60px rgba(28,22,14,0.13); border-color: rgba(200,169,126,0.5) !important; }
@@ -511,26 +545,28 @@ export default function LandingPage() {
         <div style={{ position: "absolute", right: "-1%", top: "50%", transform: "translateY(-50%)", fontSize: "clamp(280px,35vw,500px)", fontWeight: 700, color: "rgba(200,169,126,0.055)", lineHeight: 1, pointerEvents: "none", userSelect: "none", letterSpacing: "-0.05em" }}>Z</div>
 
         {/* Floating info card: aligned with the hero text, top ~18% */}
-        <div className="hero-floating-card-wrapper float" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "18%", width: "300px", pointerEvents: "none" }}>
-          <div className="hero-floating-card" style={{ width: "300px", border: "1px solid rgba(200,169,126,0.4)", borderRadius: "5px", background: "rgba(252,249,244,0.92)", backdropFilter: "blur(24px)", padding: "36px 30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "70px", height: "70px", borderRadius: "50%", border: "2.5px solid #C8A97E", overflow: "hidden", background: "#fff", boxShadow: "0 0 0 5px rgba(200,169,126,0.15)" }}>
+        <div className="hero-floating-card-wrapper" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "18%", width: "300px", pointerEvents: "none" }}>
+          <div className="hero-floating-card" style={{ width: "300px", border: "1px solid rgba(200,169,126,0.36)", borderRadius: "5px", background: "rgba(252,249,244,0.97)", backdropFilter: "blur(28px)", padding: "36px 30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", overflow: "hidden", position: "relative" }}>
+              {/* Particles */}
+              <div id="kpiParticles" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 3, overflow: "hidden", borderRadius: "5px" }} />
+            <div className="kpi-logo" style={{ width: "70px", height: "70px", borderRadius: "50%", border: "2.5px solid #C8A97E", overflow: "hidden", background: "#fff" }}>
                <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
             </div>
-            <div style={{ width: "40px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
+            <div className="kpi-div" style={{ height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
             <p style={{ fontStyle: "italic", fontSize: "17px", color: dark, textAlign: "center", lineHeight: 1.7, letterSpacing: "0.01em", fontWeight: 500 }}>
               "Not just a salon. A complete luxury experience."
             </p>
-            <div style={{ width: "40px", height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
+            <div className="kpi-div" style={{ height: "1px", background: "linear-gradient(90deg, transparent, #C8A97E, transparent)" }} />
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div>
+              <div className="kpi-info">
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>LOCATION</p>
                 <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Sakasaka, Tamale</p>
               </div>
-              <div>
+              <div className="kpi-info">
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>HOURS</p>
                 <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
               </div>
-              <div>
+              <div className="kpi-info">
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>CALL</p>
                 <a href="tel:+233594365314" className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500, textDecoration: "none", display: "block" }}>059 436 5314</a>
                 <a href="tel:+233208848707" className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500, marginTop: "2px", textDecoration: "none", display: "block" }}>020 884 8707</a>
