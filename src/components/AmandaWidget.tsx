@@ -68,6 +68,16 @@ Wigs: installs, styling, and customisation.
 
 Which one are you most interested in? I can give you exact prices.
 
+GIFT CARDS:
+Zolara sells gift cards in four tiers: Silver (GHS 220), Gold (GHS 450), Platinum (GHS 650), and Diamond (GHS 1,000).
+They are valid for 12 months, redeemable for any service, and can be purchased online at zolarasalon.com/buy-gift-card.
+They can be delivered digitally by email or collected physically in store.
+They are perfect gifts for birthdays, graduations, anniversaries, and any special occasion.
+The Diamond tier is a luxury pass that carries a balance forward across multiple visits.
+
+HIRING:
+When someone asks if Zolara is hiring, tell them: Zolara is always interested in talented, passionate beauty professionals. If they want to apply, they should send their CV and a short message about themselves to the studio via WhatsApp on 059 436 5314 or by visiting in person at Sakasaka, opposite CalBank, Tamale. Roles that are typically needed include braiders, lash technicians, nail technicians, makeup artists, and receptionists.
+
 BOOKING CLOSE:
 End helpful replies with: "Ready to book? Visit zolarasalon.com/book or call 059 436 5314 / 020 884 8707."
 
@@ -80,7 +90,7 @@ async function buildSystemPrompt(): Promise<string> {
       supabase.from("services").select("name, category, price, description").eq("is_active", true).order("category").order("name"),
       (supabase as any).from("service_variants").select("service_id, name, price_adjustment").eq("is_active", true).order("sort_order"),
       (supabase as any).from("service_addons").select("service_id, name, price").eq("is_active", true).order("sort_order"),
-      (supabase as any).from("gift_cards").select("name, amount, description").eq("is_active", true).order("amount").limit(20),
+      supabase.from("settings").select("gift_card_prices").limit(1).maybeSingle(),
       (supabase as any).from("promo_codes").select("code, discount_type, discount_value, description").eq("is_active", true).limit(20),
     ]);
 
@@ -128,13 +138,19 @@ ${cat.toUpperCase()}:
     }
 
     let giftBlock = "";
-    if (gcRes.data && gcRes.data.length > 0) {
-      giftBlock = "\nGIFT CARDS (live):\n";
-      for (const g of gcRes.data) {
-        giftBlock += `- ${g.name}: GHS ${Number(g.amount).toLocaleString()}${g.description ? ` (${g.description})` : ""}\n`;
+    const gcPrices = (gcRes.data as any)?.gift_card_prices || {};
+    const tierLabels: Record<string,string> = { Silver: "Silver", Gold: "Gold", Platinum: "Platinum", Diamond: "Diamond" };
+    const gcEntries = Object.entries(gcPrices).filter(([,v]) => Number(v) > 0);
+    if (gcEntries.length > 0) {
+      giftBlock = "\nGIFT CARDS:\n";
+      for (const [tier, price] of gcEntries) {
+        giftBlock += `- ${tierLabels[tier] || tier} Gift Card: GHS ${Number(price).toLocaleString()}\n`;
       }
-      giftBlock += "Valid 12 months, redeemable for any service.\n";
+    } else {
+      // Fallback hardcoded tiers if settings not loaded
+      giftBlock = "\nGIFT CARDS:\n- Silver: GHS 220\n- Gold: GHS 450\n- Platinum: GHS 650\n- Diamond: GHS 1,000\n";
     }
+    giftBlock += "Gift cards are valid for 12 months and redeemable for any service at Zolara. They can be purchased online at zolarasalon.com/buy-gift-card and either emailed digitally or collected in store. They make excellent gifts for birthdays, anniversaries, and special occasions.\n";
 
     let promoBlock = "";
     if (promoRes.data && promoRes.data.length > 0) {
