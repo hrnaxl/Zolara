@@ -544,7 +544,7 @@ export default function LandingPage() {
 
         {/* Floating info card: aligned with the hero text, top ~18% */}
         <div className="hero-floating-card-wrapper" style={{ position: "absolute", right: "clamp(80px,13vw,200px)", top: "18%", width: "300px", pointerEvents: "none" }}>
-          <div className="hero-floating-card" style={{ width: "300px", border: "1px solid rgba(200,169,126,0.36)", borderRadius: "5px", background: "rgba(252,249,244,0.92)", backdropFilter: "blur(28px)", padding: "36px 30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", overflow: "hidden", position: "relative" }}>
+          <div className="hero-floating-card" style={{ width: "300px", border: "1.5px solid #1C160E", borderRadius: "5px", background: "rgba(252,249,244,0.92)", backdropFilter: "blur(28px)", padding: "36px 30px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", overflow: "hidden", position: "relative" }}>
               {/* Particles */}
               <div id="kpiParticles" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 3, overflow: "hidden", borderRadius: "5px" }} />
             <div className="kpi-logo" style={{ width: "70px", height: "70px", borderRadius: "50%", border: "2.5px solid #C8A97E", overflow: "hidden", background: "#fff" }}>
