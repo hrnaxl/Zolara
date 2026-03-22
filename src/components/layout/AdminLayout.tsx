@@ -1051,7 +1051,7 @@ const AdminDashboard = () => {
             ].map((s, i) => (
               <div key={i} style={{ flex:1, borderRight: i < 2 ? `1px solid ${BORDER}` : "none", paddingRight: i < 2 ? "16px" : "0", marginRight: i < 2 ? "16px" : "0" }}>
                 <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"5px" }}>{s.l}</div>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 2 ? (stats.topServiceGrowth >= 0 ? "#16A34A" : "#DC2626") : G_D }}>{s.v}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 2 ? (stats.topServiceGrowth >= 0 ? "#16A34A" : "#DC2626") : "#8B6914" }}>{s.v}</div>
               </div>
             ))}
           </div>
@@ -1225,7 +1225,7 @@ const AdminDashboard = () => {
                 const rankBg = i === 0 ? "linear-gradient(135deg,#C8A97E,#8B6914)" : i === 1 ? "#F0F0F0" : i === 2 ? "#FDE8D0" : "#F5F5F5";
                 const rankBorder = i === 0 ? "#C8A97E" : i === 1 ? "#D0D0D0" : i === 2 ? "#F0B080" : "#E0E0E0";
                 const rankText = i === 0 ? "#fff" : i === 1 ? "#5C5C5C" : i === 2 ? "#8B4513" : "#78716C";
-                const barColor = i === 0 ? `linear-gradient(90deg,${G_D},${G})` : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#D0CCC8";
+                const barColor = i === 0 ? "linear-gradient(90deg,#8B6914,#C8A97E)" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#D0CCC8";
                 const pct = Math.round(((s.revenue || 0) / maxRev) * 100);
                 return (
                   <div key={s.id || i} style={{ marginBottom: i < Math.min(topStaff.length, 5) - 1 ? "14px" : 0 }}>
@@ -1240,7 +1240,7 @@ const AdminDashboard = () => {
                         </div>
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0, marginLeft:"8px" }}>
-                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 0 ? G_D : TXT, lineHeight:1 }}>GHS {(s.revenue || 0).toLocaleString()}</div>
+                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:700, color: i === 0 ? "#8B6914" : TXT, lineHeight:1 }}>GHS {(s.revenue || 0).toLocaleString()}</div>
                         <div style={{ fontSize:"10px", color: TXT_SOFT, marginTop:"2px" }}>{s.bookings} booking{s.bookings !== 1 ? "s" : ""}</div>
                       </div>
                     </div>
