@@ -1058,32 +1058,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* ── TOP SERVICE BANNER ────────────────────────────── */}
-      <div className="au" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"16px", overflow:"hidden", marginBottom:"14px", padding:"24px 32px", background:`linear-gradient(120deg, ${NAVY} 0%, #1E3558 100%)` }}>
-        <div style={{ position:"absolute", top:"-40px", right:"120px", width:"160px", height:"160px", borderRadius:"50%", background:"rgba(201,168,76,0.08)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", bottom:"-50px", right:"-20px", width:"140px", height:"140px", borderRadius:"50%", background:"rgba(255,255,255,0.04)", pointerEvents:"none" }} />
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"16px" }}>
-          <div>
-            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(201,168,76,0.7)", marginBottom:"8px" }}>TOP SERVICE THIS PERIOD</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,24px)", fontWeight:700, color:"#fff", marginBottom:"4px" }}>
-              {stats.topService === "N/A" ? "No data yet" : stats.topService}
-            </div>
-          </div>
-          <div style={{ display:"flex", gap:"40px" }}>
-            {[
-              { l:"BOOKINGS", v: String(stats.topServiceCount) },
-              { l:"REVENUE",  v:`GHS ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:0})}` },
-              { l:"GROWTH",   v: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
-            ].map((s, i) => (
-              <div key={i}>
-                <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.4)", marginBottom:"6px" }}>{s.l}</div>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color: G }}>{s.v}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* ── CHARTS ROW ───────────────────────────────────── */}
       <div style={{ display:"grid", gridTemplateColumns:"3fr 2fr", gap:"14px", marginBottom:"14px" }} className="admin-grid-3fr-2fr">
 
@@ -1178,6 +1152,32 @@ const AdminDashboard = () => {
                 );
               })
             }
+          </div>
+        </div>
+      </div>
+
+      {/* ── TOP SERVICE BANNER ────────────────────────────── */}
+      <div className="au" style={{ animationDelay:"0.42s", position:"relative", borderRadius:"16px", overflow:"hidden", marginBottom:"14px", padding:"24px 32px", background:`linear-gradient(120deg, ${NAVY} 0%, #1E3558 100%)` }}>
+        <div style={{ position:"absolute", top:"-40px", right:"120px", width:"160px", height:"160px", borderRadius:"50%", background:"rgba(201,168,76,0.08)", pointerEvents:"none" }} />
+        <div style={{ position:"absolute", bottom:"-50px", right:"-20px", width:"140px", height:"140px", borderRadius:"50%", background:"rgba(255,255,255,0.04)", pointerEvents:"none" }} />
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"16px" }}>
+          <div>
+            <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.2em", color:"rgba(201,168,76,0.7)", marginBottom:"8px" }}>TOP SERVICE THIS PERIOD</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(18px,2.5vw,24px)", fontWeight:700, color:"#fff", marginBottom:"4px" }}>
+              {stats.topService === "N/A" ? "No data yet" : stats.topService}
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:"40px" }}>
+            {[
+              { l:"BOOKINGS", v: String(stats.topServiceCount) },
+              { l:"REVENUE",  v:`GHS ${stats.topServiceRevenue.toLocaleString("en",{minimumFractionDigits:0})}` },
+              { l:"GROWTH",   v: stats.topServiceGrowth === 0 ? "—" : stats.topServiceGrowth >= 0 ? `+${stats.topServiceGrowth}%` : `${stats.topServiceGrowth}%` },
+            ].map((s, i) => (
+              <div key={i}>
+                <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.18em", color:"rgba(255,255,255,0.4)", marginBottom:"6px" }}>{s.l}</div>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"20px", fontWeight:700, color: G }}>{s.v}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
