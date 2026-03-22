@@ -211,6 +211,7 @@ export default function LandingPage() {
 
 
   return (
+    <>
     <div className={"page-fade" + (pageLoaded ? " loaded" : "")} style={{ fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif", background: cream, color: dark, overflowX: "hidden" }}>
       {/* SCROLL PROGRESS BAR */}
       <div style={{ position: "fixed", top: 0, left: 0, zIndex: 9999, height: "2px", width: (scrollProgress * 100) + "%", background: "linear-gradient(90deg,#8B6914,#C8A97E,#D4B896)", transition: "width 0.1s linear", pointerEvents: "none" }} />
@@ -1479,5 +1480,6 @@ export default function LandingPage() {
       </footer>
     </div>
     <AmandaWidget />
+    </>
   );
 }
