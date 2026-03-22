@@ -147,13 +147,25 @@ const Checkout = () => {
       if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
       // Detect promo used at booking time — first check promo_code column, fallback to notes
       const existingPromoCode = (data as any).promo_code;
+      const existingPromoDiscount = Number((data as any).promo_discount ?? 0);
       if (existingPromoCode) {
         setBookingUsedPromo(existingPromoCode.toUpperCase());
+        // Pre-populate discount so it shows on success screen + receipt
+        if (existingPromoDiscount > 0) {
+          setPromoDiscount(existingPromoDiscount);
+          setAppliedPromo({ code: existingPromoCode.toUpperCase() });
+        }
       } else {
         // Fallback: parse from notes for older bookings
         const bookingNotes: string = (data as any).notes || "";
         const promoMatch = bookingNotes.match(/Promo code applied:\s*([A-Z0-9]+)/i);
         if (promoMatch) setBookingUsedPromo(promoMatch[1].toUpperCase());
+        // Also try to parse discount from notes for older bookings
+        const discountMatch = bookingNotes.match(/saved GHS ([\d.]+)/i);
+        if (discountMatch && promoMatch) {
+          setPromoDiscount(Number(discountMatch[1]));
+          setAppliedPromo({ code: promoMatch[1].toUpperCase() });
+        }
       }
 
       // booking.price is set at booking time with the correct total (variant price or service base + addons)
