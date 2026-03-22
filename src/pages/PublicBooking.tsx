@@ -559,6 +559,12 @@ export default function PublicBooking() {
   return (
     <div style={{ background: MID, minHeight: "100vh", fontFamily: "'Cormorant Garamond',serif", overflowX: "hidden", width: "100%" }}>
       <style>{`
+        @media (max-width: 768px) {
+          input, select, textarea { font-size: 16px !important; }
+          .booking-service-tile { min-height: 52px !important; }
+        }
+      `}</style>
+      <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
         * { font-variant-numeric: lining-nums; }
         input:focus, textarea:focus, select:focus { border-color: ${GOLD} !important; box-shadow: 0 0 0 3px rgba(200,169,126,0.18); }
@@ -592,7 +598,7 @@ export default function PublicBooking() {
         </div>
       </div>
 
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: mob ? "16px 12px 80px" : "44px 24px 80px", display: "grid", gridTemplateColumns: mob ? "1fr" : "360px 1fr", gap: mob ? "20px" : "40px", alignItems: "start", width: "100%", boxSizing: "border-box" as any }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: mob ? "16px 12px 120px" : "44px 24px 80px", display: "grid", gridTemplateColumns: mob ? "1fr" : "360px 1fr", gap: mob ? "20px" : "40px", alignItems: "start", width: "100%", boxSizing: "border-box" as any }}>
 
         {/* LEFT: Info panel */}
         <div style={{ position: mob ? "static" : "sticky", top: mob ? "auto" : "90px" }}>

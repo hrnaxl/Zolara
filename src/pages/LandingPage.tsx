@@ -40,6 +40,7 @@ export default function LandingPage() {
   const [reviewVisible, setReviewVisible] = useState(false);
   const [expVisible, setExpVisible] = useState(false);
   const [visitVisible, setVisitVisible] = useState(false);
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [pageLoaded, setPageLoaded] = useState(false);
   const visitRef = useRef<HTMLDivElement>(null);
@@ -1195,7 +1196,50 @@ export default function LandingPage() {
       </>
       )}
 
+      {/* FAQ */}
       <div className="section-divider" />
+      <section style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: dark, position: "relative", overflow: "hidden" }}>
+        <style>{`
+          @keyframes faqIn { from { opacity:0; max-height:0; } to { opacity:1; max-height:500px; } }
+          .faq-answer { overflow:hidden; transition: max-height 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.3s ease; }
+          .faq-item { border-bottom: 1px solid rgba(200,169,126,0.12); transition: background 0.2s; }
+          .faq-item:first-child { border-top: 1px solid rgba(200,169,126,0.12); }
+          .faq-q { width:100%; background:none; border:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding: 22px 0; text-align:left; gap:16px; }
+          .faq-q:hover .faq-q-text { color: #C8A97E; }
+          .faq-icon { width:28px; height:28px; border-radius:50%; border:1px solid rgba(200,169,126,0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition: background 0.2s, transform 0.3s; }
+          .faq-icon.open { background: linear-gradient(135deg,#8B6914,#C8A97E); border-color:transparent; transform:rotate(45deg); }
+        `}</style>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(200,169,126,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
+        <div style={{ maxWidth: "780px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <div style={{ textAlign: "center", marginBottom: "clamp(40px,5vw,64px)" }}>
+            <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.26em", color: gold, fontWeight: 700, marginBottom: "16px" }}>GOOD TO KNOW</div>
+            <h2 className="heading-xl" style={{ fontWeight: 400, color: cream }}>Questions we <em>always</em> get.</h2>
+          </div>
+          {[
+            { q: "How long do box braids take?", a: "It depends on the length and style. Short to medium box braids take 3 to 5 hours. Long or extra-large sets can take 6 to 8 hours. We will give you a time estimate when you book." },
+            { q: "Do I need to pay a deposit?", a: "Yes. All bookings require a GHS 50 deposit paid online when you book. This deposit goes toward your total. You pay the balance at the studio on the day." },
+            { q: "What happens if I am late?", a: "We allow a 15-minute grace period. After that, a lateness fee of GHS 50 applies. If you are more than 30 minutes late, your slot may be given to another client and you will need to rebook." },
+            { q: "Can I cancel or reschedule?", a: "Yes. Give us at least 24 hours notice and we will reschedule at no cost. Cancellations with less than 12 hours notice forfeit the deposit. Cancellations must be made by phone call only." },
+            { q: "Do I need to come with washed hair?", a: "For braiding and styling services, we ask that you come with clean, detangled hair. If that is not possible, we offer a wash and blow-dry service you can add to your booking." },
+            { q: "Is there parking?", a: "Yes. There is parking available directly in front of the studio on the Sakasaka main road, opposite CalBank." },
+            { q: "Do you offer student discounts?", a: "Yes. Students get 10% off all services Monday to Thursday with a valid student ID. Just show it when you arrive." },
+          ].map(({ q, a }, i) => (
+            <div key={i} className="faq-item">
+              <button className="faq-q" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                <span className="faq-q-text sans" style={{ fontSize: "14px", fontWeight: 600, color: faqOpen === i ? gold : cream, transition: "color 0.2s", fontFamily: "'Montserrat',sans-serif" }}>{q}</span>
+                <span className={"faq-icon" + (faqOpen === i ? " open" : "")}>
+                  <span style={{ color: faqOpen === i ? "white" : gold, fontSize: "16px", lineHeight: 1, marginTop: "-1px" }}>+</span>
+                </span>
+              </button>
+              <div className="faq-answer" style={{ maxHeight: faqOpen === i ? "500px" : "0", opacity: faqOpen === i ? 1 : 0 }}>
+                <p className="sans" style={{ fontSize: "13.5px", color: "rgba(245,239,230,0.65)", lineHeight: 1.9, paddingBottom: "22px", fontWeight: 400 }}>{a}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+            <div className="section-divider" />
       <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
         <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>

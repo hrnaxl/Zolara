@@ -3,7 +3,23 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+function PageTransition({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    setVisible(false);
+    const t = setTimeout(() => setVisible(true), 20);
+    return () => clearTimeout(t);
+  }, [location.pathname]);
+  return (
+    <div style={{ opacity: visible ? 1 : 0, transition: "opacity 0.3s ease", minHeight: "100vh" }}>
+      {children}
+    </div>
+  );
+}
 
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -67,6 +83,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        <PageTransition>
         <Routes>
           {/* =================== PUBLIC ROUTES =================== */}
           {/* Public Landing Page */}
@@ -191,6 +208,7 @@ const App = () => (
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </PageTransition>
         </BrowserRouter>
       </SettingsProvider>
       </CatalogProvider>

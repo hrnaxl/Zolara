@@ -194,6 +194,14 @@ function MessageContent({ content, role }: { content: any; role: string }) {
 
 export default function AmandaWidget() {
   const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return sessionStorage.getItem("amanda_dismissed") === "1"; } catch { return false; }
+  });
+  const dismiss = () => {
+    setOpen(false);
+    setDismissed(true);
+    try { sessionStorage.setItem("amanda_dismissed", "1"); } catch {}
+  };
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "Hi gorgeous! I'm Amanda, your personal beauty consultant at Zolara. How can I help you look stunning today? ✨" }
   ]);
@@ -307,6 +315,7 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
   };
 
   const gold = "#C8A97E";
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const dark = "#1C160E";
 
   return (
@@ -332,8 +341,12 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
           onClick={() => setOpen(true)}
           className="amanda-pulse"
           style={{
-            position: "fixed", bottom: "28px", right: "28px", zIndex: 999,
-            width: "64px", height: "64px", borderRadius: "50%",
+            position: "fixed",
+            bottom: isMobile ? "16px" : "28px",
+            right: isMobile ? "16px" : "28px",
+            zIndex: 999,
+            width: isMobile ? "52px" : "64px",
+            height: isMobile ? "52px" : "64px", borderRadius: "50%",
             background: `linear-gradient(135deg, #8B6914, ${gold})`,
             border: "none", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -349,8 +362,14 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
       {/* Chat window */}
       {open && (
         <div className="amanda-window" style={{
-          position: "fixed", bottom: "28px", right: "28px", zIndex: 1000,
-          width: "368px", height: "540px",
+          position: "fixed",
+          bottom: isMobile ? "0" : "28px",
+          right: isMobile ? "0" : "28px",
+          left: isMobile ? "0" : "auto",
+          zIndex: 1000,
+          width: isMobile ? "100%" : "368px",
+          height: isMobile ? "85vh" : "540px",
+          borderRadius: isMobile ? "20px 20px 0 0" : "16px",
           background: "#FDFAF6",
           borderRadius: "16px",
           boxShadow: "0 32px 100px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.22)",
@@ -377,11 +396,18 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
                 ZOLARA BEAUTY CONSULTANT
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="amanda-close" style={{
-              background: "transparent", border: "none", cursor: "pointer",
-              color: "rgba(245,239,230,0.5)", fontSize: "16px", padding: "6px 8px", borderRadius: "6px",
-              transition: "background 0.2s",
-            }}>✕</button>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <button onClick={() => setOpen(false)} className="amanda-close" style={{
+                background: "transparent", border: "none", cursor: "pointer",
+                color: "rgba(245,239,230,0.5)", fontSize: "16px", padding: "6px 8px", borderRadius: "6px",
+                transition: "background 0.2s", title: "Minimise",
+              }}>—</button>
+              <button onClick={dismiss} className="amanda-close" style={{
+                background: "transparent", border: "none", cursor: "pointer",
+                color: "rgba(245,239,230,0.5)", fontSize: "16px", padding: "6px 8px", borderRadius: "6px",
+                transition: "background 0.2s",
+              }} title="Close">✕</button>
+            </div>
           </div>
 
           {/* Messages area */}
