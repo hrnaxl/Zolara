@@ -310,7 +310,7 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
   };
 
   const gold = "#C8A97E";
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
   const dark = "#1C160E";
 
   return (
@@ -337,11 +337,11 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
           className="amanda-pulse"
           style={{
             position: "fixed",
-            bottom: isMobile ? "16px" : "28px",
-            right: isMobile ? "16px" : "28px",
+            bottom: "28px",
+            right: "28px",
             zIndex: 999,
-            width: isMobile ? "52px" : "64px",
-            height: isMobile ? "52px" : "64px", borderRadius: "50%",
+            width: "64px",
+            height: "64px", borderRadius: "50%",
             background: `linear-gradient(135deg, #8B6914, ${gold})`,
             border: "none", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -358,13 +358,13 @@ When a client sends a photo of a hairstyle, carefully analyze it and:
       {open && (
         <div className="amanda-window" style={{
           position: "fixed",
-          bottom: isMobile ? "0" : "28px",
-          right: isMobile ? "0" : "28px",
-          left: isMobile ? "0" : "auto",
+          bottom: "28px",
+          right: "28px",
+          left: "auto",
           zIndex: 1000,
-          width: isMobile ? "100%" : "368px",
-          height: isMobile ? "85vh" : "540px",
-          borderRadius: isMobile ? "20px 20px 0 0" : "16px",
+          width: "368px",
+          height: "540px",
+          borderRadius: "16px",
           background: "#FDFAF6",
           borderRadius: "16px",
           boxShadow: "0 32px 100px rgba(28,22,14,0.28), 0 0 0 1px rgba(200,169,126,0.22)",

@@ -1064,7 +1064,7 @@ const AdminDashboard = () => {
             </div>
             <div style={{ borderTop:`1px solid ${BORDER}`, paddingTop:"12px" }}>
               <div style={{ fontSize:"8px", fontWeight:700, letterSpacing:"0.16em", color: TXT_SOFT, marginBottom:"5px" }}>IN STOCK</div>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color: TXT, lineHeight:1.1 }}>{stats.giftCardsInStockCount}</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(16px,2vw,22px)", fontWeight:700, color: TXT, lineHeight:1.1 }}>{stats.giftCardsInStock}</div>
               <div style={{ fontSize:"9px", color: TXT_SOFT, marginTop:"3px" }}>Pre-printed, unsold</div>
             </div>
           </div>
