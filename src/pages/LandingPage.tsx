@@ -731,8 +731,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-            {/* DIVIDER */}
-      <div className="section-divider" />
+            {/* WAVE DIVIDER */}
+      <div style={{ background: mid, marginBottom: "-2px", lineHeight: 0 }}><svg viewBox="0 0 1440 40" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style={{ display:"block", width:"100%", height:"40px" }}><path d="M0 40 L0 20 Q360 0 720 20 Q1080 40 1440 20 L1440 40 Z" fill={cream}/><path d="M0 20 Q360 0 720 20 Q1080 40 1440 20" fill="none" stroke="rgba(200,169,126,.18)" strokeWidth="1"/></svg></div>
             {/* EXPERIENCE */}
       <section id="experience" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: "-60px", top: "50%", transform: "translateY(-50%)", fontSize: "380px", color: "rgba(200,169,126,0.045)", fontWeight: 700, lineHeight: 1, pointerEvents: "none" }}>✦</div>
@@ -1265,7 +1265,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-            <div className="section-divider" />
+            <div style={{ background: cream, marginBottom: "-2px", lineHeight: 0 }}><svg viewBox="0 0 1440 40" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style={{ display:"block", width:"100%", height:"40px" }}><path d="M0 40 L0 20 Q360 0 720 20 Q1080 40 1440 20 L1440 40 Z" fill={cream}/><path d="M0 20 Q360 0 720 20 Q1080 40 1440 20" fill="none" stroke="rgba(200,169,126,.15)" strokeWidth="1"/></svg></div>
       <section id="visit-us" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: cream, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 30% 70%, rgba(200,169,126,0.09) 0%, transparent 50%)", pointerEvents: "none" }} />
         <div style={{ textAlign: "center", marginBottom: "64px", position: "relative", zIndex: 1 }}>
@@ -1349,7 +1349,23 @@ export default function LandingPage() {
       })()}
 
       {/* FOOTER */}
-      <footer style={{ background: "linear-gradient(160deg,#1A1208,#0D0A06)", borderTop: "1px solid rgba(200,169,126,0.14)" }}>
+      <footer style={{ background: "linear-gradient(160deg,#1A1208,#0D0A06)", position: "relative", overflow: "hidden" }}>
+        {/* Top accent bar */}
+        <div style={{ height: "3px", background: "linear-gradient(90deg,transparent,#8B6914,#C8A97E,#8B6914,transparent)" }} />
+
+        {/* Brand statement */}
+        <div style={{ padding: "clamp(52px,7vw,96px) clamp(24px,6vw,100px) clamp(40px,5vw,72px)", borderBottom: "1px solid rgba(200,169,126,0.08)", textAlign: "center", position: "relative" }}>
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%,rgba(200,169,126,.06) 0%,transparent 65%)", pointerEvents: "none" }} />
+          <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(34px,5vw,70px)", fontWeight: 300, color: "rgba(245,239,230,.92)", lineHeight: 1, marginBottom: "18px", position: "relative", zIndex: 1 }}>
+            Ready to feel like <em style={{ color: gold, fontStyle: "italic" }}>royalty?</em>
+          </h2>
+          <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,.3)", letterSpacing: ".06em", marginBottom: "28px", position: "relative", zIndex: 1 }}>
+            Sakasaka, Tamale · Monday to Saturday · 8:30 AM to 9:00 PM
+          </p>
+          <Link to="/book" className="sans" style={{ display: "inline-block", padding: "14px 40px", background: "linear-gradient(135deg,#8B6914,#C8A97E)", borderRadius: "3px", fontSize: "10px", fontWeight: 800, letterSpacing: ".18em", color: "#1C160E", textDecoration: "none", transition: "all .3s", position: "relative", zIndex: 1 }}>
+            BOOK YOUR APPOINTMENT →
+          </Link>
+        </div>
 
         {/* Main footer */}
         <div style={{ padding: "clamp(36px,5vw,60px) clamp(24px,6vw,100px)", display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "clamp(24px,4vw,60px)", alignItems: "start" }} className="landing-footer-grid">
