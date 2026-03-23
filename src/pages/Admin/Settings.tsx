@@ -347,7 +347,16 @@ export default function Settings() {
         {tab("payments", <PaymentMethodsSection
           paymentMethods={settings.payment_methods}
           onPaymentMethodToggle={(id, enabled) => {
-            setSettings(p => ({ ...p, payment_methods: p.payment_methods.map(m => m.id === id ? { ...m, enabled } : m) }));
+            setSettings(p => {
+              const ALL_IDS = ["cash","mobile_money","card","bank_transfer","gift_card"];
+              const ALL_NAMES: Record<string,string> = {cash:"Cash",mobile_money:"Mobile Money",card:"Card",bank_transfer:"Bank Transfer",gift_card:"Gift Card"};
+              // Ensure we have all 5 methods before toggling
+              const current = ALL_IDS.map(pid => {
+                const found = p.payment_methods.find((m: any) => m.id === pid);
+                return found || { id: pid, name: ALL_NAMES[pid], enabled: false };
+              });
+              return { ...p, payment_methods: current.map(m => m.id === id ? { ...m, enabled } : m) };
+            });
           }}
         />)}
 
