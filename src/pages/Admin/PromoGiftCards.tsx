@@ -103,6 +103,19 @@ const EMPTY = { name:"", description:"", amount:"", grace:"15", theme:"valentine
   const handleGenerate = async (pt: PromoType) => {
     if (!genBatch.trim()) { toast.error("Enter a batch ID e.g. XMAS-2025"); return; }
     if (genQty < 1 || genQty > 200) { toast.error("Quantity must be 1–200"); return; }
+    // Enforce max_uses cap
+    if (pt.max_uses !== null && pt.max_uses !== undefined) {
+      const alreadyGenerated = pt.uses_count || 0;
+      const remaining = pt.max_uses - alreadyGenerated;
+      if (remaining <= 0) {
+        toast.error(`Cap reached. This promo has already generated ${alreadyGenerated}/${pt.max_uses} cards.`);
+        return;
+      }
+      if (genQty > remaining) {
+        toast.error(`Only ${remaining} card${remaining !== 1 ? "s" : ""} remaining under the ${pt.max_uses} cap.`);
+        return;
+      }
+    }
     setGenLoading(true);
     try {
       // Get next sequence
