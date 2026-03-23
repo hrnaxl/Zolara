@@ -132,6 +132,9 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("business");
+  // Sync ref — updated on every render so updateSettings always has latest settings
+  const latestSettings = React.useRef(settings);
+  latestSettings.current = settings;
 
   useEffect(() => { fetchSettings(); }, []);
   // ctxSettings sync removed — fetchSettings() loads from DB directly
@@ -188,7 +191,7 @@ export default function Settings() {
   const updateSettings = async () => {
     setSaving(true);
     try {
-      const currentSettings = settings;
+      const currentSettings = latestSettings.current;
       const logoUrl = await uploadLogo();
       const safeLogoUrl = (logoUrl && !logoUrl.startsWith("data:")) ? logoUrl
         : (!currentSettings.logo_url?.startsWith("data:") ? currentSettings.logo_url : null);
@@ -245,8 +248,7 @@ export default function Settings() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
-      const enabledMethods = payload.payment_methods.filter((m:any) => m.enabled).map((m:any) => m.name).join(", ");
-      toast.success(`Settings saved · Active payments: ${enabledMethods || "none"}`);
+      toast.success("Settings saved");
       setLogoFile(null);
       const gcPrices: Record<string,number> = {};
       for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
