@@ -162,8 +162,8 @@ const sectionTitle = {
 
   const validateStep1 = () => {
     const e: Record<string,string> = {};
-    if (!name.trim() || name.trim().length < 2) e.name = "Enter your full name";
-    if (!phone.trim() || phone.replace(/\s/g,"").length < 10) e.phone = "Enter a valid phone number";
+    if (!nameRaw.trim() || nameRaw.trim().length < 2) e.name = "Enter your full name";
+    if (!phoneRaw.trim() || phoneRaw.replace(/\s/g,"").length < 10) e.phone = "Enter a valid phone number";
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -332,7 +332,7 @@ const sectionTitle = {
                 <label style={label}>Full Name *</label>
                 <div style={{ position: "relative" }}>
                   <User size={15} style={{ position: "absolute", left: 12, top: 13, color: TXT_SOFT }} />
-                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ ...inp, paddingLeft: 38 }} />
+                  <input value={nameRaw} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ ...inp, paddingLeft: 38 }} />
                 </div>
                 {errors.name && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.name}</p>}
               </div>
@@ -340,7 +340,7 @@ const sectionTitle = {
                 <label style={label}>Phone *</label>
                 <div style={{ position: "relative" }}>
                   <Phone size={15} style={{ position: "absolute", left: 12, top: 13, color: TXT_SOFT }} />
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0XX XXX XXXX" style={{ ...inp, paddingLeft: 38 }} />
+                  <input type="tel" value={phoneRaw} onChange={e => setPhone(e.target.value)} placeholder="0XX XXX XXXX" style={{ ...inp, paddingLeft: 38 }} />
                 </div>
                 {errors.phone && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.phone}</p>}
               </div>
@@ -349,7 +349,7 @@ const sectionTitle = {
               <label style={label}>Email (Optional)</label>
               <div style={{ position: "relative" }}>
                 <Mail size={15} style={{ position: "absolute", left: 12, top: 13, color: TXT_SOFT }} />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={{ ...inp, paddingLeft: 38 }} />
+                <input type="email" value={emailRaw} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={{ ...inp, paddingLeft: 38 }} />
               </div>
             </div>
             <button
@@ -439,7 +439,7 @@ const sectionTitle = {
             {/* Notes */}
             <div style={card}>
               <span style={sectionTitle}>SPECIAL REQUESTS</span>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Style references, allergies, or anything we should know..." rows={3}
+              <textarea value={notesRaw} onChange={e => setNotes(e.target.value)} placeholder="Style references, allergies, or anything we should know..." rows={3}
                 style={{ ...inp, resize: "vertical" }} />
             </div>
 
@@ -463,8 +463,8 @@ const sectionTitle = {
               <span style={{ ...sectionTitle, color: "rgba(201,168,76,0.9)" }}>BOOKING SUMMARY</span>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {[
-                  { label: "Name",    value: name },
-                  { label: "Phone",   value: phone },
+                  { label: "Name",    value: nameRaw },
+                  { label: "Phone",   value: phoneRaw },
                   { label: "Service", value: selectedServices.map(s => s.name).join(", ") || "—" },
                   { label: "Date",    value: preferredDate },
                   { label: "Time",    value: preferredTime },
