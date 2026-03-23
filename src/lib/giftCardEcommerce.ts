@@ -4,10 +4,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const GIFT_CARD_TIERS = {
-  Silver:   { value: 220,  grace: 15,  label: "Silver",          color: "#A8A29E" },
+  Silver:   { value: 220,  grace: 0,   label: "Silver",          color: "#A8A29E" },
   Gold:     { value: 450,  grace: 15,  label: "Gold",            color: "#B8975A" },
-  Platinum: { value: 650,  grace: 15,  label: "Platinum",        color: "#6B7280" },
-  Diamond:  { value: 1000, grace: 50,  label: "Diamond Luxury Pass", color: "#4F46E5" },
+  Platinum: { value: 650,  grace: 50,  label: "Platinum",        color: "#6B7280" },
+  Diamond:  { value: 1000, grace: 100, label: "Diamond Luxury Pass", color: "#4F46E5" },
 } as const;
 
 export type GiftCardTier = keyof typeof GIFT_CARD_TIERS;
