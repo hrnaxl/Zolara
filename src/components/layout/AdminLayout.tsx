@@ -932,13 +932,13 @@ const AdminDashboard = () => {
               color:"#16A34A", bg:"#F0FDF4" },
             { label:"AVG BOOKING VALUE",
               val: (() => {
-                // paidCount = actual payments made (checked-out bookings only)
+                // Use service revenue only — excludes product sales and gift card redemptions
+                const svcRev = dateFilter === "today" ? stats.todayServiceRevenue : (stats.periodServiceRevenue || 0);
                 const paidCount = dateFilter === "today" ? stats.todayPaymentsCount : stats.periodPaymentsCount;
-                const rev = dateFilter === "today" ? stats.todayRevenue : dateFilter === "week" ? stats.weeklyRevenue : stats.monthlyRevenue;
-                const avg = paidCount > 0 ? rev / paidCount : 0;
+                const avg = paidCount > 0 ? svcRev / paidCount : 0;
                 return avg > 0 ? `GHS ${avg.toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2})}` : "—";
               })(),
-              pct: null, note: `per checked-out booking`, color:"#DB2777", bg:"#FDF2F8" },
+              pct: null, note: `service revenue per booking`, color:"#DB2777", bg:"#FDF2F8" },
           ];
         })().map((c, i) => (
           <div key={i} className="zc au" style={{ animationDelay:`${i*0.06}s` }}>
