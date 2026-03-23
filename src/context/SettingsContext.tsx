@@ -37,12 +37,7 @@ interface Settings {
 
 const defaultSettings: Settings = {
   logo_url: "",
-  payment_methods: [
-    { id: "cash", name: "Cash", enabled: true },
-    { id: "mobile_money", name: "Mobile Money (MoMo)", enabled: true },
-    { id: "card", name: "Card", enabled: true },
-    { id: "bank_transfer", name: "Bank Transfer", enabled: true },
-  ],
+  payment_methods: [],
   business_name: "",
   open_time: "08:30",
   close_time: "21:00",

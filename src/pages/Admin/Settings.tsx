@@ -252,7 +252,7 @@ export default function Settings() {
       setLogoFile(null);
       const gcPrices: Record<string,number> = {};
       for (const [k,v] of Object.entries(payload.gift_card_prices || {})) gcPrices[k] = Number(v);
-      const merged = { ...settings, ...payload, gift_card_prices: gcPrices };
+      const merged = { ...latestSettings.current, ...payload, gift_card_prices: gcPrices };
       setSettings(merged as any);
       setCtxSettings((prev: any) => ({ ...prev, ...merged }));
     } catch (err: any) {
