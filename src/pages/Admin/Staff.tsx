@@ -168,26 +168,19 @@ const Staff = () => {
 
   const fetchStaff = async () => {
     try {
-      const { data, error } = await supabase
-        .from("staff")
-        .select("*")
-        .order("name");
-      if (error) throw error;
-      setStaff(data || []);
-
-      // Staff ratings feature disabled - rating column doesn't exist on bookings table
-      setStaffRatings({});
-
-      // Fetch today's booking counts per staff
       const today = new Date().toISOString().slice(0, 10);
-      const { data: todayBk } = await supabase
-        .from("bookings")
-        .select("staff_id")
-        .eq("preferred_date", today)
-        .not("staff_id", "is", null)
-        .in("status", ["confirmed", "in_progress", "pending"]);
+      const [staffRes, bookingsRes] = await Promise.all([
+        supabase.from("staff").select("*").order("name"),
+        supabase.from("bookings").select("staff_id")
+          .eq("preferred_date", today)
+          .not("staff_id", "is", null)
+          .in("status", ["confirmed", "in_progress", "pending"]),
+      ]);
+      if (staffRes.error) throw staffRes.error;
+      setStaff(staffRes.data || []);
+      setStaffRatings({});
       const counts: Record<string, number> = {};
-      for (const b of (todayBk || [])) {
+      for (const b of (bookingsRes.data || [])) {
         if (b.staff_id) counts[b.staff_id] = (counts[b.staff_id] || 0) + 1;
       }
       setTodayBookingCounts(counts);

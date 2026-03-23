@@ -96,21 +96,27 @@ export default function Bookings() {
   }, [filter, search, dateFilter]);
 
   const fetchCounts = async () => {
-    const { data } = await supabase.from("bookings").select("status");
-    if (!data) return;
-    const c: Record<string, number> = { all: data.length };
-    for (const b of data) { c[b.status] = (c[b.status] || 0) + 1; }
+    // Fetch counts per status in parallel — much faster than fetching all rows
+    const statuses = ["pending","confirmed","in_progress","completed","cancelled","no_show"];
+    const results = await Promise.all([
+      supabase.from("bookings").select("*", { count: "exact", head: true }),
+      ...statuses.map(s => supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", s))
+    ]);
+    const c: Record<string, number> = { all: results[0].count || 0 };
+    statuses.forEach((s, i) => { c[s] = results[i + 1].count || 0; });
     setCounts(c);
   };
 
   const fetchStaff = async () => {
-    const { data } = await supabase.from("staff").select("id, name, role").eq("is_active", true);
-    setStaff((data || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || "")));
-    // Fetch today's attendance
     const today = new Date().toISOString().slice(0, 10);
-    const { data: att } = await supabase.from("attendance").select("staff_id, status, check_in").eq("date", today);
-    const present = new Set<string>((att || []).filter((a: any) => a.check_in && a.status !== "absent").map((a: any) => a.staff_id));
-    const absent = new Set<string>((att || []).filter((a: any) => a.status === "absent").map((a: any) => a.staff_id));
+    const [staffRes, attRes] = await Promise.all([
+      supabase.from("staff").select("id, name, role").eq("is_active", true),
+      supabase.from("attendance").select("staff_id, status, check_in").eq("date", today),
+    ]);
+    setStaff((staffRes.data || []).filter((s: any) => !["cleaner","receptionist"].includes(s.role || "")));
+    const att = attRes.data || [];
+    const present = new Set<string>(att.filter((a: any) => a.check_in && a.status !== "absent").map((a: any) => a.staff_id));
+    const absent = new Set<string>(att.filter((a: any) => a.status === "absent").map((a: any) => a.staff_id));
     setPresentStaffIds(present);
     setAbsentStaffIds2(absent);
   };

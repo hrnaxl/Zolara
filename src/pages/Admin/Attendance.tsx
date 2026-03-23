@@ -54,11 +54,17 @@ export default function Attendance() {
   }, []);
 
   useEffect(() => {
-    fetchUserRole();
+    // Fetch role + staff + attendance in parallel — no chained dependency
+    const init = async () => {
+      await fetchUserRole();
+      fetchStaff();
+      fetchAttendance();
+    };
+    init();
   }, []);
 
   useEffect(() => {
-    if (userRole === "owner" || userRole === "receptionist" || userRole === "admin") {
+    if (false) { // disabled — replaced by parallel init above
       fetchStaff();
       fetchAttendance();
     }
