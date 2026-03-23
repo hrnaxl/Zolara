@@ -12,6 +12,12 @@ import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
 import ServicePicker from "@/components/ServicePicker";
 
+
+
+
+
+
+export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => void } = {}) {
 const GOLD        = "#C9A84C";
 const GOLD_DARK   = "#A8892E";
 const GOLD_LIGHT  = "#FDF6E3";
@@ -25,32 +31,26 @@ const TXT_MID     = "#57534E";
 const TXT_SOFT    = "#A8A29E";
 const GREEN       = "#10B981";
 const RED         = "#EF4444";
-
 const inp = {
   width: "100%", background: WHITE, border: `1.5px solid ${BORDER}`,
   borderRadius: 10, padding: "12px 16px", color: TXT, fontSize: 14,
   outline: "none", fontFamily: "'Montserrat',sans-serif",
   transition: "border-color 0.15s",
 } as const;
-
 const label = {
   display: "block", fontSize: 11, fontWeight: 700,
   letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase" as const,
   marginBottom: 6,
 } as const;
-
 const card = {
   background: WHITE, border: `1px solid ${BORDER}`,
   borderRadius: 16, padding: "28px 28px",
   marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
 } as const;
-
 const sectionTitle = {
   fontSize: 10, fontWeight: 700, letterSpacing: "0.2em",
   color: GOLD, marginBottom: 20, display: "block",
 } as const;
-
-export default function EnhancedBookingForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const { settings, userRole } = useSettings();
   const location = useLocation();
   const navigate = useNavigate();
