@@ -265,7 +265,7 @@ const DashboardLayout = () => {
         .sidebar-scroll::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); border-radius:4px; }
         .sidebar-scroll::-webkit-scrollbar-thumb { background:rgba(201,168,76,0.35); border-radius:4px; }
         .sidebar-scroll::-webkit-scrollbar-thumb:hover { background:rgba(201,168,76,0.6); }
-        .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:40; backdrop-filter:blur(2px); }
+        .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999999; backdrop-filter:blur(2px); }
         .z-page { padding: clamp(12px, 3vw, 28px) clamp(12px, 3vw, 28px); }
         @media(max-width:640px){ .z-title{font-size:22px!important} table{font-size:12px} }
         @media(max-width:1023px){ .mobile-topbar{ display:block !important; } }
@@ -282,7 +282,7 @@ const DashboardLayout = () => {
         height: "100vh", height: "100dvh" as any,
         width: "240px",
         background: NAVY,
-        zIndex: 50, display: "flex", flexDirection: "column",
+        zIndex: 1000000, display: "flex", flexDirection: "column",
         overflow: "hidden",
       }} className={`transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
 
