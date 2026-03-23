@@ -3,15 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+
+
+export default function SubscriptionsPage() {
 const G = "#C8A97E", G_D = "#8B6914", W = "#FFFFFF", CREAM = "#FAFAF8";
 const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
 const inp: React.CSSProperties = { width:"100%", border:`1.5px solid ${BORDER}`, borderRadius:"10px", padding:"9px 12px", fontSize:"13px", color:TXT, outline:"none", background:W, fontFamily:"Montserrat,sans-serif" };
 const lbl: React.CSSProperties = { fontSize:"11px", fontWeight:600, color:TXT_SOFT, textTransform:"uppercase", letterSpacing:"0.1em", display:"block", marginBottom:"6px" };
-
 const emptyPlan = { name:"", description:"", price:"", billing_cycle:"monthly", included_services:"", max_usage_per_cycle:"2", is_active:true };
-
-export default function SubscriptionsPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [subs, setSubs] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);

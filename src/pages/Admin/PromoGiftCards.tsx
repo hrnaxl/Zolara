@@ -5,14 +5,24 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit2, X, Check, Download, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
 
+
+
+
+
+interface PromoType {
+  id: string; name: string; description: string; amount: number;
+  grace: number; theme: string; emoji: string; is_active: boolean;
+  max_uses: number | null; uses_count: number; created_at: string; expires_at: string | null;
+}
+
+
+export default function PromoGiftCards() {
 const GOLD = "#C8A97E", G_D = "#8B6914", G_L = "#FDF6E3";
 const WHITE = "#FFFFFF", CREAM = "#FAFAF8", BORDER = "#EDEBE5";
 const TXT = "#1C160E", TXT_S = "#A8A29E", TXT_M = "#57534E";
-
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const r4 = () => Array.from({length:4}, () => CHARS[Math.floor(Math.random()*CHARS.length)]).join("");
 const genCode = (prefix: string) => `${prefix.substring(0,3).toUpperCase()}-${r4()}-${r4()}`;
-
 const THEMES = [
   { id:"valentines", label:"Valentine's", emoji:"❤️", gradient:"linear-gradient(135deg,#9F1239,#E11D48,#FB7185)" },
   { id:"christmas",  label:"Christmas",   emoji:"🎄", gradient:"linear-gradient(135deg,#14532D,#16A34A,#DC2626)" },
@@ -23,18 +33,8 @@ const THEMES = [
   { id:"gold",       label:"Luxury Gold", emoji:"✦",  gradient:"linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)" },
   { id:"custom",     label:"Custom",      emoji:"🎨", gradient:"linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)" },
 ];
-
 const THEME_GRAD: Record<string,string> = Object.fromEntries(THEMES.map(t=>[t.id,t.gradient]));
-
-interface PromoType {
-  id: string; name: string; description: string; amount: number;
-  grace: number; theme: string; emoji: string; is_active: boolean;
-  max_uses: number | null; uses_count: number; created_at: string; expires_at: string | null;
-}
-
 const EMPTY = { name:"", description:"", amount:"", grace:"15", theme:"valentines", emoji:"", max_uses:"", expires_at:"" };
-
-export default function PromoGiftCards() {
   const [types, setTypes] = useState<PromoType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

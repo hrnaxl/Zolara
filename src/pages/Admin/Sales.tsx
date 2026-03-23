@@ -5,10 +5,14 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-f
 import { toast } from "sonner";
 import { CSVLink } from "react-csv";
 
+
+
+type DateRange = "today" | "week" | "month" | "custom";
+
+export default function SalesRevenue() {
 const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
 const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
-
 const METHOD_COLORS: Record<string, { bg: string; color: string; label: string }> = {
   cash:          { bg: "#F0FDF4", color: "#16A34A", label: "Cash" },
   mobile_money:  { bg: "#EFF6FF", color: "#2563EB", label: "MoMo" },
@@ -22,10 +26,6 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   pending:   { bg: "#FFFBEB", color: "#D97706" },
   refunded:  { bg: "#FEF2F2", color: "#DC2626" },
 };
-
-type DateRange = "today" | "week" | "month" | "custom";
-
-export default function SalesRevenue() {
   const [payments, setPayments] = useState<any[]>([]);
   const [revSplit, setRevSplit] = useState({ service: 0, product: 0, giftCard: 0, subscription: 0 });
   const { userRole } = useSettings();

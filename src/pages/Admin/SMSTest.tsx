@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { sendSMS } from "@/lib/sms";
 
-const CONTACT = "0594365314 / 0208848707";
-const G = "#C8A97E";
-const G_DARK = "#8B6914";
 
 function fmtDate() {
   return new Date().toLocaleDateString("en-GH", { weekday: "long", day: "numeric", month: "long" });
@@ -13,6 +10,9 @@ function fmtTime() {
 }
 
 export default function SMSTest() {
+const CONTACT = "0594365314 / 0208848707";
+const G = "#C8A97E";
+const G_DARK = "#8B6914";
   const [phone, setPhone] = useState("0594922679");
   const [sending, setSending] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, string>>({});

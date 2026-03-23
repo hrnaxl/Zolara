@@ -27,10 +27,9 @@ const serviceSchema = z.object({
   order: z.number().int().optional(),
 });
 
+const Services = () => {
 const GOLD = "#C8A97E";
 const GOLD_DARK = "#8B6914";
-
-const Services = () => {
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   // variantsMap: serviceId -> variant[]

@@ -5,14 +5,8 @@ import { format, eachDayOfInterval, parseISO, startOfWeek, endOfWeek, startOfMon
 import * as XLSX from "xlsx";
 import { Users, Clock, TrendingUp, AlertTriangle, Download, Search, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 
-const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
-const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06)";
 
 // Shift definition — matches DEFAULT_SHIFT in attendance lib
-const SHIFT_START_H = 9, SHIFT_START_M = 0;
-const SHIFT_END_H = 17, SHIFT_END_M = 0;
-const LATE_GRACE_MIN = 15;
 
 function calcHours(checkIn: string | null, checkOut: string | null): number {
   if (!checkIn || !checkOut) return 0;
@@ -39,6 +33,12 @@ function fmt(iso: string | null): string {
 type QuickRange = "today" | "yesterday" | "this_week" | "last_week" | "this_month" | "last_month" | "custom";
 
 export default function AttendanceReports() {
+const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06)";
+const SHIFT_START_H = 9, SHIFT_START_M = 0;
+const SHIFT_END_H = 17, SHIFT_END_M = 0;
+const LATE_GRACE_MIN = 15;
   const today = format(new Date(), "yyyy-MM-dd");
   const [records, setRecords]     = useState<any[]>([]);
   const [staff, setStaff]         = useState<any[]>([]);

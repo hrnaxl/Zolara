@@ -4,15 +4,15 @@ import { toast } from "sonner";
 import { ShoppingBag, Search, Plus, Minus, X, CheckCircle2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
-const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
-const inp: React.CSSProperties = { border: "1.5px solid " + BORDER, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" };
 
 type CartItem = { id: string; name: string; price: number; cost_price: number; stock_quantity: number; quantity: number };
 type PayMethod = "cash" | "mobile_money" | "card" | "bank_transfer";
 
 export default function ProductSale() {
+const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
+const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
+const inp: React.CSSProperties = { border: "1.5px solid " + BORDER, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%" };
   const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<string>("");

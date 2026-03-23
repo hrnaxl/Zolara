@@ -10,6 +10,13 @@ import { voidGiftCard, expireGiftCard, deleteGiftCard, markGiftCardSold, resendG
 import * as XLSX from "xlsx";
 
 // ─── Design tokens ─────────────────────────────────────────────
+
+
+
+
+type Tab = "all" | "digital" | "physical";
+
+export default function GiftCards() {
 const G      = "#C8A97E";
 const G_D    = "#8B6914";
 const CREAM  = "#F8F3EE";
@@ -20,7 +27,6 @@ const TXT    = "#1C160E";
 const TXT_M  = "#6B5C45";
 const TXT_S  = "#9C8878";
 const WHITE  = "#FFFFFF";
-
 const TIER_GRAD: Record<string, string> = {
   Silver:   "linear-gradient(135deg,#b0b0b0,#e8e8e8,#909090)",
   Gold:     "linear-gradient(135deg,#B8975A,#F5D98A,#8C6A30)",
@@ -31,7 +37,6 @@ const TIER_GRAD: Record<string, string> = {
   PLT:      "linear-gradient(135deg,#4B5563,#9CA3AF,#374151)",
   DMD:      "linear-gradient(135deg,#312E81,#818CF8,#1E1B4B)",
 };
-
 const TIER_ACCENT: Record<string, string> = {
   BRZ: "#CD7F32",
   Silver: "#9CA3AF", SLV: "#9CA3AF",
@@ -39,7 +44,6 @@ const TIER_ACCENT: Record<string, string> = {
   Platinum: "#6B7280", PLT: "#6B7280",
   Diamond: "#6366F1", DMD: "#6366F1",
 };
-
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   pending_payment: { bg: "#FEF9C3", color: "#854D0E", label: "Awaiting Payment" },
   pending_send:    { bg: "#DBEAFE", color: "#1D4ED8", label: "Sending Email…"   },
@@ -54,10 +58,6 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
   sold:            { bg: "#DBEAFE", color: "#1E40AF", label: "Sold · Issued"    },
   pending_pickup:  { bg: "#FEF9C3", color: "#854D0E", label: "Pending Pickup"   },
 };
-
-type Tab = "all" | "digital" | "physical";
-
-export default function GiftCards() {
   const { userRole, roleReady } = useSettings();
   const isOwner = roleReady && userRole === "owner";
   const canOperate = roleReady && ["owner", "admin", "receptionist"].includes(userRole || ""); // day-to-day gift card ops

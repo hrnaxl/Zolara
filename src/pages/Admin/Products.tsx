@@ -3,16 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+
+type Product = { id:string; name:string; description:string|null; price:number; cost_price:number; stock_quantity:number; low_stock_threshold:number; category:string|null; is_active:boolean; created_at:string };
+
+export default function ProductsPage() {
 const G = "#C8A97E", G_D = "#8B6914", W = "#FFFFFF", CREAM = "#FAFAF8";
 const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
-
-type Product = { id:string; name:string; description:string|null; price:number; cost_price:number; stock_quantity:number; low_stock_threshold:number; category:string|null; is_active:boolean; created_at:string };
 const empty = { name:"", description:"", price:"", cost_price:"", stock_quantity:"", low_stock_threshold:"5", category:"", is_active:true };
 const inp: React.CSSProperties = { width:"100%", border:`1.5px solid ${BORDER}`, borderRadius:"10px", padding:"9px 12px", fontSize:"13px", color:TXT, outline:"none", background:W, fontFamily:"Montserrat,sans-serif" };
 const lbl: React.CSSProperties = { fontSize:"11px", fontWeight:600, color:TXT_SOFT, textTransform:"uppercase", letterSpacing:"0.1em", display:"block", marginBottom:"6px" };
-
-export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

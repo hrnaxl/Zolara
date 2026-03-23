@@ -7,6 +7,9 @@ import { supabaseAdmin } from "@/integrations/supabase/adminClient";
 import { toast } from "sonner";
 import { Download, Printer, Plus } from "lucide-react";
 
+
+
+export default function GiftCardBatchGenerator() {
 const G = "#B8975A";
 const G_LIGHT = "#F5ECD6";
 const CREAM = "#FAFAF8";
@@ -15,15 +18,12 @@ const TXT = "#1C1917";
 const TXT_MID = "#78716C";
 const BORDER = "#EDEBE5";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
-
 const TIER_BG: Record<GiftCardTier, string> = {
   Silver:   "linear-gradient(135deg, #d4d4d4, #f5f5f5, #a8a8a8)",
   Gold:     "linear-gradient(135deg, #B8975A, #F5D98A, #8C6A30)",
   Platinum: "linear-gradient(135deg, #4B5563, #9CA3AF, #374151)",
   Diamond:  "linear-gradient(135deg, #312E81, #818CF8, #1E1B4B)",
 };
-
-export default function GiftCardBatchGenerator() {
   const [tier, setTier] = useState<GiftCardTier>("Gold");
   const [quantity, setQuantity] = useState(10);
   const [generating, setGenerating] = useState(false);

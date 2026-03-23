@@ -3,15 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Shield, Key, Eye, EyeOff, Users, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
+
+
+export default function SecuritySettings() {
 const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
 const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
 const inp: React.CSSProperties = { width: "100%", border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "10px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif" };
 const lbl: React.CSSProperties = { fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: TXT_SOFT, textTransform: "uppercase", display: "block", marginBottom: "6px" };
 const card: React.CSSProperties = { background: WHITE, border: `1px solid ${BORDER}`, borderRadius: "16px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.04)", marginBottom: "16px" };
-
 const OWNER_EMAIL = "info@zolarasalon.com";
-
-export default function SecuritySettings() {
   const [userRole, setUserRole]   = useState<string>("");
   const [userId, setUserId]       = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");

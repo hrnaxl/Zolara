@@ -6,17 +6,8 @@ import { format, parseISO } from "date-fns";
 import { normalizePhone } from "@/lib/clientDedup";
 import { Search, X, Plus, Phone, Mail, Star, Calendar, TrendingUp, ChevronLeft, ChevronRight, RefreshCw, User, Trash2, Pencil, Gift } from "lucide-react";
 
-const G = "#C8A97E", G_D = "#8B6914";
-const CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
-const TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
 
-const PAGE_SIZE = 25;
 
-const TIER_COLORS: Record<string, string> = {
-  Bronze: "#CD7F32", Silver: "#9CA3AF", Gold: "#B8975A",
-  Diamond: "#6366F1", default: G,
-};
 
 function getTier(pts: number) {
   if (pts >= 3000) return "Diamond";
@@ -26,6 +17,15 @@ function getTier(pts: number) {
 }
 
 export default function Clients() {
+const G = "#C8A97E", G_D = "#8B6914";
+const CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
+const TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
+const PAGE_SIZE = 25;
+const TIER_COLORS: Record<string, string> = {
+  Bronze: "#CD7F32", Silver: "#9CA3AF", Gold: "#B8975A",
+  Diamond: "#6366F1", default: G,
+};
   const [clients, setClients] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);

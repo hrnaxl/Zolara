@@ -5,10 +5,12 @@ import { toast } from "sonner";
 import { Clock, User, Phone, Scissors, Calendar, Send, X, CheckCircle2, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
+
+
+export default function WaitlistPage() {
 const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
 const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06)";
-
 const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
   active:    { bg: "#F0FDF4", color: "#16A34A", label: "Waiting" },
   notified:  { bg: "#FEF9C3", color: "#CA8A04", label: "Notified" },
@@ -16,8 +18,6 @@ const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }
   expired:   { bg: "#F5F5F5", color: TXT_SOFT,  label: "Expired" },
   cancelled: { bg: "#FEF2F2", color: "#DC2626", label: "Cancelled" },
 };
-
-export default function WaitlistPage() {
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<"active" | "all">("active");
