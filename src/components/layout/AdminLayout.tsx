@@ -77,6 +77,8 @@ const AdminDashboard = () => {
     todayBookings: 0,
     periodBookings: 0,
     todayRevenue: 0,
+    todayPaymentsCount: 0,
+    periodPaymentsCount: 0,
     todayServiceRevenue: 0,
     todayProductRevenue: 0,
     todayGiftCardRevenue: 0,
@@ -655,6 +657,8 @@ const AdminDashboard = () => {
         todayBookings: todayBookingsRes.data?.length || 0,
         periodBookings: periodBookingsRes.data?.length || 0,
         todayRevenue,
+        todayPaymentsCount: (todayPaymentsRes.data || []).length,
+        periodPaymentsCount: (periodPaymentsRes.data || []).length,
         todayServiceRevenue,
         todayProductRevenue,
         todayGiftCardRevenue,
@@ -927,8 +931,14 @@ const AdminDashboard = () => {
               note: dateFilter === "today" ? "vs yesterday" : dateFilter === "week" ? "vs last week" : "vs last month",
               color:"#16A34A", bg:"#F0FDF4" },
             { label:"AVG BOOKING VALUE",
-              val: bookingsVal > 0 ? `GHS ${(revenueVal / bookingsVal).toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2})}` : "—",
-              pct: null, note: `across ${bookingsVal} booking${bookingsVal !== 1 ? "s" : ""}`, color:"#DB2777", bg:"#FDF2F8" },
+              val: (() => {
+                // paidCount = actual payments made (checked-out bookings only)
+                const paidCount = dateFilter === "today" ? stats.todayPaymentsCount : stats.periodPaymentsCount;
+                const rev = dateFilter === "today" ? stats.todayRevenue : dateFilter === "week" ? stats.weeklyRevenue : stats.monthlyRevenue;
+                const avg = paidCount > 0 ? rev / paidCount : 0;
+                return avg > 0 ? `GHS ${avg.toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2})}` : "—";
+              })(),
+              pct: null, note: `per checked-out booking`, color:"#DB2777", bg:"#FDF2F8" },
           ];
         })().map((c, i) => (
           <div key={i} className="zc au" style={{ animationDelay:`${i*0.06}s` }}>
