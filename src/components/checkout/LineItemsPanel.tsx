@@ -8,7 +8,7 @@ interface LineItem {
 }
 interface Props {
   lineItems: LineItem[]; lineItemsTotal: number; products: any[];
-  productSearch: string; clientSubscription: any;
+  productSearch: string; clientSubscription: any; subscriptionUsageCount?: number;
   cardHdr: React.CSSProperties; lbl: React.CSSProperties; inp: React.CSSProperties;
   onProductSearch: (v: string) => void; onAddProduct: (p: any) => void;
   onUpdateQty: (idx: number, qty: number) => void; onRemove: (idx: number) => void;
@@ -25,7 +25,7 @@ const TXT = "#1C160E";
 const TXT_MID = "#78716C";
 const TXT_SOFT = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
-  const { lineItems, lineItemsTotal, products, productSearch, clientSubscription,
+  const { lineItems, lineItemsTotal, products, productSearch, clientSubscription, subscriptionUsageCount = 0,
     cardHdr, lbl, inp, onProductSearch, onAddProduct, onUpdateQty, onRemove, onToggleSub } = props;
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
@@ -99,14 +99,33 @@ const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
           )}
         </div>
 
-        {clientSubscription && (
-          <div style={{ marginTop: "14px", padding: "10px 14px", borderRadius: "10px", background: "#F5F3FF", border: "1px solid #DDD6FE", display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "10px", fontWeight: 700, color: "#7C3AED", letterSpacing: "0.1em" }}>ACTIVE PLAN</span>
-            <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{clientSubscription.subscription_plans?.name}</span>
-            <span style={{ fontSize: "11px", color: TXT_SOFT, marginLeft: "auto" }}>GHS {Number(clientSubscription.subscription_plans?.price || 0).toFixed(0)}/mo</span>
-            <span style={{ fontSize: "10px", color: "#7C3AED" }}>{clientSubscription.subscription_plans?.max_usage_per_cycle || 2} uses/cycle</span>
-          </div>
-        )}
+        {clientSubscription && (() => {
+          const maxUsage = clientSubscription.subscription_plans?.max_usage_per_cycle ?? 2;
+          const used = subscriptionUsageCount;
+          const remaining = Math.max(0, maxUsage - used);
+          const atCap = remaining === 0;
+          const nearCap = remaining === 1 && maxUsage > 1;
+          const bgColor = atCap ? "#FEF2F2" : nearCap ? "#FFFBEB" : "#F5F3FF";
+          const borderColor = atCap ? "#FECACA" : nearCap ? "#FDE68A" : "#DDD6FE";
+          const labelColor = atCap ? "#DC2626" : nearCap ? "#D97706" : "#7C3AED";
+          return (
+            <div style={{ marginTop: "14px", padding: "10px 14px", borderRadius: "10px", background: bgColor, border: `1px solid ${borderColor}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <span style={{ fontSize: "10px", fontWeight: 700, color: labelColor, letterSpacing: "0.1em" }}>ACTIVE PLAN</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: TXT }}>{clientSubscription.subscription_plans?.name}</span>
+                <span style={{ fontSize: "11px", color: TXT_SOFT, marginLeft: "auto" }}>GHS {Number(clientSubscription.subscription_plans?.price || 0).toFixed(0)}/mo</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 600, color: labelColor }}>
+                  {atCap ? "⛔ Cap reached" : nearCap ? "⚠️ Last included visit" : "✓ Included visits"}
+                </span>
+                <span style={{ fontSize: "11px", color: TXT_SOFT }}>
+                  {used}/{maxUsage} used this cycle · {atCap ? "0" : remaining} remaining
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
         <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid " + BORDER }}>
           {lineItems.map((item, idx) => {

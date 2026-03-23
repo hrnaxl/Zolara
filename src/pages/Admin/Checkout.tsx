@@ -70,6 +70,7 @@ const Checkout = () => {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [clientSubscription, setClientSubscription] = useState<any>(null);
+  const [subscriptionUsageCount, setSubscriptionUsageCount] = useState<number>(0);
   const [productSearch, setProductSearch] = useState("");
 
   const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
@@ -128,9 +129,46 @@ const Checkout = () => {
     setProducts(data || []);
   };
 
-  const fetchClientSubscription = async (clientId: string) => {
-    const { data } = await (supabase as any).from("client_subscriptions").select("*, subscription_plans(name,price,included_services,max_usage_per_cycle)").eq("client_id", clientId).eq("status", "active").maybeSingle();
+  const fetchClientSubscription = async (clientId: string, serviceName?: string) => {
+    const { data } = await (supabase as any)
+      .from("client_subscriptions")
+      .select("*, subscription_plans(name,price,included_services,max_usage_per_cycle)")
+      .eq("client_id", clientId).eq("status", "active").maybeSingle();
     setClientSubscription(data || null);
+    if (!data) return;
+
+    // Fetch usage count for current billing cycle
+    const cycleStart = new Date(data.created_at);
+    const now = new Date();
+    // Calculate current cycle start (monthly)
+    while (cycleStart < now) {
+      const next = new Date(cycleStart);
+      next.setMonth(next.getMonth() + 1);
+      if (next > now) break;
+      cycleStart.setMonth(cycleStart.getMonth() + 1);
+    }
+    const { count } = await (supabase as any)
+      .from("subscription_usage")
+      .select("*", { count: "exact", head: true })
+      .eq("client_subscription_id", data.id)
+      .gte("used_at", cycleStart.toISOString());
+    setSubscriptionUsageCount(count || 0);
+
+    // Auto-zero: if booking service is in included_services list, mark as covered
+    const includedServices: string[] = data.subscription_plans?.included_services || [];
+    const maxUsage = data.subscription_plans?.max_usage_per_cycle ?? 999;
+    const usedCount = count || 0;
+    if (serviceName && includedServices.length > 0 && usedCount < maxUsage) {
+      const svcLower = serviceName.toLowerCase();
+      const isIncluded = includedServices.some((s: string) =>
+        svcLower.includes(s.toLowerCase()) || s.toLowerCase().includes(svcLower)
+      );
+      if (isIncluded) {
+        setLineItems(prev => prev.map(item =>
+          item.type === "service" ? { ...item, coveredBySubscription: true } : item
+        ));
+      }
+    }
   };
 
   const fetchBookingDetails = async () => {
@@ -144,7 +182,7 @@ const Checkout = () => {
       if (!data) { toast.error("Booking not found"); return; }
       setBooking(data as any);
       if ((data as any).staff?.id) setSelectedStaff((data as any).staff.id);
-      if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id);
+      if ((data as any).clients?.id) fetchClientSubscription((data as any).clients.id, (data as any).service_name || "");
       // Detect promo used at booking time — first check promo_code column, fallback to notes
       const existingPromoCode = (data as any).promo_code;
       const existingPromoDiscount = Number((data as any).promo_discount ?? 0);
@@ -290,6 +328,18 @@ const Checkout = () => {
   }, [bookingId, pickerSearch]);
   const toggleSub = (idx: number) => {
     if (!canToggleSub) { toast.error("Only the owner or admin can mark items as included."); return; }
+    const item = lineItems[idx];
+    const maxUsage = clientSubscription?.subscription_plans?.max_usage_per_cycle ?? 999;
+    // Enforce cap — block if already at limit and trying to cover more
+    if (!item.coveredBySubscription && subscriptionUsageCount >= maxUsage) {
+      toast.error(`Usage cap reached. This client has used ${subscriptionUsageCount}/${maxUsage} included visits this cycle.`);
+      return;
+    }
+    // Warn if approaching cap
+    const remaining = maxUsage - subscriptionUsageCount;
+    if (!item.coveredBySubscription && remaining === 1) {
+      toast.warning(`Last included visit this cycle (${subscriptionUsageCount + 1}/${maxUsage}).`);
+    }
     setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, coveredBySubscription: !item.coveredBySubscription } : item));
   };
 
@@ -1160,6 +1210,7 @@ const Checkout = () => {
           products={products}
           productSearch={productSearch}
           clientSubscription={clientSubscription}
+          subscriptionUsageCount={subscriptionUsageCount}
           cardHdr={cardHdr}
           lbl={lbl}
           inp={inp}
