@@ -157,15 +157,18 @@ export default function Settings() {
           cash: "Cash", mobile_money: "Mobile Money", card: "Card",
           bank_transfer: "Bank Transfer", gift_card: "Gift Card",
         };
-        const existing = data.payment_methods && data.payment_methods.length > 0
-          ? data.payment_methods.map((m: any) => ({
-              ...m,
-              name: m.name || nameMap[m.id] || m.id,
-              // Supabase can return enabled as string "true"/"false" — always cast to boolean
-              enabled: m.enabled === true || m.enabled === "true",
-            }))
-          : DEFAULT_PAYMENT_METHODS;
-        const methods = existing;
+        // DB stores text[] of enabled IDs e.g. ["cash","mobile_money"]
+        // Convert to objects with enabled flag
+        const ALL_PM_IDS = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
+        const dbIds: string[] = Array.isArray(data.payment_methods) ? data.payment_methods : [];
+        const methods = ALL_PM_IDS.map(id => ({
+          id,
+          name: nameMap[id] || id,
+          // enabled if the ID appears in the stored array (as string or as object with id)
+          enabled: dbIds.some((entry: any) =>
+            typeof entry === "string" ? entry === id : entry?.id === id
+          ),
+        }));
         // Convert gift_card_prices to numbers (DB can return mixed types)
         const rawPrices = data.gift_card_prices || {};
         const gift_card_prices: Record<string,number> = {};
@@ -229,15 +232,11 @@ export default function Settings() {
         max_bookings_per_slot: Number((currentSettings as any).max_bookings_per_slot || 6),
       };
 
-      // Sanitise payment_methods — only keep known valid entries, discard any corrupt data
-      const VALID_PM_IDS = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
-      const VALID_PM_NAMES: Record<string,string> = { cash:"Cash", mobile_money:"Mobile Money", card:"Card", bank_transfer:"Bank Transfer", gift_card:"Gift Card" };
+      // DB column is text[] — store only enabled IDs e.g. ["cash","mobile_money"]
       const rawMethods = Array.isArray(payload.payment_methods) ? payload.payment_methods : [];
-      payload.payment_methods = VALID_PM_IDS.map(id => {
-        const existing = rawMethods.find((m:any) => m?.id === id);
-        // Preserve exact user choice — never apply defaults that override what was toggled
-        return { id, name: VALID_PM_NAMES[id], enabled: existing ? !!existing.enabled : false };
-      });
+      payload.payment_methods = rawMethods
+        .filter((m:any) => m?.enabled === true)
+        .map((m:any) => m?.id || m);
 
       const res = await fetch("/api/save-settings", {
         method: "POST",
