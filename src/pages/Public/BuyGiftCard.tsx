@@ -14,12 +14,152 @@ const TXT = "#1C1917";
 const TXT_MID = "#78716C";
 const BORDER = "#EDEBE5";
 
-const TIER_STYLES: Record<GiftCardTier, { bg: string; accent: string; shine: string }> = {
-  Silver:   { bg: "linear-gradient(135deg, #d4d4d4, #f5f5f5, #a8a8a8)", accent: "#9CA3AF", shine: "#e5e5e5" },
-  Gold:     { bg: "linear-gradient(135deg, #B8975A, #F5D98A, #8C6A30)", accent: "#B8975A", shine: "#F5D98A" },
-  Platinum: { bg: "linear-gradient(135deg, #4B5563, #9CA3AF, #374151)", accent: "#6B7280", shine: "#D1D5DB" },
-  Diamond:  { bg: "linear-gradient(135deg, #312E81, #818CF8, #1E1B4B)", accent: "#6366F1", shine: "#C7D2FE" },
+const TIER_STYLES: Record<GiftCardTier, {
+  bg: string; shine: string; chip: string; text: string; sub: string; accent: string; gloss: string;
+}> = {
+  Silver: {
+    bg: "linear-gradient(135deg, #8E9EAB 0%, #C8D6DF 35%, #B0BEC5 65%, #78909C 100%)",
+    shine: "#E8F0F4",
+    chip: "#9BB0BB",
+    text: "#FFFFFF",
+    sub: "rgba(255,255,255,0.75)",
+    accent: "#B0BEC5",
+    gloss: "linear-gradient(120deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%)",
+  },
+  Gold: {
+    bg: "linear-gradient(135deg, #5C3D0A 0%, #A67C2E 30%, #D4AF6A 55%, #F5D98A 70%, #B8860B 100%)",
+    shine: "#FFF0A0",
+    chip: "#C8922A",
+    text: "#FFFFFF",
+    sub: "rgba(255,255,255,0.75)",
+    accent: "#F5D98A",
+    gloss: "linear-gradient(120deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%)",
+  },
+  Platinum: {
+    bg: "linear-gradient(135deg, #1a1a1a 0%, #3D3D3D 30%, #6B6B6B 55%, #4A4A4A 75%, #1C1C1C 100%)",
+    shine: "#D8D8D8",
+    chip: "#4A4A4A",
+    text: "#FFFFFF",
+    sub: "rgba(255,255,255,0.65)",
+    accent: "#C0C0C0",
+    gloss: "linear-gradient(120deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0) 100%)",
+  },
+  Diamond: {
+    bg: "linear-gradient(135deg, #0D0B1E 0%, #1E1B4B 25%, #312E81 50%, #4338CA 70%, #818CF8 85%, #A5B4FC 100%)",
+    shine: "#C7D2FE",
+    chip: "#4338CA",
+    text: "#FFFFFF",
+    sub: "rgba(255,255,255,0.75)",
+    accent: "#A5B4FC",
+    gloss: "linear-gradient(120deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%)",
+  },
 };
+
+const PROMO_GRADS: Record<string, string> = {
+  valentines: "linear-gradient(135deg,#9F1239,#E11D48,#FB7185)",
+  christmas: "linear-gradient(135deg,#14532D,#16A34A,#DC2626)",
+  eid: "linear-gradient(135deg,#1E3A5F,#2563EB,#60A5FA)",
+  birthday: "linear-gradient(135deg,#7C2D8A,#A855F7,#F0ABFC)",
+  mothers: "linear-gradient(135deg,#9D174D,#EC4899,#FBCFE8)",
+  graduation: "linear-gradient(135deg,#1E3A5F,#B8975A,#D4AF6A)",
+  gold: "linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)",
+  custom: "linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
+};
+
+function GiftCard({
+  bg, shine, chip, text, sub, gloss, label, amount, selected, small = false, promo = false,
+}: {
+  bg: string; shine: string; chip?: string; text: string; sub: string; gloss: string;
+  label: string; amount: number; selected: boolean; small?: boolean; promo?: boolean;
+}) {
+  const h = small ? 140 : 180;
+  return (
+    <div style={{
+      position: "relative", borderRadius: 14, overflow: "hidden",
+      aspectRatio: "1.586 / 1", height: h,
+      background: bg,
+      boxShadow: selected
+        ? `0 20px 50px rgba(0,0,0,0.35), 0 0 0 2.5px ${shine}`
+        : "0 8px 30px rgba(0,0,0,0.2)",
+      transform: selected ? "translateY(-3px) scale(1.01)" : "none",
+      transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+      cursor: "pointer",
+      userSelect: "none",
+    }}>
+      {/* Gloss overlay */}
+      <div style={{ position: "absolute", inset: 0, background: gloss, pointerEvents: "none", zIndex: 1 }} />
+
+      {/* Holographic shimmer strip */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: "45%",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%)",
+        pointerEvents: "none", zIndex: 2,
+      }} />
+
+      {/* Card content */}
+      <div style={{ position: "absolute", inset: 0, padding: small ? "14px 16px" : "18px 22px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 3 }}>
+        {/* Top row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: small ? 9 : 10, letterSpacing: "0.18em", color: text, opacity: 0.85, fontWeight: 600 }}>
+            ZOLARA BEAUTY STUDIO
+          </div>
+          {/* Contactless symbol */}
+          <svg width={small ? 18 : 22} height={small ? 18 : 22} viewBox="0 0 24 24" fill="none" style={{ opacity: 0.7 }}>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="none"/>
+            <path d="M8.5 8.5C9.9 7.1 11.9 6.5 14 7" stroke={text} strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+            <path d="M7 7C9 5 11.8 4.2 15 5.5" stroke={text} strokeWidth="1.5" strokeLinecap="round" opacity="0.3"/>
+            <path d="M10 10c.8-.8 2-.8 2.8-.2" stroke={text} strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
+            <circle cx="12" cy="12.5" r="1" fill={text}/>
+          </svg>
+        </div>
+
+        {/* Chip */}
+        {!promo && (
+          <div style={{
+            width: small ? 28 : 36, height: small ? 20 : 26,
+            borderRadius: 4,
+            background: chip || "rgba(255,255,255,0.3)",
+            border: "1px solid rgba(255,255,255,0.4)",
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, padding: 4,
+          }}>
+            {[0,1,2,3].map(i => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.4)", borderRadius: 1 }} />
+            ))}
+          </div>
+        )}
+
+        {/* Bottom row */}
+        <div>
+          {/* Fake card number dots */}
+          <div style={{ display: "flex", gap: small ? 10 : 14, marginBottom: small ? 6 : 10, alignItems: "center" }}>
+            {[0,1,2,3].map(g => (
+              <div key={g} style={{ display: "flex", gap: 3 }}>
+                {[0,1,2,3].map(d => (
+                  <div key={d} style={{ width: small ? 3 : 4, height: small ? 3 : 4, borderRadius: "50%", background: text, opacity: g === 3 ? 0.9 : 0.4 }} />
+                ))}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: small ? 20 : 26, fontWeight: 700, color: shine, lineHeight: 1, letterSpacing: "0.02em" }}>
+                GH₵ {amount.toLocaleString()}
+              </div>
+              <div style={{ fontSize: small ? 8 : 10, letterSpacing: "0.2em", color: sub, marginTop: 2, fontWeight: 600 }}>
+                {label.toUpperCase()}{promo ? " · SPECIAL EDITION" : " GIFT CARD"}
+              </div>
+            </div>
+            {/* Valid label */}
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: small ? 7 : 8, color: sub, letterSpacing: "0.1em" }}>VALID THRU</div>
+              <div style={{ fontSize: small ? 9 : 11, color: text, fontWeight: 600, letterSpacing: "0.08em" }}>12 MO</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type Step = "select" | "details" | "confirm" | "done";
 
@@ -37,13 +177,10 @@ export default function BuyGiftCard() {
   });
   const [loading, setLoading] = useState(false);
 
-
   useEffect(() => {
-    // Load custom tier prices
     (supabase as any).from("settings").select("gift_card_prices").limit(1).maybeSingle()
       .then(({ data, error }: any) => {
         if (!error && data?.gift_card_prices) {
-          // Convert all values to numbers to be safe
           const prices: Record<string,number> = {};
           for (const [k, v] of Object.entries(data.gift_card_prices as Record<string,any>)) {
             prices[k] = Number(v);
@@ -53,7 +190,6 @@ export default function BuyGiftCard() {
         setPricesLoaded(true);
       })
       .catch(() => setPricesLoaded(true));
-    // Load active promo gift card types
     (supabase as any).from("promo_gift_card_types").select("*").eq("is_active", true)
       .then(({ data }: any) => {
         const now = new Date();
@@ -65,21 +201,14 @@ export default function BuyGiftCard() {
       });
   }, []);
 
-  // Show a loading overlay on tier cards until prices are confirmed loaded
-  // This prevents the "flash" of hardcoded price before DB value arrives
-
   const getTierValue = (tier: string) => {
-    // Always prefer custom price from settings if loaded and non-zero
     if (pricesLoaded && tierPrices[tier] !== undefined) return tierPrices[tier];
     return GIFT_CARD_TIERS[tier as keyof typeof GIFT_CARD_TIERS]?.value ?? 0;
   };
   const getPromoValue = (pt: any) => pt.amount;
-
   const tierConfig = selectedTier ? GIFT_CARD_TIERS[selectedTier] : null;
-  // Effective config — either standard tier or promo type
 
   const handleProceed = () => {
-    // Sanitize inputs
     setForm(f => ({
       ...f,
       buyerName: sanitizeName(f.buyerName),
@@ -100,7 +229,6 @@ export default function BuyGiftCard() {
   const handlePay = async () => {
     if (!selectedTier && !selectedPromo) return;
     setLoading(true);
-
     try {
       const isEmail = deliveryType === "email";
       const ref = `GC-${Date.now().toString(36).toUpperCase()}`;
@@ -124,22 +252,17 @@ export default function BuyGiftCard() {
           try {
             const tierValue = selectedPromo ? getPromoValue(selectedPromo) : getTierValue(selectedTier!);
             if (isEmail && !selectedPromo) {
-              // DIGITAL — create server-side then email
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ tier: selectedTier, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
               });
               const d = await r.json().catch(() => ({}));
-              console.log("Create card:", r.status, JSON.stringify(d));
               if (r.ok && d.card) {
-                // Send gift card to recipient
                 const emailTo = form.recipientEmail || form.buyerEmail;
                 if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName || form.buyerName, recipient_email: emailTo, buyer_name: form.buyerName, message: form.message || undefined }).catch(console.error);
-                // Send payment receipt to buyer only
                 if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
               }
             } else {
-              // PHYSICAL — reserve a pre-printed card (standard or promo)
               const r = await fetch("/api/claim-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -152,13 +275,12 @@ export default function BuyGiftCard() {
                 }),
               });
               const d = await r.json().catch(() => ({}));
-              console.log("Claim card:", r.status, JSON.stringify(d));
               if (form.buyerEmail && d.card) sendPickupReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code || "", serialNumber: d.card.serial_number || undefined, paymentRef: paymentRef || "" }).catch(console.error);
             }
           } catch (e: any) { console.error("GC onSuccess:", e.message); }
           setStep("done"); setLoading(false);
         },
-                onClose: () => {
+        onClose: () => {
           setLoading(false);
           toast.error("Payment was cancelled.");
         },
@@ -171,76 +293,74 @@ export default function BuyGiftCard() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: CREAM, fontFamily: "'Montserrat', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#0F1923", fontFamily: "'Montserrat', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes shimmer { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
+        .gc-card-wrap { animation: fadeUp 0.4s ease both; }
+        .gc-card-wrap:nth-child(1) { animation-delay: 0.05s; }
+        .gc-card-wrap:nth-child(2) { animation-delay: 0.1s; }
+        .gc-card-wrap:nth-child(3) { animation-delay: 0.15s; }
+        .gc-card-wrap:nth-child(4) { animation-delay: 0.2s; }
+        .gc-btn { transition: all 0.2s; }
+        .gc-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .gc-btn:active { transform: translateY(0); }
+        .gc-input { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #F5EFE6; outline: none; width: 100%; box-sizing: border-box; font-family: Montserrat,sans-serif; transition: border-color 0.15s; }
+        .gc-input::placeholder { color: rgba(255,255,255,0.3); }
+        .gc-input:focus { border-color: #C8A97E; }
+        .gc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255,255,255,0.45); display: block; margin-bottom: 7px; }
+      `}</style>
 
       {/* Header */}
-      <div style={{ background: NAVY, padding: "20px 24px", display: "flex", alignItems: "center", gap: 12 }}>
-        <Link to="/" style={{ color: "#9CA3AF", fontSize: 12, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, marginRight: 16, whiteSpace: "nowrap" }}>
+      <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <Link to="/" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
           ← Home
         </Link>
-        <img src="/logo.png" alt="Zolara" style={{ height: 36 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-        <div>
-          <div style={{ color: G, fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600 }}>Zolara Beauty Studio</div>
-          <div style={{ color: "#9CA3AF", fontSize: 11, letterSpacing: "0.1em" }}>GIFT CARDS</div>
-        </div>
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", color: "#C8A97E", fontSize: 20, fontWeight: 600 }}>Zolara Beauty Studio</div>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.18em", marginLeft: 4 }}>GIFT CARDS</div>
       </div>
 
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "clamp(16px,4vw,40px) clamp(12px,4vw,20px)" }}>
-        {/* Step: SELECT TIER */}
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "clamp(24px,4vw,48px) clamp(16px,4vw,24px)" }}>
+
+        {/* STEP: SELECT */}
         {step === "select" && (
-          <div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: NAVY, textAlign: "center", marginBottom: 8 }}>
-              Give the Gift of Beauty
-            </h1>
-            <p style={{ textAlign: "center", color: TXT_MID, fontSize: 14, marginBottom: 36 }}>
-              Valid for 12 months. Redeemable for any service at Zolara Beauty Studio.
-            </p>
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.22em", color: "#C8A97E", marginBottom: 12 }}>✦ GIFT OF LUXURY ✦</div>
+              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(30px,6vw,48px)", fontWeight: 300, color: "#F5EFE6", margin: "0 0 12px", lineHeight: 1.1 }}>
+                Give the Gift of<br /><em style={{ fontStyle: "italic", color: "#C8A97E" }}>Beauty</em>
+              </h1>
+              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.7, maxWidth: 380, margin: "0 auto" }}>
+                Valid for 12 months. Redeemable for any service at Zolara Beauty Studio, Tamale.
+              </p>
+            </div>
 
-
-
-
-            {/* Promo Gift Cards — in-store pickup only */}
+            {/* Promo cards */}
             {promoTypes.length > 0 && (
-              <div style={{ marginBottom: 28 }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:16 }}>
-                  <span style={{ color:"#8B6914", fontSize:12 }}>✦</span>
-                  <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.22em", color:"#8B6914", margin:0 }}>SPECIAL EDITIONS</p>
-                  <span style={{ color:"#8B6914", fontSize:12 }}>✦</span>
+              <div style={{ marginBottom: 36 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                  <div style={{ flex: 1, height: 1, background: "rgba(200,169,126,0.2)" }} />
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.22em", color: "#C8A97E" }}>SPECIAL EDITIONS</span>
+                  <div style={{ flex: 1, height: 1, background: "rgba(200,169,126,0.2)" }} />
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:14 }} className="admin-grid-2">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
                   {promoTypes.map((pt: any) => {
                     const sel = selectedPromo?.id === pt.id;
-                    const GRADS: Record<string,string> = {
-                      valentines:"linear-gradient(135deg,#9F1239,#E11D48,#FB7185)",
-                      christmas:"linear-gradient(135deg,#14532D,#16A34A,#DC2626)",
-                      eid:"linear-gradient(135deg,#1E3A5F,#2563EB,#60A5FA)",
-                      birthday:"linear-gradient(135deg,#7C2D8A,#A855F7,#F0ABFC)",
-                      mothers:"linear-gradient(135deg,#9D174D,#EC4899,#FBCFE8)",
-                      graduation:"linear-gradient(135deg,#1E3A5F,#B8975A,#D4AF6A)",
-                      gold:"linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)",
-                      custom:"linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
-                    };
-                    const grad = GRADS[pt.theme] || GRADS.gold;
+                    const grad = PROMO_GRADS[pt.theme] || PROMO_GRADS.gold;
                     return (
-                      <div key={pt.id}
-                        onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); setDeliveryType("physical"); }}
-                        style={{ cursor:"pointer", borderRadius:16, overflow:"hidden", border:`2px solid ${sel?"#C8A97E":"transparent"}`, boxShadow:sel?"0 0 0 3px rgba(200,169,126,0.3)":"0 2px 12px rgba(0,0,0,0.08)", transition:"all 0.2s" }}>
-                        <div style={{ background:grad, padding:"24px 20px", aspectRatio:"1.6/1", display:"flex", flexDirection:"column", justifyContent:"space-between", position:"relative", overflow:"hidden" }}>
-                          <div style={{ position:"absolute", top:-20, right:-20, width:80, height:80, borderRadius:"50%", background:"rgba(255,255,255,0.08)" }} />
-                          <div style={{ fontFamily:"'Cormorant Garamond',serif", color:"white", fontSize:11, letterSpacing:"0.15em", opacity:0.85 }}>ZOLARA · SPECIAL EDITION</div>
-                          <div>
-                            <div style={{ color:"rgba(255,255,255,0.95)", fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:700 }}>GH₵ {pt.amount.toLocaleString()}</div>
-                            <div style={{ color:"rgba(255,255,255,0.85)", fontSize:11, letterSpacing:"0.15em", marginTop:2 }}>{pt.emoji} {pt.name.toUpperCase()}</div>
-                          </div>
-                        </div>
-                        <div style={{ background:sel?"#FDF8EE":"white", padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                          <div>
-                            <span style={{ color:TXT, fontWeight:600, fontSize:13 }}>{pt.name}</span>
-                            {pt.description && <div style={{ fontSize:11, color:TXT_MID, marginTop:2 }}>{pt.description}</div>}
-                          </div>
-                          <div style={{ textAlign:"right" }}>
-                            <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, color:"#8B6914", background:"#FDF6E3", padding:"2px 8px", borderRadius:10 }}>🏪 Pickup only</div>
-                          </div>
+                      <div key={pt.id} className="gc-card-wrap"
+                        onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); setDeliveryType("physical"); }}>
+                        <GiftCard
+                          bg={grad} shine="rgba(255,255,255,0.95)" chip="rgba(255,255,255,0.25)"
+                          text="#FFFFFF" sub="rgba(255,255,255,0.7)"
+                          gloss="linear-gradient(120deg,rgba(255,255,255,0.3) 0%,rgba(255,255,255,0) 60%)"
+                          label={pt.name} amount={pt.amount} selected={sel} promo
+                        />
+                        <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
+                          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{pt.name}</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: "#C8A97E", background: "rgba(200,169,126,0.12)", padding: "3px 8px", borderRadius: 8, letterSpacing: "0.06em" }}>🏪 PICKUP</span>
                         </div>
                       </div>
                     );
@@ -249,56 +369,31 @@ export default function BuyGiftCard() {
               </div>
             )}
 
-            {/* Standard Gift Cards */}
+            {/* Standard tiers */}
             {promoTypes.length > 0 && (
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-                <div style={{ flex:1, height:1, background:"#EDEBE5" }} />
-                <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.18em", color:"#A8A29E", margin:0, whiteSpace:"nowrap" }}>STANDARD GIFT CARDS</p>
-                <div style={{ flex:1, height:1, background:"#EDEBE5" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.22em", color: "rgba(255,255,255,0.3)" }}>STANDARD GIFT CARDS</span>
+                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
               </div>
             )}
-            <div key={`tiers-${JSON.stringify(tierPrices)}`} style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 32 }} className="admin-grid-2">
+
+            <div key={`tiers-${JSON.stringify(tierPrices)}`} style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 36 }}>
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
-                const t = { ...GIFT_CARD_TIERS[tier], value: getTierValue(tier) };
                 const s = TIER_STYLES[tier];
+                const val = getTierValue(tier);
                 const selected = selectedTier === tier;
                 return (
-                  <div
-                    key={tier}
-                    onClick={() => { setSelectedTier(tier); setSelectedPromo(null); setDeliveryType("email"); }}
-                    style={{
-                      cursor: "pointer",
-                      borderRadius: 16,
-                      overflow: "hidden",
-                      border: `2px solid ${selected ? s.accent : "transparent"}`,
-                      boxShadow: selected ? `0 0 0 3px ${s.accent}33` : "0 2px 12px rgba(0,0,0,0.08)",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    {/* Card visual */}
-                    <div style={{
-                      background: s.bg,
-                      padding: "24px 20px",
-                      aspectRatio: "1.6/1",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      position: "relative",
-                      overflow: "hidden",
-                    }}>
-                      <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
-                      <div style={{ position: "absolute", bottom: -30, left: -10, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", color: "white", fontSize: 13, letterSpacing: "0.15em", opacity: 0.9 }}>ZOLARA BEAUTY STUDIO</div>
-                      <div>
-                        <div style={{ color: s.shine, fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700 }}>
-                          GH₵ {t.value.toLocaleString()}
-                        </div>
-                        <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, letterSpacing: "0.2em", marginTop: 2 }}>{t.label.toUpperCase()}</div>
-                      </div>
-                    </div>
-                    <div style={{ background: "white", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: TXT, fontWeight: 600, fontSize: 13 }}>{t.label}</span>
-                      <span style={{ color: TXT_MID, fontSize: 12 }}>GH₵ {t.value.toLocaleString()}</span>
+                  <div key={tier} className="gc-card-wrap"
+                    onClick={() => { setSelectedTier(tier); setSelectedPromo(null); setDeliveryType("email"); }}>
+                    <GiftCard
+                      bg={s.bg} shine={s.shine} chip={s.chip} text={s.text}
+                      sub={s.sub} gloss={s.gloss}
+                      label={GIFT_CARD_TIERS[tier].label} amount={val} selected={selected}
+                    />
+                    <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{GIFT_CARD_TIERS[tier].label}</span>
+                      <span style={{ fontSize: 12, color: "#C8A97E", fontWeight: 700 }}>GH₵ {val.toLocaleString()}</span>
                     </div>
                   </div>
                 );
@@ -306,189 +401,170 @@ export default function BuyGiftCard() {
             </div>
 
             {(selectedTier || selectedPromo) && (
-              <div>
-                {/* Delivery type — pickup only for promo cards */}
+              <div style={{ animation: "fadeUp 0.25s ease" }}>
                 {selectedPromo ? (
-                  <div style={{ background:"#FDF8EE", borderRadius:12, padding:16, border:"1px solid #F0E4CC", marginBottom:20, display:"flex", alignItems:"center", gap:12 }}>
-                    <span style={{ fontSize:24 }}>🏪</span>
+                  <div style={{ background: "rgba(200,169,126,0.08)", borderRadius: 12, padding: "14px 18px", border: "1px solid rgba(200,169,126,0.2)", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 22 }}>🏪</span>
                     <div>
-                      <div style={{ fontWeight:600, fontSize:13, color:TXT }}>Pick Up In Store — Only</div>
-                      <div style={{ fontSize:11, color:TXT_MID, marginTop:2 }}>Promotional gift cards are physical cards. Collect at Zolara Beauty Studio, Sakasaka.</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "#F5EFE6" }}>Pick Up In Store Only</div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>Promotional gift cards are physical cards. Collect at Zolara Beauty Studio, Sakasaka.</div>
                     </div>
                   </div>
                 ) : (
-                  <div style={{ background: "white", borderRadius: 12, padding: 20, border: `1px solid ${BORDER}`, marginBottom: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Delivery Method</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} className="admin-grid-2">
+                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 18, border: "1px solid rgba(255,255,255,0.08)", marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)", marginBottom: 12 }}>DELIVERY METHOD</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       {(["email", "physical"] as const).map(type => (
                         <div key={type} onClick={() => setDeliveryType(type)}
-                          style={{ padding:"14px 16px", borderRadius:10, border:`2px solid ${deliveryType===type?G:BORDER}`, cursor:"pointer", background:deliveryType===type?"#FDF8EE":"white", transition:"all 0.15s" }}>
-                          <div style={{ fontSize:18, marginBottom:4 }}>{type==="email"?"✉️":"🏪"}</div>
-                          <div style={{ fontWeight:600, fontSize:13, color:TXT }}>{type==="email"?"Send by Email":"Pick Up In Store"}</div>
-                          <div style={{ fontSize:11, color:TXT_MID, marginTop:2 }}>{type==="email"?"Instant digital delivery":"Physical card at Zolara"}</div>
+                          style={{ padding: "14px 16px", borderRadius: 10, border: `1.5px solid ${deliveryType === type ? "#C8A97E" : "rgba(255,255,255,0.1)"}`, cursor: "pointer", background: deliveryType === type ? "rgba(200,169,126,0.08)" : "transparent", transition: "all 0.15s" }}>
+                          <div style={{ fontSize: 18, marginBottom: 6 }}>{type === "email" ? "✉️" : "🏪"}</div>
+                          <div style={{ fontWeight: 600, fontSize: 12, color: deliveryType === type ? "#C8A97E" : "#F5EFE6" }}>{type === "email" ? "Send by Email" : "Pick Up In Store"}</div>
+                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 3 }}>{type === "email" ? "Instant digital delivery" : "Physical card at Zolara"}</div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                <button onClick={() => setStep("details")}
-                  style={{ width:"100%", background:G, color:"white", border:"none", borderRadius:12, padding:"16px", fontSize:15, fontWeight:600, cursor:"pointer", letterSpacing:"0.05em" }}>
-                  Continue →
+                <button className="gc-btn"
+                  onClick={() => setStep("details")}
+                  style={{ width: "100%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", color: "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em" }}>
+                  CONTINUE →
                 </button>
               </div>
             )}
           </div>
         )}
 
-        {/* Step: DETAILS */}
+        {/* STEP: DETAILS */}
         {step === "details" && (selectedTier || selectedPromo) && (
-          <div>
-            <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 13, marginBottom: 20 }}>
+          <div style={{ animation: "fadeUp 0.3s ease" }}>
+            <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: "#C8A97E", cursor: "pointer", fontSize: 13, marginBottom: 28, padding: 0, display: "flex", alignItems: "center", gap: 6 }}>
               ← Back
             </button>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: NAVY, marginBottom: 24 }}>Your Details</h2>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#F5EFE6", marginBottom: 28, fontWeight: 400 }}>Your Details</h2>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <Field label="Your Name" value={form.buyerName} onChange={v => setForm(p => ({ ...p, buyerName: v }))} placeholder="Full name" />
-              <Field label="Your Phone Number" value={form.buyerPhone} onChange={v => setForm(p => ({ ...p, buyerPhone: v }))} placeholder="0XX XXX XXXX" type="tel" />
-              <Field label="Your Email *" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — receipt will be sent here" type="email" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <DarkField label="Your Name" value={form.buyerName} onChange={v => setForm(p => ({ ...p, buyerName: v }))} placeholder="Full name" />
+              <DarkField label="Your Phone Number" value={form.buyerPhone} onChange={v => setForm(p => ({ ...p, buyerPhone: v }))} placeholder="0XX XXX XXXX" type="tel" />
+              <DarkField label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — receipt will be sent here" type="email" />
 
               {deliveryType === "email" && !selectedPromo && (
                 <>
-                  <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 4 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: TXT, marginBottom: 12 }}>Recipient Details</div>
-                  </div>
-                  <Field label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this for?" />
-                  <Field label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="recipient@email.com" type="email" />
+                  <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)" }}>RECIPIENT DETAILS</div>
+                  <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this for?" />
+                  <DarkField label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="recipient@email.com" type="email" />
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: TXT_MID, display: "block", marginBottom: 6, letterSpacing: "0.06em" }}>
-                      PERSONAL MESSAGE (OPTIONAL)
-                    </label>
+                    <label className="gc-label">PERSONAL MESSAGE (OPTIONAL)</label>
                     <textarea
                       value={form.message}
                       onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
                       placeholder="Add a personal message..."
                       rows={3}
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${BORDER}`, fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                      className="gc-input"
+                      style={{ resize: "vertical" }}
                     />
                   </div>
                 </>
               )}
             </div>
 
-            <button
+            <button className="gc-btn"
               onClick={handleProceed}
-              style={{ width: "100%", background: G, color: "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 15, fontWeight: 600, cursor: "pointer", marginTop: 24 }}
-            >
-              Review Order →
+              style={{ width: "100%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", color: "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", marginTop: 28 }}>
+              REVIEW ORDER →
             </button>
           </div>
         )}
 
-        {/* Step: CONFIRM */}
-        {step === "confirm" && (selectedTier || selectedPromo) && (
-          <div>
-            <button onClick={() => setStep("details")} style={{ background: "none", border: "none", color: G, cursor: "pointer", fontSize: 13, marginBottom: 20 }}>
-              ← Back
-            </button>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: NAVY, marginBottom: 24 }}>Review Your Order</h2>
+        {/* STEP: CONFIRM */}
+        {step === "confirm" && (selectedTier || selectedPromo) && (() => {
+          const confirmBg = selectedPromo ? (PROMO_GRADS[selectedPromo.theme] || PROMO_GRADS.gold) : TIER_STYLES[selectedTier!].bg;
+          const confirmS = selectedPromo ? { shine: "rgba(255,255,255,0.95)", chip: "rgba(255,255,255,0.25)", text: "#FFFFFF", sub: "rgba(255,255,255,0.7)", gloss: "linear-gradient(120deg,rgba(255,255,255,0.3) 0%,rgba(255,255,255,0) 60%)" } : TIER_STYLES[selectedTier!];
+          const confirmLabel = selectedPromo ? selectedPromo.name : (tierConfig?.label || "");
+          const confirmAmount = selectedPromo ? selectedPromo.amount : getTierValue(selectedTier!);
+          return (
+            <div style={{ animation: "fadeUp 0.3s ease" }}>
+              <button onClick={() => setStep("details")} style={{ background: "none", border: "none", color: "#C8A97E", cursor: "pointer", fontSize: 13, marginBottom: 28, padding: 0 }}>
+                ← Back
+              </button>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#F5EFE6", marginBottom: 28, fontWeight: 400 }}>Review Order</h2>
 
-            {(() => {
-              const PROMO_GRADS: Record<string,string> = {
-                valentines:"linear-gradient(135deg,#9F1239,#E11D48,#FB7185)",
-                christmas:"linear-gradient(135deg,#14532D,#16A34A,#DC2626)",
-                eid:"linear-gradient(135deg,#1E3A5F,#2563EB,#60A5FA)",
-                birthday:"linear-gradient(135deg,#7C2D8A,#A855F7,#F0ABFC)",
-                mothers:"linear-gradient(135deg,#9D174D,#EC4899,#FBCFE8)",
-                graduation:"linear-gradient(135deg,#1E3A5F,#B8975A,#D4AF6A)",
-                gold:"linear-gradient(135deg,#6B4E0A,#C8A97E,#D4AF6A)",
-                custom:"linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
-              };
-              const confirmBg = selectedPromo
-                ? (PROMO_GRADS[selectedPromo.theme] || PROMO_GRADS.gold)
-                : (selectedTier ? TIER_STYLES[selectedTier].bg : TIER_STYLES.Gold.bg);
-              const confirmShine = selectedPromo ? "rgba(255,255,255,0.95)" : (selectedTier ? TIER_STYLES[selectedTier].shine : "#F5D98A");
-              const confirmLabel = selectedPromo ? selectedPromo.name : (tierConfig?.label || "");
-              const confirmAmount = selectedPromo ? selectedPromo.amount : getTierValue(selectedTier!);
-              return (
-            <div style={{ background: "white", borderRadius: 16, border: `1px solid ${BORDER}`, overflow: "hidden", marginBottom: 20 }}>
-              {/* Card preview */}
-              <div style={{ background: confirmBg, padding: "28px 24px", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", color: "white", fontSize: 12, letterSpacing: "0.15em", marginBottom: 16, opacity: 0.9 }}>ZOLARA BEAUTY STUDIO</div>
-                <div style={{ color: confirmShine, fontFamily: "'Cormorant Garamond', serif", fontSize: 34, fontWeight: 700 }}>
-                  GH₵ {confirmAmount.toLocaleString()}
-                </div>
-                <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, letterSpacing: "0.2em", marginTop: 4 }}>{confirmLabel.toUpperCase()}{selectedPromo ? " · SPECIAL EDITION" : " GIFT CARD"}</div>
+              {/* Full-size card preview */}
+              <div style={{ marginBottom: 28 }}>
+                <GiftCard
+                  bg={confirmBg} shine={confirmS.shine} chip={confirmS.chip}
+                  text={confirmS.text} sub={confirmS.sub} gloss={confirmS.gloss}
+                  label={confirmLabel} amount={confirmAmount} selected promo={!!selectedPromo}
+                />
               </div>
 
-              <div style={{ padding: "20px 24px" }}>
-                <Row label="Card Value" value={`GH₵ ${selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()}`} />
-                <Row label="Delivery" value={deliveryType === "email" ? `Email to ${form.recipientEmail}` : "Pick up at Zolara, Sakasaka"} />
-                {deliveryType === "email" && <Row label="Recipient" value={form.recipientName} />}
-                <Row label="From" value={form.buyerName} />
-                <Row label="Phone" value={form.buyerPhone} />
-                <div style={{ borderTop: `1px solid ${BORDER}`, marginTop: 16, paddingTop: 16, display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontWeight: 700, fontSize: 16, color: TXT }}>Total</span>
-                  <span style={{ fontWeight: 700, fontSize: 18, color: G }}>GH₵ {selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()}</span>
+              {/* Order summary */}
+              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden", marginBottom: 20 }}>
+                {[
+                  { label: "Card Value", value: `GH₵ ${confirmAmount.toLocaleString()}` },
+                  { label: "Delivery", value: deliveryType === "email" ? `Email to ${form.recipientEmail}` : "Pick up at Zolara, Sakasaka" },
+                  ...(deliveryType === "email" ? [{ label: "Recipient", value: form.recipientName }] : []),
+                  { label: "From", value: form.buyerName },
+                  { label: "Phone", value: form.buyerPhone },
+                ].map(({ label, value }, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "13px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>{label}</span>
+                    <span style={{ color: "#F5EFE6", fontSize: 12, fontWeight: 500, maxWidth: "55%", textAlign: "right" }}>{value}</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 18px" }}>
+                  <span style={{ fontWeight: 700, fontSize: 15, color: "#F5EFE6" }}>Total</span>
+                  <span style={{ fontWeight: 700, fontSize: 18, color: "#C8A97E" }}>GH₵ {confirmAmount.toLocaleString()}</span>
                 </div>
               </div>
+
+              <div style={{ background: "rgba(200,169,126,0.07)", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 20, border: "1px solid rgba(200,169,126,0.15)", lineHeight: 1.6 }}>
+                {deliveryType === "email"
+                  ? `Your gift card will be sent to ${form.recipientEmail} within 10–15 minutes of payment confirmation.`
+                  : "Please visit Zolara Beauty Studio in Sakasaka, Opposite CalBank, to pick up your physical gift card. Show your name and phone number."}
+              </div>
+
+              <button className="gc-btn"
+                onClick={handlePay}
+                disabled={loading}
+                style={{ width: "100%", background: loading ? "rgba(200,169,126,0.3)" : "linear-gradient(135deg,#8B6914,#C8A97E)", color: loading ? "rgba(255,255,255,0.4)" : "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", letterSpacing: "0.08em" }}>
+                {loading ? "PROCESSING..." : `PAY GH₵ ${confirmAmount.toLocaleString()} VIA PAYSTACK`}
+              </button>
+              <p style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 12 }}>
+                Secured by Paystack · Card, Mobile Money, Bank Transfer accepted
+              </p>
             </div>
-              );
-            })()}
+          );
+        })()}
 
-            <div style={{ background: "#FDF8EE", borderRadius: 10, padding: "12px 16px", fontSize: 12, color: TXT_MID, marginBottom: 20, border: `1px solid #F5ECD6` }}>
-              {deliveryType === "email"
-                ? `Your gift card will be sent to ${form.recipientEmail} within 10–15 minutes of payment confirmation.`
-                : "Please visit Zolara Beauty Studio in Sakasaka, Opposite CalBank, to pick up your physical gift card. Show your name and phone number."}
-            </div>
-
-            <button
-              onClick={handlePay}
-              disabled={loading}
-              style={{
-                width: "100%", background: loading ? "#D1C4A8" : G, color: "white",
-                border: "none", borderRadius: 12, padding: "16px", fontSize: 15,
-                fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
-              }}
-            >
-              {loading ? "Processing..." : `Pay GH₵ ${selectedPromo ? selectedPromo.amount.toLocaleString() : getTierValue(selectedTier!).toLocaleString()} via Paystack`}
-            </button>
-            <p style={{ textAlign: "center", fontSize: 11, color: TXT_MID, marginTop: 10 }}>
-              Secured by Paystack. Card, Mobile Money, and Bank Transfer accepted.
-            </p>
-          </div>
-        )}
-
-        {/* Step: DONE */}
+        {/* STEP: DONE */}
         {step === "done" && (selectedTier || selectedPromo) && (
-          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <div style={{ fontSize: 56, marginBottom: 16 }}>🎁</div>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, color: NAVY, marginBottom: 12 }}>Order Received</h2>
+          <div style={{ textAlign: "center", padding: "60px 20px", animation: "fadeUp 0.4s ease" }}>
+            <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: 36 }}>✦</div>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, color: "#F5EFE6", marginBottom: 16, fontWeight: 400 }}>Order Received</h2>
             {deliveryType === "email" ? (
               <>
-                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
-                  Your <strong>{selectedPromo ? selectedPromo.name : tierConfig?.label} Gift Card</strong> order has been placed.
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.8, marginBottom: 8 }}>
+                  Your <strong style={{ color: "#C8A97E" }}>{selectedPromo ? selectedPromo.name : tierConfig?.label} Gift Card</strong> has been placed.
                 </p>
-                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-                  Once payment is confirmed, the gift card will be emailed to <strong>{form.recipientEmail}</strong> within 10–15 minutes.
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.8, marginBottom: 28 }}>
+                  Once payment is confirmed, it will be emailed to <strong style={{ color: "#F5EFE6" }}>{form.recipientEmail}</strong> within 10–15 minutes.
                 </p>
-                <p style={{ color: TXT_MID, fontSize: 13 }}>
-                  Questions? Call us on <strong>0594365314</strong> or <strong>020 884 8707</strong>
-                </p>
+                <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Questions? Call <strong style={{ color: "#F5EFE6" }}>0594365314</strong> or <strong style={{ color: "#F5EFE6" }}>020 884 8707</strong></p>
               </>
             ) : (
               <>
-                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
-                  Your <strong>{selectedPromo ? selectedPromo.name : tierConfig?.label} Gift Card</strong> is ready for pickup.
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.8, marginBottom: 8 }}>
+                  Your <strong style={{ color: "#C8A97E" }}>{selectedPromo ? selectedPromo.name : tierConfig?.label} Gift Card</strong> is ready for pickup.
                 </p>
-                <p style={{ color: TXT_MID, fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-                  Visit us at <strong>Sakasaka, Opposite CalBank, Tamale</strong>.<br />
-                  Show your name (<strong>{form.buyerName}</strong>) and phone number at the front desk.
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.8, marginBottom: 28 }}>
+                  Visit us at <strong style={{ color: "#F5EFE6" }}>Sakasaka, Opposite CalBank, Tamale</strong>.<br />
+                  Show your name (<strong style={{ color: "#F5EFE6" }}>{form.buyerName}</strong>) and phone at the front desk.
                 </p>
               </>
             )}
-            <a href="/" style={{ color: G, fontSize: 13, textDecoration: "none" }}>← Back to Zolara</a>
+            <a href="/" style={{ color: "#C8A97E", fontSize: 13, textDecoration: "none" }}>← Back to Zolara</a>
           </div>
         )}
       </div>
@@ -496,31 +572,14 @@ export default function BuyGiftCard() {
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = "text" }: {
+function DarkField({ label, value, onChange, placeholder, type = "text" }: {
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; type?: string;
 }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: TXT_MID, display: "block", marginBottom: 6, letterSpacing: "0.06em" }}>
-        {label.toUpperCase()}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${BORDER}`, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
-      />
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
-      <span style={{ color: TXT_MID, fontSize: 13 }}>{label}</span>
-      <span style={{ color: TXT, fontSize: 13, fontWeight: 500, maxWidth: "60%", textAlign: "right" }}>{value}</span>
+      <label className="gc-label">{label.toUpperCase()}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-input" />
     </div>
   );
 }
