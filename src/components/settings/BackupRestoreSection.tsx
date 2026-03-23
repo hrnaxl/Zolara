@@ -8,6 +8,7 @@ interface Props { settings: any; onRestore: (s: any) => void; }
 
 export function BackupRestoreSection({ settings, onRestore }: Props) {
   const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
   const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_SOFT = "#A8A29E";
   const btn = (gold = false): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: "8px", padding: "9px 18px", borderRadius: "10px",

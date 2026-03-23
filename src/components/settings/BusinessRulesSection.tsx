@@ -9,6 +9,8 @@ interface Props {
 
 export function BusinessRulesSection({ depositAmount, loyaltyStampPerGhs, loyaltyStampsForReward, loyaltyRewardDiscount, onDepositChange, onStampPerGhsChange, onStampsForRewardChange, onRewardDiscountChange }: Props) {
   const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8";
+  const inp: React.CSSProperties = { border: "1.5px solid #EDEBE5", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: "#1C160E", outline: "none", background: "#FFFFFF", fontFamily: "Montserrat,sans-serif", width: "100%", boxSizing: "border-box" as const };
+  const lbl: React.CSSProperties = { fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "#A8A29E", textTransform: "uppercase" as const, display: "block", marginBottom: "6px" };
   const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
   const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
   return (
