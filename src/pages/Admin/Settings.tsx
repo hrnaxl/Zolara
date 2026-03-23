@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { BusinessInfoSection } from "@/components/settings/BusinessInfoSection";
 import { OperatingHoursSection } from "@/components/settings/OperatingHoursSection";
 import { DraggableListSection } from "@/components/settings/DraggableListSection";
-import { PaymentMethodsSection } from "@/components/settings/PaymentMethodsSection";
 import { DataManagementSection } from "@/components/settings/DataManagementSection";
 import { BackupRestoreSection } from "@/components/settings/BackupRestoreSection";
 import { TemporaryClosuresSection } from "@/components/settings/TemporaryClosuresSection";
@@ -13,7 +12,7 @@ import { BusinessRulesSection } from "@/components/settings/BusinessRulesSection
 import { GiftCardPricingSection } from "@/components/settings/GiftCardPricingSection";
 import { ReviewsSettingsSection } from "@/components/settings/ReviewsManagement";
 import {
-  Settings as SettingsIcon, Save, RefreshCw, Building2, Clock, CreditCard,
+  Settings as SettingsIcon, Save, RefreshCw, Building2, Clock,
   Users, Tag, Calendar, Wrench, BarChart3, Star, Database, Loader2, CheckCircle2, Sparkles
 } from "lucide-react";
 
@@ -32,7 +31,7 @@ interface Settings {
 }
 
 
-type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "promo" | "rules" | "social" | "announcement" | "reviews" | "data";
+type TabId = "business" | "hours" | "categories" | "closures" | "loyalty" | "promo" | "rules" | "social" | "announcement" | "reviews" | "data";
 
 
 function RecalcLoyaltyButton() {
@@ -114,7 +113,6 @@ export default function Settings() {
   const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: "business",   label: "Business",        icon: Building2 },
     { id: "hours",      label: "Hours",            icon: Clock },
-    { id: "payments",   label: "Payments",         icon: CreditCard },
     { id: "categories", label: "Categories",       icon: Tag },
     { id: "closures",   label: "Closures",         icon: Calendar },
     { id: "loyalty",    label: "Loyalty",          icon: Star },
@@ -344,21 +342,6 @@ export default function Settings() {
           onFormatChange={v => setSettings(p => ({ ...p, use_24_hour_format: v }))}
         />)}
 
-        {tab("payments", <PaymentMethodsSection
-          paymentMethods={settings.payment_methods}
-          onPaymentMethodToggle={(id, enabled) => {
-            setSettings(p => {
-              const ALL_IDS = ["cash","mobile_money","card","bank_transfer","gift_card"];
-              const ALL_NAMES: Record<string,string> = {cash:"Cash",mobile_money:"Mobile Money",card:"Card",bank_transfer:"Bank Transfer",gift_card:"Gift Card"};
-              // Ensure we have all 5 methods before toggling
-              const current = ALL_IDS.map(pid => {
-                const found = p.payment_methods.find((m: any) => m.id === pid);
-                return found || { id: pid, name: ALL_NAMES[pid], enabled: false };
-              });
-              return { ...p, payment_methods: current.map(m => m.id === id ? { ...m, enabled } : m) };
-            });
-          }}
-        />)}
 
         {tab("categories", (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
