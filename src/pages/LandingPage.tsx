@@ -1352,36 +1352,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ANNOUNCEMENT MODAL */}
-      {(() => {
-        const ann = (salonSettings as any)?.announcement;
-        if (!ann?.enabled || !ann?.title || announcementDismissed) return null;
-        // Check expiry
-        if (ann.expires_date) {
-          const expiry = new Date(`${ann.expires_date}T${ann.expires_time || "23:59"}:00`);
-          if (expiry < new Date()) return null;
-        }
-        return (
-          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px", backdropFilter:"blur(4px)" }}
-            onClick={dismissAnnouncement}>
-            <div onClick={e => e.stopPropagation()} style={{
-              background:"white", borderRadius:20, padding:"40px 36px", maxWidth:460, width:"100%",
-              textAlign:"center", boxShadow:"0 40px 100px rgba(0,0,0,0.45)", position:"relative",
-              animation:"fadeUp 0.4s cubic-bezier(0.16,1,0.3,1)"
-            }}>
-              <button onClick={dismissAnnouncement} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", cursor:"pointer", color:"#A8A29E", fontSize:22, lineHeight:1 }}>×</button>
-              <div style={{ width:52, height:52, borderRadius:"50%", background:"linear-gradient(135deg,#8B6914,#C8A97E)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px", fontSize:22 }}>✦</div>
-              <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:600, color:"#1C160E", marginBottom:12, lineHeight:1.2 }}>{ann.title}</h3>
-              {ann.message && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:13, color:"#57534E", lineHeight:1.75, marginBottom:24 }}>{ann.message}</p>}
-              <a href="/book" onClick={dismissAnnouncement}
-                style={{ display:"inline-block", background:"linear-gradient(135deg,#8B6914,#C8A97E)", color:"white", textDecoration:"none", padding:"14px 36px", borderRadius:8, fontFamily:"'Montserrat',sans-serif", fontSize:12, fontWeight:700, letterSpacing:"0.1em" }}>
-                BOOK NOW →
-              </a>
-              <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"#A8A29E", marginTop:16, cursor:"pointer" }} onClick={dismissAnnouncement}>Dismiss</p>
-            </div>
-          </div>
-        );
-      })()}
+
 
       {/* FOOTER */}
       <footer style={{ background: "linear-gradient(160deg,#1A1208,#0D0A06)", position: "relative", overflow: "hidden" }}>
@@ -1480,6 +1451,36 @@ export default function LandingPage() {
       </footer>
     </div>
     <AmandaWidget />
+    {/* ANNOUNCEMENT MODAL */}
+      {(() => {
+        const ann = (salonSettings as any)?.announcement;
+        if (!ann?.enabled || !ann?.title || announcementDismissed) return null;
+        // Check expiry
+        if (ann.expires_date) {
+          const expiry = new Date(`${ann.expires_date}T${ann.expires_time || "23:59"}:00`);
+          if (expiry < new Date()) return null;
+        }
+        return (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px", backdropFilter:"blur(4px)" }}
+            onClick={dismissAnnouncement}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background:"white", borderRadius:20, padding:"40px 36px", maxWidth:460, width:"100%",
+              textAlign:"center", boxShadow:"0 40px 100px rgba(0,0,0,0.45)", position:"relative",
+              animation:"fadeUp 0.4s cubic-bezier(0.16,1,0.3,1)"
+            }}>
+              <button onClick={dismissAnnouncement} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", cursor:"pointer", color:"#A8A29E", fontSize:22, lineHeight:1 }}>×</button>
+              <div style={{ width:52, height:52, borderRadius:"50%", background:"linear-gradient(135deg,#8B6914,#C8A97E)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px", fontSize:22 }}>✦</div>
+              <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:600, color:"#1C160E", marginBottom:12, lineHeight:1.2 }}>{ann.title}</h3>
+              {ann.message && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:13, color:"#57534E", lineHeight:1.75, marginBottom:24 }}>{ann.message}</p>}
+              <a href="/book" onClick={dismissAnnouncement}
+                style={{ display:"inline-block", background:"linear-gradient(135deg,#8B6914,#C8A97E)", color:"white", textDecoration:"none", padding:"14px 36px", borderRadius:8, fontFamily:"'Montserrat',sans-serif", fontSize:12, fontWeight:700, letterSpacing:"0.1em" }}>
+                BOOK NOW →
+              </a>
+              <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"#A8A29E", marginTop:16, cursor:"pointer" }} onClick={dismissAnnouncement}>Dismiss</p>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }
