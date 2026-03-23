@@ -926,6 +926,9 @@ const AdminDashboard = () => {
               pct: dateFilter === "today" ? stats.todayRevenueChange : dateFilter === "week" ? stats.weeklyRevenueChange : stats.monthChangePercentage,
               note: dateFilter === "today" ? "vs yesterday" : dateFilter === "week" ? "vs last week" : "vs last month",
               color:"#16A34A", bg:"#F0FDF4" },
+            { label:"AVG BOOKING VALUE",
+              val: bookingsVal > 0 ? `GHS ${(revenueVal / bookingsVal).toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2})}` : "—",
+              pct: null, note: `across ${bookingsVal} booking${bookingsVal !== 1 ? "s" : ""}`, color:"#DB2777", bg:"#FDF2F8" },
           ];
         })().map((c, i) => (
           <div key={i} className="zc au" style={{ animationDelay:`${i*0.06}s` }}>
