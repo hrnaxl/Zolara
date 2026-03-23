@@ -10,27 +10,23 @@ import EnhancedBookingForm from "@/components/EnhancedBookingForm";
 import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
 import { Plus, Search, X, ChevronLeft, ChevronRight, Calendar, Clock, User, Scissors, Phone, StickyNote, CreditCard, CheckCircle2, XCircle, AlertCircle, RefreshCw, ArrowRight } from "lucide-react";
 
-// ── Design tokens ────────────────────────────────────────────────────────────
-
-
+const FILTERS = ["all","pending","confirmed","in_progress","completed","cancelled","no_show"] as const;
 type Filter = typeof FILTERS[number];
 
-
 export default function Bookings() {
-const G = "#C8A97E", G_D = "#8B6914", NAVY = "#0F1E35";
-const CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
-const TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
-const STATUS: Record<string, { bg: string; color: string; dot: string; label: string }> = {
-  pending:     { bg: "#FEF9C3", color: "#A16207", dot: "#EAB308", label: "Pending" },
-  confirmed:   { bg: "#DCFCE7", color: "#15803D", dot: "#22C55E", label: "Confirmed" },
-  in_progress: { bg: "#DBEAFE", color: "#1D4ED8", dot: "#3B82F6", label: "In Progress" },
-  completed:   { bg: "#F0FDF4", color: "#166534", dot: "#4ADE80", label: "Completed" },
-  cancelled:   { bg: "#FEE2E2", color: "#B91C1C", dot: "#EF4444", label: "Cancelled" },
-  no_show:     { bg: "#F3F4F6", color: "#6B7280", dot: "#9CA3AF", label: "No Show" },
-};
-const FILTERS = ["all","pending","confirmed","in_progress","completed","cancelled","no_show"] as const;
-const PAGE_SIZE = 20;
+  const G = "#C8A97E", G_D = "#8B6914", NAVY = "#0F1E35";
+  const CREAM = "#FAFAF8", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
+  const TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
+  const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
+  const STATUS: Record<string, { bg: string; color: string; dot: string; label: string }> = {
+    pending:     { bg: "#FEF9C3", color: "#A16207", dot: "#EAB308", label: "Pending" },
+    confirmed:   { bg: "#DCFCE7", color: "#15803D", dot: "#22C55E", label: "Confirmed" },
+    in_progress: { bg: "#DBEAFE", color: "#1D4ED8", dot: "#3B82F6", label: "In Progress" },
+    completed:   { bg: "#F0FDF4", color: "#166534", dot: "#4ADE80", label: "Completed" },
+    cancelled:   { bg: "#FEE2E2", color: "#B91C1C", dot: "#EF4444", label: "Cancelled" },
+    no_show:     { bg: "#F3F4F6", color: "#6B7280", dot: "#9CA3AF", label: "No Show" },
+  };
+  const PAGE_SIZE = 20;
   const navigate = useNavigate();
 
   // Data
