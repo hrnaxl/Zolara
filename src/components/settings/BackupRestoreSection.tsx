@@ -7,12 +7,13 @@ import { Download, Upload, AlertTriangle } from "lucide-react";
 interface Props { settings: any; onRestore: (s: any) => void; }
 
 export function BackupRestoreSection({ settings, onRestore }: Props) {
+  const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8";
+  const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_SOFT = "#A8A29E";
   const btn = (gold = false): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: "8px", padding: "9px 18px", borderRadius: "10px",
     background: gold ? G_D : WHITE, color: gold ? WHITE : G_D, border: gold ? "none" : `1.5px solid ${G}`,
     fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "Montserrat,sans-serif",
   });
-  const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const exportSettings = () => {

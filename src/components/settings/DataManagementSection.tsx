@@ -5,15 +5,16 @@ import { FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 
 
-const exportOptions = [
-  { id: "bookings", label: "All Bookings", table: "bookings" },
-  { id: "attendance", label: "All Attendance", table: "attendance" },
-  { id: "payments", label: "All Sales/Payments", table: "payments" },
-  { id: "clients", label: "All Clients", table: "clients" },
-  { id: "staff", label: "All Staff", table: "staff" },
-];
 
 export function DataManagementSection() {
+  const exportOptions = [
+    { id: "bookings", label: "All Bookings", table: "bookings" },
+    { id: "attendance", label: "All Attendance", table: "attendance" },
+    { id: "payments", label: "All Sales/Payments", table: "payments" },
+    { id: "clients", label: "All Clients", table: "clients" },
+    { id: "staff", label: "All Staff", table: "staff" },
+  ];
+  
   const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const exportToExcel = async (tableName: string, fileName: string) => {
     try {
