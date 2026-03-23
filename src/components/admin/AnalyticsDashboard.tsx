@@ -12,6 +12,16 @@ import {
 type Range = "7d" | "30d" | "3m" | "thisMonth" | "lastMonth";
 
 
+const NAVY    = "#0F1E35";
+const GOLD    = "#C9A84C";
+const G_LIGHT = "#F5ECD6";
+const CREAM   = "#FAFAF8";
+const WHITE   = "#FFFFFF";
+const BORDER  = "#EDE8E0";
+const TXT     = "#1C1917";
+const TXT_MID = "#57534E";
+const TXT_SOFT = "#A8A29E";
+
 const getRangeDates = (range: Range) => {
   const now = new Date();
   switch (range) {
@@ -56,13 +66,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AnalyticsDashboard() {
-const NAVY    = "#0F1E35";
-const GOLD    = "#C9A84C";
-const G_LIGHT = "#F5ECD6";
-const CREAM   = "#FAFAF8";
-const BORDER  = "#EDE8E0";
-const TXT     = "#1C1917";
-const TXT_MID = "#57534E";
 const TXT_SOFT= "#A8A29E";
 const WHITE   = "#FFFFFF";
 const COLORS  = [GOLD, "#3B82F6", "#10B981", "#8B5CF6", "#EF4444", "#F59E0B", "#06B6D4", "#EC4899"];

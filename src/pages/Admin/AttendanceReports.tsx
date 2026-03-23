@@ -8,6 +8,10 @@ import { Users, Clock, TrendingUp, AlertTriangle, Download, Search, ChevronDown,
 
 // Shift definition — matches DEFAULT_SHIFT in attendance lib
 
+const SHIFT_START_H = 9, SHIFT_START_M = 0;
+const SHIFT_END_H = 17, SHIFT_END_M = 0;
+const LATE_GRACE_MIN = 15;
+
 function calcHours(checkIn: string | null, checkOut: string | null): number {
   if (!checkIn || !checkOut) return 0;
   const ms = new Date(checkOut).getTime() - new Date(checkIn).getTime();
@@ -36,9 +40,6 @@ export default function AttendanceReports() {
 const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
 const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 20px rgba(0,0,0,0.06)";
-const SHIFT_START_H = 9, SHIFT_START_M = 0;
-const SHIFT_END_H = 17, SHIFT_END_M = 0;
-const LATE_GRACE_MIN = 15;
   const today = format(new Date(), "yyyy-MM-dd");
   const [records, setRecords]     = useState<any[]>([]);
   const [staff, setStaff]         = useState<any[]>([]);
