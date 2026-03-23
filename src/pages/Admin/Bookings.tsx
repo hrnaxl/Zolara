@@ -10,6 +10,19 @@ import EnhancedBookingForm from "@/components/EnhancedBookingForm";
 import { CancelBookingDialog } from "@/components/bookings/CancelBookingDialog";
 import { Plus, Search, X, ChevronLeft, ChevronRight, Calendar, Clock, User, Scissors, Phone, StickyNote, CreditCard, CheckCircle2, XCircle, AlertCircle, RefreshCw, ArrowRight } from "lucide-react";
 
+import React from "react";
+class ModalErrorBoundary extends React.Component<{children: React.ReactNode},{err:string|null}> {
+  constructor(p:any){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e:any){return{err:String(e?.message||e)};}
+  render(){
+    if(this.state.err) return <div style={{padding:40,background:"white",borderRadius:12,margin:20,fontFamily:"Montserrat,sans-serif"}}>
+      <div style={{color:"#DC2626",fontWeight:700,marginBottom:8}}>Error loading booking form</div>
+      <div style={{color:"#A8A29E",fontSize:12}}>{this.state.err}</div>
+    </div>;
+    return this.props.children;
+  }
+}
+
 const FILTERS = ["all","pending","confirmed","in_progress","completed","cancelled","no_show"] as const;
 type Filter = typeof FILTERS[number];
 
@@ -389,7 +402,7 @@ export default function Bookings() {
           <div style={{ maxWidth:700, margin:"40px auto", position:"relative" }}>
             <button onClick={() => setNewBookingOpen(false)}
               style={{ position:"absolute", top:12, right:12, zIndex:10, background:"white", border:"none", borderRadius:"50%", width:32, height:32, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 2px 8px rgba(0,0,0,0.2)" }}>✕</button>
-            <EnhancedBookingForm onSuccess={() => { setNewBookingOpen(false); load(); }} />
+            <ModalErrorBoundary><EnhancedBookingForm onSuccess={() => { setNewBookingOpen(false); load(); }} /></ModalErrorBoundary>
           </div>
         </div>
       )}
