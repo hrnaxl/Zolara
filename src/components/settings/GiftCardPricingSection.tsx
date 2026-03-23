@@ -5,9 +5,9 @@ import { GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
 import { useSettings } from "@/context/SettingsContext";
 
 
-const TIER_COLORS: Record<string, string> = { Silver: "#9CA3AF", Gold: "#B8975A", Platinum: "#6B7280", Diamond: "#6366F1" };
 
 export function GiftCardPricingSection() {
+  const TIER_COLORS: Record<string, string> = { Silver: "#9CA3AF", Gold: "#B8975A", Platinum: "#6B7280", Diamond: "#6366F1" };
   const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);

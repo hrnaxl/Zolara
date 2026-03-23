@@ -1,18 +1,19 @@
 import React from "react";
 
 
-const ICONS: Record<string, { icon: string; desc: string; color: string; bg: string }> = {
-  cash:          { icon: "💵", desc: "Physical notes accepted at counter", color: "#15803D", bg: "#F0FDF4" },
-  mobile_money:  { icon: "📱", desc: "MTN MoMo, Vodafone Cash, AirtelTigo", color: "#7C3AED", bg: "#F5F3FF" },
-  card:          { icon: "💳", desc: "Visa, Mastercard via POS terminal",   color: "#2563EB", bg: "#EFF6FF" },
-  bank_transfer: { icon: "🏦", desc: "Direct bank transfer / GHIPSS",       color: "#D97706", bg: "#FFFBEB" },
-  gift_card:     { icon: "🎁", desc: "Zolara gift cards (all tiers)",       color: "#DB2777", bg: "#FDF2F8" },
-};
 
 interface PaymentMethod { id: string; name: string; enabled: boolean; }
 interface Props { paymentMethods: PaymentMethod[]; onPaymentMethodToggle: (id: string, enabled: boolean) => void; }
 
 export function PaymentMethodsSection({ paymentMethods, onPaymentMethodToggle }: Props) {
+  const ICONS: Record<string, { icon: string; desc: string; color: string; bg: string }> = {
+    cash:          { icon: "💵", desc: "Physical notes accepted at counter", color: "#15803D", bg: "#F0FDF4" },
+    mobile_money:  { icon: "📱", desc: "MTN MoMo, Vodafone Cash, AirtelTigo", color: "#7C3AED", bg: "#F5F3FF" },
+    card:          { icon: "💳", desc: "Visa, Mastercard via POS terminal",   color: "#2563EB", bg: "#EFF6FF" },
+    bank_transfer: { icon: "🏦", desc: "Direct bank transfer / GHIPSS",       color: "#D97706", bg: "#FFFBEB" },
+    gift_card:     { icon: "🎁", desc: "Zolara gift cards (all tiers)",       color: "#DB2777", bg: "#FDF2F8" },
+  };
+  
   const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const enabled = paymentMethods.filter(m => m.enabled);
   const disabled = paymentMethods.filter(m => !m.enabled);
