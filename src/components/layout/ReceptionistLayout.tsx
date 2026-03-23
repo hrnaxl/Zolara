@@ -173,7 +173,7 @@ const ReceptionistDashboard = () => {
       `}</style>
 
       {/* ── HEADER ─────────────────────────────────────── */}
-      <div className="au" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
+      <div className="au" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px", position: "relative", zIndex: 1000 }}>
         <div>
           <p style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.16em", color: G, marginBottom: "6px", textTransform: "uppercase" }}>
             {format(new Date(), "EEEE, MMMM d, yyyy")}
