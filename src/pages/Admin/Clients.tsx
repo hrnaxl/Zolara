@@ -10,9 +10,9 @@ import { Search, X, Plus, Phone, Mail, Star, Calendar, TrendingUp, ChevronLeft, 
 
 
 function getTier(pts: number) {
-  if (pts >= 3000) return "Diamond";
-  if (pts >= 1500) return "Gold";
-  if (pts >= 500) return "Silver";
+  if (pts >= 300) return "Diamond";
+  if (pts >= 150) return "Gold";
+  if (pts >= 50)  return "Silver";
   return "Bronze";
 }
 
@@ -296,7 +296,7 @@ const TIER_COLORS: Record<string, string> = {
                 const pts = selected.loyalty_points || 0;
                 const tier = getTier(pts);
                 const tc = TIER_COLORS[tier] || G;
-                const next = tier === "Diamond" ? 3000 : tier === "Gold" ? 3000 : tier === "Silver" ? 1500 : 500;
+                const next = tier === "Diamond" ? 300 : tier === "Gold" ? 300 : tier === "Silver" ? 150 : 50;
                 const pct = Math.min(100, (pts / next) * 100);
                 return (
                   <div style={{ background: `${tc}11`, border: `1px solid ${tc}44`, borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
