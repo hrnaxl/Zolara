@@ -128,15 +128,12 @@ export default function Settings() {
   
   const { settings: ctxSettings, setSettings: setCtxSettings } = useSettings();
   const [settings, setSettings] = useState<Settings>({ ...defaultSettings, ...ctxSettings });
-  const settingsRef = React.useRef(settings);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("business");
 
   useEffect(() => { fetchSettings(); }, []);
-  // Keep ref in sync so handleSave always reads latest settings
-  useEffect(() => { settingsRef.current = settings; }, [settings]);
   // ctxSettings sync removed — fetchSettings() loads from DB directly
 
   const fetchSettings = async () => {
@@ -158,7 +155,12 @@ export default function Settings() {
           bank_transfer: "Bank Transfer", gift_card: "Gift Card",
         };
         const existing = data.payment_methods && data.payment_methods.length > 0
-          ? data.payment_methods.map((m: any) => ({ ...m, name: m.name || nameMap[m.id] || m.id }))
+          ? data.payment_methods.map((m: any) => ({
+              ...m,
+              name: m.name || nameMap[m.id] || m.id,
+              // Supabase can return enabled as string "true"/"false" — always cast to boolean
+              enabled: m.enabled === true || m.enabled === "true",
+            }))
           : DEFAULT_PAYMENT_METHODS;
         const methods = existing;
         // Convert gift_card_prices to numbers (DB can return mixed types)
@@ -186,7 +188,7 @@ export default function Settings() {
   const updateSettings = async () => {
     setSaving(true);
     try {
-      const currentSettings = settingsRef.current;
+      const currentSettings = settings;
       const logoUrl = await uploadLogo();
       const safeLogoUrl = (logoUrl && !logoUrl.startsWith("data:")) ? logoUrl
         : (!currentSettings.logo_url?.startsWith("data:") ? currentSettings.logo_url : null);
@@ -344,11 +346,7 @@ export default function Settings() {
         {tab("payments", <PaymentMethodsSection
           paymentMethods={settings.payment_methods}
           onPaymentMethodToggle={(id, enabled) => {
-            setSettings(p => {
-              const updated = { ...p, payment_methods: p.payment_methods.map(m => m.id === id ? { ...m, enabled } : m) };
-              settingsRef.current = updated;
-              return updated;
-            });
+            setSettings(p => ({ ...p, payment_methods: p.payment_methods.map(m => m.id === id ? { ...m, enabled } : m) }));
           }}
         />)}
 
