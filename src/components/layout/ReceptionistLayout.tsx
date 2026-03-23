@@ -29,59 +29,60 @@ const ReceptionistDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from("staff").select("name").eq("user_id", user.id).maybeSingle();
-      if (profile) setUserName(profile.name);
-
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const tomorrowStr = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
+      const todayDateStr = new Date().toISOString().slice(0, 10);
 
-      const { data: bookings = [] } = await supabase
-        .from("bookings").select("*")
-        .gte("preferred_date", todayStr).lt("preferred_date", tomorrowStr)
-        .order("preferred_time", { ascending: true });
+      // Run all queries in parallel instead of sequentially
+      const [
+        profileRes,
+        bookingsRes,
+        upcomingRes,
+        pendingBookingsRes,
+        depositRes,
+        clientCountRes,
+        todaySalesRes,
+        staffClockedInRes,
+      ] = await Promise.all([
+        supabase.from("staff").select("name").eq("user_id", user.id).maybeSingle(),
+        supabase.from("bookings").select("*")
+          .gte("preferred_date", todayStr).lt("preferred_date", tomorrowStr)
+          .order("preferred_time", { ascending: true }),
+        supabase.from("bookings").select("*")
+          .gte("preferred_date", todayStr)
+          .in("status", ["pending", "confirmed"])
+          .order("preferred_date", { ascending: true })
+          .order("preferred_time", { ascending: true })
+          .limit(5),
+        supabase.from("bookings").select("*")
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(8),
+        fetchPendingDepositBookings(),
+        supabase.from("clients").select("*", { count: "exact", head: true }),
+        supabase.from("sales").select("amount, notes, service_name")
+          .eq("status", "completed")
+          .gte("payment_date", startOfDay(new Date()).toISOString())
+          .lte("payment_date", endOfDay(new Date()).toISOString()),
+        supabase.from("attendance").select("id", { count: "exact", head: true })
+          .eq("date", todayDateStr).is("check_out", null).not("check_in", "is", null),
+      ]);
 
-      const { data: upcoming = [] } = await supabase
-        .from("bookings").select("*")
-        .gte("preferred_date", todayStr)
-        .in("status", ["pending", "confirmed"])
-        .order("preferred_date", { ascending: true })
-        .order("preferred_time", { ascending: true })
-        .limit(5);
+      if (profileRes.data) setUserName(profileRes.data.name);
+      setPendingDeposits(depositRes.data || []);
 
-      const { data: pendingBookings = [] } = await supabase
-        .from("bookings").select("*")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(8);
+      const bookings = bookingsRes.data || [];
+      const upcoming = upcomingRes.data || [];
+      const pendingBookings = pendingBookingsRes.data || [];
+      const clientCount = clientCountRes.count;
+      const staffClockedIn = staffClockedInRes.count || 0;
 
-      const { data: depositBookings } = await fetchPendingDepositBookings().then(r => ({ data: r.data }));
-      setPendingDeposits(depositBookings || []);
-
-      const { count: clientCount } = await supabase
-        .from("clients").select("*", { count: "exact", head: true });
-
-      const { data: todaySalesRaw = [] } = await supabase
-        .from("sales").select("amount, notes, service_name")
-        .eq("status", "completed")
-        .gte("payment_date", startOfDay(new Date()).toISOString())
-        .lte("payment_date", endOfDay(new Date()).toISOString());
-
-      // Receptionist sees: services + products + physical gift cards (NOT online gift card purchases)
+      const todaySalesRaw = todaySalesRes.data || [];
       const todaySales = (todaySalesRaw as any[]).filter((s: any) =>
-        !(s.notes && s.notes.toLowerCase().includes("gift card purchase online")) &&
         !(s.notes && s.notes.toLowerCase().includes("gift card purchase online"))
       );
       const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + Number(s.amount || 0), 0);
       const checkedIn = bookings.filter((b: any) => b.status === "confirmed").length;
-      // Staff clocked in today
-      const todayDateStr = new Date().toISOString().slice(0, 10);
-      const { count: staffClockedIn } = await supabase
-        .from("attendance")
-        .select("id", { count: "exact", head: true })
-        .eq("date", todayDateStr)
-        .is("check_out", null)
-        .not("check_in", "is", null);
       const completed = bookings.filter((b: any) => b.status === "completed").length;
       const pending   = bookings.filter((b: any) => b.status === "pending").length;
 
