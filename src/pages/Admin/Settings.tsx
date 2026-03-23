@@ -186,11 +186,10 @@ export default function Settings() {
   const updateSettings = async () => {
     setSaving(true);
     try {
+      const currentSettings = settingsRef.current;
       const logoUrl = await uploadLogo();
       const safeLogoUrl = (logoUrl && !logoUrl.startsWith("data:")) ? logoUrl
         : (!currentSettings.logo_url?.startsWith("data:") ? currentSettings.logo_url : null);
-
-      const currentSettings = settingsRef.current;
       const payload: any = {
         business_name: currentSettings.business_name || "",
         logo_url: safeLogoUrl || null,
