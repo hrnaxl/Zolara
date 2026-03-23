@@ -359,9 +359,9 @@ const lbl: React.CSSProperties = { fontSize:"11px", fontWeight:600, color:TXT_SO
                       </div>
                     </div>
                     <div style={{ display:"flex", gap:"6px" }}>
-                      <button onClick={()=>{ setForm({ name:p.name, description:p.description||"", price:p.price.toString(), cost_price:p.cost_price.toString(), stock_quantity:p.stock_quantity.toString(), low_stock_threshold:p.low_stock_threshold.toString(), category:p.category||"", is_active:p.is_active }); setEditId(p.id); setShowForm(true); window.scrollTo({top:0,behavior:"smooth"}); }} style={{ padding:"6px 14px", borderRadius:"8px", border:`1px solid ${BORDER}`, background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:TXT_MID }}>Edit</button>
-                      <button onClick={()=>toggle(p)} style={{ padding:"6px 14px", borderRadius:"8px", border:`1px solid ${BORDER}`, background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:TXT_MID }}>{p.is_active?"Disable":"Enable"}</button>
-                      <button onClick={()=>del(p.id)} style={{ padding:"6px 12px", borderRadius:"8px", border:"1px solid #FECACA", background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:"#DC2626" }}>Del</button>
+                      {isFinancial && <button onClick={()=>{ setForm({ name:p.name, description:p.description||"", price:p.price.toString(), cost_price:p.cost_price.toString(), stock_quantity:p.stock_quantity.toString(), low_stock_threshold:p.low_stock_threshold.toString(), category:p.category||"", is_active:p.is_active }); setEditId(p.id); setShowForm(true); window.scrollTo({top:0,behavior:"smooth"}); }} style={{ padding:"6px 14px", borderRadius:"8px", border:`1px solid ${BORDER}`, background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:TXT_MID }}>Edit</button>}
+                      {isFinancial && <button onClick={()=>toggle(p)} style={{ padding:"6px 14px", borderRadius:"8px", border:`1px solid ${BORDER}`, background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:TXT_MID }}>{p.is_active?"Disable":"Enable"}</button>}
+                      {isFinancial && <button onClick={()=>del(p.id)} style={{ padding:"6px 12px", borderRadius:"8px", border:"1px solid #FECACA", background:W, fontSize:"11px", fontWeight:600, cursor:"pointer", color:"#DC2626" }}>Del</button>}
                     </div>
                   </div>
                 </div>
