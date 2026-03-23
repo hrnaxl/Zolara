@@ -4,13 +4,11 @@ import { toast } from "sonner";
 import { GIFT_CARD_TIERS, GiftCardTier } from "@/lib/giftCardEcommerce";
 import { useSettings } from "@/context/SettingsContext";
 
-const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", BORDER = "#EDEBE5";
-const TXT = "#1C160E", TXT_SOFT = "#A8A29E";
-const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%", boxSizing: "border-box" };
 
 const TIER_COLORS: Record<string, string> = { Silver: "#9CA3AF", Gold: "#B8975A", Platinum: "#6B7280", Diamond: "#6366F1" };
 
 export function GiftCardPricingSection() {
+  const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
   const { setSettings } = useSettings();

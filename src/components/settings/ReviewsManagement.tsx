@@ -4,12 +4,11 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Trash2, Star } from "lucide-react";
 
-const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_SOFT = "#A8A29E";
-const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif", width: "100%", boxSizing: "border-box" };
 
 interface Review { id: string; name: string; rating: number; comment: string; visible: boolean; created_at?: string; }
 
 export function ReviewsSettingsSection({ settingsId }: { settingsId?: string }) {
+  const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);

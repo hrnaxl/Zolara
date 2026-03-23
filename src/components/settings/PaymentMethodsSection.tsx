@@ -1,14 +1,5 @@
 import React from "react";
 
-const GOLD = "#C8A97E";
-const GOLD_DARK = "#8B6914";
-const GOLD_LIGHT = "#FDF6E3";
-const WHITE = "#FFFFFF";
-const BORDER = "#EDEBE5";
-const TXT = "#1C160E";
-const TXT_SOFT = "#A8A29E";
-const TXT_MID = "#57534E";
-const CREAM = "#FAFAF8";
 
 const ICONS: Record<string, { icon: string; desc: string; color: string; bg: string }> = {
   cash:          { icon: "💵", desc: "Physical notes accepted at counter", color: "#15803D", bg: "#F0FDF4" },
@@ -22,6 +13,7 @@ interface PaymentMethod { id: string; name: string; enabled: boolean; }
 interface Props { paymentMethods: PaymentMethod[]; onPaymentMethodToggle: (id: string, enabled: boolean) => void; }
 
 export function PaymentMethodsSection({ paymentMethods, onPaymentMethodToggle }: Props) {
+  const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const enabled = paymentMethods.filter(m => m.enabled);
   const disabled = paymentMethods.filter(m => !m.enabled);
 

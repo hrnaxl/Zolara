@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 
-const WHITE = "#FFFFFF", BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E", G_D = "#8B6914", G = "#C8A97E", CREAM = "#FAFAF8";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
-const inp: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: "10px", padding: "9px 12px", fontSize: "13px", color: TXT, outline: "none", background: WHITE, fontFamily: "Montserrat,sans-serif" };
 
 interface Props { closedDates: string[]; onClosedDatesChange: (dates: string[]) => void; }
 
 export function TemporaryClosuresSection({ closedDates, onClosedDatesChange }: Props) {
+  const G = "#C8A97E", G_D = "#8B6914", WHITE = "#FFFFFF", CREAM = "#FAFAF8"; const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E"; const GOLD = "#C8A97E", GOLD_DARK = "#8B6914", GOLD_LIGHT = "#FDF6E3";
   const [newDate, setNewDate] = useState("");
   const [newLabel, setNewLabel] = useState("");
 
