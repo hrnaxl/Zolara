@@ -31,31 +31,9 @@ interface Settings {
   loyalty_reward_discount?: number; created_at?: string; updated_at?: string;
 }
 
-const defaultSettings: Settings = {
-  business_name: "", logo_url: "", open_time: "8:30", close_time: "21:00",
-  currency: "GH₵", staff_roles: ["Hairdresser", "Barber", "Receptionist"], staff_specialties: ["Braider", "Lash Tech", "Nail Tech", "Wig & Hair Stylist", "Makeup Artist", "Pedicurist & Manicurist"],
-  service_categories: ["Hair", "Nails", "Makeup"], use_24_hour_format: false,
-  business_phone: "", business_email: "", business_address: "",
-  payment_methods: [], closed_dates: [], deposit_amount: 50,
-  loyalty_stamp_per_ghs: 100, loyalty_stamps_for_reward: 20, loyalty_reward_discount: 50,
-};
 
 type TabId = "business" | "hours" | "payments" | "categories" | "closures" | "loyalty" | "promo" | "rules" | "social" | "announcement" | "reviews" | "data";
 
-const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
-  { id: "business",   label: "Business",        icon: Building2 },
-  { id: "hours",      label: "Hours",            icon: Clock },
-  { id: "payments",   label: "Payments",         icon: CreditCard },
-  { id: "categories", label: "Categories",       icon: Tag },
-  { id: "closures",   label: "Closures",         icon: Calendar },
-  { id: "loyalty",    label: "Loyalty",          icon: Star },
-  { id: "promo",      label: "Promo Banner",     icon: Sparkles },
-  { id: "rules",      label: "Business Rules",   icon: Wrench },
-  { id: "social",     label: "Social & Contact", icon: Users },
-  { id: "announcement", label: "Announcement",   icon: Star },
-  { id: "reviews",    label: "Reviews",          icon: Star },
-  { id: "data",       label: "Data",             icon: Database },
-];
 
 function RecalcLoyaltyButton() {
   const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
@@ -124,6 +102,30 @@ export default function Settings() {
   const G = "#C8A97E", G_D = "#8B6914", CREAM = "#FAFAF8", WHITE = "#FFFFFF";
   const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
   const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
+  const defaultSettings: Settings = {
+    business_name: "", logo_url: "", open_time: "8:30", close_time: "21:00",
+    currency: "GH₵", staff_roles: ["Hairdresser", "Barber", "Receptionist"], staff_specialties: ["Braider", "Lash Tech", "Nail Tech", "Wig & Hair Stylist", "Makeup Artist", "Pedicurist & Manicurist"],
+    service_categories: ["Hair", "Nails", "Makeup"], use_24_hour_format: false,
+    business_phone: "", business_email: "", business_address: "",
+    payment_methods: [], closed_dates: [], deposit_amount: 50,
+    loyalty_stamp_per_ghs: 100, loyalty_stamps_for_reward: 20, loyalty_reward_discount: 50,
+  };
+  
+  const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+    { id: "business",   label: "Business",        icon: Building2 },
+    { id: "hours",      label: "Hours",            icon: Clock },
+    { id: "payments",   label: "Payments",         icon: CreditCard },
+    { id: "categories", label: "Categories",       icon: Tag },
+    { id: "closures",   label: "Closures",         icon: Calendar },
+    { id: "loyalty",    label: "Loyalty",          icon: Star },
+    { id: "promo",      label: "Promo Banner",     icon: Sparkles },
+    { id: "rules",      label: "Business Rules",   icon: Wrench },
+    { id: "social",     label: "Social & Contact", icon: Users },
+    { id: "announcement", label: "Announcement",   icon: Star },
+    { id: "reviews",    label: "Reviews",          icon: Star },
+    { id: "data",       label: "Data",             icon: Database },
+  ];
+  
   const { settings: ctxSettings, setSettings: setCtxSettings } = useSettings();
   const [settings, setSettings] = useState<Settings>({ ...defaultSettings, ...ctxSettings });
   const settingsRef = React.useRef(settings);
