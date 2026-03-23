@@ -421,7 +421,6 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
           <select className="gc-input" style={{ width:"160px" }} value={statusFilter} onChange={e => setStatus(e.target.value)}>
             <option value="all">All Status</option>
             <option value="active">Active</option>
-            <option value="active">Active</option>
             <option value="available">Available</option>
             <option value="pending_send">Pending Email</option>
             <option value="pending_payment">Awaiting Payment</option>
