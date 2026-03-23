@@ -230,7 +230,8 @@ export default function Settings() {
       const rawMethods = Array.isArray(payload.payment_methods) ? payload.payment_methods : [];
       payload.payment_methods = VALID_PM_IDS.map(id => {
         const existing = rawMethods.find((m:any) => m?.id === id);
-        return { id, name: VALID_PM_NAMES[id], enabled: existing ? !!existing.enabled : (id === "cash" || id === "mobile_money" || id === "gift_card") };
+        // Preserve exact user choice — never apply defaults that override what was toggled
+        return { id, name: VALID_PM_NAMES[id], enabled: existing ? !!existing.enabled : false };
       });
 
       const res = await fetch("/api/save-settings", {
@@ -343,7 +344,11 @@ export default function Settings() {
         {tab("payments", <PaymentMethodsSection
           paymentMethods={settings.payment_methods}
           onPaymentMethodToggle={(id, enabled) => {
-            setSettings(p => ({ ...p, payment_methods: p.payment_methods.map(m => m.id === id ? { ...m, enabled } : m) }));
+            setSettings(p => {
+              const updated = { ...p, payment_methods: p.payment_methods.map(m => m.id === id ? { ...m, enabled } : m) };
+              settingsRef.current = updated;
+              return updated;
+            });
           }}
         />)}
 
