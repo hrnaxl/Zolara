@@ -8,26 +8,9 @@ import {
   PieChart, Pie, Legend, LineChart, Line, CartesianGrid
 } from "recharts";
 
-const NAVY    = "#0F1E35";
-const GOLD    = "#C9A84C";
-const G_LIGHT = "#F5ECD6";
-const CREAM   = "#FAFAF8";
-const BORDER  = "#EDE8E0";
-const TXT     = "#1C1917";
-const TXT_MID = "#57534E";
-const TXT_SOFT= "#A8A29E";
-const WHITE   = "#FFFFFF";
-const COLORS  = [GOLD, "#3B82F6", "#10B981", "#8B5CF6", "#EF4444", "#F59E0B", "#06B6D4", "#EC4899"];
 
 type Range = "7d" | "30d" | "3m" | "thisMonth" | "lastMonth";
 
-const RANGE_OPTIONS: { label: string; value: Range }[] = [
-  { label: "7 Days",      value: "7d" },
-  { label: "30 Days",     value: "30d" },
-  { label: "3 Months",    value: "3m" },
-  { label: "This Month",  value: "thisMonth" },
-  { label: "Last Month",  value: "lastMonth" },
-];
 
 const getRangeDates = (range: Range) => {
   const now = new Date();
@@ -73,6 +56,23 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AnalyticsDashboard() {
+const NAVY    = "#0F1E35";
+const GOLD    = "#C9A84C";
+const G_LIGHT = "#F5ECD6";
+const CREAM   = "#FAFAF8";
+const BORDER  = "#EDE8E0";
+const TXT     = "#1C1917";
+const TXT_MID = "#57534E";
+const TXT_SOFT= "#A8A29E";
+const WHITE   = "#FFFFFF";
+const COLORS  = [GOLD, "#3B82F6", "#10B981", "#8B5CF6", "#EF4444", "#F59E0B", "#06B6D4", "#EC4899"];
+const RANGE_OPTIONS: { label: string; value: Range }[] = [
+  { label: "7 Days",      value: "7d" },
+  { label: "30 Days",     value: "30d" },
+  { label: "3 Months",    value: "3m" },
+  { label: "This Month",  value: "thisMonth" },
+  { label: "Last Month",  value: "lastMonth" },
+];
   const [range, setRange] = useState<Range>("30d");
   const [sales, setSales] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);

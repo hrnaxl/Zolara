@@ -3,12 +3,7 @@ import { getAddons, createAddon, updateAddon, deleteAddon } from "@/lib/addons";
 import { sanitizeText } from "@/lib/sanitize";
 import { toast } from "sonner";
 
-const GOLD = "#C8A97E", G_D = "#8B6914", G_L = "#FDF6E3";
-const WHITE = "#FFFFFF", CREAM = "#FAFAF8", BORDER = "#EDEBE5";
-const TXT = "#1C160E", TXT_S = "#A8A29E", TXT_M = "#57534E";
 
-const CATEGORIES = ["general", "hair", "nails", "beauty", "lashes", "wigs"];
-const EMPTY = { name: "", description: "", category: "general", is_range: false, price: "", price_min: "", price_max: "" };
 
 function priceLabel(a: any) {
   if (a.price_min != null && a.price_max != null && a.price_max > 0) {
@@ -18,6 +13,11 @@ function priceLabel(a: any) {
 }
 
 export default function AddonsManagement() {
+const GOLD = "#C8A97E", G_D = "#8B6914", G_L = "#FDF6E3";
+const WHITE = "#FFFFFF", CREAM = "#FAFAF8", BORDER = "#EDEBE5";
+const TXT = "#1C160E", TXT_S = "#A8A29E", TXT_M = "#57534E";
+const CATEGORIES = ["general", "hair", "nails", "beauty", "lashes", "wigs"];
+const EMPTY = { name: "", description: "", category: "general", is_range: false, price: "", price_min: "", price_max: "" };
   const [addons, setAddons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const NOTE_TYPES = ["general","medical","preference","behavior","allergy"];
-const TYPE_COLORS: Record<string,string> = { general:"z-badge z-badge-blue", medical:"z-badge z-badge-red", preference:"z-badge z-badge-purple", behavior:"z-badge z-badge-amber", allergy:"bg-orange-100 text-orange-800" };
 
 export default function ClientNotesAndHistory() {
+const NOTE_TYPES = ["general","medical","preference","behavior","allergy"];
+const TYPE_COLORS: Record<string,string> = { general:"z-badge z-badge-blue", medical:"z-badge z-badge-red", preference:"z-badge z-badge-purple", behavior:"z-badge z-badge-amber", allergy:"bg-orange-100 text-orange-800" };
   const [notes, setNotes] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

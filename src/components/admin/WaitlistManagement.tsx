@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { getWaitlist, updateWaitlistStatus, deleteWaitlistEntry } from "@/lib/waitlist";
 import { toast } from "sonner";
 
+
+export default function WaitlistManagement() {
 const statusColors: Record<string, string> = {
   waiting: "z-badge z-badge-amber",
   notified: "z-badge z-badge-blue",
@@ -9,8 +11,6 @@ const statusColors: Record<string, string> = {
   expired: "bg-gray-100 text-gray-600",
   cancelled: "z-badge z-badge-red",
 };
-
-export default function WaitlistManagement() {
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

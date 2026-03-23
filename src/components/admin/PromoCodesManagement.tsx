@@ -4,12 +4,12 @@ import { getPromoCodes, createPromoCode, updatePromoCode, deletePromoCode } from
 import { useSettings } from "@/context/SettingsContext";
 import { toast } from "sonner";
 
+
+export default function PromoCodesManagement() {
 const G="#C8A97E",G_D="#8B6914",W="#FFFFFF",CREAM="#FAFAF8",BORDER="#EDEBE5",TXT="#1C160E",TXT_MID="#78716C",TXT_SOFT="#A8A29E";
 const SHADOW="0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
 const card: React.CSSProperties={background:W,border:`1px solid ${BORDER}`,borderRadius:"16px",padding:"24px",boxShadow:SHADOW};
 const inp: React.CSSProperties={width:"100%",border:`1.5px solid ${BORDER}`,borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:TXT,outline:"none",background:W,fontFamily:"Montserrat,sans-serif"};
-
-export default function PromoCodesManagement() {
   const { userRole, roleReady } = useSettings();
   const canEdit = roleReady && userRole !== null && !["receptionist","cleaner","staff"].includes(userRole||"");
   const [codes, setCodes] = useState<any[]>([]);

@@ -5,15 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSettings } from "@/context/SettingsContext";
 import { format } from "date-fns";
 
-const G = "#C8A97E";
-const G_DARK = "#8B6914";
-const DARK = "#1C160E";
-const CREAM = "#FAFAF8";
-const WHITE = "#FFFFFF";
-const BORDER = "#EDE8E0";
-const TXT_MID = "#78716C";
-const TXT_SOFT = "#A8A29E";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -23,6 +14,15 @@ const greeting = () => {
 };
 
 export default function CleanerLayout() {
+const G = "#C8A97E";
+const G_DARK = "#8B6914";
+const DARK = "#1C160E";
+const CREAM = "#FAFAF8";
+const WHITE = "#FFFFFF";
+const BORDER = "#EDE8E0";
+const TXT_MID = "#78716C";
+const TXT_SOFT = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
   useInactivityLogout(10 * 60 * 1000); // 10-min inactivity logout
   useSessionGuard();
   const { settings } = useSettings();

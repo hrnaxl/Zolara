@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { getProducts, getProductCategories, createProduct, updateProduct, deleteProduct } from "@/lib/ecommerce";
 import { toast } from "sonner";
 
-const G="#C8A97E",G2="#8B6914",CREAM="#FAFAF8",WHITE="#FFFFFF",BORDER="#EDEBE5",TXT="#1C1917",TXT_MID="#78716C",TXT_SOFT="#A8A29E",SHADOW="0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
 
 export default function ProductManagement() {
+const G="#C8A97E",G2="#8B6914",CREAM="#FAFAF8",WHITE="#FFFFFF",BORDER="#EDEBE5",TXT="#1C1917",TXT_MID="#78716C",TXT_SOFT="#A8A29E",SHADOW="0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

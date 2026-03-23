@@ -1,20 +1,5 @@
 import { useState } from "react";
 
-const GOLD      = "#C9A84C";
-const GOLD_DARK = "#A8892E";
-const GOLD_LIGHT= "#FDF6E3";
-const BORDER    = "#EDE8E0";
-const WHITE     = "#FFFFFF";
-const TXT       = "#1C1917";
-const TXT_SOFT  = "#A8A29E";
-const NAVY      = "#0F1E35";
-
-const inp: React.CSSProperties = {
-  width: "100%", background: WHITE, border: `1.5px solid ${BORDER}`,
-  borderRadius: 10, padding: "11px 14px", color: TXT, fontSize: 13,
-  outline: "none", fontFamily: "'Montserrat',sans-serif", transition: "border-color 0.15s",
-};
-
 interface Props {
   services: any[];
   allVariantsMap: Record<string, any[]>;
@@ -36,6 +21,20 @@ export default function ServicePicker({
   svcVariantSel, svcAddonsSel, svcLoading, expandedSvc,
   serviceIds, onToggle, onExpandToggle, onVariantSel, onAddonToggle,
 }: Props) {
+  const GOLD      = "#C9A84C";
+  const GOLD_DARK = "#A8892E";
+  const GOLD_LIGHT= "#FDF6E3";
+  const BORDER    = "#EDE8E0";
+  const WHITE     = "#FFFFFF";
+  const TXT       = "#1C1917";
+  const TXT_SOFT  = "#A8A29E";
+  const NAVY      = "#0F1E35";
+  const inp: React.CSSProperties = {
+    width: "100%", background: WHITE, border: `1.5px solid ${BORDER}`,
+    borderRadius: 10, padding: "11px 14px", color: TXT, fontSize: 13,
+    outline: "none", fontFamily: "'Montserrat',sans-serif", transition: "border-color 0.15s",
+  };
+
   const [search, setSearch] = useState("");
 
   const getPriceLabel = (s: any) => {

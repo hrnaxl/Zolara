@@ -1,15 +1,6 @@
 import React from "react";
 import { Receipt } from "lucide-react";
 
-const G = "#C8A97E";
-const G_D = "#8B6914";
-const WHITE = "#FFFFFF";
-const CREAM = "#FAFAF8";
-const BORDER = "#EDEBE5";
-const TXT = "#1C160E";
-const TXT_MID = "#78716C";
-const TXT_SOFT = "#A8A29E";
-const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
 
 interface LineItem {
   type: "service" | "product" | "subscription";
@@ -25,6 +16,15 @@ interface Props {
 }
 
 export default function LineItemsPanel(props: Props) {
+const G = "#C8A97E";
+const G_D = "#8B6914";
+const WHITE = "#FFFFFF";
+const CREAM = "#FAFAF8";
+const BORDER = "#EDEBE5";
+const TXT = "#1C160E";
+const TXT_MID = "#78716C";
+const TXT_SOFT = "#A8A29E";
+const SHADOW = "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.06)";
   const { lineItems, lineItemsTotal, products, productSearch, clientSubscription,
     cardHdr, lbl, inp, onProductSearch, onAddProduct, onUpdateQty, onRemove, onToggleSub } = props;
 

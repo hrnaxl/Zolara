@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { getSMSCampaigns, createSMSCampaign, updateSMSCampaign, deleteSMSCampaign, getSMSQueue } from "@/lib/smsService";
 import { toast } from "sonner";
 
-const TRIGGER_TYPES = ["booking_reminder","birthday","anniversary","follow_up","promotional","waitlist"];
 
 export default function SMSCampaignsManagement() {
+const TRIGGER_TYPES = ["booking_reminder","birthday","anniversary","follow_up","promotional","waitlist"];
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
