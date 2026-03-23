@@ -371,7 +371,7 @@ const DashboardLayout = () => {
           </button>
 
           <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogContent style={{ fontFamily: "'Montserrat', sans-serif", borderColor: "#E8E3DC" }}>
+            <AlertDialogContent style={{ fontFamily: "'Montserrat', sans-serif", borderColor: "#E8E3DC", zIndex: 2000000 }}>
               <AlertDialogHeader>
                 <AlertDialogTitle style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px" }}>Sign out?</AlertDialogTitle>
                 <AlertDialogDescription style={{ fontSize: "12px" }}>You will be signed out of your Zolara account.</AlertDialogDescription>
