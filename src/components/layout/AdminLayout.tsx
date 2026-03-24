@@ -598,7 +598,7 @@ const AdminDashboard = () => {
 
       const topStaffList = staffPerformance
         ? Object.values(staffPerformance)
-            .sort((a: any, b: any) => b.bookings - a.bookings)
+            .sort((a: any, b: any) => (b.revenue || 0) - (a.revenue || 0))
             .slice(0, 5)
         : [];
 
