@@ -83,6 +83,7 @@ const RANGE_OPTIONS: { label: string; value: Range }[] = [
   const [topClients, setTopClients] = useState<any[]>([]);
   const [revenueSplit, setRevenueSplit] = useState({ service: 0, product: 0, giftCard: 0, subscription: 0 });
   const [loading, setLoading] = useState(true);
+  const [serviceTrends, setServiceTrends] = useState<any[]>([]);
 
   useEffect(() => {
     load();
@@ -126,6 +127,46 @@ const RANGE_OPTIONS: { label: string; value: Range }[] = [
         )
         .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
       setRevenueSplit({ service: svcRev, product: prodRev, giftCard: giftCardRev, subscription: subRev });
+      // Service trends: compare current period vs same-length previous period
+      const endDate = end;
+      const startDate = new Date(start);
+      const endDateObj = new Date(endDate);
+      const periodDays = Math.ceil((endDateObj.getTime() - startDate.getTime()) / 86400000) + 1;
+      const prevStart = new Date(startDate); prevStart.setDate(prevStart.getDate() - periodDays);
+      const prevEnd = new Date(startDate); prevEnd.setDate(prevEnd.getDate() - 1);
+      const prevStartStr = prevStart.toISOString().slice(0, 10);
+      const prevEndStr = prevEnd.toISOString().slice(0, 10);
+
+      const [currSvcRes, prevSvcRes] = await Promise.all([
+        supabase.from("bookings").select("service_name, price").gte("preferred_date", start).lte("preferred_date", endDate).eq("status", "completed"),
+        supabase.from("bookings").select("service_name, price").gte("preferred_date", prevStartStr).lte("preferred_date", prevEndStr).eq("status", "completed"),
+      ]);
+
+      const tally = (rows: any[]) => {
+        const m: Record<string, { count: number; revenue: number }> = {};
+        for (const r of rows || []) {
+          const s = r.service_name || "Unknown";
+          if (!m[s]) m[s] = { count: 0, revenue: 0 };
+          m[s].count++;
+          m[s].revenue += Number(r.price || 0);
+        }
+        return m;
+      };
+
+      const curr = tally(currSvcRes.data || []);
+      const prev = tally(prevSvcRes.data || []);
+      const allServices = new Set([...Object.keys(curr), ...Object.keys(prev)]);
+      const trends = Array.from(allServices).map(name => {
+        const currCount = curr[name]?.count || 0;
+        const prevCount = prev[name]?.count || 0;
+        const currRev = curr[name]?.revenue || 0;
+        const change = prevCount === 0 ? (currCount > 0 ? 100 : 0) : Math.round(((currCount - prevCount) / prevCount) * 100);
+        return { name, currCount, prevCount, currRev, change };
+      }).filter(t => t.currCount > 0 || t.prevCount > 0)
+        .sort((a, b) => b.currRev - a.currRev)
+        .slice(0, 8);
+      setServiceTrends(trends);
+
     } catch { toast.error("Failed to load analytics"); }
     finally { setLoading(false); }
   };
@@ -337,6 +378,51 @@ const RANGE_OPTIONS: { label: string; value: Range }[] = [
           ))}
         </Card>
       </div>
+      {/* Service Trends */}
+      <Card style={{ marginBottom: 24 }}>
+        <SectionTitle>Service Trends — This Period vs Previous</SectionTitle>
+        {serviceTrends.length === 0 ? (
+          <div style={{ color: TXT_SOFT, fontSize: 13, textAlign: "center", padding: "24px 0" }}>No service data yet</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+            {serviceTrends.map((s, i) => {
+              const isGrowing = s.change > 0;
+              const isFlat = s.change === 0;
+              const isNew = s.prevCount === 0 && s.currCount > 0;
+              const isDead = s.currCount === 0 && s.prevCount > 0;
+              const color = isDead ? "#EF4444" : isNew ? "#8B5CF6" : isGrowing ? "#16A34A" : isFlat ? TXT_SOFT : "#EF4444";
+              const bg = isDead ? "#FEF2F2" : isNew ? "#F5F3FF" : isGrowing ? "#F0FDF4" : isFlat ? CREAM : "#FEF2F2";
+              const arrow = isDead ? "↓" : isNew ? "★" : isGrowing ? "↑" : isFlat ? "→" : "↓";
+              const label = isDead ? "Dropped off" : isNew ? "New this period" : isGrowing ? `+${s.change}%` : isFlat ? "No change" : `${s.change}%`;
+              return (
+                <div key={i} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${BORDER}`, background: WHITE }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: TXT, flex: 1, paddingRight: 8, lineHeight: 1.3 }}>{s.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 10, background: bg, flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color }}>{arrow}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color }}>{label}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: TXT_SOFT, marginBottom: 2 }}>This period</div>
+                      <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 18, fontWeight: 700, color: TXT }}>{s.currCount}<span style={{ fontSize: 11, color: TXT_SOFT, fontFamily: "inherit", fontWeight: 400 }}> bookings</span></div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: TXT_SOFT, marginBottom: 2 }}>Previous</div>
+                      <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 18, fontWeight: 700, color: TXT_SOFT }}>{s.prevCount}</div>
+                    </div>
+                    <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                      <div style={{ fontSize: 10, color: TXT_SOFT, marginBottom: 2 }}>Revenue</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: GOLD }}>{fmt(s.currRev)}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

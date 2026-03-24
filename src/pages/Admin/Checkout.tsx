@@ -544,7 +544,6 @@ const Checkout = () => {
             toast.error("Gift card could not be marked redeemed: " + gcUpdateErr.message);
           } else {
             cardMarked = true;
-            console.log("✓ Gift card marked:", fullyUsed ? "redeemed" : "active", "balance:", newBalance, gcUpdated);
           }
         }
 

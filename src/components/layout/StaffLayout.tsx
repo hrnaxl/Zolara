@@ -10,6 +10,8 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [staffId, setStaffId] = useState<string | null>(null);
+  const [earnings, setEarnings] = useState({ thisMonth: 0, lastMonth: 0, allTime: 0, thisWeek: 0 });
+  const [topServices, setTopServices] = useState<{name:string;count:number}[]>([]);
   const [stats, setStats] = useState({
     todayTotal: 0, upcoming: 0, completed: 0, cancelled: 0, completionRate: 0,
   });
@@ -81,6 +83,38 @@ const StaffDashboard = () => {
         return (allBookings as any[]).filter((b: any) => b.preferred_date === d).length;
       });
       setSparkData(sparkCounts);
+
+      // Fetch earnings from sales table for this staff
+      if (profile?.id) {
+        const now = new Date();
+        const monthStart = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
+        const lastMonthStart = format(new Date(now.getFullYear(), now.getMonth() - 1, 1), "yyyy-MM-dd");
+        const lastMonthEnd = format(new Date(now.getFullYear(), now.getMonth(), 0), "yyyy-MM-dd");
+        const weekStart = format(subDays(now, now.getDay() === 0 ? 6 : now.getDay() - 1), "yyyy-MM-dd");
+
+        const [thisMonthSales, lastMonthSales, allTimeSales, weekSales] = await Promise.all([
+          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", monthStart),
+          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", lastMonthStart).lte("created_at", lastMonthEnd),
+          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed"),
+          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", weekStart),
+        ]);
+
+        const sum = (rows: any[]) => (rows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+        setEarnings({
+          thisMonth: sum(thisMonthSales.data),
+          lastMonth: sum(lastMonthSales.data),
+          allTime: sum(allTimeSales.data),
+          thisWeek: sum(weekSales.data),
+        });
+
+        // Top services for this staff
+        const svcCount: Record<string, number> = {};
+        for (const r of (thisMonthSales.data || [])) {
+          const s = r.service_name || "Unknown";
+          svcCount[s] = (svcCount[s] || 0) + 1;
+        }
+        setTopServices(Object.entries(svcCount).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 4));
+      }
 
     } catch {
       // fail silently
@@ -203,6 +237,38 @@ const StaffDashboard = () => {
           </div>
         ))}
       </div>
+
+      {/* ── EARNINGS ROW ─────────────────────────────── */}
+      <div className="au admin-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "20px", animationDelay: "0.08s" }}>
+        {[
+          { label: "This Week",   value: earnings.thisWeek,  accent: "#4A90D9" },
+          { label: "This Month",  value: earnings.thisMonth, accent: "#4CAF7D" },
+          { label: "Last Month",  value: earnings.lastMonth, accent: "#C9A84C" },
+          { label: "All Time",    value: earnings.allTime,   accent: NAVY },
+        ].map((e, i) => (
+          <div key={i} className="sc" style={{ animationDelay: `${i * 0.06}s` }}>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", margin: "0 0 10px" }}>{e.label} Earnings</p>
+            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1 }}>
+              GHS <span style={{ color: e.accent }}>{e.value.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── TOP SERVICES THIS MONTH ── */}
+      {topServices.length > 0 && (
+        <div className="au sc-flat" style={{ marginBottom: "20px", padding: "20px 24px", animationDelay: "0.14s" }}>
+          <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", marginBottom: "14px" }}>Your Top Services This Month</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "10px" }}>
+            {topServices.map((s, i) => (
+              <div key={i} style={{ padding: "10px 14px", borderRadius: "10px", background: `${G}10`, border: `1px solid ${G}30` }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: TXT, marginBottom: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</div>
+                <div style={{ fontSize: "11px", color: G }}>{s.count} booking{s.count !== 1 ? "s" : ""}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── MIDDLE ROW: Sparkline + Completion Rate + Donut ── */}
       <div className="au admin-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px", animationDelay: "0.1s" }}>

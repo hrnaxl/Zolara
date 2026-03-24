@@ -128,6 +128,7 @@ const AdminDashboard = () => {
   const [topStaff, setTopStaff] = useState<any[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
   const [absentStaff, setAbsentStaff] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartHovIdx, setChartHovIdx] = useState<number|null>(null);
@@ -576,8 +577,6 @@ const AdminDashboard = () => {
             .sort((a: any, b: any) => b.amount - a.amount)
         : [];
 
-      console.log("Payment method breakdown", paymentMethodBreakdown);
-
       // Top performing staff — from sales table using payment_date (not preferred_date)
       const staffPerformance = (staffBookingsRes.data || []).reduce(
         (acc: any, sale: any) => {
@@ -628,6 +627,29 @@ const AdminDashboard = () => {
         todayBookingsRes.data?.filter(
           (b) => b.status === "pending"
         ).length || 0;
+
+
+      // Birthday clients this week
+      const todayForBday = new Date();
+      const todayMMDD = String(todayForBday.getMonth()+1).padStart(2,'0') + '-' + String(todayForBday.getDate()).padStart(2,'0');
+      const { data: bClients } = await (supabase as any).from('clients').select('id, name, phone, birthday').not('birthday', 'is', null);
+      const upcomingBirthdays = (bClients || []).filter((cl) => {
+        if (!cl.birthday) return false;
+        const mmdd = cl.birthday.slice(5);
+        for (let i = 0; i <= 6; i++) {
+          const d = new Date(todayForBday); d.setDate(d.getDate() + i);
+          const dMMDD = String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          if (mmdd === dMMDD) return true;
+        }
+        return false;
+      }).map((cl) => {
+        const mmdd = cl.birthday.slice(5);
+        const isToday = mmdd === todayMMDD;
+        const d = new Date(todayForBday.getFullYear(), Number(mmdd.slice(0,2))-1, Number(mmdd.slice(3)));
+        const diff = Math.round((d.getTime() - todayForBday.getTime()) / 86400000);
+        return { ...cl, isToday, daysUntil: diff < 0 ? 0 : diff };
+      }).sort((a, b) => a.daysUntil - b.daysUntil);
+      setBirthdayClients(upcomingBirthdays);
 
       // Generate alerts
       const generatedAlerts = generateAlerts({
@@ -1196,6 +1218,41 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* BIRTHDAY REMINDERS */}
+      {birthdayClients.length > 0 && (
+        <div className="zc-flat au" style={{ animationDelay:"0.68s", padding:"24px 28px", marginBottom:"14px" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"16px" }}>
+            <div>
+              <div style={{ fontSize:"9px", fontWeight:700, letterSpacing:"0.18em", color: TXT_SOFT, marginBottom:"3px" }}>BIRTHDAYS</div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", fontWeight:600, color: TXT }}>Upcoming This Week</div>
+            </div>
+            <div style={{ fontSize:"9px", fontWeight:700, padding:"4px 10px", borderRadius:10, background:"#FDF2F8", color:"#DB2777" }}>{birthdayClients.length} client{birthdayClients.length !== 1 ? "s" : ""}</div>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {birthdayClients.slice(0, 5).map((cl, i) => (
+              <div key={cl.id || i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderRadius:10, background: cl.isToday ? "#FDF2F8" : CREAM, border:'1px solid ' + (cl.isToday ? "#FBCFE8" : BORDER) }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ width:34, height:34, borderRadius:"50%", background:"linear-gradient(135deg,#EC4899,#F9A8D4)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>&#127874;</div>
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:700, color: TXT }}>{cl.name}</div>
+                    <div style={{ fontSize:10, color: cl.isToday ? "#DB2777" : TXT_SOFT, fontWeight: cl.isToday ? 700 : 400 }}>
+                      {cl.isToday ? "Today!" : 'In ' + cl.daysUntil + ' day' + (cl.daysUntil !== 1 ? 's' : '')}
+                    </div>
+                  </div>
+                </div>
+                {cl.phone && (
+                  <a href={'https://wa.me/233' + cl.phone.replace(/^0/, "").replace(/\s/g, "") + '?text=' + encodeURIComponent('Happy Birthday ' + cl.name.split(' ')[0] + '! Wishing you a wonderful day from Zolara Beauty Studio. Enjoy double loyalty stamps on your next visit this month!')}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize:10, fontWeight:700, padding:"6px 12px", borderRadius:8, background:"#25D366", color:"white", textDecoration:"none", whiteSpace:"nowrap" }}>
+                    WhatsApp
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── PAYMENT METHODS + TOP STAFF ──────────────────── */}
       <div className="admin-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
