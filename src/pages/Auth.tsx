@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { setSentryUser } from "@/lib/sentry";
 import { supabase } from "@/integrations/supabase/client";
 import { findOrCreateClient } from "@/lib/clientDedup";
 import { registerSession, clearLocalSession } from "@/lib/sessionManager";
