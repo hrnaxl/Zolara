@@ -102,7 +102,7 @@ export default function Settings() {
   const BORDER = "#EDEBE5", TXT = "#1C160E", TXT_MID = "#78716C", TXT_SOFT = "#A8A29E";
   const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.06)";
   const defaultSettings: Settings = {
-    business_name: "", logo_url: "", open_time: "8:30", close_time: "21:00",
+    business_name: "", logo_url: "", open_time: "8:30", close_time: "20:00",
     currency: "GH₵", staff_roles: ["Hairdresser", "Barber", "Receptionist"], staff_specialties: ["Braider", "Lash Tech", "Nail Tech", "Wig & Hair Stylist", "Makeup Artist", "Pedicurist & Manicurist"],
     service_categories: ["Hair", "Nails", "Makeup"], use_24_hour_format: false,
     business_phone: "", business_email: "", business_address: "",
@@ -200,7 +200,7 @@ export default function Settings() {
         business_name: currentSettings.business_name || "",
         logo_url: safeLogoUrl || null,
         open_time: currentSettings.open_time || "08:30",
-        close_time: currentSettings.close_time || "21:00",
+        close_time: currentSettings.close_time || "20:00",
         currency: currentSettings.currency || "GH₵",
         business_phone: currentSettings.business_phone || "",
         business_email: currentSettings.business_email || "",

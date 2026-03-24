@@ -199,7 +199,7 @@ const sectionTitle = {
       const day = new Date(`${preferredDate}T00:00:00`).getDay();
       if (day === 0) { toast.error("We are closed on Sundays."); return; }
       const openTime  = (settings as any)?.open_time  || "08:30";
-      const closeTime = (settings as any)?.close_time || "21:00";
+      const closeTime = (settings as any)?.close_time || "20:00";
       if (!isTimeWithinRange(normalizedTime, openTime, closeTime)) {
         toast.error(`Please pick a time between ${openTime} and ${closeTime}`); return;
       }
@@ -428,13 +428,13 @@ const sectionTitle = {
                   <label style={label}>Time *</label>
                   <div style={{ position: "relative" }}>
                     <Clock size={15} style={{ position: "absolute", left: 12, top: 13, color: TXT_SOFT }} />
-                    <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="21:00" style={{ ...inp, paddingLeft: 38 }} />
+                    <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="20:00" style={{ ...inp, paddingLeft: 38 }} />
                   </div>
                   {errors.time && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.time}</p>}
                 </div>
               </div>
               <p style={{ fontSize: 11, color: TXT_SOFT, marginTop: 12, display: "flex", alignItems: "center", gap: 5 }}>
-                <Sparkles size={11} style={{ color: GOLD }} /> Open Mon – Sat · 8:30 AM – 9:00 PM · Closed Sundays
+                <Sparkles size={11} style={{ color: GOLD }} /> Open Mon – Sat · 8:30 AM – 8:00 PM · Closed Sundays
               </p>
             </div>
 

@@ -1099,7 +1099,7 @@ const Staff = () => {
                   <p className="text-xs text-muted-foreground mt-1">
                     Shop hours: {(settings as any)?.open_time && (settings as any)?.close_time
                       ? ((settings as any)?.use24HourFormat ? `${(settings as any).open_time} — ${(settings as any).close_time}` : `${formatTo12Hour((settings as any).open_time)} — ${formatTo12Hour((settings as any).close_time)}`)
-                      : ((settings as any)?.use24HourFormat ? '08:30 — 21:00' : '8:30 AM — 9:00 PM')}
+                      : ((settings as any)?.use24HourFormat ? '08:30 — 20:00' : '8:30 AM — 8:00 PM')}
                   </p>
                 </div>
               </div>

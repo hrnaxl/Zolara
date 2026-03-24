@@ -128,7 +128,7 @@ export default function PublicBooking() {
 
     // Check operating hours first — no need to hit DB for invalid times
     const openTime  = (settings as any)?.open_time  || "08:30";
-    const closeTime = (settings as any)?.close_time || "21:00";
+    const closeTime = (settings as any)?.close_time || "20:00";
     const normalized = normalizeTimeTo24(preferredTime);
     if (!isTimeWithinRange(normalized, openTime, closeTime)) {
       setSlotStatus("idle"); // clear any previous status, let form validation catch it
@@ -308,7 +308,7 @@ export default function PublicBooking() {
         return;
       }
       const openTime = (settings as any)?.open_time || "08:30";
-      const closeTime = (settings as any)?.close_time || "21:00";
+      const closeTime = (settings as any)?.close_time || "20:00";
       if (!isTimeWithinRange(normalizedTime, openTime, closeTime)) {
         toast.error(`Please pick a time between ${openTime} and ${closeTime}`);
         return;
@@ -662,7 +662,7 @@ export default function PublicBooking() {
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9.5px", letterSpacing: "0.22em", color: GOLD, fontWeight: 700, marginBottom: "12px" }}>NEED HELP? CALL US</p>
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14.5px", color: "rgba(245,239,230,0.85)", fontWeight: 600, marginBottom: "4px" }}>059 436 5314</p>
               <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "14.5px", color: "rgba(245,239,230,0.85)", fontWeight: 600 }}>020 884 8707</p>
-              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.32)", marginTop: "10px", fontWeight: 400 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
+              <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: "rgba(245,239,230,0.32)", marginTop: "10px", fontWeight: 400 }}>Mon to Sat · 8:30 AM to 8:00 PM</p>
             </div>
           </div>
         </div>
@@ -883,14 +883,14 @@ export default function PublicBooking() {
                 <label style={lbl}>Time *</label>
                 <div style={{ position: "relative" }}>
                   <Clock size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
-                  <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="21:00" style={{ ...inp, paddingLeft: "38px" }} />
+                  <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="20:00" style={{ ...inp, paddingLeft: "38px" }} />
                 </div>
                 {errors.time && <p className="err">{errors.time}</p>}
               </div>
             </div>
 
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: TXT_SOFT, marginTop: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-              <Sparkles size={11} style={{ color: GOLD }} /> Open Mon to Sat · 8:30 AM to 9:00 PM · Closed Sundays
+              <Sparkles size={11} style={{ color: GOLD }} /> Open Mon to Sat · 8:30 AM to 8:00 PM · Closed Sundays
             </p>
 
             {/* Slot availability feedback */}

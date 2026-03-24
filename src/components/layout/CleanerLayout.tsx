@@ -56,7 +56,7 @@ const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
 
   const dayLabel = format(new Date(), "EEEE, MMMM d, yyyy");
   const openTime = (settings as any)?.open_time || "8:30 AM";
-  const closeTime = (settings as any)?.close_time || "9:00 PM";
+  const closeTime = (settings as any)?.close_time || "8:00 PM";
 
   return (
     <div style={{ background: CREAM, minHeight: "100vh", padding: "clamp(20px,4vw,40px) clamp(16px,4vw,32px)", fontFamily: "'Montserrat', sans-serif" }}>

@@ -200,7 +200,7 @@ export default function LandingPage() {
     if (now.getDay() === 0) return false;
     // Check hours
     const openTime = salonSettings?.open_time || "08:30";
-    const closeTime = salonSettings?.close_time || "21:00";
+    const closeTime = salonSettings?.close_time || "20:00";
     const [oh, om] = openTime.split(":").map(Number);
     const [ch, cm] = closeTime.split(":").map(Number);
     const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -563,7 +563,7 @@ export default function LandingPage() {
               </div>
               <div className="kpi-info">
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>HOURS</p>
-                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Mon to Sat · 8:30 AM to 9:00 PM</p>
+                <p className="sans" style={{ fontSize: "12.5px", color: dark, fontWeight: 500 }}>Mon to Sat · 8:30 AM to 8:00 PM</p>
               </div>
               <div className="kpi-info">
                 <p className="sans" style={{ fontSize: "9px", letterSpacing: "0.2em", color: gold, fontWeight: 700, marginBottom: "4px" }}>CALL</p>
@@ -1312,7 +1312,7 @@ export default function LandingPage() {
           {[
             { icon: "◉", label: "LOCATION", lines: ["Sakasaka, Opposite CalBank", "Tamale, Northern Region"], delay: 0 },
             { icon: "◈", label: "CALL US", lines: ["059 436 5314", "020 884 8707"], tel: true, delay: 120 },
-            { icon: "◇", label: "HOURS", lines: ["Monday to Saturday", "8:30 AM until 9:00 PM"], delay: 240 },
+            { icon: "◇", label: "HOURS", lines: ["Monday to Saturday", "8:30 AM until 8:00 PM"], delay: 240 },
             { icon: "✦", label: "SUNDAYS", lines: ["We are closed", "Rest day. Back Monday, ready for you."], delay: 360 },
           ].map(item => (
             <div key={item.label} className="visit-card"
@@ -1366,7 +1366,7 @@ export default function LandingPage() {
             Ready to feel like <em style={{ color: gold, fontStyle: "italic" }}>royalty?</em>
           </h2>
           <p className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,.3)", letterSpacing: ".06em", marginBottom: "28px", position: "relative", zIndex: 1 }}>
-            Sakasaka, Tamale · Monday to Saturday · 8:30 AM to 9:00 PM
+            Sakasaka, Tamale · Monday to Saturday · 8:30 AM to 8:00 PM
           </p>
           <Link to="/book" className="sans" style={{ display: "inline-block", padding: "14px 40px", background: "linear-gradient(135deg,#8B6914,#C8A97E)", borderRadius: "3px", fontSize: "10px", fontWeight: 800, letterSpacing: ".18em", color: "#1C160E", textDecoration: "none", transition: "all .3s", position: "relative", zIndex: 1 }}>
             BOOK YOUR APPOINTMENT →
@@ -1393,7 +1393,7 @@ export default function LandingPage() {
             <div className="sans" style={{ fontSize: "12px", color: "rgba(245,239,230,0.55)", lineHeight: 1.9 }}>
               <div>Sakasaka, Opposite CalBank, Tamale</div>
               <div><a href="tel:+233594365314" style={{ color: "inherit", textDecoration: "none" }}>059 436 5314</a> · <a href="tel:+233208848707" style={{ color: "inherit", textDecoration: "none" }}>020 884 8707</a></div>
-              <div>Mon to Sat · 8:30 AM to 9:00 PM</div>
+              <div>Mon to Sat · 8:30 AM to 8:00 PM</div>
             </div>
           </div>
 

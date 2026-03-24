@@ -40,7 +40,7 @@ const defaultSettings: Settings = {
   payment_methods: [],
   business_name: "",
   open_time: "08:30",
-  close_time: "21:00",
+  close_time: "20:00",
   currency: "GH₵",
   staff_roles: ["Hairdresser", "Barber", "Receptionist"],
   service_categories: ["Hair", "Nails", "Massage"],

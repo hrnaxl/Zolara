@@ -862,7 +862,7 @@ const Checkout = () => {
         <div style="text-align:center">
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-style:italic;color:#8B6914;margin-bottom:4px">"Not just a salon. A complete luxury experience."</div>
           <div style="font-size:9px;color:#78716C">Thank you for visiting Zolara Beauty Studio.</div>
-          <div style="font-size:9px;color:#78716C">Mon to Sat · 8:30 AM to 9:00 PM</div>
+          <div style="font-size:9px;color:#78716C">Mon to Sat · 8:30 AM to 8:00 PM</div>
           <div style="font-size:9px;color:#78716C;margin-top:3px">zolarasalon.com</div>
         </div>
       </div>
