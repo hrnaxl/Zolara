@@ -324,13 +324,15 @@ const AdminDashboard = () => {
           .order("preferred_date", { ascending: true })
           .order("preferred_time", { ascending: true })
           .limit(5),
+        // Use sales table for staff revenue — actual collected amounts, not booking prices
         (supabase as any)
-          .from("bookings")
-          .select("id, staff_id, price, staff:staff_id(name)")
+          .from("sales")
+          .select("id, staff_id, amount, staff:staff_id(name)")
           .eq("status", "completed")
-          .gte("preferred_date", periodStart)
-          .lte("preferred_date", periodEnd)
-          .not("staff_id", "is", null),
+          .gte("created_at", periodStartTs)
+          .lte("created_at", periodEndTs)
+          .not("staff_id", "is", null)
+          .not("notes", "ilike", "%product sale%"), // exclude product sales from service revenue
         // Fetch completed bookings with nested payments to compute pending revenue (completed but unpaid)
         supabase
           .from("bookings")
@@ -578,19 +580,19 @@ const AdminDashboard = () => {
 
       // Top performing staff — from sales table using payment_date (not preferred_date)
       const staffPerformance = (staffBookingsRes.data || []).reduce(
-        (acc: any, booking: any) => {
-          const staffId = booking.staff_id;
+        (acc: any, sale: any) => {
+          const staffId = sale.staff_id;
           if (!staffId) return acc;
           if (!acc[staffId]) {
             acc[staffId] = {
               id: staffId,
-              name: booking.staff?.name || "Unknown",
+              name: sale.staff?.name || "Unknown",
               bookings: 0,
               revenue: 0,
             };
           }
           acc[staffId].bookings += 1;
-          acc[staffId].revenue += Number(booking.price || 0);
+          acc[staffId].revenue += Number(sale.amount || 0);
           return acc;
         },
         {}

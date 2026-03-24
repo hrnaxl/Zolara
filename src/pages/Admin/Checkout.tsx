@@ -798,101 +798,109 @@ const Checkout = () => {
 
     const logoUrl = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 
-    const html = `
-      <div id="${receiptId}" style="font-family:'Montserrat',Arial,sans-serif;width:72mm;margin:0 auto;padding:12px 8px;color:#1C160E;background:#fff">
-        <!-- Header -->
-        <div style="text-align:center;margin-bottom:14px">
-          <img src="${logoUrl}" style="width:52px;height:52px;border-radius:50%;border:2px solid #C8A97E;object-fit:cover;margin-bottom:8px" onerror="this.style.display='none'"/>
-          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;letter-spacing:0.06em;color:#1C160E">ZOLARA</div>
-          <div style="font-size:8px;font-weight:700;letter-spacing:0.2em;color:#8B6914;margin-top:1px">BEAUTY STUDIO</div>
-          <div style="font-size:9px;color:#78716C;margin-top:4px">Sakasaka, Opposite CalBank, Tamale</div>
-          <div style="font-size:9px;color:#78716C">${businessPhone} · ${businessPhone2}</div>
-          <div style="font-size:9px;color:#8B6914;margin-top:1px">${instagram}</div>
-        </div>
+    const thermalRows = lineItems.map(item => {
+      const price = item.coveredBySubscription ? "Included" : "GHS " + (item.unitPrice * item.quantity).toFixed(2);
+      const qty = item.quantity > 1 ? " x" + item.quantity : "";
+      const name = (item.name + qty).slice(0, 24).padEnd(24);
+      const priceStr = price.padStart(8);
+      return `<div class="row"><span class="label">${name}</span><span class="val">${priceStr}</span></div>`;
+    }).join("");
 
-        <!-- Divider -->
-        <div style="border-top:1px dashed #C8A97E;margin:10px 0"></div>
+    const thermalDeductions = [
+      depositPaid ? `<div class="row green"><span class="label">Deposit paid</span><span class="val">-GHS ${depositAmount.toFixed(2)}</span></div>` : "",
+      promoDiscount > 0 ? `<div class="row green"><span class="label">Promo${appliedPromo ? " ("+appliedPromo.code+")" : ""}</span><span class="val">-GHS ${promoDiscount.toFixed(2)}</span></div>` : "",
+      redeemedCard && redeemedCard.value > 0 ? `<div class="row green"><span class="label">Gift card</span><span class="val">-GHS ${redeemedCard.value.toFixed(2)}</span></div>` : "",
+    ].join("");
 
-        <!-- Receipt info -->
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span style="font-size:9px;color:#78716C;font-weight:700;letter-spacing:0.1em">RECEIPT</span>
-          <span style="font-size:9px;color:#78716C">${receiptNo}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-          <span style="font-size:9px;color:#78716C">${now.toLocaleDateString("en-GH",{day:"2-digit",month:"short",year:"numeric"})}</span>
-          <span style="font-size:9px;color:#78716C">${now.toLocaleTimeString("en-GH",{hour:"2-digit",minute:"2-digit"})}</span>
-        </div>
-
-        <!-- Client + staff -->
-        <div style="background:#FBF7F2;border-radius:6px;padding:8px 10px;margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <span style="font-size:10px;color:#78716C">Client</span>
-            <span style="font-size:11px;font-weight:600">${booking?.client_name || ""}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between">
-            <span style="font-size:10px;color:#78716C">Stylist</span>
-            <span style="font-size:11px;font-weight:600">${staffName}</span>
-          </div>
-        </div>
-
-        <!-- Line items -->
-        <div style="border-top:1px solid #EDEBE5;margin-bottom:2px"></div>
-        <table style="width:100%;border-collapse:collapse">${rows}</table>
-        <div style="border-top:1px solid #EDEBE5;margin:6px 0 2px"></div>
-
-        <!-- Deductions -->
-        ${deductions ? `<table style="width:100%;border-collapse:collapse">${deductions}</table><div style="border-top:1px solid #EDEBE5;margin:6px 0 2px"></div>` : ""}
-
-        <!-- Total -->
-        <div style="display:flex;justify-content:space-between;padding:6px 0;margin-bottom:6px">
-          <span style="font-size:13px;font-weight:700">Total Paid</span>
-          <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:700;color:#8B6914">GHS ${finalAmountCharged.toFixed(2)}</span>
-        </div>
-
-        <!-- Payment method -->
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-          <span style="font-size:10px;color:#78716C">Payment</span>
-          <span style="font-size:11px;font-weight:600">${payLabel[paymentMethod as string] || paymentMethod}</span>
-        </div>
-
-        <!-- Divider -->
-        <div style="border-top:1px dashed #C8A97E;margin:10px 0"></div>
-
-        <!-- Footer -->
-        <div style="text-align:center">
-          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;font-style:italic;color:#8B6914;margin-bottom:4px">"Not just a salon. A complete luxury experience."</div>
-          <div style="font-size:9px;color:#78716C">Thank you for visiting Zolara Beauty Studio.</div>
-          <div style="font-size:9px;color:#78716C">Mon to Sat · 8:30 AM to 8:00 PM</div>
-          <div style="font-size:9px;color:#78716C;margin-top:3px">zolarasalon.com</div>
-        </div>
-      </div>
-    `;
-
-    const win = window.open("", "_blank", "width=400,height=700");
+    const win = window.open("", "_blank", "width=380,height=700");
     if (!win) { alert("Please allow popups to print receipts."); return; }
-    win.document.write(`
-      <!DOCTYPE html><html><head>
-      <title>Zolara Receipt — ${receiptNo}</title>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet"/>
+    win.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8">
+      <title>Zolara Receipt</title>
       <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#fff;display:flex;align-items:flex-start;justify-content:center;padding:16px}
-        @media print{
-          body{padding:0}
-          .no-print{display:none!important}
-          @page{margin:6mm;size:80mm auto}
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 12px;
+          color: #000;
+          background: #fff;
+          width: 80mm;
+          margin: 0 auto;
+          padding: 4mm 3mm;
+        }
+        .center { text-align: center; }
+        .bold { font-weight: bold; }
+        .large { font-size: 15px; font-weight: bold; }
+        .small { font-size: 10px; }
+        .divider { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+        .divider-solid { border: none; border-top: 1px solid #000; margin: 5px 0; }
+        .row { display: flex; justify-content: space-between; margin: 2px 0; }
+        .label { flex: 1; overflow: hidden; white-space: nowrap; }
+        .val { text-align: right; white-space: nowrap; padding-left: 4px; }
+        .green { } /* no color on thermal */
+        .total-row { display: flex; justify-content: space-between; margin: 4px 0; font-weight: bold; font-size: 14px; }
+        .no-print { text-align: center; padding: 12px 0; font-family: sans-serif; }
+        @media print {
+          @page { size: 80mm auto; margin: 0; }
+          body { padding: 2mm; }
+          .no-print { display: none !important; }
         }
       </style>
-      </head><body>
-      <div>
-        <div class="no-print" style="text-align:center;padding:12px 0 16px;font-family:sans-serif">
-          <button onclick="window.print()" style="padding:10px 32px;background:#8B6914;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-right:8px">🖨 Print</button>
-          <button onclick="window.close()" style="padding:10px 20px;background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer">Close</button>
-        </div>
-        ${html}
+    </head><body>
+
+      <div class="no-print">
+        <button onclick="window.print()" style="padding:8px 28px;background:#8B6914;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-right:6px">🖨 Print</button>
+        <button onclick="window.close()" style="padding:8px 16px;background:#eee;border:1px solid #ccc;border-radius:6px;font-size:13px;cursor:pointer">Close</button>
       </div>
-      </body></html>
-    `);
+
+      <div class="center">
+        <div class="bold" style="font-size:14px;letter-spacing:0.1em">ZOLARA BEAUTY STUDIO</div>
+        <div class="small">Sakasaka, Opposite CalBank, Tamale</div>
+        <div class="small">${businessPhone} / ${businessPhone2}</div>
+        <div class="small">${instagram} · zolarasalon.com</div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="row small">
+        <span>Receipt: ${receiptNo}</span>
+        <span>${now.toLocaleDateString("en-GH",{day:"2-digit",month:"short",year:"numeric"})}</span>
+      </div>
+      <div class="row small">
+        <span>Time: ${now.toLocaleTimeString("en-GH",{hour:"2-digit",minute:"2-digit"})}</span>
+      </div>
+
+      <hr class="divider">
+
+      <div class="row small"><span>Client:</span><span class="bold">${booking?.client_name || "-"}</span></div>
+      <div class="row small"><span>Stylist:</span><span class="bold">${staffName}</span></div>
+
+      <hr class="divider">
+
+      ${thermalRows}
+
+      <hr class="divider-solid">
+
+      ${thermalDeductions ? thermalDeductions + '<hr class="divider">' : ""}
+
+      <div class="total-row">
+        <span>TOTAL PAID</span>
+        <span>GHS ${finalAmountCharged.toFixed(2)}</span>
+      </div>
+      <div class="row small">
+        <span>Payment:</span>
+        <span class="bold">${payLabel[paymentMethod as string] || paymentMethod}</span>
+      </div>
+
+      <hr class="divider">
+
+      <div class="center small">
+        <div>Thank you for choosing Zolara!</div>
+        <div>Mon-Sat · 8:30AM - 8:00PM</div>
+        <div style="margin-top:3px">Not just a salon. A luxury experience.</div>
+      </div>
+
+    </body></html>`);
     win.document.close();
   };
 
