@@ -286,6 +286,19 @@ export default function PublicBooking() {
     }
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
+    // Block past times when booking for today
+    if (preferredDate && preferredTime) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (preferredDate === todayStr) {
+        const now = new Date();
+        const [h, m] = preferredTime.split(":").map(Number);
+        const selectedMinutes = h * 60 + m;
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        if (selectedMinutes <= nowMinutes) {
+          e.time = "This time has already passed. Please choose a later time or book for tomorrow.";
+        }
+      }
+    }
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -883,7 +896,18 @@ export default function PublicBooking() {
                 <label style={lbl}>Time *</label>
                 <div style={{ position: "relative" }}>
                   <Clock size={14} style={{ position: "absolute", left: "12px", top: "14px", color: TXT_SOFT }} />
-                  <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="20:00" style={{ ...inp, paddingLeft: "38px" }} />
+                  <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)}
+                    min={(() => {
+                      const todayStr = new Date().toISOString().slice(0, 10);
+                      if (preferredDate === todayStr) {
+                        const now = new Date();
+                        // Add 15 min buffer so they can't book the current minute
+                        now.setMinutes(now.getMinutes() + 15);
+                        return now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
+                      }
+                      return "08:30";
+                    })()}
+                    max="20:00" style={{ ...inp, paddingLeft: "38px" }} />
                 </div>
                 {errors.time && <p className="err">{errors.time}</p>}
               </div>

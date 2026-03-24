@@ -174,6 +174,17 @@ const sectionTitle = {
     if (serviceIds.length === 0) e.service = "Please select at least one service";
     if (!preferredDate) e.date = "Please select a date";
     if (!preferredTime) e.time = "Please select a time";
+    // Block past times when booking for today
+    if (preferredDate && preferredTime) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (preferredDate === todayStr) {
+        const now = new Date();
+        const [h, m] = preferredTime.split(":").map(Number);
+        if (h * 60 + m <= now.getHours() * 60 + now.getMinutes()) {
+          e.time = "This time has already passed. Choose a later time or book for tomorrow.";
+        }
+      }
+    }
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -428,7 +439,17 @@ const sectionTitle = {
                   <label style={label}>Time *</label>
                   <div style={{ position: "relative" }}>
                     <Clock size={15} style={{ position: "absolute", left: 12, top: 13, color: TXT_SOFT }} />
-                    <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)} min="08:30" max="20:00" style={{ ...inp, paddingLeft: 38 }} />
+                    <input type="time" value={preferredTime} onChange={e => setTime(e.target.value)}
+                      min={(() => {
+                        const todayStr = new Date().toISOString().slice(0, 10);
+                        if (preferredDate === todayStr) {
+                          const now = new Date();
+                          now.setMinutes(now.getMinutes() + 15);
+                          return now.getHours().toString().padStart(2,"0") + ":" + now.getMinutes().toString().padStart(2,"0");
+                        }
+                        return "08:30";
+                      })()}
+                      max="20:00" style={{ ...inp, paddingLeft: 38 }} />
                   </div>
                   {errors.time && <p style={{ color: RED, fontSize: 11, marginTop: 4 }}>{errors.time}</p>}
                 </div>
