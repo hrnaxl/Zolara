@@ -720,7 +720,7 @@ export default function PublicBooking() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                     {packageCats.map(cat => (
                       (grouped[cat] || []).map((svc: any) => (
-                        <button key={svc.id} onClick={() => { setServiceIds(prev => prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id]); setActiveCategory(cat); if (appliedPromo) { setAppliedPromo(null); setPromoCode(""); setPromoError(""); } }}
+                        <button key={svc.id} onClick={() => { setServiceIds(prev => prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id]); setActiveCategory(cat); }}
                           style={{ background: serviceIds.includes(svc.id) ? GOLD : "rgba(200,169,126,0.12)", border: `1.5px solid ${serviceIds.includes(svc.id) ? GOLD : "rgba(200,169,126,0.3)"}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
                           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 700, color: serviceIds.includes(svc.id) ? DARK : GOLD, margin: 0 }}>{svc.name}</p>
                           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: serviceIds.includes(svc.id) ? "rgba(28,22,14,0.7)" : "rgba(200,169,126,0.7)", margin: "2px 0 0" }}>{getPriceDisplay(svc)}</p>
@@ -777,7 +777,6 @@ export default function PublicBooking() {
                           if (!prev.includes(svc.id)) loadServiceExtras(svc.id); // load on first select
                           return next;
                         });
-                        if (appliedPromo) { setAppliedPromo(null); setPromoCode(""); setPromoError(""); }
                       }}
                         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: active ? "10px 10px 0 0" : "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
