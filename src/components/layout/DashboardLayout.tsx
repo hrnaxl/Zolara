@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { clearSentryUser } from "@/lib/sentry";
+import { resetPostHog } from "@/lib/posthog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,6 +115,7 @@ const DashboardLayout = () => {
     try {
       setLoading(true);
       clearSentryUser();
+      resetPostHog();
       await supabase.auth.signOut();
       navigate("/app/auth");
     } catch (error) {

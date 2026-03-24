@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendGiftCardEmail, sendPickupReceiptEmail, sendPurchaseReceiptEmail } from "@/lib/email";
 import { openPaystackPopup } from "@/lib/payment";
 import { toast } from "sonner";
+import { track } from "@/lib/posthog";
 import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeNotes } from "@/lib/sanitize";
 
 const G = "#B8975A";
@@ -243,6 +244,7 @@ export default function BuyGiftCard() {
               if (form.buyerEmail && d.card) sendPickupReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code || "", serialNumber: d.card.serial_number || undefined, paymentRef: paymentRef || "" }).catch(console.error);
             }
           } catch (e: any) { console.error("GC onSuccess:", e.message); }
+          track("gift_card_purchased", { tier: selectedTier || "promo", delivery: deliveryType });
           setStep("done"); setLoading(false);
         },
         onClose: () => {

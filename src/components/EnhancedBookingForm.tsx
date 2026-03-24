@@ -10,6 +10,7 @@ import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/context/SettingsContext";
+import { track } from "@/lib/posthog";
 import ServicePicker from "@/components/ServicePicker";
 
 
@@ -243,6 +244,7 @@ const sectionTitle = {
         depositAmt,
       )).catch(console.error);
 
+      track("booking_created", { source: "walk_in_form" });
       setBookingRef(ref);
       setSubmitted(true);
     } catch (err: any) {

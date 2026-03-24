@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSettings } from "@/context/SettingsContext";
+import { track } from "@/lib/posthog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Calendar, Clock, User, Sparkles, CreditCard, Banknote, Smartphone, Building, CheckCircle2, ArrowLeft, Receipt, UserCheck, Search } from "lucide-react";
@@ -660,6 +661,7 @@ const Checkout = () => {
 
       setFinalAmountCharged(amountToCharge);
       setCompleted(true);
+      track("checkout_completed", { amount: finalAmountCharged, payment_method: paymentMethod });
       toast.success("Checkout completed!");
     } catch (error: any) {
       console.error("Checkout error:", error);
