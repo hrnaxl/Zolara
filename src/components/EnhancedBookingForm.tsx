@@ -396,6 +396,8 @@ const sectionTitle = {
                       setExpandedSvc(null);
                     }
                     setServiceIds(prev => prev.includes(svcId) ? prev.filter(id => id !== svcId) : [...prev, svcId]);
+                    // Clear promo — discount was calculated against old service price
+                    if (promoApplied) { setPromoApplied(null); setPromoCode(""); setPromoError(""); toast.info("Promo cleared — service changed. Re-apply if needed."); }
                   }}
                   onExpandToggle={(svcId) => {
                     setExpandedSvc(prev => prev === svcId ? null : svcId);
