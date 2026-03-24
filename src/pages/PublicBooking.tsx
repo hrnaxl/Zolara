@@ -119,7 +119,6 @@ export default function PublicBooking() {
       ? (subtotal * promo.discount_value) / 100
       : Math.min(promo.discount_value, subtotal);
     setAppliedPromo(promo);
-    setPromoDiscount(disc);
   };
   const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
 
@@ -259,10 +258,15 @@ export default function PublicBooking() {
   const subtotal = basePrice + variantAdj + addonTotal;
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
-  const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
 
+  // Derive promoDiscount from current subtotal every render — always up to date
+  const promoDiscount = appliedPromo
+    ? appliedPromo.discount_type === "percentage"
+      ? (subtotal * appliedPromo.discount_value) / 100
+      : Math.min(appliedPromo.discount_value, subtotal)
+    : 0;
   const total = Math.max(0, subtotal - promoDiscount);
 
   const enabledPayments = (settings as any)?.payment_methods?.filter((m: any) => m.enabled)
@@ -716,7 +720,7 @@ export default function PublicBooking() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                     {packageCats.map(cat => (
                       (grouped[cat] || []).map((svc: any) => (
-                        <button key={svc.id} onClick={() => { setServiceIds(prev => prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id]); setActiveCategory(cat); }}
+                        <button key={svc.id} onClick={() => { setServiceIds(prev => prev.includes(svc.id) ? prev.filter(id => id !== svc.id) : [...prev, svc.id]); setActiveCategory(cat); if (appliedPromo) { setAppliedPromo(null); setPromoCode(""); setPromoError(""); } }}
                           style={{ background: serviceIds.includes(svc.id) ? GOLD : "rgba(200,169,126,0.12)", border: `1.5px solid ${serviceIds.includes(svc.id) ? GOLD : "rgba(200,169,126,0.3)"}`, borderRadius: "8px", padding: "8px 14px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
                           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 700, color: serviceIds.includes(svc.id) ? DARK : GOLD, margin: 0 }}>{svc.name}</p>
                           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "11px", color: serviceIds.includes(svc.id) ? "rgba(28,22,14,0.7)" : "rgba(200,169,126,0.7)", margin: "2px 0 0" }}>{getPriceDisplay(svc)}</p>
@@ -773,6 +777,7 @@ export default function PublicBooking() {
                           if (!prev.includes(svc.id)) loadServiceExtras(svc.id); // load on first select
                           return next;
                         });
+                        if (appliedPromo) { setAppliedPromo(null); setPromoCode(""); setPromoError(""); }
                       }}
                         style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: active ? "#FBF6EE" : "white", border: `1.5px solid ${active ? GOLD : BORDER}`, borderRadius: active ? "10px 10px 0 0" : "10px", padding: "12px 16px", cursor: "pointer", textAlign: "left", transition: "all 0.15s", gap: "12px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -983,7 +988,7 @@ export default function PublicBooking() {
                     <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 13, fontWeight: 700, color: "#15803D", margin: 0 }}>✓ {appliedPromo.code}</p>
                     <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 11, color: "#16A34A", margin: "2px 0 0" }}>GHS {promoDiscount.toFixed(2)} off</p>
                   </div>
-                  <button type="button" onClick={() => { setAppliedPromo(null); setPromoDiscount(0); setPromoCode(""); setPromoError(""); }}
+                  <button type="button" onClick={() => { setAppliedPromo(null); setPromoCode(""); setPromoError(""); }}
                     style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#DC2626", fontWeight: 600, fontFamily: "'Montserrat',sans-serif" }}>Remove</button>
                 </div>
               ) : (
