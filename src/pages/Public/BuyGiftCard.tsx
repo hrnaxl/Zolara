@@ -170,8 +170,8 @@ export default function BuyGiftCard() {
   const [promoTypes, setPromoTypes] = useState<any[]>([]);
   const [selectedPromo, setSelectedPromo] = useState<any | null>(null);
   const [form, setForm] = useState({
-    buyerName: "", buyerEmail: "", buyerPhone: "",
-    recipientName: "", recipientEmail: "", message: "",
+    recipientName: "", recipientPhone: "", recipientEmail: "",
+    buyerEmail: "", message: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -237,16 +237,16 @@ export default function BuyGiftCard() {
       ...f,
       buyerName: sanitizeName(f.buyerName),
       buyerPhone: sanitizePhone(f.buyerPhone),
-      buyerEmail: sanitizeEmail(f.buyerEmail),
       recipientName: sanitizeName(f.recipientName),
+      recipientPhone: sanitizePhone(f.recipientPhone),
       recipientEmail: sanitizeEmail(f.recipientEmail),
+      buyerEmail: sanitizeEmail(f.buyerEmail),
       message: sanitizeNotes(f.message),
     }));
-    if (!form.buyerName || !form.buyerPhone) { toast.error("Enter your name and phone number"); return; }
-    if (!form.buyerEmail) { toast.error("Enter your email address — we'll send you a purchase receipt"); return; }
-    if (deliveryType === "email" && (!form.recipientName || !form.recipientEmail)) {
-      toast.error("Enter the recipient's name and email"); return;
-    }
+    if (!form.recipientName.trim()) { toast.error("Enter the recipient's name"); return; }
+    if (!form.recipientPhone.trim()) { toast.error("Enter the recipient's phone number"); return; }
+    if (deliveryType === "email" && !form.recipientEmail.trim()) { toast.error("Enter the recipient's email address"); return; }
+    if (!form.buyerEmail.trim()) { toast.error("Enter your email address for the purchase receipt"); return; }
     setStep("confirm");
   };
 
@@ -265,11 +265,11 @@ export default function BuyGiftCard() {
           tier: selectedPromo ? "Gold" : selectedTier,
           promo_type_id: selectedPromo?.id || null,
           card_type: selectedPromo ? "physical" : (isEmail ? "digital" : "physical"),
-          buyer_name: form.buyerName,
+          buyer_name: form.recipientName,
           buyer_email: form.buyerEmail,
-          buyer_phone: form.buyerPhone,
-          recipient_name: isEmail ? form.recipientName : form.buyerName,
-          recipient_email: isEmail ? form.recipientEmail : form.buyerEmail || "",
+          buyer_phone: form.recipientPhone,
+          recipient_name: form.recipientName,
+          recipient_email: form.recipientEmail || form.buyerEmail,
           message: form.message || (isEmail ? "" : "Physical card pickup"),
         },
         onSuccess: async (paymentRef: string) => {
@@ -278,13 +278,13 @@ export default function BuyGiftCard() {
             if (isEmail && !selectedPromo) {
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tier: selectedTier, amount: tierValue, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
+                body: JSON.stringify({ tier: selectedTier, amount: tierValue, buyerName: form.recipientName, buyerEmail: form.buyerEmail, buyerPhone: form.recipientPhone, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
               });
               const d = await r.json().catch(() => ({}));
               if (r.ok && d.card) {
                 const emailTo = form.recipientEmail || form.buyerEmail;
-                if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName || form.buyerName, recipient_email: emailTo, buyer_name: form.buyerName, message: form.message || undefined }).catch(console.error);
-                if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
+                if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName, recipient_email: emailTo, buyer_name: form.recipientName, message: form.message || undefined }).catch(console.error);
+                if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.recipientName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
               }
             } else {
               const r = await fetch("/api/claim-gift-card", {
@@ -293,9 +293,9 @@ export default function BuyGiftCard() {
                   tier: selectedPromo ? "promo" : selectedTier,
                   promoTypeId: selectedPromo?.id || null,
                   amount: tierValue,
-                  buyerName: form.buyerName,
+                  buyerName: form.recipientName,
                   buyerEmail: form.buyerEmail,
-                  buyerPhone: form.buyerPhone,
+                  buyerPhone: form.recipientPhone,
                   paymentRef,
                 }),
               });
@@ -303,7 +303,7 @@ export default function BuyGiftCard() {
               // Always send pickup email — card may be pre-printed or a placeholder
               if (form.buyerEmail) {
                 sendPickupReceiptEmail({
-                  buyerName: form.buyerName,
+                  buyerName: form.recipientName,
                   buyerEmail: form.buyerEmail,
                   tier: selectedPromo ? (selectedPromo.name || "Special Edition") : selectedTier!,
                   amount: tierValue,
@@ -330,7 +330,7 @@ export default function BuyGiftCard() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0F1923", fontFamily: "'Montserrat', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#0D1520", fontFamily: "'Montserrat', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
@@ -349,7 +349,7 @@ export default function BuyGiftCard() {
         .gc-input { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #F5EFE6; outline: none; width: 100%; box-sizing: border-box; font-family: Montserrat,sans-serif; transition: border-color 0.15s; }
         .gc-input::placeholder { color: rgba(255,255,255,0.3); }
         .gc-input:focus { border-color: #C8A97E; }
-        .gc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255,255,255,0.45); display: block; margin-bottom: 7px; }
+        .gc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255,255,255,0.7); display: block; margin-bottom: 7px; }
       `}</style>
 
       {/* Header */}
@@ -474,36 +474,46 @@ export default function BuyGiftCard() {
 
         {/* STEP: DETAILS */}
         {step === "details" && (selectedTier || selectedPromo) && (
-          <div style={{ animation: "fadeUp 0.3s ease" }}>
+          <div style={{ animation: "fadeUp 0.3s ease", background: "rgba(255,255,255,0.03)", borderRadius: 20, padding: "clamp(20px,4vw,36px)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: "#C8A97E", cursor: "pointer", fontSize: 13, marginBottom: 28, padding: 0, display: "flex", alignItems: "center", gap: 6 }}>
               ← Back
             </button>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#F5EFE6", marginBottom: 28, fontWeight: 400 }}>Your Details</h2>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#F5EFE6", marginBottom: 6, fontWeight: 400 }}>Card Details</h2>
+            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginBottom: 28 }}>Fill in who this card is for. If it's for you, use your own details.</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <DarkField label="Your Name" value={form.buyerName} onChange={v => setForm(p => ({ ...p, buyerName: v }))} placeholder="Full name" />
-              <DarkField label="Your Phone Number" value={form.buyerPhone} onChange={v => setForm(p => ({ ...p, buyerPhone: v }))} placeholder="0XX XXX XXXX" type="tel" />
-              <DarkField label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — receipt will be sent here" type="email" />
+              {/* Card recipient section */}
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 20, border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#C8A97E", marginBottom: 16 }}>CARD RECIPIENT</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this card for?" />
+                  <DarkField label="Recipient Phone" value={form.recipientPhone} onChange={v => setForm(p => ({ ...p, recipientPhone: v }))} placeholder="0XX XXX XXXX — links card to their account" type="tel" />
+                  {deliveryType === "email" && !selectedPromo && (
+                    <DarkField label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="Card will be sent here" type="email" />
+                  )}
+                </div>
+              </div>
 
+              {/* Personal message */}
               {deliveryType === "email" && !selectedPromo && (
-                <>
-                  <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)" }}>RECIPIENT DETAILS</div>
-                  <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this for?" />
-                  <DarkField label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="recipient@email.com" type="email" />
                   <div>
                     <label className="gc-label">PERSONAL MESSAGE (OPTIONAL)</label>
                     <textarea
                       value={form.message}
                       onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
-                      placeholder="Add a personal message..."
+                      placeholder="Write something personal..."
                       rows={3}
-                      className="gc-input"
+                      className="gc-inp"
                       style={{ resize: "vertical" }}
                     />
                   </div>
-                </>
               )}
+
+              {/* Buyer email — always shown */}
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 20, border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#C8A97E", marginBottom: 16 }}>YOUR DETAILS</div>
+                <DarkField label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — purchase receipt sent here" type="email" />
+              </div>
             </div>
 
             <button className="gc-btn"
@@ -614,7 +624,7 @@ function DarkField({ label, value, onChange, placeholder, type = "text" }: {
 }) {
   return (
     <div>
-      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.45)", display: "block", marginBottom: 7 }}>{label.toUpperCase()}</label>
+      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 7 }}>{label.toUpperCase()}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-inp" />
     </div>
   );
