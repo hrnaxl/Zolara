@@ -47,9 +47,9 @@ export default async function handler(req, res) {
     } else {
       // ── STANDARD TIER: find pre-printed card ──
       if (!tier) return res.status(400).json({ error: "Missing tier" });
-      // Match by tier only — assign oldest available card, then update its amount to what was actually paid
+      // Match by tier AND exact amount paid — cards are pre-printed at the current price
       const paidAmount = Number(amount) || TV[tier] || 0;
-      findUrl = `${SB}/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&promo_type_id=is.null&order=created_at.asc&limit=1&select=id,code,serial_number,tier,amount,balance`;
+      findUrl = `${SB}/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&promo_type_id=is.null&amount=eq.${paidAmount}&order=created_at.asc&limit=1&select=id,code,serial_number,tier,amount,balance`;
       const findRes = await fetch(findUrl, { headers: H });
       const found = await findRes.json();
 
@@ -57,9 +57,9 @@ export default async function handler(req, res) {
         card = found[0];
         await fetch(`${SB}/gift_cards?id=eq.${card.id}`, {
           method: "PATCH", headers: H,
-          body: JSON.stringify({ payment_status: "pending_pickup", amount: paidAmount, balance: paidAmount, buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: note }),
+          body: JSON.stringify({ payment_status: "pending_pickup", buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: note }),
         });
-        return res.status(200).json({ claimed: true, card: { ...card, amount: paidAmount, balance: paidAmount, payment_status: "pending_pickup" } });
+        return res.status(200).json({ claimed: true, card: { ...card, payment_status: "pending_pickup" } });
       }
 
       // No stock — create placeholder
