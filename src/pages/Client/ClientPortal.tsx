@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
-import { normalizePhoneGhana } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { LayoutDashboard, Calendar, Star, Scissors, User, LogOut, Menu, X, ChevronRight } from "lucide-react";
@@ -41,47 +40,26 @@ export default function ClientPortal() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Phone token auth — check localStorage first
+    // Phone token auth — use backend API (bypasses RLS)
     const clientToken = localStorage.getItem("zolara_client_token");
     const clientPhone = localStorage.getItem("zolara_client_phone");
     if (clientToken && clientPhone) {
       (async () => {
         try {
-          const { intl, local } = normalizePhoneGhana(clientPhone);
-          // clientPhone is now stored as local format (0XXXXXXXXX)
-          // but we check both to handle any legacy 233 format tokens
-
-          // 1. Try clients table (both formats)
-          let { data: found } = await (supabase as any)
-            .from("clients").select("*")
-            .or(`phone.eq.${local},phone.eq.${intl}`)
-            .limit(1).maybeSingle();
-
-          // 2. Not in clients table — look up name from bookings
-          if (!found) {
-            const { data: booking } = await (supabase as any)
-              .from("bookings").select("client_name, client_phone")
-              .or(`client_phone.eq.${local},client_phone.eq.${intl}`)
-              .not("client_name", "is", null)
-              .limit(1).maybeSingle();
-
-            const nameFromBooking = booking?.client_name || "Zolara Client";
-            const { data: nc } = await (supabase as any).from("clients").insert({
-              phone: local, name: nameFromBooking,
-              loyalty_points: 0, total_visits: 0, total_spent: 0,
-            }).select().single().catch(() => ({ data: null }));
-            found = nc;
+          const res = await fetch("/api/client-me", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: clientToken, phone: clientPhone }),
+          });
+          if (res.status === 401) {
+            // Session expired — clear and redirect to login
+            localStorage.removeItem("zolara_client_token");
+            localStorage.removeItem("zolara_client_phone");
+            navigate("/client-login");
+            return;
           }
-
-          if (found) {
-            setClient(found);
-            // 3. Backfill client_id on all their bookings
-            await (supabase as any).from("bookings")
-              .update({ client_id: found.id })
-              .or(`client_phone.eq.${local},client_phone.eq.${intl}`)
-              .is("client_id", null)
-              .catch(() => {});
-          }
+          const d = await res.json();
+          if (d.client) setClient(d.client);
         } catch { /* fail silently */ }
         setClientLoading(false);
       })();
