@@ -280,16 +280,13 @@ export const fetchClientPayments = async (clientId: string) => {
 
 // ── Phone normalization ─────────────────────────────────────
 export function normalizePhoneGhana(raw: string): { intl: string; local: string } {
-  const digits = (raw || "").replace(/\D/g, "");
-  let intl: string;
-  if (digits.startsWith("233") && digits.length >= 12) {
-    intl = digits;
-  } else if (digits.startsWith("0") && digits.length === 10) {
-    intl = "233" + digits.slice(1);
-  } else {
-    intl = digits;
-  }
-  const local = intl.startsWith("233") ? "0" + intl.slice(3) : intl;
+  const d = (raw || "").replace(/\D/g, "");
+  let local: string;
+  if (d.startsWith("233") && d.length >= 12) local = "0" + d.slice(3);
+  else if (d.startsWith("0") && d.length === 10) local = d;
+  else if (d.length === 9) local = "0" + d;
+  else local = d;
+  const intl = local.startsWith("0") ? "233" + local.slice(1) : local;
   return { intl, local };
 }
 

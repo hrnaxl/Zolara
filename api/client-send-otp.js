@@ -11,21 +11,16 @@ function sbHeaders() {
   };
 }
 
-function normalizePhone(raw) {
-  // Return intl format for SMS sending only
-  let p = (raw || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  if (p.startsWith("+233")) p = "233" + p.slice(4);
-  else if (p.startsWith("0")) p = "233" + p.slice(1);
-  if (!p.startsWith("233")) p = "233" + p;
-  return p;
+function toLocal(raw) {
+  const d = (raw || "").replace(/\D/g, "");
+  if (d.startsWith("233") && d.length >= 12) return "0" + d.slice(3);
+  if (d.startsWith("0") && d.length === 10) return d;
+  if (d.length === 9) return "0" + d;
+  return d;
 }
-function toLocalPhone(raw) {
-  // Return 0XXXXXXXXX format for DB storage
-  let p = (raw || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  if (p.startsWith("+233")) p = "0" + p.slice(4);
-  else if (p.startsWith("233") && p.length >= 12) p = "0" + p.slice(3);
-  else if (!p.startsWith("0")) p = "0" + p;
-  return p;
+function toIntl(raw) {
+  const l = toLocal(raw);
+  return l.startsWith("0") ? "233" + l.slice(1) : l;
 }
 
 function genOTP() {
@@ -69,8 +64,8 @@ export default async function handler(req, res) {
     const { phone } = req.body || {};
     if (!phone) return res.status(400).json({ error: "Phone number required" });
 
-    const normalized = normalizePhone(phone); // intl for SMS
-    const normalizedLocal = toLocalPhone(phone); // local for DB
+    const normalizedLocal = toLocal(phone);
+    const normalized = toIntl(phone); // intl for Arkesel SMS
     if (normalized.length < 12) return res.status(400).json({ error: "Invalid phone number" });
 
     await ensureOTPTable();

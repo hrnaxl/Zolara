@@ -10,13 +10,12 @@ function sbHeaders() {
   };
 }
 
-function normalizePhone(raw) {
-  // Return 0XXXXXXXXX local format
-  let p = (raw || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  if (p.startsWith("+233")) p = "0" + p.slice(4);
-  else if (p.startsWith("233") && p.length >= 12) p = "0" + p.slice(3);
-  else if (!p.startsWith("0")) p = "0" + p;
-  return p;
+function toLocal(raw) {
+  const d = (raw || "").replace(/\D/g, "");
+  if (d.startsWith("233") && d.length >= 12) return "0" + d.slice(3);
+  if (d.startsWith("0") && d.length === 10) return d;
+  if (d.length === 9) return "0" + d;
+  return d;
 }
 
 function genToken() {
@@ -36,7 +35,7 @@ export default async function handler(req, res) {
     const { phone, code } = req.body || {};
     if (!phone || !code) return res.status(400).json({ error: "Phone and code required" });
 
-    const normalized = normalizePhone(phone);
+    const normalized = toLocal(phone);
 
     // Fetch matching OTP
     const otpRes = await fetch(
@@ -89,7 +88,7 @@ export default async function handler(req, res) {
 
     // Also try matching with leading 0 format
     if (!client) {
-      const localPhone = "0" + normalized.slice(3);
+      const localPhone = normalized; // already local format
       const r2 = await fetch(
         `${SB_URL}/rest/v1/clients?phone=eq.${encodeURIComponent(localPhone)}&limit=1`,
         { headers: sbHeaders() }

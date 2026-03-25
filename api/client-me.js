@@ -13,6 +13,7 @@ function toLocal(p) {
   const d = (p || "").replace(/\D/g, "");
   if (d.startsWith("233") && d.length >= 12) return "0" + d.slice(3);
   if (d.startsWith("0") && d.length === 10) return d;
+  if (d.length === 9) return "0" + d;
   return d;
 }
 

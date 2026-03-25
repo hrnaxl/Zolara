@@ -10,12 +10,11 @@ const TXT = "#1C160E";
 const TXT_M = "#78716C";
 
 function normalizePhone(raw: string): string {
-  // Always return local 0XXXXXXXXX format for storage and queries
-  let p = raw.replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  if (p.startsWith("+233")) p = "0" + p.slice(4);
-  else if (p.startsWith("233") && p.length >= 12) p = "0" + p.slice(3);
-  else if (!p.startsWith("0")) p = "0" + p;
-  return p;
+  const d = raw.replace(/\D/g, "");
+  if (d.startsWith("233") && d.length >= 12) return "0" + d.slice(3);
+  if (d.startsWith("0") && d.length === 10) return d;
+  if (d.length === 9) return "0" + d;
+  return d;
 }
 
 export default function ClientLogin() {

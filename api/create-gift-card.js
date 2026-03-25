@@ -2,6 +2,13 @@ const SB = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
 const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
 const H = { "apikey": SK, "Authorization": "Bearer " + SK, "Content-Type": "application/json", "Prefer": "return=representation" };
 const TV = { Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
+function toLocal(p) {
+  const d = (p || "").replace(/\D/g, "");
+  if (d.startsWith("233") && d.length >= 12) return "0" + d.slice(3);
+  if (d.startsWith("0") && d.length === 10) return d;
+  if (d.length === 9) return "0" + d;
+  return d;
+}
 const C = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const r4 = () => Array.from({length:4}, () => C[Math.floor(Math.random()*C.length)]).join("");
 
@@ -12,7 +19,8 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { tier, promoTypeId, promoName, amount: overrideAmount, buyerName, buyerEmail, buyerPhone, recipientName, recipientEmail, message } = req.body || {};
+  const { tier, promoTypeId, promoName, amount: overrideAmount, buyerName, buyerEmail, recipientName, recipientEmail, message } = req.body || {};
+  const buyerPhone = toLocal(req.body?.buyerPhone || "");
   if (!tier && !promoTypeId) return res.status(400).json({ error: "Missing tier or promoTypeId" });
 
   let amount, codePrefix, promoLabel = null;

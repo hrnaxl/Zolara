@@ -5,7 +5,9 @@ const H = { "Content-Type": "application/json", "apikey": SB_KEY, "Authorization
 function toLocal(p) {
   const d = (p || "").replace(/\D/g, "");
   if (d.startsWith("233") && d.length >= 12) return "0" + d.slice(3);
-  return d.startsWith("0") ? d : d;
+  if (d.startsWith("0") && d.length === 10) return d;
+  if (d.length === 9) return "0" + d;
+  return d;
 }
 
 export default async function handler(req, res) {
