@@ -214,7 +214,7 @@ export default function Settings() {
         service_categories: currentSettings.service_categories || [],
         staff_roles: currentSettings.staff_roles || [],
         staff_specialties: (currentSettings as any).staff_specialties || [],
-        gift_card_prices: (currentSettings as any).gift_card_prices || {},
+        gift_card_prices: (currentSettings as any).gift_card_prices || {}, // refreshed below
         landing_sections: (currentSettings as any).landing_sections || { show_gift_cards: true },
         promo_banner: (currentSettings as any).promo_banner || null,
         announcement: (currentSettings as any).announcement || null,
@@ -229,6 +229,14 @@ export default function Settings() {
         student_discount: Number((currentSettings as any).student_discount || 10),
         max_bookings_per_slot: Number((currentSettings as any).max_bookings_per_slot || 6),
       };
+
+      // Always fetch latest gift_card_prices from DB first so main save never clobbers them
+      try {
+        const { data: gcData } = await (supabase as any).from("settings").select("gift_card_prices").limit(1).maybeSingle();
+        if (gcData?.gift_card_prices) {
+          payload.gift_card_prices = gcData.gift_card_prices;
+        }
+      } catch { /* use whatever is in state */ }
 
       // DB column is text[] — store only enabled IDs e.g. ["cash","mobile_money"]
       const rawMethods = Array.isArray(payload.payment_methods) ? payload.payment_methods : [];
