@@ -118,6 +118,28 @@ export default function Attendance() {
         .select("*, staff:staff!staff_id(name, email)")
         .eq("date", selectedDate);
       if (error) throw error;
+
+      // Auto checkout: if viewing a past date, close any open records at closing time
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (selectedDate < todayStr) {
+        const openRecords = (data || []).filter((r: any) => r.check_in && !r.check_out);
+        if (openRecords.length > 0) {
+          // Set check_out to 20:00 on that date (salon closing time)
+          const autoCheckout = new Date(selectedDate + "T20:00:00").toISOString();
+          await Promise.all(openRecords.map((r: any) =>
+            (supabase as any).from("attendance").update({
+              check_out: autoCheckout,
+              status: "auto_checked_out",
+            }).eq("id", r.id)
+          ));
+          // Update local data so UI reflects immediately
+          openRecords.forEach((r: any) => {
+            r.check_out = autoCheckout;
+            r.status = "auto_checked_out";
+          });
+        }
+      }
+
       setAttendanceRecords((data as AR[]) || []);
     } catch (err) {
       console.error(err);
@@ -139,8 +161,11 @@ export default function Attendance() {
   let status: string;
   // Prefer explicit DB status when present (e.g. 'absent'),
   // fall back to deriving from check_out presence.
+  const todayForStatus = new Date().toISOString().slice(0, 10);
   if (!record) status = "Absent";
-  else if (record.status === 'absent') status = "Absent";
+  else if (record.status === "absent") status = "Absent";
+  else if (record.status === "auto_checked_out") status = "Auto Checkout";
+  else if (!record.check_out && selectedDate < todayForStatus) status = "Auto Checkout";
   else if (!record.check_out) status = "Checked In";
   else status = "Checked Out";
       if (status !== "Absent" && lateFlag) status = "Late";

@@ -87,16 +87,23 @@ export default function MyAttendance() {
     } finally { setClockingOut(false); }
   };
 
-  const duration = (checkIn: string, checkOut: string | null) => {
-    if (!checkOut) return "In progress";
+  const duration = (checkIn: string, checkOut: string | null, status?: string) => {
+    if (!checkOut) {
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const recordDate = checkIn.slice(0, 10);
+      return recordDate < todayStr ? "Auto checkout" : "In progress";
+    }
     const mins = differenceInMinutes(new Date(checkOut), new Date(checkIn));
     const h = Math.floor(mins / 60), m = mins % 60;
     return `${h}h ${m}m`;
   };
 
   const statusStyle = (r: AttendanceRecord) => {
-    if (!r.check_out) return { bg: "rgba(74,144,217,0.1)", color: "#2471A3", label: "Active" };
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const recordDate = r.check_in?.slice(0, 10) || "";
     if (r.status === "auto_checked_out") return { bg: "rgba(201,168,76,0.12)", color: "#8B6914", label: "Auto checkout" };
+    if (!r.check_out && recordDate < todayStr) return { bg: "rgba(201,168,76,0.12)", color: "#8B6914", label: "Auto checkout" };
+    if (!r.check_out) return { bg: "rgba(74,144,217,0.1)", color: "#2471A3", label: "Active" };
     return { bg: "rgba(76,175,125,0.1)", color: "#2E8A5E", label: "Complete" };
   };
 
@@ -196,7 +203,7 @@ export default function MyAttendance() {
                   <span style={{ fontSize: "13px", fontWeight: 500, color: TXT }}>{checkIn ? format(checkIn, "EEE, MMM d yyyy") : "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{checkIn ? format(checkIn, "h:mm a") : "—"}</span>
                   <span style={{ fontSize: "12px", color: TXT_MID }}>{checkOut ? format(checkOut, "h:mm a") : "—"}</span>
-                  <span style={{ fontSize: "12px", color: TXT_MID }}>{duration(r.check_in, r.check_out)}</span>
+                  <span style={{ fontSize: "12px", color: TXT_MID }}>{duration(r.check_in, r.check_out, r.status)}</span>
                   <span style={{ padding: "3px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: s.bg, color: s.color, whiteSpace: "nowrap", display: "inline-block" }}>{s.label}</span>
                 </div>
               );

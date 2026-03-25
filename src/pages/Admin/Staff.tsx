@@ -177,6 +177,13 @@ const Staff = () => {
           .in("status", ["confirmed", "in_progress", "pending"]),
       ]);
       if (staffRes.error) throw staffRes.error;
+      // One-time fix: remove "hairdresser" from Blessing's specialties if present
+      const blessing = (staffRes.data || []).find((s: any) => s.name?.toLowerCase().includes("blessing"));
+      if (blessing && (blessing.specialties || []).map((x: string) => x.toLowerCase()).includes("hairdresser")) {
+        const fixed = (blessing.specialties || []).filter((x: string) => x.toLowerCase() !== "hairdresser");
+        await (supabase as any).from("staff").update({ specialties: fixed }).eq("id", blessing.id);
+        blessing.specialties = fixed;
+      }
       setStaff(staffRes.data || []);
       setStaffRatings({});
       const counts: Record<string, number> = {};
