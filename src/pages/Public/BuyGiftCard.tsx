@@ -494,10 +494,11 @@ export default function BuyGiftCard() {
             </div>
 
             {/* Form card — light bg */}
-            <div style={{ background: "#FFFFFF", borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
+            <div style={{ background: "#FFFFFF", borderRadius: 20, overflow: "hidden", boxShadow: "0 0 0 1px rgba(200,169,126,0.3), 0 20px 60px rgba(0,0,0,0.4)" }}>
+              <div style={{ height: 3, background: "linear-gradient(90deg,#8B6914,#C8A97E,#8B6914)" }} />
 
               {/* Section: From */}
-              <div style={{ padding: "28px 28px 24px" }}>
+              <div style={{ padding: "28px 28px 24px", background: "#FFFEF C" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0 }}>1</div>
                   <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#1A1208" }}>FROM YOU</span>
