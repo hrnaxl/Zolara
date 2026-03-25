@@ -27,6 +27,9 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [pillVisible, setPillVisible] = useState(false);
   const [wordIdx, setWordIdx] = useState(0);
+  const [clientLoggedIn, setClientLoggedIn] = useState(() => {
+    try { return !!localStorage.getItem("zolara_client_token"); } catch { return false; }
+  });
 
   // Handle Supabase email confirmation tokens landing on homepage
   useEffect(() => {
@@ -550,9 +553,9 @@ export default function LandingPage() {
           <Link to="/client-login" style={{
             fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 600,
             letterSpacing: "0.14em", color: goldDark, textDecoration: "none",
-            display: localStorage?.getItem?.("zolara_client_token") ? "inline-flex" : "inline-flex",
+            display: "inline-flex",
             alignItems: "center", gap: 4, opacity: 0.8,
-          }}>{localStorage?.getItem?.("zolara_client_token") ? "My Account ↗" : "Sign In"}</Link>
+          }}>{clientLoggedIn ? "My Account ↗" : "Sign In"}</Link>
           <Link to="/book" className="btn-primary" style={{
             fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 700,
             letterSpacing: "0.14em", color: "#fff", textDecoration: "none",
