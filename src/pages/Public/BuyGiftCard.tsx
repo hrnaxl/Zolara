@@ -19,40 +19,12 @@ const TXT_MID = "#78716C";
 const BORDER = "#EDEBE5";
 
 const TIER_STYLES: Record<GiftCardTier, {
-  bg: string; shine: string; text: string; sub: string; pattern: string; badge: string;
+  gradient: string; glow: string; chip: string; desc: string; anim: string;
 }> = {
-  Silver: {
-    bg: "linear-gradient(145deg, #EEF4F8 0%, #C8D8E2 20%, #A8BEC8 45%, #88A4B2 65%, #6A8898 80%, #506C7C 100%)",
-    shine: "#E8F4F8",
-    text: "#1A2E3A",
-    sub: "rgba(26,46,58,0.6)",
-    pattern: "radial-gradient(ellipse at 78% 12%, rgba(255,255,255,0.6) 0%, transparent 55%), radial-gradient(ellipse at 15% 90%, rgba(180,210,225,0.4) 0%, transparent 40%)",
-    badge: "#2A4858",
-  },
-  Gold: {
-    bg: "linear-gradient(145deg, #FDF8E8 0%, #F0D070 15%, #D4A828 35%, #A07818 55%, #785008 75%, #4A2C02 100%)",
-    shine: "#FFF0A0",
-    text: "#180A00",
-    sub: "rgba(24,10,0,0.55)",
-    pattern: "radial-gradient(ellipse at 72% 10%, rgba(255,255,200,0.75) 0%, rgba(255,230,100,0.2) 35%, transparent 55%), radial-gradient(ellipse at 20% 92%, rgba(160,100,10,0.4) 0%, transparent 40%)",
-    badge: "#4A2800",
-  },
-  Platinum: {
-    bg: "linear-gradient(145deg, #222220 0%, #1A1A18 25%, #141412 50%, #0E0E0C 75%, #080806 100%)",
-    shine: "#C8A97E",
-    text: "#F5EFE6",
-    sub: "rgba(245,239,230,0.5)",
-    pattern: "radial-gradient(ellipse at 75% 15%, rgba(200,169,126,0.3) 0%, rgba(200,169,126,0.05) 40%, transparent 60%), radial-gradient(ellipse at 20% 85%, rgba(200,169,126,0.12) 0%, transparent 45%)",
-    badge: "#C8A97E",
-  },
-  Diamond: {
-    bg: "linear-gradient(145deg, #0C0A28 0%, #141240 20%, #1C1858 38%, #221E6A 52%, #18147C 65%, #100C5A 80%, #080620 100%)",
-    shine: "#A5B4FC",
-    text: "#E8EEFF",
-    sub: "rgba(232,238,255,0.5)",
-    pattern: "radial-gradient(ellipse at 70% 12%, rgba(200,210,255,0.5) 0%, rgba(140,160,255,0.15) 35%, transparent 55%), radial-gradient(ellipse at 25% 85%, rgba(120,80,255,0.25) 0%, transparent 45%)",
-    badge: "#818CF8",
-  },
+  Silver:   { gradient: "linear-gradient(145deg,#6B6B6B,#B8B8B8,#555)", glow: "rgba(180,180,180,0.15)", chip: "#9CA3AF", desc: "A perfect treat. Covers a wash, nail set or lashes.", anim: "gcFloat 5s ease-in-out infinite" },
+  Gold:     { gradient: "linear-gradient(145deg,#6B4E0A,#C8A97E,#8B6914)", glow: "rgba(200,169,126,0.2)", chip: "#C8A97E", desc: "A full pampering session. Braids, manicure and more.", anim: "gcFloat2 5.5s ease-in-out infinite 0.4s" },
+  Platinum: { gradient: "linear-gradient(145deg,#2D3A45,#6B8090,#1E2830)", glow: "rgba(107,128,144,0.15)", chip: "#94A3B8", desc: "Premium luxury. A full day of indulgence.", anim: "gcFloat 6s ease-in-out infinite 0.2s" },
+  Diamond:  { gradient: "linear-gradient(145deg,#1a1660,#5B54C8,#12104A)", glow: "rgba(99,102,241,0.25)", chip: "#818CF8", desc: "The ultimate gift. Use across 3 visits. Balance carries forward.", anim: "gcFloat3 4.5s ease-in-out infinite 0.6s" },
 };
 
 const PROMO_GRADS: Record<string, string> = {
@@ -69,73 +41,60 @@ const PROMO_GRADS: Record<string, string> = {
 const LOGO_URL = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
 
 function GiftCard({
-  bg, shine, text, sub, pattern, badge, label, amount, selected, promo = false,
+  gradient, glow, chip, desc, label, amount, selected, promo = false, promoDesc,
 }: {
-  bg: string; shine: string; text: string; sub: string; pattern: string; badge: string;
-  label: string; amount: number; selected: boolean; promo?: boolean;
+  gradient: string; glow: string; chip: string; desc: string;
+  label: string; amount: number; selected: boolean; promo?: boolean; promoDesc?: string;
 }) {
   return (
-    <div className="gc-card" style={{
-      position: "relative", borderRadius: 18, overflow: "hidden",
-      aspectRatio: "1.586 / 1",
-      background: bg,
+    <div style={{
+      position: "relative", overflow: "hidden", borderRadius: 14,
+      padding: "28px 24px",
+      background: gradient,
       boxShadow: selected
-        ? `0 28px 64px rgba(0,0,0,0.55), 0 0 0 2.5px ${shine}`
-        : "0 8px 32px rgba(0,0,0,0.3)",
-      transform: selected ? "translateY(-6px) scale(1.02)" : "none",
+        ? `0 28px 60px ${glow.replace('0.', '0.4').replace('rgba', 'rgba')}, 0 0 0 2.5px rgba(255,255,255,0.25)`
+        : `0 20px 48px ${glow}, 0 2px 8px rgba(0,0,0,0.4)`,
+      transform: selected ? "translateY(-8px) scale(1.02)" : "none",
+      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+      cursor: "pointer",
     }}>
-      {/* Pattern overlay */}
-      <div style={{ position: "absolute", inset: 0, background: pattern, zIndex: 1, pointerEvents: "none" }} />
-      {/* Top sheen */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "45%", background: "linear-gradient(180deg, rgba(255,255,255,0.13) 0%, transparent 100%)", zIndex: 2, pointerEvents: "none" }} />
+      {/* Gloss overlay — same as landing page ::after */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(255,255,255,0.06) 0%,transparent 60%)", pointerEvents: "none" }} />
+      {/* Decorative circles */}
+      <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -12, left: -12, width: 50, height: 50, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
 
-      <div style={{ position: "absolute", inset: 0, padding: "20px 24px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 3 }}>
-        {/* Top row: logo + tier badge */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <img
-              src={LOGO_URL}
-              alt="Zolara"
-              style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: `1.5px solid ${badge}66`, flexShrink: 0 }}
-              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-            <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14, letterSpacing: "0.08em", color: text, fontWeight: 600, lineHeight: 1 }}>
-                Zolara
-              </div>
-              <div style={{ fontSize: 7, letterSpacing: "0.28em", color: sub, marginTop: 1.5, fontWeight: 700, textTransform: "uppercase" }}>
-                Beauty Studio
-              </div>
-            </div>
+      {/* Top row: tier chip + logo */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, position: "relative" }}>
+        <div>
+          <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 8, letterSpacing: "0.22em", color: "rgba(255,255,255,0.5)", marginBottom: 8, fontWeight: 600 }}>
+            {promo ? "SPECIAL EDITION" : "ZOLARA"}
           </div>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.18em", color: badge, border: `1px solid ${badge}88`, padding: "4px 10px", borderRadius: 20, background: `${badge}15` }}>
+          <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", padding: "4px 10px", borderRadius: 20, display: "inline-block", background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)", border: `1px solid ${chip}44` }}>
             {label.toUpperCase()}
           </div>
         </div>
-
-        {/* Centre flourish */}
-        <div style={{ textAlign: "center", opacity: 0.1, pointerEvents: "none" }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 56, color: text, lineHeight: 1, fontWeight: 300, fontStyle: "italic" }}>✦</div>
-        </div>
-
-        {/* Bottom: value + url */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, fontWeight: 700, color: shine, lineHeight: 1, letterSpacing: "-0.01em" }}>
-              GH₵ {amount.toLocaleString()}
-            </div>
-            <div style={{ fontSize: 8, letterSpacing: "0.2em", color: sub, marginTop: 4, fontWeight: 600, textTransform: "uppercase" }}>
-              {promo ? `${label} · Special Edition` : "Gift Card · Valid 12 Months"}
-            </div>
-          </div>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, color: sub, letterSpacing: "0.06em", fontStyle: "italic" }}>
-            zolarasalon.com
-          </div>
+        <div style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.3)", overflow: "hidden", background: "#fff", flexShrink: 0 }}>
+          <img src={LOGO_URL} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
       </div>
+
+      {/* Amount */}
+      <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(28px,3vw,38px)", fontWeight: 300, color: "white", lineHeight: 1, marginBottom: 14, letterSpacing: "-0.01em" }}>
+        GH₵ {amount.toLocaleString()}
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, background: "rgba(255,255,255,0.12)", marginBottom: 14 }} />
+
+      {/* Description */}
+      <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 12, color: "rgba(255,255,255,0.62)", lineHeight: 1.65, fontWeight: 400, margin: 0 }}>
+        {promoDesc || desc}
+      </p>
     </div>
   );
 }
+
 
 type Step = "select" | "details" | "confirm" | "done";
 
@@ -274,6 +233,9 @@ export default function BuyGiftCard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes gcFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes gcFloat2 { 0%,100%{transform:translateY(0) rotate(1.5deg)} 50%{transform:translateY(-6px) rotate(1.5deg)} }
+        @keyframes gcFloat3 { 0%,100%{transform:translateY(0) rotate(-0.5deg)} 50%{transform:translateY(-10px) rotate(-0.5deg)} }
         @keyframes shimmer { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
         .gc-card-wrap { animation: fadeUp 0.4s ease both; }
         .gc-card-wrap:nth-child(1) { animation-delay: 0.05s; }
@@ -330,11 +292,9 @@ export default function BuyGiftCard() {
                       <div key={pt.id} className="gc-card-wrap"
                         onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); setDeliveryType("physical"); }}>
                         <GiftCard
-                          bg={grad} shine="rgba(255,255,255,0.92)"
-                          text="#FFFFFF" sub="rgba(255,255,255,0.65)"
-                          pattern="radial-gradient(ellipse at 75% 20%, rgba(255,255,255,0.25) 0%, transparent 55%)"
-                          badge="rgba(255,255,255,0.7)"
-                          label={pt.name} amount={pt.amount} selected={sel} promo
+                          gradient={grad} glow="rgba(0,0,0,0.2)" chip="rgba(255,255,255,0.7)"
+                          desc={pt.description || "A special gift for a special occasion."}
+                          label={pt.name} amount={pt.amount} selected={sel} promo promoDesc={pt.description}
                         />
                         <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
                           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{pt.name}</span>
@@ -365,8 +325,7 @@ export default function BuyGiftCard() {
                   <div key={tier} className="gc-card-wrap"
                     onClick={() => { setSelectedTier(tier); setSelectedPromo(null); setDeliveryType("email"); }}>
                     <GiftCard
-                      bg={s.bg} shine={s.shine} text={s.text}
-                      sub={s.sub} pattern={s.pattern} badge={s.badge}
+                      gradient={s.gradient} glow={s.glow} chip={s.chip} desc={s.desc}
                       label={GIFT_CARD_TIERS[tier].label} amount={val} selected={selected}
                     />
                     <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
@@ -457,8 +416,6 @@ export default function BuyGiftCard() {
 
         {/* STEP: CONFIRM */}
         {step === "confirm" && (selectedTier || selectedPromo) && (() => {
-          const confirmBg = selectedPromo ? (PROMO_GRADS[selectedPromo.theme] || PROMO_GRADS.gold) : TIER_STYLES[selectedTier!].bg;
-          const confirmS = selectedPromo ? { shine: "rgba(255,255,255,0.92)", text: "#FFFFFF", sub: "rgba(255,255,255,0.65)", pattern: "radial-gradient(ellipse at 75% 20%, rgba(255,255,255,0.2) 0%, transparent 55%)", badge: "rgba(255,255,255,0.7)" } : TIER_STYLES[selectedTier!];
           const confirmLabel = selectedPromo ? selectedPromo.name : (tierConfig?.label || "");
           const confirmAmount = selectedPromo ? selectedPromo.amount : getTierValue(selectedTier!);
           return (
@@ -471,10 +428,10 @@ export default function BuyGiftCard() {
               {/* Full-size card preview */}
               <div style={{ marginBottom: 28 }}>
                 <GiftCard
-                  bg={confirmBg} shine={confirmS.shine}
-                  text={confirmS.text} sub={confirmS.sub}
-                  pattern={confirmS.pattern || "radial-gradient(ellipse at 75% 20%, rgba(255,255,255,0.2) 0%, transparent 55%)"}
-                  badge={confirmS.badge || "#C8A97E"}
+                  gradient={selectedPromo ? (PROMO_GRADS[selectedPromo.theme] || PROMO_GRADS.gold) : TIER_STYLES[selectedTier!].gradient}
+                  glow={selectedPromo ? "rgba(0,0,0,0.2)" : TIER_STYLES[selectedTier!].glow}
+                  chip={selectedPromo ? "rgba(255,255,255,0.7)" : TIER_STYLES[selectedTier!].chip}
+                  desc={selectedPromo ? (selectedPromo.description || "") : TIER_STYLES[selectedTier!].desc}
                   label={confirmLabel} amount={confirmAmount} selected promo={!!selectedPromo}
                 />
               </div>
