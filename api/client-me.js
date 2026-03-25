@@ -55,16 +55,37 @@ export default async function handler(req, res) {
     const session = sessions[0];
     if (new Date(session.expires_at) < new Date()) return res.status(401).json({ error: "Session expired" });
 
-    // Find client record by phone (both formats)
-    let clients = await sb(`clients?or=(phone.eq.${local},phone.eq.${intl})&limit=1`);
-    let client = clients?.[0] || null;
+    // Find client record — search by phone AND via bookings client_id
+    let byPhone = await sb(`clients?or=(phone.eq.${local},phone.eq.${intl})&limit=10`);
+    byPhone = Array.isArray(byPhone) ? byPhone : [];
 
-    // No client record — look up name from bookings and create one
+    // Also find via bookings — handles case where admin stored phone differently
+    const linkedBooking = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&client_id=not.is.null&select=client_id&limit=1`);
+    const linkedId = Array.isArray(linkedBooking) && linkedBooking[0]?.client_id ? linkedBooking[0].client_id : null;
+    let byBooking = [];
+    if (linkedId) {
+      const r = await sb(`clients?id=eq.${linkedId}&limit=1`);
+      byBooking = Array.isArray(r) ? r : [];
+    }
+
+    // Merge all found records, pick the one with most loyalty_points
+    const all = [...byPhone, ...byBooking];
+    const seen = new Set();
+    const unique = all.filter(r => { if (!r?.id || seen.has(r.id)) return false; seen.add(r.id); return true; });
+    let client = unique.sort((a, b) => (b.loyalty_points || 0) - (a.loyalty_points || 0))[0] || null;
+
+    // No client record at all — create one from booking name
     if (!client) {
       const bookings = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&select=client_name&limit=1`);
       const name = bookings?.[0]?.client_name || "Zolara Client";
       const newClient = await sbPost("clients", { phone: local, name, loyalty_points: 0, total_visits: 0, total_spent: 0 });
       client = Array.isArray(newClient) ? newClient[0] : newClient;
+    }
+    
+    // If client found but has wrong/missing phone, update it to local format
+    if (client && !client.phone) {
+      await sbPatch(`clients?id=eq.${client.id}`, { phone: local });
+      client = { ...client, phone: local };
     }
 
     if (!client) return res.status(200).json({ client: null, bookings: [], giftCards: [] });
