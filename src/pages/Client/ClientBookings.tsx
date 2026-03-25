@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhoneGhana } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, Clock, Filter, Search } from "lucide-react";
 
@@ -35,12 +36,17 @@ export default function ClientBookings() {
   const [search, setSearch]     = useState("");
 
   useEffect(() => {
-    if (!client?.id) return;
-    (supabase as any).from("bookings")
-      .select("*")
-      .eq("client_id", client.id)
-      .order("preferred_date", { ascending: false })
-      .then(({ data }: any) => { setBookings(data || []); setLoading(false); });
+    if (!client?.id && !client?.phone) return;
+    const q = (supabase as any).from("bookings").select("*").order("preferred_date", { ascending: false });
+    let query;
+    if (client?.id) {
+      const { intl, local } = normalizePhoneGhana(client.phone || "");
+      query = q.or(`client_id.eq.${client.id},client_phone.eq.${intl},client_phone.eq.${local}`);
+    } else {
+      const { intl, local } = normalizePhoneGhana(client.phone || "");
+      query = q.or(`client_phone.eq.${intl},client_phone.eq.${local}`);
+    }
+    query.then(({ data }: any) => { setBookings(data || []); setLoading(false); });
   }, [client]);
 
   const today = format(new Date(), "yyyy-MM-dd");

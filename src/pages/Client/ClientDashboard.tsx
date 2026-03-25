@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhoneGhana } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, Star, Scissors, Clock, ArrowRight, Sparkles } from "lucide-react";
 
@@ -43,13 +44,18 @@ export default function ClientDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!client?.id) return;
-    (supabase as any).from("bookings")
-      .select("id, service_name, preferred_date, preferred_time, status, price, deposit_paid")
-      .eq("client_id", client.id)
-      .order("preferred_date", { ascending: false })
-      .limit(20)
-      .then(({ data }: any) => { setBookings(data || []); setLoading(false); });
+    if (!client?.id && !client?.phone) return;
+    const buildQuery = () => {
+      const q = (supabase as any).from("bookings")
+        .select("id, service_name, preferred_date, preferred_time, status, price, deposit_paid")
+        .order("preferred_date", { ascending: false })
+        .limit(20);
+      if (client?.id) return q.eq("client_id", client.id);
+      // Fallback: match by phone if no client_id yet
+      const { intl, local } = normalizePhoneGhana(client.phone || "");
+      return q.or(`client_id.eq.${client.id || "00000000-0000-0000-0000-000000000000"},client_phone.eq.${intl},client_phone.eq.${local}`);
+    };
+    buildQuery().then(({ data }: any) => { setBookings(data || []); setLoading(false); });
   }, [client]);
 
   if (!client) return (

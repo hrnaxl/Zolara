@@ -47,19 +47,37 @@ export default function ClientPortal() {
       (async () => {
         try {
           const { intl, local } = normalizePhoneGhana(clientPhone);
-          const { data: found } = await (supabase as any)
+
+          // 1. Try clients table first (both phone formats)
+          let { data: found } = await (supabase as any)
             .from("clients").select("*")
             .or(`phone.eq.${intl},phone.eq.${local}`)
             .limit(1).maybeSingle();
-          if (found) {
-            setClient(found);
-          } else {
-            const { intl: i2, local: l2 } = normalizePhoneGhana(clientPhone);
+
+          // 2. If no client record, look up their name from bookings and create one
+          if (!found) {
+            const { data: booking } = await (supabase as any)
+              .from("bookings").select("client_name, client_phone")
+              .or(`client_phone.eq.${intl},client_phone.eq.${local}`)
+              .not("client_name", "is", null)
+              .limit(1).maybeSingle();
+
+            const nameFromBooking = booking?.client_name || "Zolara Client";
             const { data: nc } = await (supabase as any).from("clients").insert({
-              phone: l2, name: "Zolara Client",
+              phone: local, name: nameFromBooking,
               loyalty_points: 0, total_visits: 0, total_spent: 0,
             }).select().single().catch(() => ({ data: null }));
-            if (nc) setClient(nc);
+            found = nc;
+          }
+
+          if (found) {
+            setClient(found);
+            // 3. Backfill client_id on all their bookings that are missing it
+            await (supabase as any).from("bookings")
+              .update({ client_id: found.id })
+              .or(`client_phone.eq.${intl},client_phone.eq.${local}`)
+              .is("client_id", null)
+              .catch(() => {});
           }
         } catch { /* fail silently */ }
         setClientLoading(false);
