@@ -1,3 +1,26 @@
+
+// ── Phone normalization ─────────────────────────────────────
+// Accepts 0249978750, 233249978750, +233249978750 — returns both formats
+export function normalizePhoneGhana(raw: string): { intl: string; local: string } {
+  const digits = (raw || "").replace(/\D/g, "");
+  let intl: string;
+  if (digits.startsWith("233") && digits.length >= 12) {
+    intl = digits;
+  } else if (digits.startsWith("0") && digits.length === 10) {
+    intl = "233" + digits.slice(1);
+  } else {
+    intl = digits; // unknown format — return as-is
+  }
+  const local = intl.startsWith("233") ? "0" + intl.slice(3) : intl;
+  return { intl, local };
+}
+
+// Build a Supabase OR filter that matches both phone formats
+export function phoneOrFilter(raw: string): string {
+  const { intl, local } = normalizePhoneGhana(raw);
+  return `phone.eq.${intl},phone.eq.${local}`;
+}
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 

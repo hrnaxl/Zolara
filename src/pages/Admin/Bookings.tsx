@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { normalizePhoneGhana } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
@@ -80,7 +81,10 @@ export default function Bookings() {
 
       let q = supabase.from("bookings").select("*", { count: "exact" });
       if (f !== "all") q = q.eq("status", f);
-      if (s.trim()) q = q.or(`client_name.ilike.%${s}%,booking_ref.ilike.%${s}%,service_name.ilike.%${s}%,client_phone.ilike.%${s}%`);
+      if (s.trim()) {
+        const { intl, local } = normalizePhoneGhana(s.trim());
+        q = q.or(`client_name.ilike.%${s}%,booking_ref.ilike.%${s}%,service_name.ilike.%${s}%,client_phone.ilike.%${s}%,client_phone.eq.${intl},client_phone.eq.${local}`);
+      }
       if (df === "today")     q = q.eq("preferred_date", todayStr);
       if (df === "yesterday") q = q.eq("preferred_date", yesterdayStr);
       if (df === "week")      q = q.gte("preferred_date", weekStart).lte("preferred_date", todayStr);

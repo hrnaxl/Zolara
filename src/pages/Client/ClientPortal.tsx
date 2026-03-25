@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 import { useNavigate, Link, useLocation, Outlet } from "react-router-dom";
+import { normalizePhoneGhana } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { LayoutDashboard, Calendar, Star, Scissors, User, LogOut, Menu, X, ChevronRight } from "lucide-react";
@@ -45,23 +46,23 @@ export default function ClientPortal() {
     if (clientToken && clientPhone) {
       (async () => {
         try {
-          const localFmt = clientPhone.startsWith("233") ? "0" + clientPhone.slice(3) : clientPhone;
-          const [r1, r2] = await Promise.all([
-            (supabase as any).from("clients").select("*").eq("phone", clientPhone).maybeSingle(),
-            (supabase as any).from("clients").select("*").eq("phone", localFmt).maybeSingle(),
-          ]);
-          const found = r1.data || r2.data;
+          const { intl, local } = normalizePhoneGhana(clientPhone);
+          const { data: found } = await (supabase as any)
+            .from("clients").select("*")
+            .or(`phone.eq.${intl},phone.eq.${local}`)
+            .limit(1).maybeSingle();
           if (found) {
             setClient(found);
           } else {
+            const { intl: i2, local: l2 } = normalizePhoneGhana(clientPhone);
             const { data: nc } = await (supabase as any).from("clients").insert({
-              phone: localFmt, name: "Zolara Client",
+              phone: l2, name: "Zolara Client",
               loyalty_points: 0, total_visits: 0, total_spent: 0,
             }).select().single().catch(() => ({ data: null }));
             if (nc) setClient(nc);
           }
         } catch { /* fail silently */ }
-        setLoading(false);
+        setClientLoading(false);
       })();
       return;
     }
