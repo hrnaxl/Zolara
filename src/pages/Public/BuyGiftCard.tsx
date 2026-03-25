@@ -188,11 +188,41 @@ export default function BuyGiftCard() {
         setPricesLoaded(true);
       })
       .catch(() => setPricesLoaded(true));
-    // Use service-role API to bypass RLS on promo_gift_card_types
+    // Try service-role API first, fallback to direct Supabase if it fails
     fetch("/api/public-promo-cards")
-      .then(r => r.json())
-      .then(data => setPromoTypes(Array.isArray(data) ? data : []))
-      .catch(() => setPromoTypes([]));
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const promos = Array.isArray(data) ? data : [];
+        if (promos.length === 0) {
+          // Fallback: try direct query (works if RLS allows public read)
+          return (supabase as any)
+            .from("promo_gift_card_types")
+            .select("*")
+            .then(({ data: d }: any) => {
+              const now = new Date();
+              setPromoTypes((d || []).filter((p: any) => {
+                if (p.is_active === false) return false;
+                if (p.expires_at && new Date(p.expires_at) < now) return false;
+                if (p.max_uses && p.uses_count >= p.max_uses) return false;
+                return true;
+              }));
+            });
+        }
+        setPromoTypes(promos);
+      })
+      .catch(() => {
+        // Final fallback: direct Supabase
+        (supabase as any).from("promo_gift_card_types").select("*")
+          .then(({ data: d }: any) => {
+            const now = new Date();
+            setPromoTypes((d || []).filter((p: any) => {
+              if (p.is_active === false) return false;
+              if (p.expires_at && new Date(p.expires_at) < now) return false;
+              if (p.max_uses && p.uses_count >= p.max_uses) return false;
+              return true;
+            }));
+          }).catch(() => {});
+      });
   }, []);
 
   const getTierValue = (tier: string) => {
