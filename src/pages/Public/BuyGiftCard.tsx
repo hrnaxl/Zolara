@@ -355,7 +355,7 @@ export default function BuyGiftCard() {
         .gc-btn:active { transform: translateY(0); }
         
         .gc-input:focus { border-color: #C8A97E; }
-        .gc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: #6B5D52; display: block; margin-bottom: 6px; }
+        .gc-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8B7355; display: block; margin-bottom: 8px; }
       `}</style>
 
       {/* Header */}
@@ -480,58 +480,89 @@ export default function BuyGiftCard() {
 
         {/* STEP: DETAILS */}
         {step === "details" && (selectedTier || selectedPromo) && (
-          <div style={{ animation: "fadeUp 0.3s ease", background: "#FFFFFF", borderRadius: 20, padding: "clamp(20px,4vw,36px)", border: "1px solid #DDD8D0", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-            <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: "#8B6914", cursor: "pointer", fontSize: 13, marginBottom: 24, padding: 0, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+          <div style={{ animation: "fadeUp 0.35s ease" }}>
+
+            {/* Back + heading */}
+            <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: "#C8A97E", cursor: "pointer", fontSize: 12, marginBottom: 32, padding: 0, display: "flex", alignItems: "center", gap: 6, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>
               ← Back
             </button>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#1C160E", marginBottom: 6, fontWeight: 300 }}>Card Details</h2>
-            <p style={{ color: "#6B5D52", fontSize: 13, marginBottom: 24 }}>Fill in who this card is for. Use your own details if it's for you.</p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Sender section */}
-              <div style={{ background: "#F7F5F2", borderRadius: 12, padding: 18, border: "1px solid #E0DDD8", marginBottom: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#6B5D52", marginBottom: 14 }}>YOUR NAME</div>
-                <DarkField label="Your Name" value={form.senderName} onChange={v => setForm(p => ({ ...p, senderName: v }))} placeholder="Your full name — shown on the card" />
+            <div style={{ marginBottom: 36 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.22em", color: "#C8A97E", marginBottom: 8 }}>STEP 2 OF 3</div>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(28px,5vw,38px)", color: "#F5EFE6", marginBottom: 8, fontWeight: 300, lineHeight: 1.1 }}>Card Details</h2>
+              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>Fill in who this card is for.</p>
+            </div>
+
+            {/* Form card — light bg */}
+            <div style={{ background: "#FFFFFF", borderRadius: 20, overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.15)" }}>
+
+              {/* Section: From */}
+              <div style={{ padding: "28px 28px 24px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0 }}>1</div>
+                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#1A1208" }}>FROM YOU</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <DarkField label="Your Name" value={form.senderName} onChange={v => setForm(p => ({ ...p, senderName: v }))} placeholder="Your full name" icon="✦" />
+                  <DarkField label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="receipt@email.com" type="email" icon="✉" />
+                  <p style={{ fontSize: 11, color: "#B5ADA5", margin: 0, lineHeight: 1.5 }}>Your purchase receipt will be sent here.</p>
+                </div>
               </div>
 
-              {/* Card recipient section */}
-              <div style={{ background: "#F7F5F2", borderRadius: 12, padding: 18, border: "1px solid #E0DDD8" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#6B5D52", marginBottom: 14 }}>CARD RECIPIENT</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this card for?" />
-                  <DarkField label="Recipient Phone" value={form.recipientPhone} onChange={v => setForm(p => ({ ...p, recipientPhone: v }))} placeholder="0XX XXX XXXX — links card to their account" type="tel" />
+              {/* Divider */}
+              <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #E8E0D4, transparent)", margin: "0 28px" }} />
+
+              {/* Section: To */}
+              <div style={{ padding: "24px 28px 28px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0 }}>2</div>
+                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#1A1208" }}>FOR THEM</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this for?" />
+                  <DarkField label="Recipient Phone" value={form.recipientPhone} onChange={v => setForm(p => ({ ...p, recipientPhone: v }))} placeholder="0XX XXX XXXX" type="tel" icon="📱" />
+                  <p style={{ fontSize: 11, color: "#B5ADA5", margin: 0, lineHeight: 1.5 }}>Their phone links this card to their Zolara account.</p>
                   {deliveryType === "email" && !selectedPromo && (
-                    <DarkField label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="Card will be sent here" type="email" />
+                    <DarkField label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="The card will be sent here" type="email" icon="✉" />
                   )}
                 </div>
               </div>
 
-              {/* Personal message */}
+              {/* Section: Message (email only) */}
               {deliveryType === "email" && !selectedPromo && (
-                  <div>
-                    <label className="gc-label">PERSONAL MESSAGE (OPTIONAL)</label>
+                <>
+                  <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #E8E0D4, transparent)", margin: "0 28px" }} />
+                  <div style={{ padding: "24px 28px 28px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0 }}>3</div>
+                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#1A1208" }}>PERSONAL MESSAGE <span style={{ fontWeight: 400, color: "#B5ADA5" }}>(optional)</span></span>
+                    </div>
                     <textarea
                       value={form.message}
                       onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
-                      placeholder="Write something personal..."
+                      placeholder="Write something heartfelt..."
                       rows={3}
                       className="gc-inp"
-                      style={{ resize: "vertical" }}
+                      style={{ resize: "none", lineHeight: 1.6 }}
                     />
                   </div>
+                </>
               )}
-
-              {/* Buyer email — always shown */}
-              <div style={{ background: "#F7F5F2", borderRadius: 12, padding: 18, border: "1px solid #E0DDD8" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#6B5D52", marginBottom: 14 }}>YOUR DETAILS</div>
-                <DarkField label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — purchase receipt sent here" type="email" />
-              </div>
             </div>
 
+            {/* CTA */}
             <button className="gc-btn"
               onClick={handleProceed}
-              style={{ width: "100%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", color: "white", border: "none", borderRadius: 12, padding: "16px", fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.08em", marginTop: 28 }}>
-              REVIEW ORDER →
+              style={{
+                width: "100%", marginTop: 20,
+                background: "linear-gradient(135deg, #5A3A00, #8B6914, #C8A97E)",
+                color: "#FFF8EE", border: "none", borderRadius: 14,
+                padding: "18px", fontSize: 12, fontWeight: 700,
+                cursor: "pointer", letterSpacing: "0.18em", textTransform: "uppercase",
+                fontFamily: "'Montserrat',sans-serif",
+                boxShadow: "0 8px 32px rgba(139,105,20,0.35)",
+              }}>
+              Review Order →
             </button>
           </div>
         )}
@@ -630,14 +661,18 @@ export default function BuyGiftCard() {
   );
 }
 
-function DarkField({ label, value, onChange, placeholder, type = "text" }: {
+function DarkField({ label, value, onChange, placeholder, type = "text", icon }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string;
+  placeholder?: string; type?: string; icon?: string;
 }) {
   return (
     <div>
-      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "#3D3128", display: "block", marginBottom: 6 }}>{label.toUpperCase()}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-inp" />
+      <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", color: "#7A6550", display: "block", marginBottom: 8 }}>{label}</label>
+      <div style={{ position: "relative" }}>
+        <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-inp"
+          style={icon ? { paddingRight: 40 } : {}} />
+        {icon && <span className="gc-field-icon">{icon}</span>}
+      </div>
     </div>
   );
 }
