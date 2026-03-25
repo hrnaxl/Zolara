@@ -47,9 +47,8 @@ export default async function handler(req, res) {
     } else {
       // ── STANDARD TIER: find pre-printed card ──
       if (!tier) return res.status(400).json({ error: "Missing tier" });
-      // Match by amount when provided — prevents old cards with different face value being assigned
-      const amountFilter = amount ? `&amount=eq.${Number(amount)}` : `&amount=eq.${TV[tier] || 0}`;
-      findUrl = `${SB}/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&promo_type_id=is.null${amountFilter}&order=created_at.asc&limit=1&select=id,code,serial_number,tier,amount,balance`;
+      // Match by tier only — pick oldest available card of that tier
+      findUrl = `${SB}/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&promo_type_id=is.null&order=created_at.asc&limit=1&select=id,code,serial_number,tier,amount,balance`;
       const findRes = await fetch(findUrl, { headers: H });
       const found = await findRes.json();
 
