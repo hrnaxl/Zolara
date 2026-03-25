@@ -36,6 +36,8 @@ export default function ClientPortal() {
   const location   = useLocation();
   useInactivityLogout(5 * 60 * 1000); // 5-minute inactivity logout for clients
   const [client, setClient]         = useState<any>(null);
+  const [clientBookings, setClientBookings] = useState<any[]>([]);
+  const [clientGiftCards, setClientGiftCards] = useState<any[]>([]);
   const [clientLoading, setClientLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -60,6 +62,8 @@ export default function ClientPortal() {
           }
           const d = await res.json();
           if (d.client) setClient(d.client);
+          if (d.bookings) setClientBookings(d.bookings);
+          if (d.giftCards) setClientGiftCards(d.giftCards);
         } catch { /* fail silently */ }
         setClientLoading(false);
       })();
@@ -241,7 +245,7 @@ export default function ClientPortal() {
               <p style={{ fontSize: 13, color: "#A8A29E", fontFamily: "'Montserrat',sans-serif" }}>Loading your account…</p>
             </div>
           ) : (
-            <Outlet context={{ client, setClient }} />
+            <Outlet context={{ client, setClient, clientBookings, clientGiftCards }} />
           )}
         </main>
       </div>

@@ -97,7 +97,8 @@ export async function autoAssignBooking(
       .in("status", ["confirmed", "in_progress"])
       .not("staff_id", "is", null);
 
-    const available = pool.find((s: any) =>
+    // Filter out staff with a conflict at this exact slot
+    const availablePool = pool.filter((s: any) =>
       !(existingBookings || []).some(
         (b: any) =>
           b.staff_id === s.id &&
@@ -106,7 +107,16 @@ export async function autoAssignBooking(
       )
     );
 
-    if (!available) return null;
+    if (availablePool.length === 0) return null;
+
+    // Load balance: sort by number of bookings on this date (fewest first)
+    const bookingsOnDate = (existingBookings || []).filter((b: any) => b.preferred_date === preferredDate);
+    const countMap: Record<string, number> = {};
+    for (const b of bookingsOnDate) {
+      if (b.staff_id) countMap[b.staff_id] = (countMap[b.staff_id] || 0) + 1;
+    }
+    availablePool.sort((a: any, b: any) => (countMap[a.id] || 0) - (countMap[b.id] || 0));
+    const available = availablePool[0];
 
     // 5. Assign
     const { error } = await (supabase as any)

@@ -22,11 +22,12 @@ const TIER_STYLES: Record<string, { bg: string; shine: string; text: string }> =
 };
 
 export default function ClientGiftCards() {
-  const { client } = useOutletContext<any>();
+  const { client, clientGiftCards } = useOutletContext<any>();
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (clientGiftCards) { setCards(clientGiftCards); setLoading(false); return; }
     if (!client?.id && !client?.phone) return;
     const load = async () => {
       const { intl, local } = normalizePhoneGhana(client.phone || "");

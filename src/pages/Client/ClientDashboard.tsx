@@ -39,11 +39,12 @@ const greeting = () => {
 };
 
 export default function ClientDashboard() {
-  const { client } = useOutletContext<any>();
+  const { client, clientBookings } = useOutletContext<any>();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (clientBookings) { setBookings(clientBookings.slice(0,20)); setLoading(false); return; }
     if (!client?.id) return;
     (supabase as any).from("bookings")
       .select("id, service_name, preferred_date, preferred_time, status, price, deposit_paid")

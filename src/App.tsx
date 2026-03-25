@@ -110,7 +110,7 @@ const App = () => (
             <Route path="loyalty" element={<ClientLoyalty />} />
             <Route path="profile" element={<ClientProfile />} />
             <Route path="services" element={<ViewServices />} />
-            <Route path="security" element={<SecuritySettings />} />
+            <Route path="gift-cards" element={<ClientGiftCards />} />
           </Route>
 
           {/* =================== MANAGEMENT SYSTEM ROUTES =================== */}

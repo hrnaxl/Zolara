@@ -29,13 +29,14 @@ const STATUS_LABEL: Record<string, string> = {
 const FILTERS = ["all", "upcoming", "completed", "cancelled"] as const;
 
 export default function ClientBookings() {
-  const { client } = useOutletContext<any>();
+  const { client, clientBookings } = useOutletContext<any>();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState<typeof FILTERS[number]>("all");
   const [search, setSearch]     = useState("");
 
   useEffect(() => {
+    if (clientBookings) { setBookings(clientBookings); setLoading(false); return; }
     if (!client?.id) return;
     (supabase as any).from("bookings")
       .select("*")
