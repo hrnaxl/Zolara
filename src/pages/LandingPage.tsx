@@ -547,6 +547,12 @@ export default function LandingPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Link to="/client-login" style={{
+            fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 600,
+            letterSpacing: "0.14em", color: goldDark, textDecoration: "none",
+            display: localStorage?.getItem?.("zolara_client_token") ? "inline-flex" : "inline-flex",
+            alignItems: "center", gap: 4, opacity: 0.8,
+          }}>{localStorage?.getItem?.("zolara_client_token") ? "My Account ↗" : "Sign In"}</Link>
           <Link to="/book" className="btn-primary" style={{
             fontFamily: "'Montserrat', sans-serif", fontSize: "10px", fontWeight: 700,
             letterSpacing: "0.14em", color: "#fff", textDecoration: "none",

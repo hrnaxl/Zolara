@@ -39,8 +39,35 @@ export default function ClientPortal() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { navigate("/app/auth"); return; }
+    // Phone token auth — check localStorage first
+    const clientToken = localStorage.getItem("zolara_client_token");
+    const clientPhone = localStorage.getItem("zolara_client_phone");
+    if (clientToken && clientPhone) {
+      (async () => {
+        try {
+          const localFmt = clientPhone.startsWith("233") ? "0" + clientPhone.slice(3) : clientPhone;
+          const [r1, r2] = await Promise.all([
+            (supabase as any).from("clients").select("*").eq("phone", clientPhone).maybeSingle(),
+            (supabase as any).from("clients").select("*").eq("phone", localFmt).maybeSingle(),
+          ]);
+          const found = r1.data || r2.data;
+          if (found) {
+            setClient(found);
+          } else {
+            const { data: nc } = await (supabase as any).from("clients").insert({
+              phone: localFmt, name: "Zolara Client",
+              loyalty_points: 0, total_visits: 0, total_spent: 0,
+            }).select().single().catch(() => ({ data: null }));
+            if (nc) setClient(nc);
+          }
+        } catch { /* fail silently */ }
+        setLoading(false);
+      })();
+      return;
+    }
+
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { navigate("/client-login"); return; }
       setClientLoading(true);
       const userId = session.user.id;
       const userEmail = session.user.email?.toLowerCase();
@@ -77,8 +104,11 @@ export default function ClientPortal() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/app/auth");
+    localStorage.removeItem("zolara_client_token");
+    localStorage.removeItem("zolara_client_phone");
+    localStorage.removeItem("zolara_client_id");
+    await supabase.auth.signOut().catch(() => {});
+    navigate("/client-login");
   };
 
   const tier = getTier(client?.loyalty_points || 0);

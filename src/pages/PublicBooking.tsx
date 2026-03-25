@@ -537,14 +537,14 @@ export default function PublicBooking() {
             Pay the remaining balance at the studio on the day of your appointment.
           </p>
         </div>
-        {!isLoggedIn && isFirstTimeBooker && (
+        {!isLoggedIn && (
           <div style={{ background: "rgba(200,169,126,0.08)", border: "1px solid rgba(200,169,126,0.25)", borderRadius: "14px", padding: "24px 28px", marginBottom: "24px", textAlign: "left" }}>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, marginBottom: "8px" }}>Welcome to Zolara 🎉</p>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", fontWeight: 700, color: DARK, marginBottom: "6px" }}>Save this booking to your account</p>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_MID, lineHeight: 1.7, marginBottom: "16px" }}>
-              Create a free account to track your bookings, earn loyalty points, and manage your appointments — all in one place.
+              Sign in with your phone number to track your bookings, view loyalty stamps, and manage appointments — all in one place. No password needed.
             </p>
-            <a href="/app/auth" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, color: WHITE, fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "11px 22px", borderRadius: "8px", letterSpacing: "0.04em" }}>
-              Create Your Account →
+            <a href={"/client-login?redirect=/app/client/dashboard"} style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, color: WHITE, fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "11px 22px", borderRadius: "8px", letterSpacing: "0.04em" }}>
+              Sign In with Phone →
             </a>
           </div>
         )}
