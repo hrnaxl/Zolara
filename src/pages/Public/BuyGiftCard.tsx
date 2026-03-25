@@ -501,12 +501,12 @@ export default function BuyGiftCard() {
               <div style={{ padding: "28px 28px 24px", background: "#FFFEF C" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0 }}>1</div>
-                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#1A1208" }}>FROM YOU</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "#1A1208" }}>From You</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <DarkField label="Your Name" value={form.senderName} onChange={v => setForm(p => ({ ...p, senderName: v }))} placeholder="Your full name" icon="✦" />
                   <DarkField label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="receipt@email.com" type="email" icon="✉" />
-                  <p style={{ fontSize: 11, color: "#B5ADA5", margin: 0, lineHeight: 1.5 }}>Your purchase receipt will be sent here.</p>
+                  <p style={{ fontSize: 11, color: "#6B5D52", margin: 0, lineHeight: 1.5 }}>Your purchase receipt will be sent here.</p>
                 </div>
               </div>
 
@@ -517,12 +517,12 @@ export default function BuyGiftCard() {
               <div style={{ padding: "24px 28px 28px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0 }}>2</div>
-                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#1A1208" }}>FOR THEM</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "#1A1208" }}>For Them</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this for?" />
                   <DarkField label="Recipient Phone" value={form.recipientPhone} onChange={v => setForm(p => ({ ...p, recipientPhone: v }))} placeholder="0XX XXX XXXX" type="tel" icon="📱" />
-                  <p style={{ fontSize: 11, color: "#B5ADA5", margin: 0, lineHeight: 1.5 }}>Their phone links this card to their Zolara account.</p>
+                  <p style={{ fontSize: 11, color: "#6B5D52", margin: 0, lineHeight: 1.5 }}>Their phone links this card to their Zolara account.</p>
                   {deliveryType === "email" && !selectedPromo && (
                     <DarkField label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="The card will be sent here" type="email" icon="✉" />
                   )}
@@ -536,7 +536,7 @@ export default function BuyGiftCard() {
                   <div style={{ padding: "24px 28px 28px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                       <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#8B6914,#C8A97E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0 }}>3</div>
-                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#1A1208" }}>PERSONAL MESSAGE <span style={{ fontWeight: 400, color: "#B5ADA5" }}>(optional)</span></span>
+                      <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "#1A1208" }}>Personal Message <span style={{ fontWeight: 400, color: "#888078" }}>(optional)</span></span>
                     </div>
                     <textarea
                       value={form.message}
@@ -668,7 +668,7 @@ function DarkField({ label, value, onChange, placeholder, type = "text", icon }:
 }) {
   return (
     <div>
-      <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", color: "#7A6550", display: "block", marginBottom: 8 }}>{label}</label>
+      <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", color: "#1A1208", display: "block", marginBottom: 8 }}>{label}</label>
       <div style={{ position: "relative" }}>
         <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-inp"
           style={icon ? { paddingRight: 40 } : {}} />
