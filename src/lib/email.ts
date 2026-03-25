@@ -44,7 +44,7 @@ export async function sendGiftCardEmail(p: {
 }): Promise<boolean> {
   const { ok, error } = await sendEmail(
     p.recipient_email,
-    "Your Zolara " + p.tier + " Gift Card: GH" + p.amount.toLocaleString(),
+    "You've received a Zolara gift card, " + (p.recipient_name || "friend") + "!",
     gcHtml(p)
   );
   if (!ok) console.error("sendGiftCardEmail failed:", error);
@@ -70,7 +70,7 @@ ${p.serialNumber ? `<tr><td style="color:#78716C;padding:5px 0;">Card Ref</td><t
 </table></div>
 <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:16px;"><p style="color:#92400E;font-size:13px;font-weight:600;margin:0 0 4px;">How to collect</p><p style="color:#B45309;font-size:13px;margin:0;line-height:1.6;">Visit <strong>Zolara Beauty Studio, Sakasaka (Opposite CalBank, Tamale)</strong>. Show this email or your payment reference.</p></div>
 </div><div style="background:#F5EFE6;padding:20px 40px;text-align:center;"><div style="color:#78716C;font-size:12px;">0594365314 &middot; zolarasalon.com</div></div></div></body></html>`;
-  const { ok } = await sendEmail(p.buyerEmail, "Your Zolara " + p.tier + " Gift Card: Pickup Ready", html);
+  const { ok } = await sendEmail(p.buyerEmail, "Your Zolara gift card is waiting for you, " + p.buyerName.split(" ")[0] + "!", html);
   return ok;
 }
 
@@ -94,6 +94,6 @@ ${p.recipientName ? `<tr><td style="color:#78716C;padding:5px 0;">For</td><td st
 </table></div>
 <p style="color:#78716C;font-size:13px;line-height:1.7;">${p.isDigital ? "The gift card has been sent to <strong>"+(p.recipientEmail||p.buyerEmail)+"</strong>." : "Your physical card is ready for pickup at our Sakasaka location."}</p>
 </div><div style="background:#F5EFE6;padding:20px 40px;text-align:center;"><div style="color:#78716C;font-size:12px;">0594365314 &middot; zolarasalon.com</div></div></div></body></html>`;
-  const { ok } = await sendEmail(p.buyerEmail, "Zolara Gift Card: Order Confirmed", html);
+  const { ok } = await sendEmail(p.buyerEmail, "Order confirmed, " + p.buyerName.split(" ")[0] + " — your Zolara gift card is on its way", html);
   return ok;
 }
