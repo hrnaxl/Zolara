@@ -133,8 +133,7 @@ export default function ClientPortal() {
       {/* Brand */}
       <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="/logo.png" alt="Zolara" style={{ width: 40, height: 40, borderRadius: "50%", border: `2px solid ${G}`, objectFit: "cover" }}
-            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          <img src="https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg" alt="Zolara" style={{ width: 40, height: 40, borderRadius: "50%", border: `2px solid ${G}`, objectFit: "cover" }} />
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: WHITE, lineHeight: 1 }}>Zolara</div>
             <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.22em", color: `${G}99`, marginTop: 2 }}>CLIENT PORTAL</div>
