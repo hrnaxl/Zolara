@@ -63,11 +63,11 @@ export default async function handler(req, res) {
       }
 
       // No stock — create placeholder
-      const amount = TV[tier] || 0;
+      const placeholderAmount = paidAmount || TV[tier] || 0;
       const expires = new Date(); expires.setFullYear(expires.getFullYear() + 1);
       const ins = await fetch(`${SB}/gift_cards`, {
         method: "POST", headers: H,
-        body: JSON.stringify({ code: "PICKUP-" + Date.now().toString(36).toUpperCase(), tier, amount, balance: amount, status: "active", payment_status: "pending_pickup", card_type: "physical", buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: "NO STOCK. Assign manually. " + note, expires_at: expires.toISOString() }),
+        body: JSON.stringify({ code: "PICKUP-" + Date.now().toString(36).toUpperCase(), tier, amount: placeholderAmount, balance: placeholderAmount, status: "active", payment_status: "pending_pickup", card_type: "physical", buyer_name: buyerName||null, buyer_email: buyerEmail||null, buyer_phone: buyerPhone||null, notes: "NO STOCK. Assign manually. " + note, expires_at: expires.toISOString() }),
       });
       const inserted = await ins.json();
       return res.status(200).json({ claimed: false, card: Array.isArray(inserted) ? inserted[0] : inserted, message: "No stock. Placeholder created." });
