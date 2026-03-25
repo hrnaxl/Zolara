@@ -75,20 +75,15 @@ export default async function handler(req, res) {
       { client_id: client.id }
     );
 
-    // Recalculate loyalty points and total visits from completed bookings
-    const completedRes = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&status=eq.completed&select=id,price`);
+    // Only sync visit count from bookings — trust loyalty_points set by admin checkout
+    const completedRes = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl},client_id.eq.${client.id})&status=eq.completed&select=id,price,preferred_date`);
     const completed = Array.isArray(completedRes) ? completedRes : [];
-    const totalSpent = completed.reduce((s, b) => s + Number(b.price || 0), 0);
     const totalVisits = completed.length;
-    const loyaltyPts = Math.floor(totalSpent / 100); // 1 point per GHS 100
-    // Update client record with recalculated values
-    if (totalVisits !== client.total_visits || loyaltyPts !== client.loyalty_points) {
-      await sbPatch(`clients?id=eq.${client.id}`, {
-        total_visits: totalVisits,
-        total_spent: totalSpent,
-        loyalty_points: loyaltyPts,
-      });
-      client = { ...client, total_visits: totalVisits, total_spent: totalSpent, loyalty_points: loyaltyPts };
+    const totalSpent = completed.reduce((s, b) => s + Number(b.price || 0), 0);
+    // Only update visit count if it differs — never overwrite loyalty_points (managed by checkout)
+    if (totalVisits !== (client.total_visits || 0)) {
+      await sbPatch(`clients?id=eq.${client.id}`, { total_visits: totalVisits, total_spent: totalSpent });
+      client = { ...client, total_visits: totalVisits, total_spent: totalSpent };
     }
 
     // Fetch bookings (by client_id OR phone)

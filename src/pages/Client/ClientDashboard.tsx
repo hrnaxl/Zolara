@@ -17,10 +17,10 @@ const TXT_S  = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
 
 const TIERS = [
-  { min: 0,    max: 199,  name: "Bronze",   color: "#CD7F32", next: 200,  bg: "rgba(205,127,50,0.1)" },
-  { min: 200,  max: 499,  name: "Silver",   color: "#A0A0A0", next: 500,  bg: "rgba(160,160,160,0.1)" },
-  { min: 500,  max: 999,  name: "Gold",     color: G,          next: 1000, bg: "rgba(200,169,126,0.1)" },
-  { min: 1000, max: Infinity, name: "Platinum", color: "#6366F1", next: null, bg: "rgba(99,102,241,0.1)" },
+  { min: 0,   max: 49,       name: "Bronze",  color: "#CD7F32", next: 50,  bg: "rgba(205,127,50,0.1)" },
+  { min: 50,  max: 149,      name: "Silver",  color: "#A0A0A0", next: 150, bg: "rgba(160,160,160,0.1)" },
+  { min: 150, max: 299,      name: "Gold",    color: G,          next: 300, bg: "rgba(200,169,126,0.1)" },
+  { min: 300, max: Infinity, name: "Diamond", color: "#6366F1",  next: null, bg: "rgba(99,102,241,0.1)" },
 ];
 const getTier = (pts: number) => TIERS.find(t => pts >= t.min && pts <= t.max) || TIERS[0];
 

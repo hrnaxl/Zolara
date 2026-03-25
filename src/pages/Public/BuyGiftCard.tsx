@@ -8,10 +8,13 @@ import { toast } from "sonner";
 import { track } from "@/lib/posthog";
 import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeNotes } from "@/lib/sanitize";
 
-const G = "#B8975A";
+const G = "#C8A97E";
+const G_DARK = "#8B6914";
+const OBSIDIAN = "#0A0905";
+const CHARCOAL = "#111008";
 const CREAM = "#FAFAF8";
 const NAVY = "#0F1E35";
-const TXT = "#1C1917";
+const TXT = "#1C160E";
 const TXT_MID = "#78716C";
 const BORDER = "#EDEBE5";
 
@@ -19,35 +22,35 @@ const TIER_STYLES: Record<GiftCardTier, {
   bg: string; shine: string; text: string; sub: string; pattern: string; badge: string;
 }> = {
   Silver: {
-    bg: "linear-gradient(160deg, #E8EEF2 0%, #C5D3DC 40%, #A8BCC8 70%, #8FA8B8 100%)",
-    shine: "#2C3E50",
-    text: "#1A2733",
-    sub: "rgba(26,39,51,0.6)",
-    pattern: "radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.5) 0%, transparent 55%), radial-gradient(ellipse at 20% 80%, rgba(140,170,190,0.4) 0%, transparent 50%)",
-    badge: "#5B7A8A",
+    bg: "linear-gradient(145deg, #EEF4F8 0%, #C8D8E2 20%, #A8BEC8 45%, #88A4B2 65%, #6A8898 80%, #506C7C 100%)",
+    shine: "#E8F4F8",
+    text: "#1A2E3A",
+    sub: "rgba(26,46,58,0.6)",
+    pattern: "radial-gradient(ellipse at 78% 12%, rgba(255,255,255,0.6) 0%, transparent 55%), radial-gradient(ellipse at 15% 90%, rgba(180,210,225,0.4) 0%, transparent 40%)",
+    badge: "#2A4858",
   },
   Gold: {
-    bg: "linear-gradient(160deg, #FDF3DC 0%, #E8C96A 35%, #C8A02A 65%, #A07818 100%)",
-    shine: "#3D2800",
-    text: "#2C1A00",
-    sub: "rgba(44,26,0,0.55)",
-    pattern: "radial-gradient(ellipse at 75% 15%, rgba(255,255,210,0.7) 0%, transparent 50%), radial-gradient(ellipse at 25% 85%, rgba(180,130,20,0.35) 0%, transparent 55%)",
-    badge: "#7A5200",
+    bg: "linear-gradient(145deg, #FDF8E8 0%, #F0D070 15%, #D4A828 35%, #A07818 55%, #785008 75%, #4A2C02 100%)",
+    shine: "#FFF0A0",
+    text: "#180A00",
+    sub: "rgba(24,10,0,0.55)",
+    pattern: "radial-gradient(ellipse at 72% 10%, rgba(255,255,200,0.75) 0%, rgba(255,230,100,0.2) 35%, transparent 55%), radial-gradient(ellipse at 20% 92%, rgba(160,100,10,0.4) 0%, transparent 40%)",
+    badge: "#4A2800",
   },
   Platinum: {
-    bg: "linear-gradient(160deg, #1A1A1A 0%, #2D2D2D 30%, #1C1C1C 60%, #111111 100%)",
-    shine: "#D4AF6A",
+    bg: "linear-gradient(145deg, #222220 0%, #1A1A18 25%, #141412 50%, #0E0E0C 75%, #080806 100%)",
+    shine: "#C8A97E",
     text: "#F5EFE6",
-    sub: "rgba(245,239,230,0.55)",
-    pattern: "radial-gradient(ellipse at 70% 20%, rgba(200,169,126,0.2) 0%, transparent 50%), radial-gradient(ellipse at 30% 80%, rgba(200,169,126,0.1) 0%, transparent 55%)",
+    sub: "rgba(245,239,230,0.5)",
+    pattern: "radial-gradient(ellipse at 75% 15%, rgba(200,169,126,0.3) 0%, rgba(200,169,126,0.05) 40%, transparent 60%), radial-gradient(ellipse at 20% 85%, rgba(200,169,126,0.12) 0%, transparent 45%)",
     badge: "#C8A97E",
   },
   Diamond: {
-    bg: "linear-gradient(160deg, #0A0A1A 0%, #12103A 30%, #1A1650 55%, #0E0C2E 80%, #080618 100%)",
+    bg: "linear-gradient(145deg, #0C0A28 0%, #141240 20%, #1C1858 38%, #221E6A 52%, #18147C 65%, #100C5A 80%, #080620 100%)",
     shine: "#A5B4FC",
-    text: "#F0F0FF",
-    sub: "rgba(240,240,255,0.55)",
-    pattern: "radial-gradient(ellipse at 70% 15%, rgba(165,180,252,0.3) 0%, transparent 50%), radial-gradient(ellipse at 25% 80%, rgba(99,102,241,0.2) 0%, transparent 55%)",
+    text: "#E8EEFF",
+    sub: "rgba(232,238,255,0.5)",
+    pattern: "radial-gradient(ellipse at 70% 12%, rgba(200,210,255,0.5) 0%, rgba(140,160,255,0.15) 35%, transparent 55%), radial-gradient(ellipse at 25% 85%, rgba(120,80,255,0.25) 0%, transparent 45%)",
     badge: "#818CF8",
   },
 };
@@ -281,7 +284,7 @@ export default function BuyGiftCard() {
 
       {/* Header */}
       <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <Link to="/" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+        <Link to={typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "/app/client/dashboard" : "/"} style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
           ← Home
         </Link>
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />
@@ -534,7 +537,7 @@ export default function BuyGiftCard() {
                 </p>
               </>
             )}
-            <a href="/" style={{ color: "#C8A97E", fontSize: 13, textDecoration: "none" }}>← Back to Zolara</a>
+            <a href={typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "/app/client/dashboard" : "/"} style={{ color: "#C8A97E", fontSize: 13, textDecoration: "none" }}>{typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "← Back to Dashboard" : "← Back to Zolara"}</a>
           </div>
         )}
       </div>
@@ -548,8 +551,8 @@ function DarkField({ label, value, onChange, placeholder, type = "text" }: {
 }) {
   return (
     <div>
-      <label className="gc-label">{label.toUpperCase()}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-input" />
+      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.45)", display: "block", marginBottom: 7 }}>{label.toUpperCase()}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-inp" />
     </div>
   );
 }

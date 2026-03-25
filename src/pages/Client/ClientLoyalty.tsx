@@ -13,10 +13,10 @@ const TXT_S  = "#A8A29E";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06)";
 
 const TIERS = [
-  { min: 0,    max: 199,  name: "Bronze",   color: "#CD7F32", bg: "rgba(205,127,50,0.1)",   next: 200,  perks: ["Birthday month double points", "Member discounts"] },
-  { min: 500,  max: 499,  name: "Silver",   color: "#A8A8A8", bg: "rgba(168,168,168,0.1)",  next: 500,  perks: ["All Bronze perks", "Priority booking", "Complimentary hand massage"] },
-  { min: 500,  max: 999,  name: "Gold",     color: G,          bg: "rgba(200,169,126,0.1)",  next: 1000, perks: ["All Silver perks", "Free nail art on visits", "Exclusive Gold offers"] },
-  { min: 1000, max: Infinity, name: "Diamond", color: "#6366F1", bg: "rgba(99,102,241,0.1)", next: null, perks: ["All Gold perks", "VIP priority always", "Free monthly treatment", "Personal beauty consultant"] },
+  { min: 0,   max: 49,       name: "Bronze",  color: "#CD7F32", bg: "rgba(205,127,50,0.1)",   next: 50,  perks: ["Birthday month double points", "Member discounts"] },
+  { min: 50,  max: 149,      name: "Silver",  color: "#A8A8A8", bg: "rgba(168,168,168,0.1)",  next: 150, perks: ["All Bronze perks", "Priority booking", "Complimentary hand massage"] },
+  { min: 150, max: 299,      name: "Gold",    color: G,          bg: "rgba(200,169,126,0.1)",  next: 300, perks: ["All Silver perks", "Free nail art on visits", "Exclusive Gold offers"] },
+  { min: 300, max: Infinity, name: "Diamond", color: "#6366F1", bg: "rgba(99,102,241,0.1)", next: null, perks: ["All Gold perks", "VIP priority always", "Free monthly treatment", "Personal beauty consultant"] },
 ];
 const getTier = (pts: number) => TIERS.find(t => pts >= t.min && pts <= t.max) || TIERS[0];
 

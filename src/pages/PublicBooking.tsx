@@ -548,8 +548,8 @@ export default function PublicBooking() {
             </a>
           </div>
         )}
-        <Link to="/" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
-          Return to homepage
+        <Link to={typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "/app/client/dashboard" : "/"} style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+          {typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "← Back to Dashboard" : "Return to homepage"}
         </Link>
       </div>
     </div>
