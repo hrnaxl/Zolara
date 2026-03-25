@@ -75,6 +75,22 @@ export default async function handler(req, res) {
       { client_id: client.id }
     );
 
+    // Recalculate loyalty points and total visits from completed bookings
+    const completedRes = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&status=eq.completed&select=id,price`);
+    const completed = Array.isArray(completedRes) ? completedRes : [];
+    const totalSpent = completed.reduce((s, b) => s + Number(b.price || 0), 0);
+    const totalVisits = completed.length;
+    const loyaltyPts = Math.floor(totalSpent / 100); // 1 point per GHS 100
+    // Update client record with recalculated values
+    if (totalVisits !== client.total_visits || loyaltyPts !== client.loyalty_points) {
+      await sbPatch(`clients?id=eq.${client.id}`, {
+        total_visits: totalVisits,
+        total_spent: totalSpent,
+        loyalty_points: loyaltyPts,
+      });
+      client = { ...client, total_visits: totalVisits, total_spent: totalSpent, loyalty_points: loyaltyPts };
+    }
+
     // Fetch bookings (by client_id OR phone)
     const [byId, byPhone] = await Promise.all([
       sb(`bookings?client_id=eq.${client.id}&order=preferred_date.desc&limit=50`),
@@ -85,12 +101,19 @@ export default async function handler(req, res) {
     const bookings = allBookings.filter(b => { if (seenB.has(b.id)) return false; seenB.add(b.id); return true; });
 
     // Fetch gift cards
-    const giftCards = await sb(`gift_cards?or=(client_id.eq.${client.id},buyer_phone.eq.${local},buyer_phone.eq.${intl})&order=created_at.desc`);
+    // Query gift cards by buyer_phone (both formats) - no client_id on gift_cards table
+    const [gc1, gc2] = await Promise.all([
+      sb(`gift_cards?buyer_phone=eq.${local}&order=created_at.desc`),
+      sb(`gift_cards?buyer_phone=eq.${intl}&order=created_at.desc`),
+    ]);
+    const allGc = [...(Array.isArray(gc1) ? gc1 : []), ...(Array.isArray(gc2) ? gc2 : [])];
+    const seenGc = new Set();
+    const giftCards = allGc.filter(g => { if (seenGc.has(g.id)) return false; seenGc.add(g.id); return true; });
 
     return res.status(200).json({
       client,
       bookings,
-      giftCards: giftCards || [],
+      giftCards: Array.isArray(giftCards) ? giftCards : [],
     });
   } catch (e) {
     console.error("client-me:", e.message);
