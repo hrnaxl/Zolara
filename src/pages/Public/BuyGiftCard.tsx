@@ -66,6 +66,8 @@ const PROMO_GRADS: Record<string, string> = {
   custom: "linear-gradient(135deg,#1C160E,#3A2D1A,#C8A97E)",
 };
 
+const LOGO_URL = "https://ekvjnydomfresnkealpb.supabase.co/storage/v1/object/public/avatars/logo_1764609621458.jpg";
+
 function GiftCard({
   bg, shine, text, sub, pattern, badge, label, amount, selected, promo = false,
 }: {
@@ -73,56 +75,61 @@ function GiftCard({
   label: string; amount: number; selected: boolean; promo?: boolean;
 }) {
   return (
-    <div style={{
-      position: "relative", borderRadius: 16, overflow: "hidden",
+    <div className="gc-card" style={{
+      position: "relative", borderRadius: 18, overflow: "hidden",
       aspectRatio: "1.586 / 1",
       background: bg,
       boxShadow: selected
-        ? `0 24px 60px rgba(0,0,0,0.45), 0 0 0 2px ${badge}`
-        : "0 8px 28px rgba(0,0,0,0.25)",
-      transform: selected ? "translateY(-4px) scale(1.02)" : "none",
-      transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
-      cursor: "pointer", userSelect: "none",
+        ? `0 28px 64px rgba(0,0,0,0.55), 0 0 0 2.5px ${shine}`
+        : "0 8px 32px rgba(0,0,0,0.3)",
+      transform: selected ? "translateY(-6px) scale(1.02)" : "none",
     }}>
-      {/* Background pattern */}
+      {/* Pattern overlay */}
       <div style={{ position: "absolute", inset: 0, background: pattern, zIndex: 1, pointerEvents: "none" }} />
-      {/* Soft top sheen */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 50%)", zIndex: 2, pointerEvents: "none" }} />
+      {/* Top sheen */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "45%", background: "linear-gradient(180deg, rgba(255,255,255,0.13) 0%, transparent 100%)", zIndex: 2, pointerEvents: "none" }} />
 
-      <div style={{ position: "absolute", inset: 0, padding: "18px 22px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 3 }}>
-        {/* Top: brand */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: "0.12em", color: text, fontWeight: 700, lineHeight: 1 }}>
-              Zolara
-            </div>
-            <div style={{ fontSize: 8, letterSpacing: "0.22em", color: sub, marginTop: 2, fontWeight: 600 }}>
-              BEAUTY STUDIO
+      <div style={{ position: "absolute", inset: 0, padding: "20px 24px", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 3 }}>
+        {/* Top row: logo + tier badge */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <img
+              src={LOGO_URL}
+              alt="Zolara"
+              style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: `1.5px solid ${badge}66`, flexShrink: 0 }}
+              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+            <div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14, letterSpacing: "0.08em", color: text, fontWeight: 600, lineHeight: 1 }}>
+                Zolara
+              </div>
+              <div style={{ fontSize: 7, letterSpacing: "0.28em", color: sub, marginTop: 1.5, fontWeight: 700, textTransform: "uppercase" }}>
+                Beauty Studio
+              </div>
             </div>
           </div>
-          {/* Tier badge */}
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", color: badge, border: `1px solid ${badge}`, padding: "3px 8px", borderRadius: 20, opacity: 0.9 }}>
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.18em", color: badge, border: `1px solid ${badge}88`, padding: "4px 10px", borderRadius: 20, background: `${badge}15` }}>
             {label.toUpperCase()}
           </div>
         </div>
 
-        {/* Decorative centre flourish */}
-        <div style={{ textAlign: "center", opacity: 0.12 }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 52, color: text, lineHeight: 1, fontWeight: 300 }}>✦</div>
+        {/* Centre flourish */}
+        <div style={{ textAlign: "center", opacity: 0.1, pointerEvents: "none" }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 56, color: text, lineHeight: 1, fontWeight: 300, fontStyle: "italic" }}>✦</div>
         </div>
 
-        {/* Bottom: value */}
+        {/* Bottom: value + url */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: shine, lineHeight: 1 }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, fontWeight: 700, color: shine, lineHeight: 1, letterSpacing: "-0.01em" }}>
               GH₵ {amount.toLocaleString()}
             </div>
-            <div style={{ fontSize: 9, letterSpacing: "0.18em", color: sub, marginTop: 3, fontWeight: 600 }}>
-              {promo ? `${label.toUpperCase()} · SPECIAL EDITION` : "GIFT CARD · VALID 12 MONTHS"}
+            <div style={{ fontSize: 8, letterSpacing: "0.2em", color: sub, marginTop: 4, fontWeight: 600, textTransform: "uppercase" }}>
+              {promo ? `${label} · Special Edition` : "Gift Card · Valid 12 Months"}
             </div>
           </div>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 11, color: sub, letterSpacing: "0.08em", textAlign: "right" }}>
-            ZOLARA.COM
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, color: sub, letterSpacing: "0.06em", fontStyle: "italic" }}>
+            zolarasalon.com
           </div>
         </div>
       </div>
