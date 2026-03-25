@@ -12,10 +12,19 @@ function sbHeaders() {
 }
 
 function normalizePhone(raw) {
+  // Return intl format for SMS sending only
   let p = (raw || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  if (p.startsWith("0")) p = "233" + p.slice(1);
-  if (p.startsWith("+")) p = p.slice(1);
+  if (p.startsWith("+233")) p = "233" + p.slice(4);
+  else if (p.startsWith("0")) p = "233" + p.slice(1);
   if (!p.startsWith("233")) p = "233" + p;
+  return p;
+}
+function toLocalPhone(raw) {
+  // Return 0XXXXXXXXX format for DB storage
+  let p = (raw || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
+  if (p.startsWith("+233")) p = "0" + p.slice(4);
+  else if (p.startsWith("233") && p.length >= 12) p = "0" + p.slice(3);
+  else if (!p.startsWith("0")) p = "0" + p;
   return p;
 }
 
@@ -60,7 +69,8 @@ export default async function handler(req, res) {
     const { phone } = req.body || {};
     if (!phone) return res.status(400).json({ error: "Phone number required" });
 
-    const normalized = normalizePhone(phone);
+    const normalized = normalizePhone(phone); // intl for SMS
+    const normalizedLocal = toLocalPhone(phone); // local for DB
     if (normalized.length < 12) return res.status(400).json({ error: "Invalid phone number" });
 
     await ensureOTPTable();
@@ -69,7 +79,7 @@ export default async function handler(req, res) {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
 
     // Invalidate old codes for this phone
-    await fetch(`${SB_URL}/rest/v1/client_otp_codes?phone=eq.${normalized}&used=eq.false`, {
+    await fetch(`${SB_URL}/rest/v1/client_otp_codes?phone=eq.${normalizedLocal}&used=eq.false`, {
       method: "PATCH",
       headers: sbHeaders(),
       body: JSON.stringify({ used: true }),
@@ -79,7 +89,7 @@ export default async function handler(req, res) {
     const insertRes = await fetch(`${SB_URL}/rest/v1/client_otp_codes`, {
       method: "POST",
       headers: sbHeaders(),
-      body: JSON.stringify({ phone: normalized, code, expires_at: expiresAt, used: false }),
+      body: JSON.stringify({ phone: normalizedLocal, code, expires_at: expiresAt, used: false }),
     });
 
     if (!insertRes.ok) {

@@ -11,10 +11,11 @@ function sbHeaders() {
 }
 
 function normalizePhone(raw) {
+  // Return 0XXXXXXXXX local format
   let p = (raw || "").replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  if (p.startsWith("0")) p = "233" + p.slice(1);
-  if (p.startsWith("+")) p = p.slice(1);
-  if (!p.startsWith("233")) p = "233" + p;
+  if (p.startsWith("+233")) p = "0" + p.slice(4);
+  else if (p.startsWith("233") && p.length >= 12) p = "0" + p.slice(3);
+  else if (!p.startsWith("0")) p = "0" + p;
   return p;
 }
 

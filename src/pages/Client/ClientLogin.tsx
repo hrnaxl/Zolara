@@ -9,11 +9,12 @@ const BORDER = "#EDE8E0";
 const TXT = "#1C160E";
 const TXT_M = "#78716C";
 
-function normalizePhone(raw: string) {
+function normalizePhone(raw: string): string {
+  // Always return local 0XXXXXXXXX format for storage and queries
   let p = raw.replace(/\s+/g, "").replace(/[^0-9+]/g, "");
-  if (p.startsWith("0")) p = "233" + p.slice(1);
-  if (p.startsWith("+")) p = p.slice(1);
-  if (!p.startsWith("233")) p = "233" + p;
+  if (p.startsWith("+233")) p = "0" + p.slice(4);
+  else if (p.startsWith("233") && p.length >= 12) p = "0" + p.slice(3);
+  else if (!p.startsWith("0")) p = "0" + p;
   return p;
 }
 

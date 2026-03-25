@@ -28,7 +28,8 @@ const NAV = [
   { icon: Star,            label: "Loyalty",     path: "/app/client/loyalty" },
   { icon: Scissors,        label: "Services",    path: "/app/client/services" },
   { icon: User,            label: "My Profile",  path: "/app/client/profile" },
-  { icon: Shield,          label: "Security",     path: "/app/client/security" },
+  { icon: Star,            label: "Gift Cards",  path: "/app/client/gift-cards" },
+
 ];
 
 export default function ClientPortal() {
@@ -47,18 +48,20 @@ export default function ClientPortal() {
       (async () => {
         try {
           const { intl, local } = normalizePhoneGhana(clientPhone);
+          // clientPhone is now stored as local format (0XXXXXXXXX)
+          // but we check both to handle any legacy 233 format tokens
 
-          // 1. Try clients table first (both phone formats)
+          // 1. Try clients table (both formats)
           let { data: found } = await (supabase as any)
             .from("clients").select("*")
-            .or(`phone.eq.${intl},phone.eq.${local}`)
+            .or(`phone.eq.${local},phone.eq.${intl}`)
             .limit(1).maybeSingle();
 
-          // 2. If no client record, look up their name from bookings and create one
+          // 2. Not in clients table — look up name from bookings
           if (!found) {
             const { data: booking } = await (supabase as any)
               .from("bookings").select("client_name, client_phone")
-              .or(`client_phone.eq.${intl},client_phone.eq.${local}`)
+              .or(`client_phone.eq.${local},client_phone.eq.${intl}`)
               .not("client_name", "is", null)
               .limit(1).maybeSingle();
 
@@ -72,10 +75,10 @@ export default function ClientPortal() {
 
           if (found) {
             setClient(found);
-            // 3. Backfill client_id on all their bookings that are missing it
+            // 3. Backfill client_id on all their bookings
             await (supabase as any).from("bookings")
               .update({ client_id: found.id })
-              .or(`client_phone.eq.${intl},client_phone.eq.${local}`)
+              .or(`client_phone.eq.${local},client_phone.eq.${intl}`)
               .is("client_id", null)
               .catch(() => {});
           }
