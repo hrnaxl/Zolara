@@ -19,8 +19,8 @@ function gcHtml(p: { tier:string; amount:number; code:string; recipient_name?:st
 <div style="font-size:30px;font-weight:700;color:#0F1E35;letter-spacing:5px;font-family:monospace;">${p.code}</div>
 <div style="font-size:11px;color:#A8A29E;margin-top:10px;">Present this code at checkout</div></div>
 <div style="font-size:12px;color:#A8A29E;line-height:1.7;margin-bottom:24px;">Valid for 12 months. Redeemable for any service at Zolara Beauty Studio.${grace>0?" If your service total exceeds the card value by up to GH&#8373;"+grace+", the difference is covered.":""}</div>
-<div style="text-align:center;margin-bottom:32px;"><a href="https://zolarasalon.com/book" style="background:#B8975A;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;display:inline-block;">Book Your Appointment</a></div></div>
-<div style="background:#F5EFE6;padding:20px 40px;text-align:center;"><div style="color:#78716C;font-size:12px;">Sakasaka, Opposite CalBank, Tamale</div><div style="color:#A8A29E;font-size:11px;margin-top:4px;">0594365314 &middot; zolarasalon.com &middot; @zolarastudio</div></div></div></body></html>`;
+<div style="font-size:12px;color:#A8A29E;text-align:center;margin-bottom:24px;">Book at <a href="https://zolarasalon.com/book" style="color:#B8975A;">zolarasalon.com/book</a></div></div>
+<div style="background:#F5EFE6;padding:20px 40px;text-align:center;"><div style="color:#78716C;font-size:12px;">Sakasaka, Opposite CalBank, Tamale</div><div style="color:#A8A29E;font-size:11px;margin-top:4px;">0594365314 &middot; zolarasalon.com &middot; @zolarastudio</div><div style="color:#C8C4C0;font-size:10px;margin-top:8px;">This is a transactional email sent because you purchased a gift card from Zolara Beauty Studio.</div></div></div></body></html>`;
 }
 
 async function sendEmail(to: string, subject: string, html: string): Promise<{ok: boolean; error?: string}> {
@@ -44,7 +44,7 @@ export async function sendGiftCardEmail(p: {
 }): Promise<boolean> {
   const { ok, error } = await sendEmail(
     p.recipient_email,
-    "Your Zolara " + p.tier + " Gift Card \u2014 GH\u20B5" + p.amount,
+    "Your Zolara " + p.tier + " Gift Card: GH" + p.amount.toLocaleString(),
     gcHtml(p)
   );
   if (!ok) console.error("sendGiftCardEmail failed:", error);
@@ -70,7 +70,7 @@ ${p.serialNumber ? `<tr><td style="color:#78716C;padding:5px 0;">Card Ref</td><t
 </table></div>
 <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:16px;"><p style="color:#92400E;font-size:13px;font-weight:600;margin:0 0 4px;">How to collect</p><p style="color:#B45309;font-size:13px;margin:0;line-height:1.6;">Visit <strong>Zolara Beauty Studio, Sakasaka (Opposite CalBank, Tamale)</strong>. Show this email or your payment reference.</p></div>
 </div><div style="background:#F5EFE6;padding:20px 40px;text-align:center;"><div style="color:#78716C;font-size:12px;">0594365314 &middot; zolarasalon.com</div></div></div></body></html>`;
-  const { ok } = await sendEmail(p.buyerEmail, "Your Zolara " + p.tier + " Gift Card \u2014 Pickup Confirmed", html);
+  const { ok } = await sendEmail(p.buyerEmail, "Your Zolara " + p.tier + " Gift Card: Pickup Ready", html);
   return ok;
 }
 
@@ -94,6 +94,6 @@ ${p.recipientName ? `<tr><td style="color:#78716C;padding:5px 0;">For</td><td st
 </table></div>
 <p style="color:#78716C;font-size:13px;line-height:1.7;">${p.isDigital ? "The gift card has been sent to <strong>"+(p.recipientEmail||p.buyerEmail)+"</strong>." : "Your physical card is ready for pickup at our Sakasaka location."}</p>
 </div><div style="background:#F5EFE6;padding:20px 40px;text-align:center;"><div style="color:#78716C;font-size:12px;">0594365314 &middot; zolarasalon.com</div></div></div></body></html>`;
-  const { ok } = await sendEmail(p.buyerEmail, "Zolara Gift Card \u2014 Order Receipt", html);
+  const { ok } = await sendEmail(p.buyerEmail, "Zolara Gift Card: Order Confirmed", html);
   return ok;
 }
