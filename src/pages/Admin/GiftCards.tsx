@@ -153,7 +153,12 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
   const onlineRedeemed = onlineCards.filter(c => c.status === "redeemed").length;
   const physRedeemed  = physCards.filter(c => c.status === "redeemed").length;
   // Outstanding value = total value of active cards not yet redeemed (liability)
-  const outstandingValue = cards.filter(c => ["active","available","pending_pickup"].includes(c.status) && isPaid(c)).reduce((s, c) => s + Number(c.balance ?? c.amount ?? 0), 0);
+  const outstandingValue = cards.filter(c =>
+    ["active","available","pending_pickup"].includes(c.status) &&
+    isPaid(c) &&
+    !["voided","expired","void"].includes(c.payment_status || "") &&
+    c.status !== "expired" && c.status !== "void" && c.status !== "cancelled"
+  ).reduce((s, c) => s + Number(c.balance ?? c.amount ?? 0), 0);
   // Total revenue collected from card sales
   const totalRevCollected = cards.filter(c => isPaid(c)).reduce((s, c) => s + getValue(c), 0);
 
@@ -199,6 +204,8 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
       } else if (confirmAct === "delete") {
         const res = await deleteGiftCard(confirmCard.id);
         if (res.error) throw res.error;
+        // Remove immediately from state so liability recalculates instantly
+        setCards(prev => prev.filter(card => card.id !== confirmCard.id));
         toast.success("Card deleted");
       } else if (confirmAct === "sold") {
         const res = await markGiftCardSold(confirmCard.id);
