@@ -278,7 +278,7 @@ export default function BuyGiftCard() {
             if (isEmail && !selectedPromo) {
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tier: selectedTier, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
+                body: JSON.stringify({ tier: selectedTier, amount: tierValue, buyerName: form.buyerName, buyerEmail: form.buyerEmail, buyerPhone: form.buyerPhone, recipientName: form.recipientName || form.buyerName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
               });
               const d = await r.json().catch(() => ({}));
               if (r.ok && d.card) {
@@ -292,6 +292,7 @@ export default function BuyGiftCard() {
                 body: JSON.stringify({
                   tier: selectedPromo ? "promo" : selectedTier,
                   promoTypeId: selectedPromo?.id || null,
+                  amount: tierValue,
                   buyerName: form.buyerName,
                   buyerEmail: form.buyerEmail,
                   buyerPhone: form.buyerPhone,

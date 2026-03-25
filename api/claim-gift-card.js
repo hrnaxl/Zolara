@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { tier, promoTypeId, buyerName, buyerEmail, buyerPhone, paymentRef } = req.body || {};
+  const { tier, promoTypeId, buyerName, buyerEmail, buyerPhone, paymentRef, amount } = req.body || {};
   const note = `RESERVED. Buyer: ${buyerName||""} | ${buyerPhone||""} | Ref: ${paymentRef||""} | ${new Date().toISOString()}`;
 
   try {
@@ -47,7 +47,9 @@ export default async function handler(req, res) {
     } else {
       // ── STANDARD TIER: find pre-printed card ──
       if (!tier) return res.status(400).json({ error: "Missing tier" });
-      findUrl = `${SB}/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&promo_type_id=is.null&limit=1&select=id,code,serial_number,tier,amount,balance`;
+      // Match by amount when provided — prevents old cards with different face value being assigned
+      const amountFilter = amount ? `&amount=eq.${Number(amount)}` : `&amount=eq.${TV[tier] || 0}`;
+      findUrl = `${SB}/gift_cards?tier=eq.${encodeURIComponent(tier)}&card_type=eq.physical&payment_status=eq.pending&status=eq.active&promo_type_id=is.null${amountFilter}&order=created_at.asc&limit=1&select=id,code,serial_number,tier,amount,balance`;
       const findRes = await fetch(findUrl, { headers: H });
       const found = await findRes.json();
 
