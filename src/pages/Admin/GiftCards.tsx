@@ -636,7 +636,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
                     <label style={{ fontSize:"10px", fontWeight:600, letterSpacing:"0.1em", color:TXT_S, display:"block", marginBottom:"6px" }}>TIER</label>
                     <select className="gc-input" value={genTier} onChange={e => setGenTier(e.target.value as GiftCardTier)}>
                       {Object.entries(GIFT_CARD_TIERS).map(([k, v]) => (
-                        <option key={k} value={k}>{v.label} — GHS {v.value}</option>
+                        <option key={k} value={k}>{v.label} — GHS {getTierValue(k).toLocaleString()}</option>
                       ))}
                     </select>
                   </div>
