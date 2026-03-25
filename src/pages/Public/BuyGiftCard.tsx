@@ -188,15 +188,11 @@ export default function BuyGiftCard() {
         setPricesLoaded(true);
       })
       .catch(() => setPricesLoaded(true));
-    (supabase as any).from("promo_gift_card_types").select("*").eq("is_active", true)
-      .then(({ data }: any) => {
-        const now = new Date();
-        setPromoTypes((data || []).filter((p: any) => {
-          if (p.expires_at && new Date(p.expires_at) < now) return false;
-          if (p.max_uses && p.uses_count >= p.max_uses) return false;
-          return true;
-        }));
-      });
+    // Use service-role API to bypass RLS on promo_gift_card_types
+    fetch("/api/public-promo-cards")
+      .then(r => r.json())
+      .then(data => setPromoTypes(Array.isArray(data) ? data : []))
+      .catch(() => setPromoTypes([]));
   }, []);
 
   const getTierValue = (tier: string) => {
