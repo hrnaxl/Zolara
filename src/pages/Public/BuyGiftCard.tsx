@@ -170,7 +170,7 @@ export default function BuyGiftCard() {
   const [promoTypes, setPromoTypes] = useState<any[]>([]);
   const [selectedPromo, setSelectedPromo] = useState<any | null>(null);
   const [form, setForm] = useState({
-    recipientName: "", recipientPhone: "", recipientEmail: "",
+    senderName: "", recipientName: "", recipientPhone: "", recipientEmail: "",
     buyerEmail: "", message: "",
   });
   const [loading, setLoading] = useState(false);
@@ -237,12 +237,14 @@ export default function BuyGiftCard() {
       ...f,
       buyerName: sanitizeName(f.buyerName),
       buyerPhone: sanitizePhone(f.buyerPhone),
+      senderName: sanitizeName(f.senderName),
       recipientName: sanitizeName(f.recipientName),
       recipientPhone: sanitizePhone(f.recipientPhone),
       recipientEmail: sanitizeEmail(f.recipientEmail),
       buyerEmail: sanitizeEmail(f.buyerEmail),
       message: sanitizeNotes(f.message),
     }));
+    if (!form.senderName.trim()) { toast.error("Enter your name"); return; }
     if (!form.recipientName.trim()) { toast.error("Enter the recipient's name"); return; }
     if (!form.recipientPhone.trim()) { toast.error("Enter the recipient's phone number"); return; }
     if (deliveryType === "email" && !form.recipientEmail.trim()) { toast.error("Enter the recipient's email address"); return; }
@@ -265,7 +267,7 @@ export default function BuyGiftCard() {
           tier: selectedPromo ? "Gold" : selectedTier,
           promo_type_id: selectedPromo?.id || null,
           card_type: selectedPromo ? "physical" : (isEmail ? "digital" : "physical"),
-          buyer_name: form.recipientName,
+          buyer_name: form.senderName,
           buyer_email: form.buyerEmail,
           buyer_phone: form.recipientPhone,
           recipient_name: form.recipientName,
@@ -278,13 +280,18 @@ export default function BuyGiftCard() {
             if (isEmail && !selectedPromo) {
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tier: selectedTier, amount: tierValue, buyerName: form.recipientName, buyerEmail: form.buyerEmail, buyerPhone: form.recipientPhone, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
+                body: JSON.stringify({ tier: selectedTier, amount: tierValue, buyerName: form.senderName, buyerEmail: form.buyerEmail, buyerPhone: form.recipientPhone, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
               });
               const d = await r.json().catch(() => ({}));
               if (r.ok && d.card) {
+                // Mark as sold so it shows correctly in admin
+                fetch("/api/mark-gift-card-sold", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: d.card.id }),
+                }).catch(() => {});
                 const emailTo = form.recipientEmail || form.buyerEmail;
-                if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName, recipient_email: emailTo, buyer_name: form.recipientName, message: form.message || undefined }).catch(console.error);
-                if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.recipientName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
+                if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName, recipient_email: emailTo, buyer_name: form.senderName, message: form.message || undefined }).catch(console.error);
+                if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.senderName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
               }
             } else {
               const r = await fetch("/api/claim-gift-card", {
@@ -293,7 +300,7 @@ export default function BuyGiftCard() {
                   tier: selectedPromo ? "promo" : selectedTier,
                   promoTypeId: selectedPromo?.id || null,
                   amount: tierValue,
-                  buyerName: form.recipientName,
+                  buyerName: form.senderName,
                   buyerEmail: form.buyerEmail,
                   buyerPhone: form.recipientPhone,
                   paymentRef,
@@ -303,7 +310,7 @@ export default function BuyGiftCard() {
               // Always send pickup email — card may be pre-printed or a placeholder
               if (form.buyerEmail) {
                 sendPickupReceiptEmail({
-                  buyerName: form.recipientName,
+                  buyerName: form.senderName,
                   buyerEmail: form.buyerEmail,
                   tier: selectedPromo ? (selectedPromo.name || "Special Edition") : selectedTier!,
                   amount: tierValue,
@@ -482,6 +489,12 @@ export default function BuyGiftCard() {
             <p style={{ color: "#78716C", fontSize: 13, marginBottom: 28 }}>Fill in who this card is for. If it's for you, use your own details.</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Sender section */}
+              <div style={{ background: "#F5EFE6", borderRadius: 14, padding: 20, border: "1px solid #E8E0D4", marginBottom: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#8B6914", marginBottom: 16 }}>YOUR NAME</div>
+                <DarkField label="Your Name" value={form.senderName} onChange={v => setForm(p => ({ ...p, senderName: v }))} placeholder="Your full name — shown on the card" />
+              </div>
+
               {/* Card recipient section */}
               <div style={{ background: "#F5EFE6", borderRadius: 14, padding: 20, border: "1px solid #E8E0D4" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#8B6914", marginBottom: 16 }}>CARD RECIPIENT</div>
@@ -551,8 +564,8 @@ export default function BuyGiftCard() {
                   { label: "Card Value", value: `GH₵ ${confirmAmount.toLocaleString()}` },
                   { label: "Delivery", value: deliveryType === "email" ? `Email to ${form.recipientEmail}` : "Pick up at Zolara, Sakasaka" },
                   ...(deliveryType === "email" ? [{ label: "Recipient", value: form.recipientName }] : []),
-                  { label: "From", value: form.buyerName },
-                  { label: "Phone", value: form.buyerPhone },
+                  { label: "From", value: form.senderName },
+                  ...(form.recipientPhone ? [{ label: "Recipient Phone", value: form.recipientPhone }] : []),
                 ].map(({ label, value }, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "13px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                     <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>{label}</span>
@@ -624,7 +637,7 @@ function DarkField({ label, value, onChange, placeholder, type = "text" }: {
 }) {
   return (
     <div>
-      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "#78716C", display: "block", marginBottom: 7 }}>{label.toUpperCase()}</label>
+      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "#4A3728", display: "block", marginBottom: 7 }}>{label.toUpperCase()}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-inp" />
     </div>
   );
