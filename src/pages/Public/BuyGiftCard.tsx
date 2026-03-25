@@ -353,10 +353,9 @@ export default function BuyGiftCard() {
         .gc-btn { transition: all 0.2s; }
         .gc-btn:hover { opacity: 0.88; transform: translateY(-1px); }
         .gc-btn:active { transform: translateY(0); }
-        .gc-input { background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #F5EFE6; outline: none; width: 100%; box-sizing: border-box; font-family: Montserrat,sans-serif; transition: border-color 0.15s; }
-        .gc-input::placeholder { color: rgba(255,255,255,0.3); }
+        
         .gc-input:focus { border-color: #C8A97E; }
-        .gc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: #78716C; display: block; margin-bottom: 7px; }
+        .gc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: #6B5D52; display: block; margin-bottom: 6px; }
       `}</style>
 
       {/* Header */}
@@ -481,23 +480,23 @@ export default function BuyGiftCard() {
 
         {/* STEP: DETAILS */}
         {step === "details" && (selectedTier || selectedPromo) && (
-          <div style={{ animation: "fadeUp 0.3s ease", background: "#FAFAF8", borderRadius: 20, padding: "clamp(20px,4vw,36px)", border: "1px solid #E8E2D9" }}>
-            <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: "#8B6914", cursor: "pointer", fontSize: 13, marginBottom: 28, padding: 0, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+          <div style={{ animation: "fadeUp 0.3s ease", background: "#FFFFFF", borderRadius: 20, padding: "clamp(20px,4vw,36px)", border: "1px solid #DDD8D0", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+            <button onClick={() => setStep("select")} style={{ background: "none", border: "none", color: "#8B6914", cursor: "pointer", fontSize: 13, marginBottom: 24, padding: 0, display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
               ← Back
             </button>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#1C160E", marginBottom: 6, fontWeight: 400 }}>Card Details</h2>
-            <p style={{ color: "#78716C", fontSize: 13, marginBottom: 28 }}>Fill in who this card is for. If it's for you, use your own details.</p>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#1C160E", marginBottom: 6, fontWeight: 300 }}>Card Details</h2>
+            <p style={{ color: "#6B5D52", fontSize: 13, marginBottom: 24 }}>Fill in who this card is for. Use your own details if it's for you.</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Sender section */}
-              <div style={{ background: "#F5EFE6", borderRadius: 14, padding: 20, border: "1px solid #E8E0D4", marginBottom: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#8B6914", marginBottom: 16 }}>YOUR NAME</div>
+              <div style={{ background: "#F7F5F2", borderRadius: 12, padding: 18, border: "1px solid #E0DDD8", marginBottom: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#6B5D52", marginBottom: 14 }}>YOUR NAME</div>
                 <DarkField label="Your Name" value={form.senderName} onChange={v => setForm(p => ({ ...p, senderName: v }))} placeholder="Your full name — shown on the card" />
               </div>
 
               {/* Card recipient section */}
-              <div style={{ background: "#F5EFE6", borderRadius: 14, padding: 20, border: "1px solid #E8E0D4" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#8B6914", marginBottom: 16 }}>CARD RECIPIENT</div>
+              <div style={{ background: "#F7F5F2", borderRadius: 12, padding: 18, border: "1px solid #E0DDD8" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#6B5D52", marginBottom: 14 }}>CARD RECIPIENT</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this card for?" />
                   <DarkField label="Recipient Phone" value={form.recipientPhone} onChange={v => setForm(p => ({ ...p, recipientPhone: v }))} placeholder="0XX XXX XXXX — links card to their account" type="tel" />
@@ -523,8 +522,8 @@ export default function BuyGiftCard() {
               )}
 
               {/* Buyer email — always shown */}
-              <div style={{ background: "#F5EFE6", borderRadius: 14, padding: 20, border: "1px solid #E8E0D4" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#8B6914", marginBottom: 16 }}>YOUR DETAILS</div>
+              <div style={{ background: "#F7F5F2", borderRadius: 12, padding: 18, border: "1px solid #E0DDD8" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.16em", color: "#6B5D52", marginBottom: 14 }}>YOUR DETAILS</div>
                 <DarkField label="Your Email" value={form.buyerEmail} onChange={v => setForm(p => ({ ...p, buyerEmail: v }))} placeholder="your@email.com — purchase receipt sent here" type="email" />
               </div>
             </div>
@@ -637,7 +636,7 @@ function DarkField({ label, value, onChange, placeholder, type = "text" }: {
 }) {
   return (
     <div>
-      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "#4A3728", display: "block", marginBottom: 7 }}>{label.toUpperCase()}</label>
+      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: "#3D3128", display: "block", marginBottom: 6 }}>{label.toUpperCase()}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="gc-inp" />
     </div>
   );
