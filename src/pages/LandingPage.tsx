@@ -25,6 +25,8 @@ const FALLBACK_REVIEWS = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+  const [pillVisible, setPillVisible] = useState(false);
+  const [wordIdx, setWordIdx] = useState(0);
 
   // Handle Supabase email confirmation tokens landing on homepage
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function LandingPage() {
       navigate(`/app/auth/callback?token_hash=${token_hash}&type=${type}`, { replace: true });
     }
   }, []);
+  const wcWords = ["Beauty.", "Artistry.", "Elegance.", "Radiance.", "Grace.", "You."];
   const [activeReview, setActiveReview] = useState(0);
   const [dbReviews, setDbReviews] = useState<any[]>([]);
   const [reviewVisible, setReviewVisible] = useState(false);
@@ -67,6 +70,7 @@ export default function LandingPage() {
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 40);
+      setPillVisible(window.scrollY > 480);
       const el = document.documentElement;
       const progress = (el.scrollTop) / (el.scrollHeight - el.clientHeight);
       setScrollProgress(Math.min(1, Math.max(0, progress)));
@@ -74,6 +78,22 @@ export default function LandingPage() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+  // Word cycle
+  useEffect(() => {
+    const t = setInterval(() => setWordIdx(i => (i + 1) % 6), 3000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Scroll reveal via IntersectionObserver
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('z-revealed'); }),
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll('.z-reveal, .service-card, .review-card').forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
 
   useEffect(() => {
     const t = setTimeout(() => setPageLoaded(true), 80);
@@ -215,6 +235,35 @@ export default function LandingPage() {
     <div className={"page-fade" + (pageLoaded ? " loaded" : "")} style={{ fontFamily: "'Cormorant Garamond', 'Playfair Display', Georgia, serif", background: cream, color: dark, overflowX: "hidden" }}>
       {/* SCROLL PROGRESS BAR */}
       <div style={{ position: "fixed", top: 0, left: 0, zIndex: 9999, height: "2px", width: (scrollProgress * 100) + "%", background: "linear-gradient(90deg,#8B6914,#C8A97E,#D4B896)", transition: "width 0.1s linear", pointerEvents: "none" }} />
+      {/* FLOATING PILL */}
+      <div style={{
+        position: "fixed", bottom: 28, left: "50%",
+        transform: pillVisible ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(80px)",
+        opacity: pillVisible ? 1 : 0,
+        transition: "transform 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.5s ease",
+        zIndex: 998, pointerEvents: pillVisible ? "all" : "none",
+      }}>
+        <Link to="/book" style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "12px 28px",
+          background: "rgba(28,22,14,0.92)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(200,169,126,0.3)",
+          borderRadius: 40,
+          fontFamily: "'Montserrat', sans-serif",
+          fontSize: 11, fontWeight: 700,
+          letterSpacing: "0.16em",
+          color: "#C8A97E",
+          textDecoration: "none",
+          textTransform: "uppercase" as const,
+          boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
+          animation: "pillPulse 3.5s ease-in-out infinite",
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#C8A97E", animation: "dotPulse 3.5s ease-in-out infinite" }} />
+          BOOK YOUR APPOINTMENT
+        </Link>
+      </div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -248,13 +297,36 @@ export default function LandingPage() {
         .delay-3 { animation-delay: 0.45s; }
         .delay-4 { animation-delay: 0.6s; }
         .delay-5 { animation-delay: 0.75s; }
-        .service-card { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, background 0.3s ease; cursor: default; }
+        .service-card { opacity: 0; transform: translateY(24px); transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s ease, background 0.3s ease, opacity 0.65s ease; cursor: default; }
+        .service-card.z-revealed { opacity: 1; transform: translateY(0); }
         .service-card:hover { transform: translateY(-12px); box-shadow: 0 40px 72px rgba(28,22,14,0.14), 0 0 0 1.5px rgba(200,169,126,0.35); background: #fff !important; }
         .service-card:hover .svc-icon { transform: scale(1.25) rotate(15deg); }
         .svc-icon { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); display: inline-block; }
-        .btn-primary { transition: all 0.3s ease; }
+        .btn-primary { transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .btn-primary::before { content: ""; position: absolute; top: 0; left: -80px; width: 55px; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent); transform: skewX(-20deg); transition: left 0s; pointer-events: none; }
+        .btn-primary:hover::before { left: calc(100% + 40px); transition: left 0.45s ease; }
         .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(139,105,20,0.48) !important; }
+        .btn-outline { position: relative; overflow: hidden; }
+        .btn-outline::before { content: ""; position: absolute; top: 0; left: -80px; width: 55px; height: 100%; background: linear-gradient(90deg, transparent, rgba(200,169,126,0.2), transparent); transform: skewX(-20deg); transition: left 0s; pointer-events: none; }
+        .btn-outline:hover::before { left: calc(100% + 40px); transition: left 0.45s ease; }
         .btn-outline:hover { background: #1C160E !important; color: #F5EFE6 !important; }
+        .z-reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.65s ease, transform 0.65s ease; }
+        .z-reveal.z-revealed { opacity: 1; transform: translateY(0); }
+        .z-reveal:nth-child(2) { transition-delay: 0.1s; }
+        .z-reveal:nth-child(3) { transition-delay: 0.2s; }
+        .z-reveal:nth-child(4) { transition-delay: 0.3s; }
+        .z-reveal:nth-child(5) { transition-delay: 0.4s; }
+        .z-reveal:nth-child(6) { transition-delay: 0.5s; }
+        .review-card { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+        .review-card.z-revealed { opacity: 1; transform: translateY(0); }
+        @keyframes pillPulse {
+          0%,100% { box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,169,126,0.08); }
+          50% { box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 4px rgba(200,169,126,0.14), 0 0 22px rgba(200,169,126,0.07); }
+        }
+        @keyframes dotPulse {
+          0%,100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.35); }
+        }
         .nav-link { position: relative; }
         .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1.5px; background: #C8A97E; transition: width 0.3s ease; }
         .nav-link:hover::after { width: 100%; }
@@ -598,8 +670,22 @@ export default function LandingPage() {
           <h1 className="fade-up delay-1" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 300, lineHeight: 1.0, marginBottom: "8px", letterSpacing: "-0.01em" }}>
             Where Luxury
           </h1>
-          <h1 className="fade-up delay-2" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 400, fontStyle: "italic", color: gold, lineHeight: 1.0, marginBottom: "36px", letterSpacing: "-0.01em" }}>
-            Meets Beauty.
+          <h1 className="fade-up delay-2" style={{ fontSize: "clamp(54px,8vw,96px)", fontWeight: 400, fontStyle: "italic", color: gold, lineHeight: 1.0, marginBottom: "36px", letterSpacing: "-0.01em", display: "flex", alignItems: "baseline", gap: "0.25em", flexWrap: "nowrap" }}>
+            Meets{" "}
+            <span style={{ position: "relative", display: "inline-block", minWidth: "3.5ch", overflow: "visible" }}>
+              {wcWords.map((w, i) => (
+                <span key={w} style={{
+                  position: i === 0 ? "relative" : "absolute",
+                  top: 0, left: 0,
+                  opacity: wordIdx === i ? 1 : 0,
+                  transform: wordIdx === i ? "translateY(0)" : "translateY(10px)",
+                  transition: "opacity 0.55s ease, transform 0.55s ease",
+                  whiteSpace: "nowrap",
+                  pointerEvents: "none",
+                  visibility: wordIdx === i ? "visible" : "hidden",
+                }}>{w}</span>
+              ))}
+            </span>
           </h1>
 
           <p className="fade-up delay-3 sans" style={{ fontSize: "15.5px", lineHeight: 1.9, color: "#3D2E1A", maxWidth: "460px", marginBottom: "44px", fontWeight: 400 }}>
