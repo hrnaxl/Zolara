@@ -300,7 +300,18 @@ export default function BuyGiftCard() {
                 }),
               });
               const d = await r.json().catch(() => ({}));
-              if (form.buyerEmail && d.card) sendPickupReceiptEmail({ buyerName: form.buyerName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code || "", serialNumber: d.card.serial_number || undefined, paymentRef: paymentRef || "" }).catch(console.error);
+              // Always send pickup email — card may be pre-printed or a placeholder
+              if (form.buyerEmail) {
+                sendPickupReceiptEmail({
+                  buyerName: form.buyerName,
+                  buyerEmail: form.buyerEmail,
+                  tier: selectedPromo ? (selectedPromo.name || "Special Edition") : selectedTier!,
+                  amount: tierValue,
+                  cardCode: d.card?.code || "PENDING",
+                  serialNumber: d.card?.serial_number || undefined,
+                  paymentRef: paymentRef || "",
+                }).catch(console.error);
+              }
             }
           } catch (e: any) { console.error("GC onSuccess:", e.message); }
           track("gift_card_purchased", { tier: selectedTier || "promo", delivery: deliveryType });
