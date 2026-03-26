@@ -380,18 +380,7 @@ export default function PublicBooking() {
 
       if (bookingError) throw bookingError;
 
-      // Send booking received SMS immediately — deposit not yet paid at this point
-      if (cleanPhone) {
-        sendSMS(cleanPhone, SMS.bookingReceived(
-          name || "Valued Client",
-          selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
-          preferredDate,
-          normalizedTime,
-          bRef,
-          false, // deposit not yet paid
-          depositAmount,
-        )).catch(console.error);
-      }
+      // SMS is sent ONLY after payment is confirmed — not before Paystack opens
 
       // 2. Open Paystack popup — inline, no redirect, no edge function, no secret key
       // NOTE: client record is created at checkout, not here
