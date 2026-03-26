@@ -94,7 +94,6 @@ export default function ClientDashboard() {
           { icon: Calendar, label: "Total Visits",    value: client.total_visits || completed.length, sub: "all time", color: "#6366F1" },
           { icon: Scissors, label: "Completed",       value: completed.length,       sub: "services done",       color: "#22C55E" },
           { icon: Clock,    label: "Upcoming",        value: upcoming.length,        sub: "appointments",        color: "#F59E0B" },
-          ...(promoSavings > 0 ? [{ icon: Sparkles, label: "Total Saved",      value: `GH₵${promoSavings.toFixed(0)}`, sub: "via promo codes", color: "#22C55E" }] : []),
         ].map(({ icon: Icon, label, value, sub, color }) => (
           <div key={label} style={{ background: WHITE, borderRadius: 16, border: `1px solid ${BORDER}`, padding: "20px 22px", boxShadow: SHADOW }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -108,6 +107,17 @@ export default function ClientDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Promo savings banner */}
+      {promoSavings > 0 && (
+        <div style={{ background: "linear-gradient(135deg,rgba(34,197,94,0.08),rgba(34,197,94,0.04))", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 14, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 24 }}>🎉</div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#16A34A" }}>You have saved GH₵ {promoSavings.toFixed(0)} with promo codes</div>
+            <div style={{ fontSize: 11, color: TXT_S, marginTop: 2 }}>Keep booking to enjoy more exclusive savings.</div>
+          </div>
+        </div>
+      )}
 
       {/* Loyalty card + Upcoming row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 16, marginBottom: 24 }} className="client-grid">
