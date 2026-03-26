@@ -104,6 +104,7 @@ const App = () => (
 
           {/* Client self-service portal */}
           <Route path="/client-login" element={<ClientLogin />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/app/client/auth" element={<Navigate to="/client-login" />} />
           <Route path="/app/client" element={<ClientPortal />}>
             <Route path="dashboard" element={<ClientDashboard />} />

@@ -93,10 +93,10 @@ const StaffDashboard = () => {
         const weekStart = format(subDays(now, now.getDay() === 0 ? 6 : now.getDay() - 1), "yyyy-MM-dd");
 
         const [thisMonthSales, lastMonthSales, allTimeSales, weekSales] = await Promise.all([
-          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", monthStart),
-          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", lastMonthStart).lte("created_at", lastMonthEnd),
-          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed"),
-          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", weekStart),
+          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", monthStart).not("booking_id", "is", null),
+          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", lastMonthStart).lte("created_at", lastMonthEnd).not("booking_id", "is", null),
+          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed").not("booking_id", "is", null),
+          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", weekStart).not("booking_id", "is", null),
         ]);
 
         const sum = (rows: any[]) => (rows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);

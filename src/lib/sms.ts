@@ -238,7 +238,31 @@ export const SMS = {
     ].join("\n");
   },
 
-  // 10. Birthday Greeting
+  // 10. Welcome — first-time client
+  welcomeNewClient: (name: string, service: string, date: string, time: string, ref: string) => {
+    const first = firstName(name);
+    const dayDate = date.includes("-") ? dayDateLabel(date) : date;
+    const cleanTime = time.slice(0, 5);
+    return [
+      `Welcome to Zolara, ${first}! We are so glad you chose us.`,
+      ``,
+      `Your first appointment is booked:`,
+      `Service: ${service}`,
+      `Date: ${dayDate}`,
+      `Time: ${cleanTime}`,
+      `Ref: ${ref}`,
+      ``,
+      `We are located at Sakasaka, Opposite CalBank, Tamale. Please arrive 5 minutes early.`,
+      ``,
+      `If you have any questions before your visit, call us on 0594365314.`,
+      ``,
+      `See you soon.`,
+      `Zolara Beauty Studio`,
+      CONTACT,
+    ].join("\n");
+  },
+
+  // 11. Birthday Greeting
   birthdayGreeting: (name: string) => {
     const first = firstName(name);
     return [

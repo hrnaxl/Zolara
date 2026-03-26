@@ -233,6 +233,8 @@ const Reports = () => {
        STAFF BREAKDOWN
     ============================== */
       const staffBreakdown = rows.reduce((acc: any, row: any) => {
+        // Only count service sales — product/malt sales have no booking_id
+        if (!row.booking_id && !row.bookings) return acc;
         const staffObj = Array.isArray(row.bookings) ? row.bookings[0]?.staff : row.bookings?.staff;
         const name = staffObj?.name || "Unassigned";
         const staffId = staffObj?.id || name || "unknown";

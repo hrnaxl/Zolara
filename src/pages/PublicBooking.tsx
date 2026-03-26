@@ -480,8 +480,19 @@ export default function PublicBooking() {
                 .select("id", { count: "exact", head: true })
                 .or(`client_phone.eq.${cleanPhone},client_phone.eq.${phone.trim()}`);
               // count === 1 means only this booking exists for this phone = first time
-              setIsFirstTimeBooker((count || 0) <= 1);
-            } catch { setIsFirstTimeBooker(true); } // default show if check fails
+              const isFirst = (count || 0) <= 1;
+              setIsFirstTimeBooker(isFirst);
+              // Send welcome SMS to first-time bookers
+              if (isFirst && cleanPhone) {
+                sendSMS(cleanPhone, SMS.welcomeNewClient(
+                  name || "Valued Client",
+                  selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
+                  preferredDate,
+                  normalizedTime,
+                  bRef,
+                )).catch(console.error);
+              }
+            } catch { setIsFirstTimeBooker(true); }
           }
 
           setBookingRef(bRef);
