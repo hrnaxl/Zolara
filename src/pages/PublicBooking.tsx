@@ -420,16 +420,22 @@ export default function PublicBooking() {
 
           // Cancel the delayed "not recorded" SMS — deposit was paid
           delayedSMSRef.sent = true;
-          // Booking is auto-confirmed on deposit — send confirmed message immediately
+          // Fetch the booking to get the auto-assigned staff name
           if (cleanPhone) {
+            const { data: confirmedBooking } = await (supabase as any)
+              .from("bookings")
+              .select("staff_name")
+              .eq("id", bookingId)
+              .maybeSingle();
+            const assignedStaff = confirmedBooking?.staff_name || "our team";
             sendSMS(cleanPhone, SMS.bookingConfirmed(
               name || "Valued Client",
               selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
               preferredDate,
               normalizedTime,
-              "our team",
+              assignedStaff,
               bRef,
-              true, // deposit paid
+              true,
               depositAmount,
             )).catch(console.error);
           }
