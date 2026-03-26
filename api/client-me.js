@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     byPhone = Array.isArray(byPhone) ? byPhone : [];
 
     // Also find via bookings — handles case where admin stored phone differently
-    const linkedBooking = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&client_id=not.is.null&select=client_id&limit=1`);
+    const linkedBooking = await sb(`bookings?client_phone=ilike.*${local.slice(-9)}*&client_id=not.is.null&select=client_id&limit=1`);
     const linkedId = Array.isArray(linkedBooking) && linkedBooking[0]?.client_id ? linkedBooking[0].client_id : null;
     let byBooking = [];
     if (linkedId) {
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
     // No client record at all — create one from booking name
     if (!client) {
-      const bookings = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&select=client_name&limit=1`);
+      const bookings = await sb(`bookings?client_phone=ilike.*${local.slice(-9)}*&select=client_name&limit=1`);
       const name = bookings?.[0]?.client_name || "Zolara Client";
       const newClient = await sbPost("clients", { phone: local, name, loyalty_points: 0, total_visits: 0, total_spent: 0 });
       client = Array.isArray(newClient) ? newClient[0] : newClient;
@@ -91,14 +91,15 @@ export default async function handler(req, res) {
 
     if (!client) return res.status(200).json({ client: null, bookings: [], giftCards: [] });
 
-    // Backfill client_id on bookings missing it
+    // Backfill client_id on bookings missing it — use ilike for format-agnostic matching
+    const last9 = local.slice(-9);
     await sbPatch(
-      `bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&client_id=is.null`,
+      `bookings?client_phone=ilike.*${last9}*&client_id=is.null`,
       { client_id: client.id }
     );
 
     // Only sync visit count from bookings — trust loyalty_points set by admin checkout
-    const completedRes = await sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl},client_id.eq.${client.id})&status=eq.completed&select=id,price,preferred_date`);
+    const completedRes = await sb(`bookings?client_phone=ilike.*${last9}*&status=eq.completed&select=id,price,preferred_date`);
     const completed = Array.isArray(completedRes) ? completedRes : [];
     const totalVisits = completed.length;
     const totalSpent = completed.reduce((s, b) => s + Number(b.price || 0), 0);
@@ -108,12 +109,14 @@ export default async function handler(req, res) {
       client = { ...client, total_visits: totalVisits, total_spent: totalSpent };
     }
 
-    // Fetch bookings (by client_id OR phone)
-    const [byId, byPhone] = await Promise.all([
+    // Fetch bookings — by client_id, exact phone match, AND ilike partial match on last 9 digits
+    const last9 = local.slice(-9); // last 9 digits are format-agnostic
+    const [byId, byExactPhone, byPartialPhone] = await Promise.all([
       sb(`bookings?client_id=eq.${client.id}&order=preferred_date.desc&limit=50`),
       sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&order=preferred_date.desc&limit=50`),
+      sb(`bookings?client_phone=ilike.*${last9}*&order=preferred_date.desc&limit=50`),
     ]);
-    const allBookings = [...(byId || []), ...(byPhone || [])];
+    const allBookings = [...(Array.isArray(byId) ? byId : []), ...(Array.isArray(byExactPhone) ? byExactPhone : []), ...(Array.isArray(byPartialPhone) ? byPartialPhone : [])];
     const seenB = new Set();
     const bookings = allBookings.filter(b => { if (seenB.has(b.id)) return false; seenB.add(b.id); return true; });
 
