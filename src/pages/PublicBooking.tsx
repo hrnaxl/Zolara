@@ -80,6 +80,7 @@ export default function PublicBooking() {
   const [bookingRef, setBookingRef] = useState("");
   const [bookedService, setBookedService] = useState("");
   const [bookedDate, setBookedDate] = useState("");
+  const [bookedPromoSaving, setBookedPromoSaving] = useState(0);
   const [bookedTime, setBookedTime] = useState("");
   const [pendingMeta, setPendingMeta] = useState<any>(null); // stored in sessionStorage for fallback
 
@@ -380,7 +381,22 @@ export default function PublicBooking() {
 
       if (bookingError) throw bookingError;
 
-      // SMS is sent ONLY after payment is confirmed — not before Paystack opens
+      // Send delayed SMS 7 minutes after booking — gives client time to pay deposit
+      // If deposit was paid, the onSuccess SMS below overrides this message
+      const delayedSMSRef = { sent: false };
+      setTimeout(() => {
+        if (!delayedSMSRef.sent && cleanPhone) {
+          sendSMS(cleanPhone, SMS.bookingReceived(
+            name || "Valued Client",
+            selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
+            preferredDate,
+            normalizedTime,
+            bRef,
+            false, // deposit not yet confirmed at this point
+            depositAmount,
+          )).catch(console.error);
+        }
+      }, 7 * 60 * 1000); // 7 minutes
 
       // 2. Open Paystack popup — inline, no redirect, no edge function, no secret key
       // NOTE: client record is created at checkout, not here
@@ -402,7 +418,9 @@ export default function PublicBooking() {
             toast.error("Payment received but booking confirmation failed. Please contact us.");
           }
 
-          // Send deposit-confirmed follow-up SMS to client
+          // Cancel the delayed "not recorded" SMS — deposit was paid
+          delayedSMSRef.sent = true;
+          // Send deposit-confirmed SMS immediately
           if (cleanPhone) {
             sendSMS(cleanPhone, SMS.bookingReceived(
               name || "Valued Client",
@@ -463,6 +481,7 @@ export default function PublicBooking() {
           setBookedService(selectedServices.map(s => s.name).join(", ") || selectedService?.name || "");
           setBookedDate(preferredDate);
           setBookedTime(normalizedTime);
+          setBookedPromoSaving(promoDiscount || 0);
           setStep("done");
         },
         onClose: () => {
@@ -521,6 +540,14 @@ export default function PublicBooking() {
           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "10px", color: TXT_SOFT, letterSpacing: "0.18em", marginBottom: "8px" }}>BOOKING REFERENCE</p>
           <span style={{ fontFamily: "monospace", fontSize: "22px", fontWeight: 700, color: GOLD_DARK, letterSpacing: "0.12em" }}>{bookingRef}</span>
         </div>
+        {bookedPromoSaving > 0 && (
+          <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "10px", padding: "14px 20px", marginBottom: "16px", display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 20 }}>🎉</span>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "13px", color: GREEN, fontWeight: 700, margin: 0 }}>
+              You saved GHS {bookedPromoSaving.toFixed(0)} with your promo code!
+            </p>
+          </div>
+        )}
         <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "10px", padding: "16px 20px", marginBottom: "32px" }}>
           <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12.5px", color: GREEN, lineHeight: 1.75, fontWeight: 500 }}>
             Pay the remaining balance at the studio on the day of your appointment.

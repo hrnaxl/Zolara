@@ -995,6 +995,36 @@ export default function LandingPage() {
         </div>
       </section>
 
+
+      {/* MISSION + VISION */}
+      <section style={{ padding: "clamp(64px,8vw,100px) clamp(24px,6vw,100px)", background: mid, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 30% 50%, rgba(200,169,126,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
+        <div style={{ maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <div style={{ textAlign: "center", marginBottom: "clamp(40px,6vw,72px)" }}>
+            <div className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.28em", color: gold, marginBottom: "12px" }}>WHO WE ARE</div>
+            <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(32px,5vw,52px)", fontWeight: 300, color: cream, lineHeight: 1.15, margin: 0 }}>
+              Built on Purpose. Driven by Excellence.
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(24px,4vw,60px)", maxWidth: "900px", margin: "0 auto" }}>
+            {/* Mission */}
+            <div style={{ borderTop: `2px solid ${gold}`, paddingTop: "28px" }}>
+              <div className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.24em", color: gold, marginBottom: "16px" }}>OUR MISSION</div>
+              <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(18px,2.2vw,22px)", fontWeight: 400, color: cream, lineHeight: 1.75, margin: 0 }}>
+                To deliver an uncompromising luxury beauty experience to every Ghanaian woman, through skilled hands, premium products, and a culture of care that leaves every client feeling truly valued.
+              </p>
+            </div>
+            {/* Vision */}
+            <div style={{ borderTop: `2px solid ${gold}`, paddingTop: "28px" }}>
+              <div className="sans" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.24em", color: gold, marginBottom: "16px" }}>OUR VISION</div>
+              <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(18px,2.2vw,22px)", fontWeight: 400, color: cream, lineHeight: 1.75, margin: 0 }}>
+                To become the most trusted and sought-after beauty brand in Ghana. A name every Ghanaian woman knows, trusts, and aspires to.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* REVIEWS: ANIMATED */}
       <section id="reviews" style={{ padding: "clamp(64px,8vw,120px) clamp(24px,6vw,100px)", background: dark, textAlign: "center", overflow: "hidden", position: "relative" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(200,169,126,0.10) 0%, transparent 55%)", pointerEvents: "none" }} />

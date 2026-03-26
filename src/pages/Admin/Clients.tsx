@@ -51,8 +51,16 @@ const TIER_COLORS: Record<string, string> = {
       let q = supabase.from("clients").select("*", { count: "exact" });
       if (s.trim()) {
         const { intl, local } = normalizePhoneGhana(s.trim());
-        // Match name/email by ilike, but match phone by both 233 and 0 formats exactly + ilike
-        q = q.or(`name.ilike.%${s}%,phone.ilike.%${s}%,phone.eq.${intl},phone.eq.${local},email.ilike.%${s}%`);
+        // Search name/email by ilike, phone by all formats (ilike on both + exact on both)
+        q = q.or([
+          `name.ilike.%${s}%`,
+          `email.ilike.%${s}%`,
+          `phone.ilike.%${s}%`,
+          `phone.ilike.%${intl}%`,
+          `phone.ilike.%${local}%`,
+          `phone.eq.${intl}`,
+          `phone.eq.${local}`,
+        ].join(','));
       }
       q = q.order("created_at", { ascending: false }).range((p - 1) * PAGE_SIZE, p * PAGE_SIZE - 1);
       const { data, count, error } = await q;

@@ -68,8 +68,6 @@ export default async function handler(req, res) {
     const normalized = toIntl(phone); // intl for Arkesel SMS
     if (normalized.length < 12) return res.status(400).json({ error: "Invalid phone number" });
 
-    await ensureOTPTable();
-
     const code = genOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
 
