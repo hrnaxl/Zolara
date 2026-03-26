@@ -638,7 +638,7 @@ const Checkout = () => {
             if (Math.floor(finalPts / stampsForReward) > Math.floor(prevPts / stampsForReward) && finalPts >= stampsForReward) {
               setTimeout(() => sendSMS(clientPhone, SMS.loyaltyReward(clientName, finalPts)).catch(console.error), 3000);
             }
-            setTimeout(() => sendSMS(clientPhone, SMS.feedbackRequest(clientName, booking.service_name || "service")).catch(console.error), 8000);
+            setTimeout(() => sendSMS(clientPhone, SMS.feedbackRequest(clientName, booking.service_name || "service")).catch(console.error), 45 * 60 * 1000); // 45 minutes after checkout
           }
         }
       } catch (loyErr) { console.error("Loyalty error:", loyErr); }

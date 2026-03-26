@@ -223,15 +223,13 @@ export const SMS = {
   feedbackRequest: (name: string, service: string) => {
     const first = firstName(name);
     return [
-      `Hi ${first}, thank you for visiting Zolara today! 💛`,
+      `Hi ${first}. We hope you are enjoying your ${service} from earlier today.`,
       ``,
-      `We hope you loved your ${service} experience.`,
+      `Your experience at Zolara matters to us. If you have a moment, we would love to hear your thoughts:`,
       ``,
-      `We'd love to hear your thoughts — it only takes a moment:`,
-      `🔗 zolarasalon.com/feedback`,
+      `zolarasalon.com/feedback`,
       ``,
-      `Your feedback helps us serve you better. 🌸`,
-      ``,
+      `Thank you for choosing Zolara.`,
       `Zolara Beauty Studio`,
       CONTACT,
     ].join("\n");

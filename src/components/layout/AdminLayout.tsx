@@ -325,7 +325,7 @@ const AdminDashboard = () => {
           .order("preferred_date", { ascending: true })
           .order("preferred_time", { ascending: true })
           .limit(5),
-        // Use sales table for staff revenue — actual collected amounts, not booking prices
+        // Staff revenue: only service sales (must have booking_id — product/malt sales never have one)
         (supabase as any)
           .from("sales")
           .select("id, staff_id, amount, staff:staff_id(name)")
@@ -333,7 +333,7 @@ const AdminDashboard = () => {
           .gte("created_at", periodStartTs)
           .lte("created_at", periodEndTs)
           .not("staff_id", "is", null)
-          .not("notes", "ilike", "%product sale%"), // exclude product sales from service revenue
+          .not("booking_id", "is", null), // only service sales — product/malt sales have no booking_id
         // Fetch completed bookings with nested payments to compute pending revenue (completed but unpaid)
         supabase
           .from("bookings")
