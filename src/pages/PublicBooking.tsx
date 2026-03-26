@@ -420,15 +420,16 @@ export default function PublicBooking() {
 
           // Cancel the delayed "not recorded" SMS — deposit was paid
           delayedSMSRef.sent = true;
-          // Send deposit-confirmed SMS immediately
+          // Booking is auto-confirmed on deposit — send confirmed message immediately
           if (cleanPhone) {
-            sendSMS(cleanPhone, SMS.bookingReceived(
+            sendSMS(cleanPhone, SMS.bookingConfirmed(
               name || "Valued Client",
-              selectedService?.name || "service",
+              selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
               preferredDate,
               normalizedTime,
+              "our team",
               bRef,
-              true, // deposit now paid
+              true, // deposit paid
               depositAmount,
             )).catch(console.error);
           }

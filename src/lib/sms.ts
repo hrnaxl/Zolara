@@ -82,25 +82,28 @@ export const SMS = {
     time: string,
     staffName: string,
     ref: string,
+    depositPaid = false,
+    depositAmount = 50,
   ) => {
     const first = firstName(name);
     const dayDate = date.includes("-") ? dayDateLabel(date) : date;
     const cleanTime = time.slice(0, 5);
+    const stylistLine = staffName && staffName !== "our team" ? `💅 Stylist: ${staffName}` : null;
+    const depositLine = depositPaid ? `💳 Deposit: GHS ${depositAmount} received.` : null;
     return [
       `Hi ${first}, your Zolara appointment is confirmed! ✅`,
       ``,
       `💆 Service: ${service}`,
       `📅 Date: ${dayDate}`,
       `🕐 Time: ${cleanTime}`,
-      `💅 Stylist: ${staffName}`,
+      ...(stylistLine ? [stylistLine] : []),
       `🔖 Ref: ${ref}`,
+      ...(depositLine ? [``, depositLine] : []),
       ``,
-      `We can't wait to pamper you! 🌸`,
-      `Please arrive about 5 minutes early.`,
+      `We look forward to seeing you. Please arrive 5 minutes early.`,
       ``,
-      `📍 Sakasaka, Opp. CalBank – Tamale`,
-      ``,
-      `Zolara Beauty Studio 💛`,
+      `📍 Sakasaka, Opp. CalBank, Tamale`,
+      `Zolara Beauty Studio`,
       CONTACT,
     ].join("\n");
   },
