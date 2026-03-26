@@ -17,23 +17,31 @@ function toLocal(p) {
 }
 
 async function sb(path) {
-  const r = await fetch(SB_URL + "/rest/v1/" + path, { headers: H });
-  const data = await r.json();
-  return Array.isArray(data) ? data : [];
-}
-
-async function sbPost(path, body) {
-  const r = await fetch(SB_URL + "/rest/v1/" + path, {
-    method: "POST", headers: H, body: JSON.stringify(body),
-  });
-  return r.json();
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/" + path, { headers: H });
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
 }
 
 async function sbPatch(path, body) {
-  await fetch(SB_URL + "/rest/v1/" + path, {
-    method: "PATCH", headers: { ...H, "Prefer": "return=minimal" },
-    body: JSON.stringify(body),
-  }).catch(() => {});
+  try {
+    await fetch(SB_URL + "/rest/v1/" + path, {
+      method: "PATCH",
+      headers: { ...H, "Prefer": "return=minimal" },
+      body: JSON.stringify(body),
+    });
+  } catch {}
+}
+
+async function sbPost(path, body) {
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/" + path, {
+      method: "POST", headers: H, body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    return Array.isArray(d) ? d[0] : d;
+  } catch { return null; }
 }
 
 export default async function handler(req, res) {
@@ -48,7 +56,7 @@ export default async function handler(req, res) {
     if (!token || !phone) return res.status(400).json({ error: "token and phone required" });
 
     const local = toLocal(phone);
-    const intl = local.startsWith("0") ? "233" + local.slice(1) : local;
+    const intl  = local.startsWith("0") ? "233" + local.slice(1) : local;
     const last9 = local.slice(-9);
 
     // 1. Validate session
@@ -56,58 +64,67 @@ export default async function handler(req, res) {
     if (!sessions.length) return res.status(401).json({ error: "Invalid session" });
     if (new Date(sessions[0].expires_at) < new Date()) return res.status(401).json({ error: "Session expired" });
 
-    // 2. Find client — by phone (exact + ilike) then via bookings
-    const [exactClients, likeClients] = await Promise.all([
+    // 2. Find ALL bookings for this phone (ilike on last 9 digits)
+    const allMyBookings = await sb(`bookings?client_phone=ilike.%${last9}%&order=preferred_date.desc&limit=100`);
+
+    // 3. Collect every client_id referenced in those bookings
+    const clientIds = [...new Set(allMyBookings.map(b => b.client_id).filter(Boolean))];
+
+    // 4. Find clients by phone AND by every client_id found in bookings
+    const searches = [
       sb(`clients?or=(phone.eq.${local},phone.eq.${intl})&limit=10`),
       sb(`clients?phone=ilike.%${last9}%&limit=10`),
-    ]);
+      ...clientIds.map(id => sb(`clients?id=eq.${id}&limit=1`)),
+    ];
+    const results = await Promise.all(searches);
+    const allFound = results.flat();
 
-    const linkedBookings = await sb(`bookings?client_phone=ilike.%${last9}%&client_id=not.is.null&select=client_id&limit=1`);
-    const linkedId = linkedBookings[0]?.client_id || null;
-    const linkedClients = linkedId ? await sb(`clients?id=eq.${linkedId}&limit=1`) : [];
-
+    // Deduplicate by id
     const seenIds = new Set();
-    const allClients = [...exactClients, ...likeClients, ...linkedClients].filter(r => {
+    const uniqueClients = allFound.filter(r => {
       if (!r?.id || seenIds.has(r.id)) return false;
       seenIds.add(r.id); return true;
     });
 
-    let client = allClients.sort((a, b) => (b.loyalty_points || 0) - (a.loyalty_points || 0))[0] || null;
+    // Pick the one with the MOST loyalty points — this is always the admin's real record
+    let client = uniqueClients.sort((a, b) => (b.loyalty_points || 0) - (a.loyalty_points || 0))[0] || null;
 
-    // 3. No client record at all — create one from booking name
+    // 5. No client record at all — create one
     if (!client) {
-      const nameBookings = await sb(`bookings?client_phone=ilike.%${last9}%&select=client_name&limit=1`);
-      const name = nameBookings[0]?.client_name || "Zolara Client";
-      const created = await sbPost("clients", { phone: local, name, loyalty_points: 0, total_visits: 0, total_spent: 0 });
-      client = Array.isArray(created) ? created[0] : created;
+      const nameRow = allMyBookings.find(b => b.client_name);
+      const name = nameRow?.client_name || "Zolara Client";
+      client = await sbPost("clients", { phone: local, name, loyalty_points: 0, total_visits: 0, total_spent: 0 });
     }
 
     if (!client?.id) return res.status(200).json({ client: null, bookings: [], giftCards: [] });
 
-    // 4. Backfill client_id on matching bookings
+    // 6. Ensure client record has phone stored in local format
+    if (!client.phone || client.phone !== local) {
+      await sbPatch(`clients?id=eq.${client.id}`, { phone: local });
+      client = { ...client, phone: local };
+    }
+
+    // 7. Backfill client_id on all matching bookings
     await sbPatch(`bookings?client_phone=ilike.%${last9}%&client_id=is.null`, { client_id: client.id });
 
-    // 5. Sync visit count (never overwrite loyalty_points — managed by checkout)
-    const completed = await sb(`bookings?client_phone=ilike.%${last9}%&status=eq.completed&select=id,price`);
+    // 8. Sync total_visits and total_spent from actual bookings (NEVER touch loyalty_points)
+    const completed = allMyBookings.filter(b => b.status === "completed");
     const totalVisits = completed.length;
-    const totalSpent = completed.reduce((s, b) => s + Number(b.price || 0), 0);
-    if (totalVisits !== (client.total_visits || 0)) {
+    const totalSpent  = completed.reduce((s, b) => s + Number(b.price || 0), 0);
+    if (totalVisits !== (client.total_visits || 0) || totalSpent !== (client.total_spent || 0)) {
       await sbPatch(`clients?id=eq.${client.id}`, { total_visits: totalVisits, total_spent: totalSpent });
       client = { ...client, total_visits: totalVisits, total_spent: totalSpent };
     }
 
-    // 6. Fetch all bookings
-    const [byId, byExact, byLike] = await Promise.all([
-      sb(`bookings?client_id=eq.${client.id}&order=preferred_date.desc&limit=50`),
-      sb(`bookings?or=(client_phone.eq.${local},client_phone.eq.${intl})&order=preferred_date.desc&limit=50`),
-      sb(`bookings?client_phone=ilike.%${last9}%&order=preferred_date.desc&limit=50`),
-    ]);
+    // 9. Build final bookings list — already fetched, just deduplicate
+    //    Also fetch by client_id to catch any missed by phone
+    const byClientId = await sb(`bookings?client_id=eq.${client.id}&order=preferred_date.desc&limit=50`);
     const seenB = new Set();
-    const bookings = [...byId, ...byExact, ...byLike].filter(b => {
+    const bookings = [...allMyBookings, ...byClientId].filter(b => {
       if (seenB.has(b.id)) return false; seenB.add(b.id); return true;
-    });
+    }).sort((a, b) => b.preferred_date > a.preferred_date ? 1 : -1);
 
-    // 7. Fetch gift cards
+    // 10. Fetch gift cards by phone (both formats)
     const [gc1, gc2] = await Promise.all([
       sb(`gift_cards?buyer_phone=eq.${local}&order=created_at.desc`),
       sb(`gift_cards?buyer_phone=eq.${intl}&order=created_at.desc`),
@@ -120,7 +137,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ client, bookings, giftCards });
 
   } catch (e) {
-    console.error("client-me error:", e.message, e.stack);
+    console.error("client-me:", e.message, e.stack);
     return res.status(500).json({ error: e.message });
   }
 }

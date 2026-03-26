@@ -68,7 +68,9 @@ export default function ClientDashboard() {
   const tier = getTier(pts);
   const ptsToNext = tier.next ? tier.next - pts : null;
   const pct = tier.next ? Math.min((pts - tier.min) / (tier.next - tier.min) * 100, 100) : 100;
-  const upcoming = bookings.filter(b => ["pending", "confirmed"].includes(b.status) && b.preferred_date >= format(new Date(), "yyyy-MM-dd"));
+  const today = format(new Date(), "yyyy-MM-dd");
+  const upcoming = bookings.filter(b => ["pending", "confirmed", "in_progress"].includes(b.status) && b.preferred_date >= today);
+  const promoSavings = bookings.reduce((s, b) => s + Number(b.promo_discount || 0), 0);
   const completed = bookings.filter(b => b.status === "completed");
   const dayStr = format(new Date(), "EEEE, MMMM d");
 
@@ -89,9 +91,10 @@ export default function ClientDashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
           { icon: Star,     label: "Loyalty Points", value: pts,                    sub: `${tier.name} tier`,    color: tier.color },
-          { icon: Calendar, label: "Total Visits",    value: client.total_visits || 0, sub: "all time",          color: "#6366F1" },
+          { icon: Calendar, label: "Total Visits",    value: client.total_visits || completed.length, sub: "all time", color: "#6366F1" },
           { icon: Scissors, label: "Completed",       value: completed.length,       sub: "services done",       color: "#22C55E" },
           { icon: Clock,    label: "Upcoming",        value: upcoming.length,        sub: "appointments",        color: "#F59E0B" },
+          ...(promoSavings > 0 ? [{ icon: Sparkles, label: "Total Saved",      value: `GH₵${promoSavings.toFixed(0)}`, sub: "via promo codes", color: "#22C55E" }] : []),
         ].map(({ icon: Icon, label, value, sub, color }) => (
           <div key={label} style={{ background: WHITE, borderRadius: 16, border: `1px solid ${BORDER}`, padding: "20px 22px", boxShadow: SHADOW }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
