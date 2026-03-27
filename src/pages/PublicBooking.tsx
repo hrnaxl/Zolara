@@ -75,7 +75,10 @@ export default function PublicBooking() {
 
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session));
+    // Client portal uses its own token — NOT Supabase admin session
+    // Only consider logged in if they have a valid client portal token
+    const clientToken = typeof window !== "undefined" && localStorage.getItem("zolara_client_token");
+    setIsLoggedIn(!!clientToken);
   }, []);
 
   const [bookingRef, setBookingRef] = useState("");
