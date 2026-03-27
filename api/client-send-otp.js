@@ -1,5 +1,5 @@
-const SB_URL = process.env.SUPABASE_URL;
-const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SB_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
 const ARKESEL_KEY = process.env.ARKESEL_KEY;
 
 function sbHeaders() {
@@ -54,7 +54,9 @@ async function ensureOTPTable() {
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin || "";
+const allowedOrigins = [process.env.ALLOWED_ORIGIN || "https://zolarasalon.com", "http://localhost:8080", "http://localhost:5173"];
+res.setHeader("Access-Control-Allow-Origin", allowedOrigins.includes(origin) ? origin : allowedOrigins[0]);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -71,7 +73,7 @@ export default async function handler(req, res) {
     // Rate limit: max 3 OTP requests per phone per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const rateLimitRes = await fetch(
-      process.env.SUPABASE_URL + `/rest/v1/client_otp_codes?phone=eq.${encodeURIComponent(normalizedLocal)}&created_at=gte.${encodeURIComponent(oneHourAgo)}&select=id`,
+      (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) + `/rest/v1/client_otp_codes?phone=eq.${encodeURIComponent(normalizedLocal)}&created_at=gte.${encodeURIComponent(oneHourAgo)}&select=id`,
       { headers: sbHeaders() }
     );
     const recentOTPs = await rateLimitRes.json().catch(() => []);

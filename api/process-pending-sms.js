@@ -2,8 +2,8 @@
 // Called by Vercel cron every 15 minutes
 // Also handles any other delayed notifications stored in pending_sms table
 
-const SB_URL = process.env.SUPABASE_URL;
-const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SB_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
 const ARKESEL_KEY = process.env.ARKESEL_KEY;
 
 const H = {
@@ -42,15 +42,26 @@ export default async function handler(req, res) {
   try {
     const now = new Date().toISOString();
 
-    // Fetch all pending SMS where send_after has passed and not yet sent
+    // Fetch and immediately mark as processing to prevent duplicate sends
+    // Uses a two-step: fetch unsent, mark processing, then send
     const r = await fetch(
-      `${SB_URL}/rest/v1/pending_sms?sent=eq.false&send_after=lte.${encodeURIComponent(now)}&limit=50`,
+      `${SB_URL}/rest/v1/pending_sms?sent=eq.false&processing=not.is.true&send_after=lte.${encodeURIComponent(now)}&limit=50`,
       { headers: H }
     );
     const pending = await r.json().catch(() => []);
 
     if (!Array.isArray(pending) || pending.length === 0) {
       return res.status(200).json({ ok: true, sent: 0 });
+    }
+
+    // Mark all fetched rows as processing first (prevents duplicate sends from concurrent crons)
+    const ids = pending.map(r => r.id).filter(Boolean);
+    if (ids.length) {
+      await fetch(`${SB_URL}/rest/v1/pending_sms?id=in.(${ids.join(",")})`, {
+        method: "PATCH",
+        headers: { ...H, "Prefer": "return=minimal" },
+        body: JSON.stringify({ processing: true }),
+      }).catch(() => {});
     }
 
     let sent = 0;

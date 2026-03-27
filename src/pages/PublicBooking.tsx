@@ -7,6 +7,7 @@ import { sendSMS, SMS } from "@/lib/sms";
 import { validatePromoCode, incrementPromoUsage } from "@/lib/promoCodes";
 import { normalizeTimeTo24, isTimeWithinRange } from "@/lib/time";
 import { openPaystackPopup } from "@/lib/payment";
+import { useSlotLock } from "@/hooks/useSlotLock";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeNotes } from "@/lib/sanitize";

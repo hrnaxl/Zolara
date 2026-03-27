@@ -1,6 +1,6 @@
 // Called daily by Vercel cron — sends 24-hour appointment reminders
-const SB_URL = process.env.SUPABASE_URL;
-const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SB_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
 const ARKESEL_KEY = process.env.ARKESEL_KEY;
 const H = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY, "Content-Type": "application/json" };
 
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   if (cronSecret && authHeader !== 'Bearer ' + cronSecret) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN || "https://zolarasalon.com");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
@@ -95,10 +95,7 @@ export default async function handler(req, res) {
 
     for (const b of (Array.isArray(todayBookings) ? todayBookings : [])) {
       if (!b.client_phone || !b.preferred_time) continue;
-      // Only send if booking was created less than 90 minutes ago (new same-day booking)
-      const createdAt = new Date(b.created_at);
-      const minsAgo = (Date.now() - createdAt.getTime()) / 60000;
-      if (minsAgo > 90) continue; // old booking, already handled or not needed
+      // reminder_sent check already filters out previously notified bookings
 
       // Only if appointment is at least 2 hours away
       const [h, m] = (b.preferred_time || "00:00").split(":").map(Number);

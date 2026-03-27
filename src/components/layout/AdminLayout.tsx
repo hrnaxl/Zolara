@@ -757,6 +757,24 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error("Error fetching stats:", error);
     } finally {
+      // Check for recent SMS failures
+      try {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: failedSMS } = await (supabase as any)
+          .from("sms_delivery_log")
+          .select("id", { count: "exact" })
+          .eq("success", false)
+          .gte("sent_at", oneDayAgo);
+        const failCount = failedSMS?.length || 0;
+        if (failCount > 0) {
+          setAlerts(prev => [...prev, {
+            type: "warning" as const,
+            message: `${failCount} SMS failed to deliver in the last 24 hours. Check Arkesel credits.`,
+            action: null,
+          }]);
+        }
+      } catch { /* sms_delivery_log table may not exist yet */ }
+
       setLoading(false);
     }
   };

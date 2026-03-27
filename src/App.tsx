@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 
 function PageTransition({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -33,45 +33,45 @@ import CleanerLayout from "./components/layout/CleanerLayout";
 import ReceptionistLayout from "./components/layout/ReceptionistLayout";
 import ClientLayout from "./components/layout/ClientLayout";
 
-import Bookings from "./pages/Admin/Bookings";
-import Clients from "./pages/Admin/Clients";
-import Staff from "./pages/Admin/Staff";
-import Services from "./pages/Admin/Services";
-import Sales from "./pages/Admin/Sales";
-import Reports from "./pages/Admin/Reports";
+const Bookings = lazy(() => import("./pages/Admin/Bookings"));
+const Clients = lazy(() => import("./pages/Admin/Clients"));
+const Staff = lazy(() => import("./pages/Admin/Staff"));
+const Services = lazy(() => import("./pages/Admin/Services"));
+const Sales = lazy(() => import("./pages/Admin/Sales"));
+const Reports = lazy(() => import("./pages/Admin/Reports"));
 import NotFound from "./pages/Admin/NotFound";
-import Attendance from "./pages/Admin/Attendance";
-import AttendanceReports from "./pages/Admin/AttendanceReports";
-import Checkout from "./pages/Admin/Checkout";
-import AddonsPage from "./pages/Admin/Addons";
-import GiftCards from "./pages/Admin/GiftCards";
-import PromoGiftCards from "./pages/Admin/PromoGiftCards";
+const Attendance = lazy(() => import("./pages/Admin/Attendance"));
+const AttendanceReports = lazy(() => import("./pages/Admin/AttendanceReports"));
+const Checkout = lazy(() => import("./pages/Admin/Checkout"));
+const AddonsPage = lazy(() => import("./pages/Admin/Addons"));
+const GiftCards = lazy(() => import("./pages/Admin/GiftCards"));
+const PromoGiftCards = lazy(() => import("./pages/Admin/PromoGiftCards"));
 
-import StaffBookings from "./pages/Staff/StaffBookings";
-import MyAttendance from "./pages/Staff/MyAttendance";
+const StaffBookings = lazy(() => import("./pages/Staff/StaffBookings"));
+const MyAttendance = lazy(() => import("./pages/Staff/MyAttendance"));
 
-import ClientBookings from "./pages/Client/ClientBookings";
-import ClientLogin from "./pages/Client/ClientLogin";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import ClientGiftCards from "./pages/Client/ClientGiftCards";
-import ClientPortal from "./pages/Client/ClientPortal";
-import ClientDashboard from "./pages/Client/ClientDashboard";
-import ClientLoyalty from "./pages/Client/ClientLoyalty";
-import ClientProfile from "./pages/Client/ClientProfile";
-import SMSTest from "./pages/Admin/SMSTest";
-import ViewServices from "./pages/Client/ViewServices";
-import SettingsPage from "./pages/Admin/Settings";
-import Loyalty from "./pages/Admin/Loyalty";
-import PromoCodesPage from "./pages/Admin/PromoCodes";
-import BuyGiftCard from "./pages/Public/BuyGiftCard";
-import GiftCardBatchGenerator from "./pages/Admin/GiftCardBatchGenerator";
-import AnalyticsPage from "./pages/Admin/Analytics";
-import ProductsPage from "./pages/Admin/Products";
-import ProductSale from "./pages/Admin/ProductSale";
-import SecuritySettings from "./pages/Admin/SecuritySettings";
-import WaitlistPage from "./pages/Admin/Waitlist";
-import Feedback from "./pages/Public/Feedback";
-import SubscriptionsPage from "./pages/Admin/Subscriptions";
+const ClientBookings = lazy(() => import("./pages/Client/ClientBookings"));
+const ClientLogin = lazy(() => import("./pages/Client/ClientLogin"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const ClientGiftCards = lazy(() => import("./pages/Client/ClientGiftCards"));
+const ClientPortal = lazy(() => import("./pages/Client/ClientPortal"));
+const ClientDashboard = lazy(() => import("./pages/Client/ClientDashboard"));
+const ClientLoyalty = lazy(() => import("./pages/Client/ClientLoyalty"));
+const ClientProfile = lazy(() => import("./pages/Client/ClientProfile"));
+const ViewServices = lazy(() => import("./pages/Client/ViewServices"));
+const SettingsPage = lazy(() => import("./pages/Admin/Settings"));
+const Loyalty = lazy(() => import("./pages/Admin/Loyalty"));
+const PromoCodesPage = lazy(() => import("./pages/Admin/PromoCodes"));
+const BuyGiftCard = lazy(() => import("./pages/Public/BuyGiftCard"));
+const GiftCardBatchGenerator = lazy(() => import("./pages/Admin/GiftCardBatchGenerator"));
+const AnalyticsPage = lazy(() => import("./pages/Admin/Analytics"));
+const ProductsPage = lazy(() => import("./pages/Admin/Products"));
+const ProductSale = lazy(() => import("./pages/Admin/ProductSale"));
+const SecuritySettings = lazy(() => import("./pages/Admin/SecuritySettings"));
+const WaitlistPage = lazy(() => import("./pages/Admin/Waitlist"));
+const Feedback = lazy(() => import("./pages/Public/Feedback"));
+const Receipt = lazy(() => import("./pages/Public/Receipt"));
+const SubscriptionsPage = lazy(() => import("./pages/Admin/Subscriptions"));
 import { CatalogProvider } from "./context/CatalogContext";
 import { SettingsProvider } from "./context/SettingsContext";
 
@@ -98,7 +98,9 @@ const App = () => (
           <Route path="/app/auth" element={<Auth />} />
           <Route path="/buy-gift-card" element={<BuyGiftCard />} />
           <Route path="/feedback" element={<Feedback />} />
+          <Route path="/receipt/:ref" element={<Receipt />} />
 
+          <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#F5EFE6"}}><div style={{width:40,height:40,borderRadius:"50%",border:"3px solid #EDE8E0",borderTop:"3px solid #C8A97E",animation:"spin 0.8s linear infinite"}}/><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style></div>}>
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app/auth/callback" element={<AuthCallback />} />
 
@@ -135,7 +137,6 @@ const App = () => (
               <Route path="/app/admin/promo-gift-cards" element={<PromoGiftCards />} />
               <Route path="/app/admin/gift-card-batches" element={<GiftCardBatchGenerator />} />
               <Route path="/app/admin/loyalty" element={<Loyalty />} />
-              <Route path="/app/admin/sms-test" element={<SMSTest />} />
               <Route path="/app/admin/promo-codes" element={<PromoCodesPage />} />
               <Route path="/app/admin/analytics" element={<AnalyticsPage />} />
               <Route path="/app/admin/products" element={<ProductsPage />} />
@@ -211,6 +212,7 @@ const App = () => (
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
+          </Suspense>
         </Routes>
         </PageTransition>
         </BrowserRouter>

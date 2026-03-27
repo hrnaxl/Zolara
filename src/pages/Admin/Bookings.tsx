@@ -153,6 +153,20 @@ export default function Bookings() {
     if (error) { toast.error("Failed to update"); return; }
     toast.success("Status updated");
     // Send booking confirmed SMS
+    if (status === "cancelled") {
+      const b = bookings.find(bk => bk.id === id) || selected;
+      if (b?.client_phone) {
+        sendSMS(b.client_phone, [
+          `Hi ${(b.client_name || "").split(" ")[0] || "there"}, your Zolara appointment has been cancelled.`,
+          ``,
+          `Service: ${b.service_name || "your appointment"}`,
+          `Ref: ${b.booking_ref || id.slice(0,8).toUpperCase()}`,
+          ``,
+          `To rebook, visit zolarasalon.com/book or call 0594365314.`,
+          `Zolara Beauty Studio`,
+        ].join("\n")).catch(console.error);
+      }
+    }
     if (status === "confirmed") {
       const b = bookings.find(bk => bk.id === id) || selected;
       if (b?.client_phone) {
