@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSMSCampaigns, createSMSCampaign, updateSMSCampaign, deleteSMSCampaign, getSMSQueue } from "@/lib/smsService";
+import { getSMSCampaigns, createSMSCampaign, updateSMSCampaign, deleteSMSCampaign, getSMSQueue } from "@/lib/sms";
 import { toast } from "sonner";
 
 

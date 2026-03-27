@@ -24,6 +24,27 @@ export default function Feedback() {
       name: sanitizeName(name), rating, comment: sanitizeNotes(comment), visible: false,
     });
     if (error) { toast.error("Failed to submit. Please try again."); setSubmitting(false); return; }
+    // Notify admin via SMS about new review
+    const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+    const notifMsg = [
+      `New Zolara review received!`,
+      ``,
+      `From: ${sanitizeName(name)}`,
+      `Rating: ${stars} (${rating}/5)`,
+      `Comment: ${sanitizeNotes(comment).slice(0, 120)}`,
+      ``,
+      `Approve at zolarasalon.com/app/admin/settings`,
+    ].join("\n");
+    // Get business phone from settings and send notification
+    supabase.from("settings").select("business_phone").limit(1).maybeSingle().then(({ data }) => {
+      if (data?.business_phone) {
+        fetch("/api/queue-pending-sms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: data.business_phone, message: notifMsg, delay_minutes: 0 }),
+        }).catch(console.error);
+      }
+    });
     setDone(true);
     setSubmitting(false);
   };

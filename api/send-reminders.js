@@ -1,7 +1,7 @@
 // Called daily by Vercel cron — sends 24-hour appointment reminders
-const SB_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
-const ARKESEL_KEY = "S0JhVWFlcm1VV1pkSWJvWnpacEs";
+const SB_URL = process.env.SUPABASE_URL;
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
+const ARKESEL_KEY = process.env.ARKESEL_KEY;
 const H = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY, "Content-Type": "application/json" };
 
 function toIntl(p) {
@@ -26,7 +26,12 @@ function firstName(name) {
 }
 
 export default async function handler(req, res) {
-  // Allow GET for cron, POST for manual trigger
+  // Verify Vercel cron secret OR internal secret header
+  const authHeader = req.headers['authorization'] || '';
+  const cronSecret = process.env.CRON_SECRET || '';
+  if (cronSecret && authHeader !== 'Bearer ' + cronSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -71,6 +76,54 @@ export default async function handler(req, res) {
       sent++;
 
       // Mark reminder sent to avoid duplicates
+      await fetch(`${SB_URL}/rest/v1/bookings?id=eq.${b.id}`, {
+        method: "PATCH",
+        headers: { ...H, "Prefer": "return=minimal" },
+        body: JSON.stringify({ reminder_sent: true }),
+      }).catch(() => {});
+    }
+
+    // Also send reminders for today's bookings made recently where appointment is 2+ hours away
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+    const sameDayRes = await fetch(
+      `${SB_URL}/rest/v1/bookings?preferred_date=eq.${todayStr}&status=in.(confirmed,pending)&reminder_sent=not.is.true&select=id,client_name,client_phone,service_name,preferred_time,staff_name,booking_ref,created_at`,
+      { headers: H }
+    );
+    const todayBookings = await sameDayRes.json().catch(() => []);
+
+    for (const b of (Array.isArray(todayBookings) ? todayBookings : [])) {
+      if (!b.client_phone || !b.preferred_time) continue;
+      // Only send if booking was created less than 90 minutes ago (new same-day booking)
+      const createdAt = new Date(b.created_at);
+      const minsAgo = (Date.now() - createdAt.getTime()) / 60000;
+      if (minsAgo > 90) continue; // old booking, already handled or not needed
+
+      // Only if appointment is at least 2 hours away
+      const [h, m] = (b.preferred_time || "00:00").split(":").map(Number);
+      const apptTime = new Date();
+      apptTime.setHours(h, m || 0, 0, 0);
+      if (apptTime.getTime() < Date.now() + 2 * 60 * 60 * 1000) continue;
+
+      const first = (b.client_name || "").split(" ")[0] || "there";
+      const time = (b.preferred_time || "").slice(0, 5);
+      const stylist = b.staff_name ? `\nStylist: ${b.staff_name}` : "";
+      const ref = b.booking_ref || b.id?.slice(0, 8).toUpperCase() || "";
+      const msg = [
+        `Hi ${first}, your Zolara appointment is today.`,
+        ``,
+        `Service: ${b.service_name || "your appointment"}`,
+        `Time: ${time}${stylist}`,
+        `Ref: ${ref}`,
+        ``,
+        `We look forward to seeing you. Arrive 5 minutes early.`,
+        `Zolara Beauty Studio`,
+        `0594365314 / 0208848707`,
+      ].join("\n");
+
+      await sendSMS(b.client_phone, msg);
+      sent++;
       await fetch(`${SB_URL}/rest/v1/bookings?id=eq.${b.id}`, {
         method: "PATCH",
         headers: { ...H, "Prefer": "return=minimal" },

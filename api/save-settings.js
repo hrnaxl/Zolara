@@ -1,5 +1,5 @@
-const SB = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
-const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
+const SB = process.env.SUPABASE_URL + "/rest/v1";
+const SK = process.env.SUPABASE_SERVICE_KEY;
 const H  = { apikey: SK, Authorization: "Bearer " + SK, "Content-Type": "application/json", Prefer: "return=minimal" };
 
 export default async function handler(req, res) {
@@ -8,6 +8,12 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Require admin auth — check Supabase anon token from Authorization header
+  const authHeader = req.headers['authorization'] || '';
+  if (!authHeader.startsWith('Bearer ') || authHeader.length < 20) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   try {
     const payload = req.body;

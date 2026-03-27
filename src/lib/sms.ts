@@ -312,3 +312,31 @@ export const SMS = {
   bookingConfirmation: (name: string, service: string, date: string, time: string) =>
     SMS.bookingReceived(name, service, date, time, "", false),
 };
+
+
+// ── SMS Campaign DB utilities (previously in smsService.ts) ─────────
+import { supabase } from "@/integrations/supabase/client";
+
+export const getSMSCampaigns = async () => {
+  const { data, error } = await supabase.from("sms_campaigns").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+};
+export const createSMSCampaign = async (campaign: { name: string; message_template: string; trigger_type: string; send_hours_before?: number }) => {
+  const { data, error } = await supabase.from("sms_campaigns").insert(campaign).select().single();
+  if (error) throw error;
+  return data;
+};
+export const updateSMSCampaign = async (id: string, updates: object) => {
+  const { error } = await supabase.from("sms_campaigns").update(updates).eq("id", id);
+  if (error) throw error;
+};
+export const deleteSMSCampaign = async (id: string) => {
+  const { error } = await supabase.from("sms_campaigns").delete().eq("id", id);
+  if (error) throw error;
+};
+export const getSMSQueue = async () => {
+  const { data, error } = await (supabase as any).from("sms_queue").select("*").order("scheduled_for", { ascending: false }).limit(100);
+  if (error) throw error;
+  return data;
+};

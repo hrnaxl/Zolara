@@ -13,10 +13,15 @@ export const GIFT_CARD_TIERS = {
 export type GiftCardTier = keyof typeof GIFT_CARD_TIERS;
 
 // Generate a random redeemable code e.g. GOLD-X7K2-9QMT
+// Uses crypto.getRandomValues for cryptographic randomness
 export function generateRedeemableCode(tier: GiftCardTier): string {
   const prefix = tier.substring(0, 3).toUpperCase();
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const rand = (n: number) => Array.from({length: n}, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const rand = (n: number) => {
+    const arr = new Uint8Array(n);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => chars[b % chars.length]).join("");
+  };
   return `${prefix}-${rand(4)}-${rand(4)}`;
 }
 

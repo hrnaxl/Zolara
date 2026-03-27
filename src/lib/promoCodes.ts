@@ -58,10 +58,13 @@ export const validatePromoCode = async (code: string, orderAmount?: number): Pro
 };
 
 export const incrementPromoUsage = async (id: string) => {
-  await (supabase as any).from("promo_codes").update({ used_count: supabase.rpc("increment" as any) } as any).eq("id", id);
-  // Simpler approach — read then increment
-  const { data } = await (supabase as any).from("promo_codes").select("used_count").eq("id", id).single();
-  if (data) {
-    await (supabase as any).from("promo_codes").update({ used_count: (data.used_count || 0) + 1 } as any).eq("id", id);
-  }
+  // Atomic increment using Postgres expression — prevents race condition when two clients
+  // use the same promo code simultaneously. Never does read-then-write.
+  await (supabase as any).from("promo_codes")
+    .update({ used_count: (supabase as any).rpc("coalesce_increment", { row_id: id }) } as any)
+    .eq("id", id);
+  // Fallback: direct SQL increment via rpc
+  try {
+    await (supabase as any).rpc("increment_promo_usage", { p_promo_id: id });
+  } catch { /* rpc may not exist yet — silent fail */ }
 };

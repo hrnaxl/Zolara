@@ -131,6 +131,8 @@ const AdminDashboard = () => {
   const [birthdayClients, setBirthdayClients] = useState<any[]>([]);
   const [absentStaff, setAbsentStaff] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastFetchRef = React.useRef<number>(0);
+  const CACHE_TTL = 2 * 60 * 1000; // 2 minutes — don't re-fetch if data is fresh
   const [chartHovIdx, setChartHovIdx] = useState<number|null>(null);
   const [bellOpen, setBellOpen] = useState(false);
   const { settings, userRole: dashRole } = useSettings();
@@ -144,7 +146,9 @@ const AdminDashboard = () => {
     setDateRange(range);
   };
 
-  const fetchStats = async () => {
+  const fetchStats = async (force = false) => {
+    // Skip if data was fetched less than 2 minutes ago (unless forced)
+    if (!force && Date.now() - lastFetchRef.current < CACHE_TTL) return;
     try {
       setLoading(true);
       const today = new Date();

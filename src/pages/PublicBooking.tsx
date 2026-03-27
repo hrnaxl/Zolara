@@ -381,22 +381,25 @@ export default function PublicBooking() {
 
       if (bookingError) throw bookingError;
 
-      // Send delayed SMS 7 minutes after booking — gives client time to pay deposit
-      // If deposit was paid, the onSuccess SMS below overrides this message
-      const delayedSMSRef = { sent: false };
-      setTimeout(() => {
-        if (!delayedSMSRef.sent && cleanPhone) {
-          sendSMS(cleanPhone, SMS.bookingReceived(
-            name || "Valued Client",
-            selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
-            preferredDate,
-            normalizedTime,
-            bRef,
-            false, // deposit not yet confirmed at this point
-            depositAmount,
-          )).catch(console.error);
-        }
-      }, 7 * 60 * 1000); // 7 minutes
+      // Queue "deposit not recorded" SMS server-side — fires in 7 minutes if deposit not paid
+      // Uses /api/queue-pending-sms so it survives browser tab close
+      const depositNotRecordedMsg = SMS.bookingReceived(
+        name || "Valued Client",
+        selectedServices.map(s => s.name).join(", ") || selectedService?.name || "service",
+        preferredDate,
+        normalizedTime,
+        bRef,
+        false,
+        depositAmount,
+      );
+      const delayedSMSRef = { cancelled: false };
+      if (cleanPhone) {
+        fetch("/api/queue-pending-sms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: cleanPhone, message: depositNotRecordedMsg, booking_id: bookingId, delay_minutes: 7 }),
+        }).catch(console.error);
+      }
 
       // 2. Open Paystack popup — inline, no redirect, no edge function, no secret key
       // NOTE: client record is created at checkout, not here
@@ -408,6 +411,24 @@ export default function PublicBooking() {
         onSuccess: async (ref) => {
           setStep("verifying");
 
+          // Idempotency check — if payment already confirmed (network drop + retry), skip RPC
+          const { data: existingBooking } = await (supabase as any)
+            .from("bookings")
+            .select("deposit_paid, status")
+            .eq("id", bookingId)
+            .maybeSingle();
+
+          if (existingBooking?.deposit_paid === true && existingBooking?.status === "confirmed") {
+            // Already processed — skip to success
+            setBookedPromoSaving(promoDiscount || 0);
+            setBookedService(selectedServices.map(s => s.name).join(", ") || selectedService?.name || "");
+            setBookedDate(preferredDate);
+            setBookedTime(normalizedTime);
+            setBookingRef(bRef);
+            setStep("done");
+            return;
+          }
+
           const { error: confirmErr } = await (supabase as any).rpc("confirm_booking_payment", {
             p_booking_id: bookingId,
             p_payment_ref: ref,
@@ -418,8 +439,13 @@ export default function PublicBooking() {
             toast.error("Payment received but booking confirmation failed. Please contact us.");
           }
 
-          // Cancel the delayed "not recorded" SMS — deposit was paid
-          delayedSMSRef.sent = true;
+          // Cancel the pending "not recorded" SMS — mark it sent so it won't fire
+          delayedSMSRef.cancelled = true;
+          fetch("/api/queue-pending-sms", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: cleanPhone, booking_id: bookingId, cancel: true }),
+          }).catch(console.error);
           // Fetch the booking to get the auto-assigned staff name
           if (cleanPhone) {
             const { data: confirmedBooking } = await (supabase as any)

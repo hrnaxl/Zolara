@@ -3,6 +3,10 @@
     {
       "path": "/api/send-reminders",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/process-pending-sms",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

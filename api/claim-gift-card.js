@@ -1,5 +1,5 @@
-const SB = "https://vwvrhbyfytmqsywfdhvd.supabase.co/rest/v1";
-const SK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
+const SB = process.env.SUPABASE_URL + "/rest/v1";
+const SK = process.env.SUPABASE_SERVICE_KEY;
 const H = { "apikey": SK, "Authorization": "Bearer " + SK, "Content-Type": "application/json", "Prefer": "return=representation" };
 const TV = { Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
 function toLocal(p) {

@@ -1,7 +1,7 @@
 // Payment gateway — clean slate
 // Using Paystack inline JS SDK (no API calls, no secret key, no edge functions)
 
-export const PAYSTACK_PUBLIC_KEY = "pk_live_94ba104d1a317293c36d777871df51a0ccc617d9";
+export const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live_94ba104d1a317293c36d777871df51a0ccc617d9";
 
 export type PaymentPayload = {
   amount: number;       // in GHS

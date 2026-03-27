@@ -622,9 +622,14 @@ const Checkout = () => {
           const spendableActual = spendable > 0 ? spendable : effectivePrice;
           const { data: before } = await (supabase as any).from("clients").select("loyalty_points").eq("id", clientId).single();
           const prevPts = Number(before?.loyalty_points || 0);
+          // Try RPC first — if it fails (error returned OR throws), use manual fallback
+          // Never run both — that would double-count loyalty points
+          let rpcOk = false;
           try {
-            await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendableActual });
-          } catch {
+            const { error: rpcErr } = await (supabase as any).rpc("update_client_after_checkout", { p_client_id: clientId, p_amount_spent: spendableActual });
+            rpcOk = !rpcErr;
+          } catch { rpcOk = false; }
+          if (!rpcOk) {
             const earnRate = Number((settings as any)?.loyalty_stamp_per_ghs ?? 100);
             const pts = Math.floor(spendableActual / earnRate);
             if (pts > 0) await (supabase as any).from("clients").update({ loyalty_points: prevPts + pts }).eq("id", clientId);

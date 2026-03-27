@@ -214,10 +214,16 @@ export default function ClientDashboard() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
             {completed.slice(0, 6).map(b => (
-              <div key={b.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${BORDER}`, background: CREAM }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: TXT, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.service_name}</div>
+              <div key={b.id} style={{ padding: "14px 16px", borderRadius: 12, border: `1px solid ${BORDER}`, background: CREAM, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: TXT, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.service_name}</div>
                 <div style={{ fontSize: 11, color: TXT_S }}>{b.preferred_date ? format(new Date(b.preferred_date + "T00:00"), "MMM d, yyyy") : ""}</div>
-                {b.price && <div style={{ fontSize: 12, fontWeight: 700, color: G_DARK, marginTop: 6 }}>GH₵ {Number(b.price).toLocaleString()}</div>}
+                {b.price && <div style={{ fontSize: 12, fontWeight: 700, color: G_DARK }}>GH₵ {Number(b.price).toLocaleString()}</div>}
+                <a
+                  href={"/book?service=" + encodeURIComponent(b.service_name || "")}
+                  style={{ marginTop: 6, display: "inline-block", fontSize: 10, fontWeight: 700, color: G_DARK, background: "rgba(200,169,126,0.12)", border: `1px solid rgba(200,169,126,0.3)`, borderRadius: 20, padding: "4px 12px", textDecoration: "none", letterSpacing: "0.04em" }}
+                >
+                  Book Again →
+                </a>
               </div>
             ))}
           </div>

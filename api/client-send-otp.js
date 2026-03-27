@@ -1,6 +1,6 @@
-const SB_URL = "https://vwvrhbyfytmqsywfdhvd.supabase.co";
-const SB_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3dnJoYnlmeXRtcXN5d2ZkaHZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE1MDUxNCwiZXhwIjoyMDg4NzI2NTE0fQ.eR0ZA3z0V9OQXY5uokEtmnZq1c71EyjLD8mNsquvg54";
-const ARKESEL_KEY = "S0JhVWFlcm1VV1pkSWJvWnpacEs";
+const SB_URL = process.env.SUPABASE_URL;
+const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const ARKESEL_KEY = process.env.ARKESEL_KEY;
 
 function sbHeaders() {
   return {
@@ -67,6 +67,17 @@ export default async function handler(req, res) {
     const normalizedLocal = toLocal(phone);
     const normalized = toIntl(phone); // intl for Arkesel SMS
     if (normalized.length < 12) return res.status(400).json({ error: "Invalid phone number" });
+
+    // Rate limit: max 3 OTP requests per phone per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const rateLimitRes = await fetch(
+      process.env.SUPABASE_URL + `/rest/v1/client_otp_codes?phone=eq.${encodeURIComponent(normalizedLocal)}&created_at=gte.${encodeURIComponent(oneHourAgo)}&select=id`,
+      { headers: sbHeaders() }
+    );
+    const recentOTPs = await rateLimitRes.json().catch(() => []);
+    if (Array.isArray(recentOTPs) && recentOTPs.length >= 3) {
+      return res.status(429).json({ error: "Too many OTP requests. Please wait before trying again." });
+    }
 
     const code = genOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
