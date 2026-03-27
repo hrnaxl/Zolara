@@ -71,6 +71,7 @@ export default function ClientDashboard() {
   const today = format(new Date(), "yyyy-MM-dd");
   const upcoming = bookings.filter(b => ["pending", "confirmed", "in_progress"].includes(b.status) && b.preferred_date >= today);
   const promoSavings = bookings.reduce((s, b) => s + Number(b.promo_discount || 0), 0);
+  const totalSpent = client.total_spent || completed.reduce((s, b) => s + Number(b.price || 0), 0);
   const completed = bookings.filter(b => b.status === "completed");
   const dayStr = format(new Date(), "EEEE, MMMM d");
 
@@ -94,6 +95,7 @@ export default function ClientDashboard() {
           { icon: Calendar, label: "Total Visits",    value: client.total_visits || completed.length, sub: "all time", color: "#6366F1" },
           { icon: Scissors, label: "Completed",       value: completed.length,       sub: "services done",       color: "#22C55E" },
           { icon: Clock,    label: "Upcoming",        value: upcoming.length,        sub: "appointments",        color: "#F59E0B" },
+          { icon: Star,     label: "Total Spent",     value: `GH₵${totalSpent.toLocaleString()}`, sub: "lifetime value",        color: G },
         ].map(({ icon: Icon, label, value, sub, color }) => (
           <div key={label} style={{ background: WHITE, borderRadius: 16, border: `1px solid ${BORDER}`, padding: "20px 22px", boxShadow: SHADOW }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>

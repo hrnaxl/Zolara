@@ -3,7 +3,7 @@ import posthog from "posthog-js";
 export function initPostHog() {
   if (!import.meta.env.PROD) return; // only in production
 
-  posthog.init("phc_PsTCHWlNT6Unz5enYXiEzS34DuIsEdcvoOQpvHrqFRN", {
+  posthog.init(import.meta.env.VITE_POSTHOG_KEY || "phc_PsTCHWlNT6Unz5enYXiEzS34DuIsEdcvoOQpvHrqFRN", {
     api_host: "https://us.i.posthog.com",
     capture_pageview: true,         // auto page views
     capture_pageleave: true,        // how long on each page

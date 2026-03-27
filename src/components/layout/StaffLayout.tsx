@@ -92,24 +92,11 @@ const StaffDashboard = () => {
         const lastMonthEnd = format(new Date(now.getFullYear(), now.getMonth(), 0), "yyyy-MM-dd");
         const weekStart = format(subDays(now, now.getDay() === 0 ? 6 : now.getDay() - 1), "yyyy-MM-dd");
 
-        const [thisMonthSales, lastMonthSales, allTimeSales, weekSales] = await Promise.all([
-          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", monthStart).not("booking_id", "is", null),
-          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", lastMonthStart).lte("created_at", lastMonthEnd).not("booking_id", "is", null),
-          (supabase as any).from("sales").select("amount, service_name").eq("staff_id", profile.id).eq("status", "completed").not("booking_id", "is", null),
-          (supabase as any).from("sales").select("amount").eq("staff_id", profile.id).eq("status", "completed").gte("created_at", weekStart).not("booking_id", "is", null),
-        ]);
-
-        const sum = (rows: any[]) => (rows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-        setEarnings({
-          thisMonth: sum(thisMonthSales.data),
-          lastMonth: sum(lastMonthSales.data),
-          allTime: sum(allTimeSales.data),
-          thisWeek: sum(weekSales.data),
-        });
-
-        // Top services for this staff
+        // Earnings data not fetched — staff do not see revenue figures
+        // Top services from bookings only
+        const thisMonthSales = { data: [] as any[] };
         const svcCount: Record<string, number> = {};
-        for (const r of (thisMonthSales.data || [])) {
+        for (const r of [] as any[]) {
           const s = r.service_name || "Unknown";
           svcCount[s] = (svcCount[s] || 0) + 1;
         }

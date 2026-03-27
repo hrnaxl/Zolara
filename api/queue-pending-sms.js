@@ -35,13 +35,15 @@ res.setHeader("Access-Control-Allow-Origin", allowedOrigins.includes(origin) ? o
     }
 
     if (!phone || !message) return res.status(400).json({ error: "phone and message required" });
+    // Cap message length to prevent Arkesel overcharging
+    const safeMessage = String(message).slice(0, 480);
 
     const sendAfter = new Date(Date.now() + delay_minutes * 60 * 1000).toISOString();
 
     const r = await fetch(`${SB_URL}/rest/v1/pending_sms`, {
       method: "POST",
       headers: H,
-      body: JSON.stringify({ phone, message, booking_id: booking_id || null, send_after: sendAfter, sent: false }),
+      body: JSON.stringify({ phone, message: safeMessage, booking_id: booking_id || null, send_after: sendAfter, sent: false }),
     });
 
     if (!r.ok) {

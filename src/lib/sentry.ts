@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/react";
 
 export function initSentry() {
   Sentry.init({
-    dsn: "https://98dec9e1ee77087131745266f1d3aaff@o4511098796244992.ingest.de.sentry.io/4511098803781712",
+    dsn: import.meta.env.VITE_SENTRY_DSN || "https://98dec9e1ee77087131745266f1d3aaff@o4511098796244992.ingest.de.sentry.io/4511098803781712",
     environment: import.meta.env.MODE, // "production" or "development"
     // Only run in production — no noise from local dev
     enabled: import.meta.env.PROD,

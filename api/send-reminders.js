@@ -88,7 +88,7 @@ export default async function handler(req, res) {
     const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
     const sameDayRes = await fetch(
-      `${SB_URL}/rest/v1/bookings?preferred_date=eq.${todayStr}&status=in.(confirmed,pending)&reminder_sent=not.is.true&select=id,client_name,client_phone,service_name,preferred_time,staff_name,booking_ref,created_at`,
+      `${SB_URL}/rest/v1/bookings?preferred_date=eq.${todayStr}&status=in.(confirmed,pending)&reminder_sent=not.is.true&select=id,client_name,client_phone,service_name,preferred_time,staff_name,booking_ref,created_at,status`,
       { headers: H }
     );
     const todayBookings = await sameDayRes.json().catch(() => []);

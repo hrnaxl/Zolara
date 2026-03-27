@@ -28,6 +28,11 @@ const STATUS_LABEL: Record<string, string> = {
 
 const FILTERS = ["all", "upcoming", "completed", "cancelled"] as const;
 
+const canCancel = (preferredDate: string, preferredTime: string) => {
+  const apptDate = new Date(preferredDate + 'T' + (preferredTime || '00:00'));
+  return apptDate.getTime() - Date.now() > 24 * 60 * 60 * 1000;
+};
+
 export default function ClientBookings() {
   const { client, clientBookings } = useOutletContext<any>();
   const [bookings, setBookings] = useState<any[]>([]);

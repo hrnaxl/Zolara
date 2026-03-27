@@ -51,7 +51,11 @@ export default async function handler(req, res) {
       body: JSON.stringify({ uses_count: (pt.uses_count || 0) + 1 }),
     });
   } else {
-    amount = overrideAmount || TV[tier] || 0;
+    // Validate amount matches the tier — never trust client-submitted amount
+    const expectedAmount = TV[tier] || 0;
+    if (!expectedAmount) return res.status(400).json({ error: "Invalid tier" });
+    // Allow a small tolerance (e.g. settings-based price) but never let client set arbitrary amount
+    amount = expectedAmount;
     codePrefix = tier.substring(0, 3).toUpperCase();
   }
 

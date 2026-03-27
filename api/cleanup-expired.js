@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     // Delete expired OTP codes
-    const r1 = await fetch(`${SB_URL}/rest/v1/client_otp_codes?or=(used.eq.true,expires_at.lt.${encodeURIComponent(now)})`, {
+    const r1 = await fetch(`${SB_URL}/rest/v1/client_otp_codes?or=(used.eq.true,expires_at.lt.${encodeURIComponent(now)})&select=id`, {
       method: "DELETE", headers: H,
     });
 

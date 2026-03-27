@@ -428,6 +428,11 @@ const Checkout = () => {
 
   const handleCheckout = async () => {
     if (!booking) return;
+    // Guard against re-processing an already completed booking
+    if ((booking as any).status === "completed") {
+      toast.error("This booking has already been checked out.");
+      return;
+    }
     if (!selectedStaff) { toast.error("Please assign a staff member"); return; }
     if (absentStaffIds.has(selectedStaff)) {
       const name = staff.find(s => s.id === selectedStaff)?.name || "This staff member";
@@ -1003,7 +1008,9 @@ const Checkout = () => {
     );
   }
 
-  const checkoutDisabled = processing || !selectedStaff;
+  const alreadyCompleted = (booking as any)?.status === "completed";
+  const checkoutDisabled = processing || !selectedStaff || alreadyCompleted;
+  // Show completed banner at top of form when booking already done
   const statusColors = sc(booking.status);
   const dep = depositPaid ? depositAmount : 0;
   // productTotal = sum of all non-service line items (products added at checkout)
@@ -1224,7 +1231,7 @@ const Checkout = () => {
 
               <button onClick={handleCheckout} disabled={checkoutDisabled}
                 style={{ padding: "14px 20px", borderRadius: "12px", background: btnBg, color: btnColor, border: "none", fontSize: "13px", fontWeight: 700, cursor: btnCursor, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", width: "100%" }}>
-                {processing ? (<Loader2 style={{ width: "18px", height: "18px", animation: "spin 1s linear infinite" }} />) : (<span style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 style={{ width: "18px", height: "18px" }} />Complete Checkout - GHS {balanceDue.toFixed(2)}</span>)}
+                {alreadyCompleted ? "Already Checked Out" : processing ? (<Loader2 style={{ width: "18px", height: "18px", animation: "spin 1s linear infinite" }} />) : (<span style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 style={{ width: "18px", height: "18px" }} />Complete Checkout - GHS {balanceDue.toFixed(2)}</span>)}
               </button>
             </div>
           </div>

@@ -143,6 +143,22 @@ export default function Bookings() {
   }, [search]);
 
   const handleStatusUpdate = async (id: string, status: string) => {
+    if (status === "rescheduled") {
+      const b = bookings.find(bk => bk.id === id) || selected;
+      if (b?.client_phone) {
+        sendSMS(b.client_phone, [
+          `Hi ${(b.client_name || "").split(" ")[0] || "there"}, your Zolara appointment has been updated.`,
+          ``,
+          `Service: ${b.service_name || "your appointment"}`,
+          `New Date: ${b.preferred_date || ""}`,
+          `New Time: ${(b.preferred_time || "").slice(0,5)}`,
+          `Ref: ${b.booking_ref || id.slice(0,8).toUpperCase()}`,
+          ``,
+          `Questions? Call us on 0594365314.`,
+          `Zolara Beauty Studio`,
+        ].join("\n")).catch(console.error);
+      }
+    }
     if (status === "cancelled") {
       const b = bookings.find(b => b.id === id) || selected;
       setBookingToCancel(b);
