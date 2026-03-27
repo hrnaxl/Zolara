@@ -184,7 +184,7 @@ export default function ClientPortal() {
 
       {/* Book button */}
       <div style={{ padding: "0 10px 10px" }}>
-        <a href="/book" style={{
+        <Link to="/book" style={{
           display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           padding: "12px", borderRadius: 10, textDecoration: "none",
           background: `linear-gradient(135deg, ${G_DARK}, ${G})`,
@@ -192,7 +192,7 @@ export default function ClientPortal() {
           boxShadow: `0 4px 16px ${G}44`,
         }}>
           + Book Appointment
-        </a>
+        </Link>
       </div>
 
       {/* Sign out */}
@@ -231,9 +231,9 @@ export default function ClientPortal() {
             <Menu size={16} />
           </button>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: "#1C1917" }}>Zolara</div>
-          <a href="/book" style={{ fontSize: 11, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "6px 12px", borderRadius: 16, border: `1px solid rgba(200,169,126,0.25)` }}>
+          <Link to="/book" style={{ fontSize: 11, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "6px 12px", borderRadius: 16, border: `1px solid rgba(200,169,126,0.25)` }}>
             Book
-          </a>
+          </Link>
         </header>
 
         <main style={{ padding: "clamp(20px,3vw,36px) clamp(16px,3vw,32px)", maxWidth: 1100, margin: "0 auto" }}>

@@ -514,7 +514,7 @@ supabase.from("services").select("id,name,category,price,description,is_active")
                 <span className="pb-spark-2" style={{ fontSize:15, color:"rgba(255,255,255,0.9)", flexShrink:0 }}>✦</span>
 
                 {/* CTA */}
-                <a href="/book" className="pb-btn">BOOK NOW →</a>
+                <Link to="/book" className="pb-btn">BOOK NOW →</Link>
               </div>
             </div>
           </div>
@@ -1593,10 +1593,10 @@ supabase.from("services").select("id,name,category,price,description,is_active")
               <div style={{ width:52, height:52, borderRadius:"50%", background:"linear-gradient(135deg,#8B6914,#C8A97E)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px", fontSize:22 }}>✦</div>
               <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:600, color:"#1C160E", marginBottom:12, lineHeight:1.2 }}>{ann.title}</h3>
               {ann.message && <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:13, color:"#57534E", lineHeight:1.75, marginBottom:24 }}>{ann.message}</p>}
-              <a href="/book" onClick={dismissAnnouncement}
+              <Link to="/book" onClick={dismissAnnouncement}
                 style={{ display:"inline-block", background:"linear-gradient(135deg,#8B6914,#C8A97E)", color:"white", textDecoration:"none", padding:"14px 36px", borderRadius:8, fontFamily:"'Montserrat',sans-serif", fontSize:12, fontWeight:700, letterSpacing:"0.1em" }}>
                 BOOK NOW →
-              </a>
+              </Link>
               <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"#A8A29E", marginTop:16, cursor:"pointer" }} onClick={dismissAnnouncement}>Dismiss</p>
             </div>
           </div>

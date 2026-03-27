@@ -546,9 +546,12 @@ export default function PublicBooking() {
           setStep("done");
         },
         onClose: () => {
-          // User closed popup without paying — keep booking as pending, go back to form
+          // User closed without paying — delete the orphaned booking
+          if (bookingId) {
+            (supabase as any).from("bookings").delete().eq("id", bookingId).then(() => {});
+          }
           setStep("form");
-          toast.error("Payment was not completed. Your slot is not confirmed yet.");
+          toast.error("Payment was not completed. Your slot has not been reserved.");
         },
       });
 
