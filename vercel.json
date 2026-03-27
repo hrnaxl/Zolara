@@ -1,6 +1,9 @@
 {
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|assets/|_next/|favicon\\.ico|robots\\.txt).*)",
+      "destination": "/index.html"
+    }
   ],
   "crons": [
     { "path": "/api/send-reminders", "schedule": "0 6 * * *" },
