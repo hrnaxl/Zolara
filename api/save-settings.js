@@ -11,9 +11,27 @@ res.setHeader("Access-Control-Allow-Origin", allowed.includes(origin) ? origin :
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Require admin auth — check Supabase anon token from Authorization header
+  // Require admin auth — validate token against Supabase auth
   const authHeader = req.headers['authorization'] || '';
-  if (!authHeader.startsWith('Bearer ') || authHeader.length < 20) {
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const token = authHeader.slice(7);
+  // Verify token is a real Supabase JWT by checking it with Supabase auth
+  const SB_URL_CHECK = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const SB_ANON = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  try {
+    const userRes = await fetch(`${SB_URL_CHECK}/auth/v1/user`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'apikey': SB_ANON }
+    });
+    if (!userRes.ok) return res.status(401).json({ error: 'Unauthorized' });
+    const userData = await userRes.json();
+    // Only allow owner/admin roles — check app_metadata
+    const role = userData?.app_metadata?.role || userData?.user_metadata?.role || '';
+    if (!['owner', 'admin'].includes(role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  } catch {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

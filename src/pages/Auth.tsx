@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation , Link} from "react-router-dom";
 import { setSentryUser } from "@/lib/sentry";
 import { identifyUser, track } from "@/lib/posthog";
 import { supabase } from "@/integrations/supabase/client";
@@ -409,7 +409,7 @@ export default function Auth() {
           </p>
 
           <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${BORDER}`, textAlign: "center" }}>
-            <a href="/" style={{ fontSize: 11, color: TXT_S, textDecoration: "none" }}>← Back to homepage</a>
+            <Link to="/" style={{ fontSize: 11, color: TXT_S, textDecoration: "none" }}>← Back to homepage</Link>
           </div>
         </div>
       </div>

@@ -397,12 +397,19 @@ export default function PublicBooking() {
         depositAmount,
       );
       const delayedSMSRef = { cancelled: false };
+      // Queue the "deposit not recorded" SMS after a 3-second delay
+      // This gives Paystack's onSuccess handler time to fire and cancel it
+      // before the queue insert happens if payment completes immediately
       if (cleanPhone) {
-        fetch("/api/queue-pending-sms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: cleanPhone, message: depositNotRecordedMsg, booking_id: bookingId, delay_minutes: 7 }),
-        }).catch(console.error);
+        setTimeout(() => {
+          if (!delayedSMSRef.cancelled) {
+            fetch("/api/queue-pending-sms", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone: cleanPhone, message: depositNotRecordedMsg, booking_id: bookingId, delay_minutes: 7 }),
+            }).catch(console.error);
+          }
+        }, 3000);
       }
 
       // 2. Open Paystack popup — inline, no redirect, no edge function, no secret key
@@ -433,27 +440,20 @@ export default function PublicBooking() {
             return;
           }
 
-          const { error: confirmErr } = await (supabase as any).rpc("confirm_booking_payment", {
-            p_booking_id: bookingId,
-            p_payment_ref: ref,
-          });
-
+          // Always use direct DB update — the RPC may not exist
+          // This is idempotent: if webhook already confirmed, update is a no-op change
+          const { error: confirmErr } = await (supabase as any)
+            .from("bookings")
+            .update({
+              deposit_paid: true,
+              status: "confirmed",
+              payment_ref: ref,
+            })
+            .eq("id", bookingId)
+            .eq("deposit_paid", false); // Only update if not already confirmed (idempotent guard)
           if (confirmErr) {
-            console.error("confirm_booking_payment RPC failed, falling back to direct update:", confirmErr);
-            // RPC failed — fall back to direct DB update so booking is always confirmed
-            const { error: directErr } = await (supabase as any)
-              .from("bookings")
-              .update({
-                deposit_paid: true,
-                status: "confirmed",
-                payment_ref: ref,
-              })
-              .eq("id", bookingId);
-            if (directErr) {
-              console.error("Direct update also failed:", directErr);
-              // Payment is confirmed by Paystack — the webhook will confirm the booking
-              // Don't block the user experience
-            }
+            console.error("Booking confirm update failed:", confirmErr);
+            // Paystack webhook will confirm server-side as backup
           }
 
           // Cancel the pending "not recorded" SMS — mark it sent so it won't fire
@@ -557,6 +557,10 @@ export default function PublicBooking() {
 
     } catch (err: any) {
       console.error("Deposit error:", err);
+      // If booking was already inserted before the error, delete it to avoid orphan
+      if (bookingId) {
+        (supabase as any).from("bookings").delete().eq("id", bookingId).then(() => {});
+      }
       toast.error(err.message || "Something went wrong. Please try again.");
       setStep("form");
     }
@@ -623,14 +627,21 @@ export default function PublicBooking() {
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", color: TXT_MID, lineHeight: 1.7, marginBottom: "16px" }}>
               Sign in with your phone number to track your bookings, view loyalty stamps, and manage appointments — all in one place. No password needed.
             </p>
-            <a href={"/client-login?redirect=/app/client/dashboard"} style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, color: WHITE, fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "11px 22px", borderRadius: "8px", letterSpacing: "0.04em" }}>
+            <Link to="/client-login?redirect=/app/client/dashboard" style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`, color: WHITE, fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "11px 22px", borderRadius: "8px", letterSpacing: "0.04em" }}>
               Sign In with Phone →
-            </a>
+            </Link>
           </div>
         )}
-        <Link to={typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "/app/client/dashboard" : "/"} style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
-          {typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "← Back to Dashboard" : "Return to homepage"}
-        </Link>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+          {bookingRef && (
+            <Link to={`/receipt/${bookingRef}`} style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 700, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "10px 24px", borderRadius: 24, border: "1px solid rgba(200,169,126,0.3)" }}>
+              View Receipt →
+            </Link>
+          )}
+          <Link to={typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "/app/client/dashboard" : "/"} style={{ fontFamily: "'Montserrat',sans-serif", display: "inline-flex", alignItems: "center", gap: "6px", color: GOLD_DARK, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+            {typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "← Back to Dashboard" : "Return to homepage"}
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -685,13 +696,13 @@ export default function PublicBooking() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
 
-          <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+          <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
             <img src={LOGO} style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} alt="Zolara" />
             <div>
               <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "12px", fontWeight: 800, letterSpacing: "0.2em", color: DARK, lineHeight: 1.1 }}>ZOLARA</div>
               <div style={{ fontFamily: "'Montserrat',sans-serif", fontSize: "9px", letterSpacing: "0.2em", color: GOLD, fontWeight: 600 }}>BEAUTY STUDIO</div>
             </div>
-          </a>
+          </Link>
         </div>
       </div>
 

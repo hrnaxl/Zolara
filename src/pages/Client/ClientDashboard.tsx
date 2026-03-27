@@ -58,9 +58,9 @@ export default function ClientDashboard() {
     <div style={{ textAlign: "center", padding: "60px 20px" }}>
       <div style={{ fontSize: 40, marginBottom: 16 }}>👋</div>
       <p style={{ color: TXT_M, fontSize: 14, marginBottom: 20 }}>No client profile linked yet.</p>
-      <a href="/book" style={{ color: G_DARK, fontWeight: 700, fontSize: 13, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "10px 20px", borderRadius: 20, border: `1px solid rgba(200,169,126,0.3)` }}>
+      <Link to="/book" style={{ color: G_DARK, fontWeight: 700, fontSize: 13, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "10px 20px", borderRadius: 20, border: `1px solid rgba(200,169,126,0.3)` }}>
         Book Your First Appointment →
-      </a>
+      </Link>
     </div>
   );
 
@@ -162,9 +162,9 @@ export default function ClientDashboard() {
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: TXT_S, marginBottom: 2 }}>UPCOMING</div>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: TXT }}>Appointments</div>
             </div>
-            <a href="/app/client/bookings" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: G_DARK, textDecoration: "none", fontWeight: 600 }}>
+            <Link to="/app/client/bookings" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: G_DARK, textDecoration: "none", fontWeight: 600 }}>
               View all <ArrowRight size={12} />
-            </a>
+            </Link>
           </div>
           {loading ? (
             <div style={{ textAlign: "center", padding: "20px 0", color: TXT_S, fontSize: 13 }}>Loading…</div>
@@ -172,9 +172,9 @@ export default function ClientDashboard() {
             <div style={{ textAlign: "center", padding: "24px 0" }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
               <p style={{ fontSize: 13, color: TXT_S, margin: "0 0 14px" }}>No upcoming appointments</p>
-              <a href="/book" style={{ fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "8px 18px", borderRadius: 20, border: `1px solid rgba(200,169,126,0.3)` }}>
+              <Link to="/book" style={{ fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "8px 18px", borderRadius: 20, border: `1px solid rgba(200,169,126,0.3)` }}>
                 Book Now →
-              </a>
+              </Link>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -205,9 +205,9 @@ export default function ClientDashboard() {
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: TXT_S, marginBottom: 2 }}>HISTORY</div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: TXT }}>Recent Visits</div>
           </div>
-          <a href="/app/client/bookings" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: G_DARK, textDecoration: "none", fontWeight: 600 }}>
+          <Link to="/app/client/bookings" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: G_DARK, textDecoration: "none", fontWeight: 600 }}>
             All bookings <ArrowRight size={12} />
-          </a>
+          </Link>
         </div>
         {loading ? (
           <div style={{ textAlign: "center", padding: "20px 0", color: TXT_S, fontSize: 13 }}>Loading…</div>

@@ -70,41 +70,16 @@ export default function ClientPortal() {
       return;
     }
 
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { navigate("/client-login"); return; }
-      setClientLoading(true);
-      const userId = session.user.id;
-      const userEmail = session.user.email?.toLowerCase();
-
-      // 1. Try matching by user_id first
-      let { data } = await (supabase as any).from("clients").select("*").eq("user_id", userId).maybeSingle();
-
-      // 2. Try matching by phone first (most reliable — clients book with phone)
-      if (!data) {
-        const phone = session.user.user_metadata?.phone;
-        if (phone) {
-          const { data: byPhone } = await (supabase as any)
-            .from("clients").select("*").eq("phone", phone).maybeSingle();
-          if (byPhone) {
-            await (supabase as any).from("clients").update({ user_id: userId }).eq("id", byPhone.id);
-            data = { ...byPhone, user_id: userId };
-          }
-        }
-      }
-
-      // 3. Fall back to email match
-      if (!data && userEmail) {
-        const { data: byEmail } = await (supabase as any)
-          .from("clients").select("*").ilike("email", userEmail).maybeSingle();
-        if (byEmail) {
-          await (supabase as any).from("clients").update({ user_id: userId }).eq("id", byEmail.id);
+        // No valid client token — redirect to login
+      // Never fall back to admin/staff Supabase session
+      navigate("/client-login");
+      setClientLoading(false);
+      /*
           data = { ...byEmail, user_id: userId };
         }
       }
 
-      setClient(data);
-      setClientLoading(false);
-    });
+      */
   }, []);
 
   const handleLogout = async () => {

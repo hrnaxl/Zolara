@@ -230,19 +230,8 @@ const Checkout = () => {
         coveredBySubscription: false,
       }]);
 
-      // Check if deposit was already paid and auto-verify via edge function
-      let depositAlreadyPaid = !!(data as any).deposit_paid;
-      if (!depositAlreadyPaid && (data as any).booking_ref) {
-        try {
-          const res = await fetch(
-            import.meta.env.VITE_SUPABASE_URL + "/functions/v1/verify-deposit",
-            { method: "POST", headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-              body: JSON.stringify({ booking_id: bookingId }) }
-          );
-          const vd = await res.json();
-          if (vd.status === "verified" || vd.status === "already_paid") depositAlreadyPaid = true;
-        } catch { /* ignore */ }
-      }
+      // Check deposit status directly from the booking record — no edge function needed
+      const depositAlreadyPaid = !!(data as any).deposit_paid;
 
       const depositAmt = depositAlreadyPaid ? (Number((data as any).deposit_amount) || 50) : 0;
       setDepositPaid(!!depositAlreadyPaid);

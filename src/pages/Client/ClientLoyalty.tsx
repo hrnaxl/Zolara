@@ -141,9 +141,9 @@ export default function ClientLoyalty() {
 
       {/* CTA */}
       <div style={{ textAlign: "center" }}>
-        <a href="/book" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "13px 28px", borderRadius: 24, border: `1px solid rgba(200,169,126,0.3)` }}>
+        <Link to="/book" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "13px 28px", borderRadius: 24, border: `1px solid rgba(200,169,126,0.3)` }}>
           <Gift size={14} /> Earn More Points — Book Now <ArrowRight size={12} />
-        </a>
+        </Link>
       </div>
     </div>
   );

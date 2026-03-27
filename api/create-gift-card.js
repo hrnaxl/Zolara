@@ -42,7 +42,8 @@ export default async function handler(req, res) {
     const ptData = await ptRes.json();
     const pt = Array.isArray(ptData) ? ptData[0] : null;
     if (!pt) return res.status(400).json({ error: "Promo gift card type not found" });
-    amount = overrideAmount || pt.amount;
+    // Never trust client-submitted amount for promo cards — always use the DB value
+    amount = pt.amount;
     codePrefix = "PRM";
     promoLabel = pt.name;
     // Increment uses_count

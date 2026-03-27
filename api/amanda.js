@@ -1,15 +1,24 @@
-// Simple in-memory rate limiter — max 20 requests per IP per minute
-const rateLimitMap = new Map();
-function checkRateLimit(ip) {
-  const now = Date.now();
-  const windowMs = 60 * 1000;
-  const max = 20;
-  const entry = rateLimitMap.get(ip) || { count: 0, start: now };
-  if (now - entry.start > windowMs) { rateLimitMap.set(ip, { count: 1, start: now }); return true; }
-  if (entry.count >= max) return false;
-  entry.count++;
-  rateLimitMap.set(ip, entry);
-  return true;
+// Persistent rate limiter using pending_sms table as a log store
+// Falls back to allowing request if DB check fails — never block on DB error
+const SB_RL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SK_RL = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
+async function checkRateLimit(ip) {
+  try {
+    const windowStart = new Date(Date.now() - 60 * 1000).toISOString();
+    const r = await fetch(
+      `${SB_RL}/rest/v1/amanda_rate_log?ip=eq.${encodeURIComponent(ip)}&created_at=gte.${encodeURIComponent(windowStart)}&select=id`,
+      { headers: { apikey: SK_RL, Authorization: 'Bearer ' + SK_RL } }
+    );
+    const rows = await r.json().catch(() => []);
+    if (Array.isArray(rows) && rows.length >= 20) return false;
+    // Log this request
+    await fetch(`${SB_RL}/rest/v1/amanda_rate_log`, {
+      method: 'POST',
+      headers: { apikey: SK_RL, Authorization: 'Bearer ' + SK_RL, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ ip }),
+    }).catch(() => {});
+    return true;
+  } catch { return true; } // fail open — never block on DB error
 }
 
 export default async function handler(req, res) {

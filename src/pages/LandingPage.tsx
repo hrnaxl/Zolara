@@ -533,7 +533,7 @@ supabase.from("services").select("id,name,category,price,description,is_active")
         boxShadow: scrolled ? "0 4px 40px rgba(28,22,14,0.06)" : "none",
         transition: "all 0.4s ease",
       }}>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: "11px", textDecoration: "none" }}>
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: "11px", textDecoration: "none" }}>
           <div style={{ width: "40px", height: "40px", borderRadius: "50%", border: "2px solid #C8A97E", overflow: "hidden", background: "#fff", flexShrink: 0 }}>
             <img src={LOGO} alt="Zolara" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
@@ -541,7 +541,7 @@ supabase.from("services").select("id,name,category,price,description,is_active")
             <div className="sans" style={{ fontSize: "14px", fontWeight: 800, letterSpacing: "0.22em", color: dark, lineHeight: 1.1 }}>ZOLARA</div>
             <div className="sans" style={{ fontSize: "10px", letterSpacing: "0.22em", color: gold, marginTop: "2px", fontWeight: 600, lineHeight: 1 }}>BEAUTY STUDIO</div>
           </div>
-        </a>
+        </Link>
 
         <div className="desktop-nav" style={{ display: "flex", gap: "36px", alignItems: "center" }}>
           {[["#services","SERVICES"],["#experience","EXPERIENCE"],["#gift-cards","GIFT CARDS"],["#loyalty","LOYALTY"],...((salonSettings as any)?.landing_sections?.show_subscriptions === true ? [["#subscriptions","PLANS"]] : []),["#reviews","REVIEWS"],["#visit-us","VISIT US"]].map(([href,label]) => (

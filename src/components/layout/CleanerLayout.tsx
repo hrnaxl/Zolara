@@ -161,9 +161,9 @@ export default function CleanerLayout() {
               <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: DARK }}>{clockedIn ? "Clocked In" : "Not Clocked In"}</span>
             </div>
             {checkInTime && <p style={{ fontSize: 11, color: TXT_MID, margin: "4px 0 0" }}>Since {format(new Date(checkInTime), "h:mm a")}</p>}
-            <a href="/app/cleaner/attendance" style={{ display: "inline-block", marginTop: 12, fontSize: 11, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "5px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)" }}>
+            <Link to="/app/cleaner/attendance" style={{ display: "inline-block", marginTop: 12, fontSize: 11, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "5px 14px", borderRadius: 20, border: "1px solid rgba(200,169,126,0.3)" }}>
               {clockedIn ? "Clock Out →" : "Clock In →"}
-            </a>
+            </Link>
           </div>
           <div style={{ background: WHITE, borderRadius: 16, border: `1px solid ${BORDER}`, boxShadow: SHADOW, padding: "20px 22px" }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", color: TXT_SOFT, marginBottom: 8 }}>TODAY'S PROGRESS</div>

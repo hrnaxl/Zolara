@@ -153,9 +153,9 @@ export default function ClientBookings() {
         <div style={{ textAlign: "center", padding: "60px 20px", background: WHITE, borderRadius: 20, border: `1px solid ${BORDER}` }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
           <p style={{ fontSize: 14, color: TXT_M, marginBottom: 16 }}>No bookings found.</p>
-          <a href="/book" style={{ fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "10px 22px", borderRadius: 20, border: `1px solid rgba(200,169,126,0.3)` }}>
+          <Link to="/book" style={{ fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "10px 22px", borderRadius: 20, border: `1px solid rgba(200,169,126,0.3)` }}>
             Book an Appointment →
-          </a>
+          </Link>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -230,9 +230,9 @@ export default function ClientBookings() {
       )}
 
       <div style={{ marginTop: 28, textAlign: "center" }}>
-        <a href="/book" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "12px 28px", borderRadius: 24, border: `1px solid rgba(200,169,126,0.3)` }}>
+        <Link to="/book" style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration: "none", background: "rgba(200,169,126,0.1)", padding: "12px 28px", borderRadius: 24, border: `1px solid rgba(200,169,126,0.3)` }}>
           + Book New Appointment
-        </a>
+        </Link>
       </div>
     </div>
   );
