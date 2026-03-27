@@ -1,6 +1,6 @@
 // Daily cleanup of expired OTP codes and sessions
 // Cron: 0 2 * * * (2am UTC daily)
-const SB_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SB_URL = process.env.SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
 
 const H = {
@@ -35,6 +35,12 @@ export default async function handler(req, res) {
     await fetch(`${SB_URL}/rest/v1/pending_sms?sent.eq.true&created_at=lt.${encodeURIComponent(weekAgo)}`, {
       method: "DELETE", headers: H,
     });
+
+    // Delete stale pending bookings older than 30 minutes with no payment
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    await fetch(`${SB_URL}/rest/v1/bookings?status=eq.pending&deposit_paid=eq.false&created_at=lt.${encodeURIComponent(thirtyMinsAgo)}&select=id`, {
+      method: "DELETE", headers: H,
+    }).catch(() => {});
 
     return res.status(200).json({ ok: true, cleaned: true });
   } catch (e) {

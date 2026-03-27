@@ -60,6 +60,7 @@ export default function ClientBookings() {
     setCancelling(bookingId);
     setConfirmId(null);
     try {
+      const bookingToCancel = bookings.find(b => b.id === bookingId);
       const { error } = await (supabase as any)
         .from("bookings")
         .update({ status: "cancelled" })
@@ -67,6 +68,23 @@ export default function ClientBookings() {
       if (error) throw error;
       setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: "cancelled" } : b));
       toast.success("Booking cancelled.");
+      // Notify business via SMS
+      if (bookingToCancel) {
+        const b = bookingToCancel;
+        const msg = [
+          `Booking cancelled by client.`,
+          ``,
+          `Client: ${b.client_name || "Unknown"}`,
+          `Service: ${b.service_name || "Unknown"}`,
+          `Date: ${b.preferred_date || ""} at ${(b.preferred_time || "").slice(0,5)}`,
+          `Ref: ${b.booking_ref || bookingId.slice(0,8).toUpperCase()}`,
+        ].join("\n");
+        fetch("/api/queue-pending-sms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: "0594365314", message: msg, delay_minutes: 0 }),
+        }).catch(() => {});
+      }
     } catch {
       toast.error("Could not cancel. Please call us on 0594365314.");
     } finally {

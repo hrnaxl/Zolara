@@ -285,8 +285,12 @@ export default function AmandaWidget() {
 
     // Build messages for API — strip base64 from old history (keep only text),
     // only the last message gets full image data to avoid huge payloads
-    const apiMessages = newMessages.map((m, idx) => {
-      const isLast = idx === newMessages.length - 1;
+    // Cap at last 20 messages (10 exchanges) to control token usage
+    const cappedMessages = newMessages.length > 20
+      ? newMessages.slice(-20)
+      : newMessages;
+    const apiMessages = cappedMessages.map((m, idx) => {
+      const isLast = idx === cappedMessages.length - 1;
       if (Array.isArray(m.content)) {
         if (isLast) return { role: m.role, content: m.content };
         // For older image messages: strip to text only

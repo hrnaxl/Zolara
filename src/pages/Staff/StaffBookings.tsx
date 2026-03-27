@@ -83,8 +83,31 @@ const StaffBookings = () => {
     const { error } = await supabase.from("bookings")
       .update({ preferred_date: newDate, preferred_time: newTime, status: "pending" })
       .eq("id", selectedBooking.id);
-    if (error) toast.error("Failed to reschedule");
-    else { toast.success("Rescheduled successfully"); setRescheduleDialog(false); fetchData(); }
+    if (error) { toast.error("Failed to reschedule"); return; }
+    toast.success("Rescheduled successfully");
+    setRescheduleDialog(false);
+    fetchData();
+    // Notify client via SMS
+    if (selectedBooking.client_phone) {
+      fetch("/api/queue-pending-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: selectedBooking.client_phone,
+          message: [
+            `Hi ${(selectedBooking.client_name || "").split(" ")[0] || "there"}, your Zolara appointment has been rescheduled.`,
+            ``,
+            `Service: ${selectedBooking.service_name || "your appointment"}`,
+            `New Date: ${newDate}`,
+            `New Time: ${newTime.slice(0,5)}`,
+            `Ref: ${selectedBooking.booking_ref || selectedBooking.id.slice(0,8).toUpperCase()}`,
+            ``,
+            `Questions? Call 0594365314.`,
+          ].join("\n"),
+          delay_minutes: 0,
+        }),
+      }).catch(console.error);
+    }
   };
 
   const handleRequestBooking = async (e: React.FormEvent) => {

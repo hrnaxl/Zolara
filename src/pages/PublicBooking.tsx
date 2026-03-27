@@ -377,7 +377,7 @@ export default function PublicBooking() {
           notes: notesFull,
           status: "pending",
           booking_ref: bRef,
-          client_id: null,
+          client_id: await findOrCreateClient({ name: safeName, phone: cleanPhone, email: email?.trim() || null }).catch(() => null),
           duration_minutes: 0,
           promo_code: appliedPromo?.code || null,
           promo_discount: promoDiscount > 0 ? promoDiscount : null,

@@ -2,8 +2,8 @@
 // Called by Vercel cron every 15 minutes
 // Also handles any other delayed notifications stored in pending_sms table
 
-const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
-const SB_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
+const SB_URL = process.env.SUPABASE_URL;
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY;
 const ARKESEL_KEY = process.env.ARKESEL_KEY;
 
 const H = {

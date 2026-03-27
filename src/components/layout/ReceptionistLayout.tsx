@@ -60,10 +60,7 @@ const ReceptionistDashboard = () => {
           .limit(8),
         fetchPendingDepositBookings(),
         supabase.from("clients").select("*", { count: "exact", head: true }),
-        supabase.from("sales").select("amount, notes, service_name")
-          .eq("status", "completed")
-          .gte("payment_date", startOfDay(new Date()).toISOString())
-          .lte("payment_date", endOfDay(new Date()).toISOString()),
+        Promise.resolve({ data: [] }), // Revenue hidden from receptionist
         supabase.from("attendance").select("id", { count: "exact", head: true })
           .eq("date", todayDateStr).is("check_out", null).not("check_in", "is", null),
       ]);
@@ -251,7 +248,7 @@ const ReceptionistDashboard = () => {
       <div className="admin-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
         {[
           { label: "TOTAL CLIENTS",  val: stats.totalClients.toLocaleString(), sub: "In the system" },
-          { label: "TODAY'S REVENUE", val: `GHS ${stats.todayRevenue.toLocaleString("en", { minimumFractionDigits: 2 })}`, sub: "From completed sales" },
+          { label: "COMPLETED TODAY", val: String(stats.completed), sub: "Checked out" },
         ].map((c, i) => (
           <div key={i} className="rc-flat au" style={{ animationDelay: `${0.24 + i * 0.06}s`, display: "flex", alignItems: "center", gap: "18px" }}>
             <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: G_LIGHT, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

@@ -1,6 +1,6 @@
 import { webcrypto } from "crypto";
-const SB = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) + "/rest/v1";
-const SK = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
+const SB = process.env.SUPABASE_URL + "/rest/v1";
+const SK = process.env.SUPABASE_SERVICE_KEY;
 const H = { "apikey": SK, "Authorization": "Bearer " + SK, "Content-Type": "application/json", "Prefer": "return=representation" };
 const TV = { Silver: 220, Gold: 450, Platinum: 650, Diamond: 1000 };
 function toLocal(p) {

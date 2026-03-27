@@ -13,18 +13,38 @@ export default function Receipt() {
 
   useEffect(() => {
     if (!ref) return;
-    (supabase as any).from("bookings")
-      .select("*, sales:sales(amount, payment_method, payment_date)")
-      .or(`booking_ref.eq.${ref},id.eq.${ref}`)
-      .maybeSingle()
-      .then(({ data }: any) => { setBooking(data); setLoading(false); });
+    // Try booking_ref first, then id, then partial match
+    (async () => {
+      let data = null;
+      // Try exact booking_ref match
+      const r1 = await (supabase as any).from("bookings")
+        .select("*, sales:sales(amount, payment_method, payment_date)")
+        .eq("booking_ref", ref).maybeSingle();
+      if (r1.data) { data = r1.data; }
+      // Try id match
+      if (!data && ref && ref.length > 8) {
+        const r2 = await (supabase as any).from("bookings")
+          .select("*, sales:sales(amount, payment_method, payment_date)")
+          .eq("id", ref).maybeSingle();
+        if (r2.data) { data = r2.data; }
+      }
+      // Try partial booking_ref (old short refs)
+      if (!data) {
+        const r3 = await (supabase as any).from("bookings")
+          .select("*, sales:sales(amount, payment_method, payment_date)")
+          .ilike("booking_ref", `%${ref}%`).maybeSingle();
+        if (r3.data) { data = r3.data; }
+      }
+      setBooking(data);
+      setLoading(false);
+    })();
   }, [ref]);
 
   if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background: CREAM }}><div style={{ width:36, height:36, borderRadius:"50%", border:"3px solid #E8E2D9", borderTop:`3px solid ${G}`, animation:"spin 0.8s linear infinite" }}/><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style></div>;
   if (!booking) return <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:CREAM, fontFamily:"Montserrat,sans-serif" }}><p style={{ color: TXT_MID }}>Receipt not found.</p><Link to="/" style={{ color: G_DARK, marginTop: 16 }}>← Home</Link></div>;
 
   const sale = Array.isArray(booking.sales) ? booking.sales[0] : booking.sales;
-  const total = sale?.amount || booking.price || 0;
+  const total = sale?.amount || booking.price || booking.deposit_amount || 0;
   const method = (sale?.payment_method || "cash").replace("_", " ");
   const date = booking.preferred_date ? format(new Date(booking.preferred_date + "T00:00"), "EEEE, MMMM d yyyy") : "";
 

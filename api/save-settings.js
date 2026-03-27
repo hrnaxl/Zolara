@@ -1,5 +1,5 @@
-const SB = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) + "/rest/v1";
-const SK = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
+const SB = process.env.SUPABASE_URL + "/rest/v1";
+const SK = process.env.SUPABASE_SERVICE_KEY;
 const H  = { apikey: SK, Authorization: "Bearer " + SK, "Content-Type": "application/json", Prefer: "return=minimal" };
 
 export default async function handler(req, res) {
@@ -18,7 +18,7 @@ res.setHeader("Access-Control-Allow-Origin", allowed.includes(origin) ? origin :
   }
   const token = authHeader.slice(7);
   // Verify token is a real Supabase JWT by checking it with Supabase auth
-  const SB_URL_CHECK = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const SB_URL_CHECK = process.env.SUPABASE_URL;
   const SB_ANON = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   try {
     const userRes = await fetch(`${SB_URL_CHECK}/auth/v1/user`, {

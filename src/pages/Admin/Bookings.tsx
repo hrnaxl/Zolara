@@ -143,6 +143,19 @@ export default function Bookings() {
   }, [search]);
 
   const handleStatusUpdate = async (id: string, status: string) => {
+    // Send SMS when date/time is explicitly changed via inline edit
+    if (status === "time_changed" && b?.client_phone) {
+      sendSMS(b.client_phone, [
+        `Hi ${(b.client_name || "").split(" ")[0] || "there"}, your Zolara appointment has been updated.`,
+        ``,
+        `Service: ${b.service_name || "your appointment"}`,
+        `New Date: ${b.preferred_date || ""}`,
+        `New Time: ${(b.preferred_time || "").slice(0,5)}`,
+        `Ref: ${b.booking_ref || id.slice(0,8).toUpperCase()}`,
+        ``,
+        `Questions? Call 0594365314.`,
+      ].join("\n")).catch(console.error);
+    }
     if (status === "rescheduled") {
       const b = bookings.find(bk => bk.id === id) || selected;
       if (b?.client_phone) {

@@ -1,5 +1,5 @@
-const SB = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) + "/rest/v1";
-const SK = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
+const SB = process.env.SUPABASE_URL + "/rest/v1";
+const SK = process.env.SUPABASE_SERVICE_KEY;
 const H = { "apikey": SK, "Authorization": "Bearer " + SK, "Content-Type": "application/json", "Prefer": "return=minimal" };
 
 export default async function handler(req, res) {
