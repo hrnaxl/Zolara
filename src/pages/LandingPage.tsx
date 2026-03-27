@@ -22,21 +22,6 @@ const FALLBACK_REVIEWS = [
   { name: "Sandra O.", text: "I drove 2 hours from Kumasi for this salon. Worth every minute. The box braids were immaculate.", stars: 5 },
 ];
 
-
-// 1-hour cache for landing page data — prevents hammering Supabase on every visit
-function getLPCache<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem('zolara_lp_' + key);
-    if (!raw) return null;
-    const { data, ts } = JSON.parse(raw);
-    if (Date.now() - ts > 60 * 60 * 1000) { localStorage.removeItem('zolara_lp_' + key); return null; }
-    return data as T;
-  } catch { return null; }
-}
-function setLPCache(key: string, data: unknown) {
-  try { localStorage.setItem('zolara_lp_' + key, JSON.stringify({ data, ts: Date.now() })); } catch {}
-}
-
 export default function LandingPage() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
@@ -136,10 +121,10 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-(() => { const cached = getLPCache('settings'); if (cached) return Promise.resolve({ data: cached }); return supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement, gift_card_prices, max_bookings_per_slot").limit(1).maybeSingle().then(r => { if (r.data) setLPCache('settings', r.data); return r; }); })()
+supabase.from("settings").select("open_time, close_time, closed_dates, landing_sections, promo_banner, business_phone, business_phone_2, whatsapp_number, instagram_handle, tiktok_handle, facebook_handle, cancellation_policy, lateness_fee, student_discount, announcement, gift_card_prices, max_bookings_per_slot").limit(1).maybeSingle()
       .then(({ data }) => { if (data) setSalonSettings(data); });
     // Load visible reviews from DB
-(() => { const cached = getLPCache('reviews'); if (cached) return Promise.resolve({ data: cached }); return (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false }).then((r: any) => { if (r.data) setLPCache('reviews', r.data); return r; }); })()
+(supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
       .then(({ data }: any) => { if (data && data.length > 0) setDbReviews(data); });
     // Load active promotional gift card types
     (supabase as any).from("promo_gift_card_types").select("*").eq("is_active", true)
@@ -196,7 +181,7 @@ export default function LandingPage() {
   // Fetch real services from DB for showcase
   useEffect(() => {
     Promise.all([
-(() => { const cached = getLPCache('services'); if (cached) return Promise.resolve({ data: cached }); return supabase.from("services").select("id,name,category,price,description,is_active").eq("is_active",true).order("category").order("name").then(r => { if (r.data) setLPCache('services', r.data); return r; }); })(),
+supabase.from("services").select("id,name,category,price,description,is_active").eq("is_active",true).order("category").order("name"),
       (supabase as any).from("service_variants").select("service_id,price_adjustment,name").eq("is_active",true),
     ]).then(([{data:svcs},{data:vars}]) => {
       setDbServices(svcs || []);
