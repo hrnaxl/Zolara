@@ -52,6 +52,7 @@ import MyAttendance from "./pages/Staff/MyAttendance";
 
 import ClientBookings from "./pages/Client/ClientBookings";
 import ClientLogin from "./pages/Client/ClientLogin";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ClientGiftCards from "./pages/Client/ClientGiftCards";
 import ClientPortal from "./pages/Client/ClientPortal";
 import ClientDashboard from "./pages/Client/ClientDashboard";
