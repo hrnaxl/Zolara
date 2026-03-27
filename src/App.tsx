@@ -86,6 +86,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
         <PageTransition>
+        <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#F5EFE6"}}><div style={{width:40,height:40,borderRadius:"50%",border:"3px solid #EDE8E0",borderTop:"3px solid #C8A97E",animation:"spin 0.8s linear infinite"}}/><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style></div>}>
         <Routes>
           {/* =================== PUBLIC ROUTES =================== */}
           {/* Public Landing Page */}
@@ -100,7 +101,6 @@ const App = () => (
           <Route path="/feedback" element={<Feedback />} />
           <Route path="/receipt/:ref" element={<Receipt />} />
 
-          <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#F5EFE6"}}><div style={{width:40,height:40,borderRadius:"50%",border:"3px solid #EDE8E0",borderTop:"3px solid #C8A97E",animation:"spin 0.8s linear infinite"}}/><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style></div>}>
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app/auth/callback" element={<AuthCallback />} />
 
@@ -212,8 +212,8 @@ const App = () => (
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
-          </Suspense>
         </Routes>
+        </Suspense>
         </PageTransition>
         </BrowserRouter>
       </SettingsProvider>
