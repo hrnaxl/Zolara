@@ -1,5 +1,6 @@
+import { supabase } from "@/integrations/supabase/client";
 // Arkesel SMS utility — Zolara Beauty Studio
-const ARKESEL_API_KEY = "S0JhVWFlcm1VV1pkSWJvWnpacEs";
+const ARKESEL_API_KEY = import.meta.env.VITE_ARKESEL_KEY || "S0JhVWFlcm1VV1pkSWJvWnpacEs";
 const SENDER = "Zolara";
 const CONTACT = "0594365314 / 0208848707";
 
@@ -315,8 +316,6 @@ export const SMS = {
 
 
 // ── SMS Campaign DB utilities (previously in smsService.ts) ─────────
-import { supabase } from "@/integrations/supabase/client";
-
 export const getSMSCampaigns = async () => {
   const { data, error } = await supabase.from("sms_campaigns").select("*").order("created_at", { ascending: false });
   if (error) throw error;

@@ -10,7 +10,6 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [staffId, setStaffId] = useState<string | null>(null);
-  const [earnings, setEarnings] = useState({ thisMonth: 0, lastMonth: 0, allTime: 0, thisWeek: 0 });
   const [topServices, setTopServices] = useState<{name:string;count:number}[]>([]);
   const [stats, setStats] = useState({
     todayTotal: 0, upcoming: 0, completed: 0, cancelled: 0, completionRate: 0,
@@ -221,23 +220,6 @@ const StaffDashboard = () => {
               <div style={{ width: "30px", height: "30px", borderRadius: "8px", background: `${k.accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }}>{k.icon}</div>
             </div>
             <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "38px", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1 }}>{k.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── EARNINGS ROW ─────────────────────────────── */}
-      <div className="au admin-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "20px", animationDelay: "0.08s" }}>
-        {[
-          { label: "This Week",   value: earnings.thisWeek,  accent: "#4A90D9" },
-          { label: "This Month",  value: earnings.thisMonth, accent: "#4CAF7D" },
-          { label: "Last Month",  value: earnings.lastMonth, accent: "#C9A84C" },
-          { label: "All Time",    value: earnings.allTime,   accent: NAVY },
-        ].map((e, i) => (
-          <div key={i} className="sc" style={{ animationDelay: `${i * 0.06}s` }}>
-            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: TXT_SOFT, textTransform: "uppercase", margin: "0 0 10px" }}>{e.label} Earnings</p>
-            <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "28px", fontWeight: 700, color: TXT, margin: 0, lineHeight: 1 }}>
-              GHS <span style={{ color: e.accent }}>{e.value.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </p>
           </div>
         ))}
       </div>
