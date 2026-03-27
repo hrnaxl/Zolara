@@ -1,9 +1,8 @@
 {
-  "rewrites": [
-    {
-      "source": "/((?!api/|assets/|_next/|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.js$|.*\\.css$|.*\\.png$|.*\\.jpg$|.*\\.ico$|.*\\.svg$|.*\\.woff$|.*\\.woff2$|.*\\.map$).*)",
-      "destination": "/index.html"
-    }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "crons": [
     { "path": "/api/send-reminders", "schedule": "0 6 * * *" },
