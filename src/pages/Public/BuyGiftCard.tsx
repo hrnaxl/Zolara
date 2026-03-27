@@ -654,7 +654,7 @@ export default function BuyGiftCard() {
                 </p>
               </>
             )}
-            <a href={typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "/app/client/dashboard" : "/"} style={{ color: "#C8A97E", fontSize: 13, textDecoration: "none" }}>{typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "← Back to Dashboard" : "← Back to Zolara"}</a>
+            <Link to={typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "/app/client/dashboard" : "/"} style={{ color: "#C8A97E", fontSize: 13, textDecoration: "none" }}>{typeof window !== "undefined" && localStorage.getItem("zolara_client_token") ? "← Back to Dashboard" : "← Back to Zolara"}</Link>
           </div>
         )}
       </div>

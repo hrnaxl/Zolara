@@ -60,7 +60,7 @@ export default function Receipt() {
           <p style={{ fontSize: 12, color: TXT_MID, marginBottom: 16 }}>Thank you for visiting Zolara Beauty Studio.</p>
           <p style={{ fontSize: 11, color:"#A8A29E" }}>Sakasaka, Opposite CalBank, Tamale · 0594365314</p>
           <div style={{ display:"flex", gap: 12, justifyContent:"center", marginTop: 20 }}>
-            <a href="/book" style={{ fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration:"none", background:"rgba(200,169,126,0.1)", padding:"8px 18px", borderRadius: 20, border:`1px solid rgba(200,169,126,0.3)` }}>Book Again</a>
+            <Link to="/book" style={{ fontSize: 12, fontWeight: 700, color: G_DARK, textDecoration:"none", background:"rgba(200,169,126,0.1)", padding:"8px 18px", borderRadius: 20, border:`1px solid rgba(200,169,126,0.3)` }}>Book Again</Link>
             <button onClick={() => window.print()} style={{ fontSize: 12, fontWeight: 700, color:"#fff", background:`linear-gradient(135deg,${G_DARK},${G})`, border:"none", padding:"8px 18px", borderRadius: 20, cursor:"pointer" }}>Print</button>
           </div>
         </div>

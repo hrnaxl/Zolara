@@ -1,4 +1,4 @@
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext , Link} from "react-router-dom";
 import { Star, Gift, ArrowRight } from "lucide-react";
 
 const G      = "#C8A97E";
