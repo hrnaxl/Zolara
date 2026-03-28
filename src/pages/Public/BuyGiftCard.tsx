@@ -457,15 +457,7 @@ export default function BuyGiftCard() {
 
             {(selectedTier || selectedPromo) && (
               <div style={{ animation: "fadeUp 0.25s ease" }}>
-                {selectedPromo ? (
-                  <div style={{ background: "rgba(200,169,126,0.08)", borderRadius: 12, padding: "14px 18px", border: "1px solid rgba(200,169,126,0.2)", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 22 }}>🏪</span>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#F5EFE6" }}>Pick Up In Store Only</div>
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>Promotional gift cards are physical cards. Collect at Zolara Beauty Studio, Sakasaka.</div>
-                    </div>
-                  </div>
-                ) : (
+                {false ? null : (
                   <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 18, border: "1px solid rgba(255,255,255,0.08)", marginBottom: 16 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)", marginBottom: 12 }}>DELIVERY METHOD</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
