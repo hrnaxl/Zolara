@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sanitizeName, sanitizeNotes } from "@/lib/sanitize";
@@ -14,6 +15,12 @@ export default function Feedback() {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [bookingRef, setBookingRef] = useState("");
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) setBookingRef(ref);
+  }, []);
 
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error("Please enter your name"); return; }
@@ -22,6 +29,7 @@ export default function Feedback() {
     setSubmitting(true);
     const { error } = await (supabase as any).from("reviews").insert({
       name: sanitizeName(name), rating, comment: sanitizeNotes(comment), visible: false,
+      booking_ref: bookingRef || null,
     });
     if (error) { toast.error("Failed to submit. Please try again."); setSubmitting(false); return; }
     // Notify admin via SMS about new review

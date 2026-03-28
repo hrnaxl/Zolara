@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     // Delete old sent pending_sms (older than 7 days)
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    await fetch(`${SB_URL}/rest/v1/pending_sms?sent.eq.true&created_at=lt.${encodeURIComponent(weekAgo)}`, {
+    await fetch(`${SB_URL}/rest/v1/pending_sms?sent=eq.true&created_at=lt.${encodeURIComponent(weekAgo)}`, {
       method: "DELETE", headers: H,
     });
 

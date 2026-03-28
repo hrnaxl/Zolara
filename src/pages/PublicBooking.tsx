@@ -377,13 +377,22 @@ export default function PublicBooking() {
           notes: notesFull,
           status: "pending",
           booking_ref: bRef,
-          client_id: await findOrCreateClient({ name: safeName, phone: cleanPhone, email: email?.trim() || null }).catch(() => null),
+          client_id: null, // resolved async below to avoid blocking booking insert
           duration_minutes: 0,
           promo_code: appliedPromo?.code || null,
           promo_discount: promoDiscount > 0 ? promoDiscount : null,
         } as any);
 
       if (bookingError) throw bookingError;
+
+      // Resolve client_id in background — update booking after if needed
+      findOrCreateClient({ name: safeName, phone: cleanPhone, email: email?.trim() || null })
+        .then(cid => {
+          if (cid && bookingId) {
+            (supabase as any).from("bookings").update({ client_id: cid }).eq("id", bookingId).catch(() => {});
+          }
+        })
+        .catch(() => {});
 
       // Queue "deposit not recorded" SMS server-side — fires in 7 minutes if deposit not paid
       // Uses /api/queue-pending-sms so it survives browser tab close

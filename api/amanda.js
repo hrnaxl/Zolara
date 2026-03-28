@@ -1,4 +1,4 @@
-// Persistent rate limiter using pending_sms table as a log store
+// Persistent rate limiter using amanda_rate_log table in Supabase
 // Falls back to allowing request if DB check fails — never block on DB error
 const SB_RL = process.env.SUPABASE_URL;
 const SK_RL = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;

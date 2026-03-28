@@ -23,6 +23,18 @@ function generateCode(tier) {
   return `${prefix}-${part1}-${part2}`;
 }
 
+const PAYSTACK_SECRET_GC = process.env.PAYSTACK_SECRET_KEY;
+async function verifyPaystackPayment(ref) {
+  if (!ref || !PAYSTACK_SECRET_GC) return false;
+  try {
+    const r = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(ref)}`, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_GC}` }
+    });
+    const d = await r.json();
+    return d?.data?.status === 'success';
+  } catch { return false; }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN || "https://zolarasalon.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -32,7 +44,13 @@ export default async function handler(req, res) {
 
   const { tier, promoTypeId, promoName, amount: overrideAmount, buyerName, buyerEmail, recipientName, recipientEmail, message } = req.body || {};
   const buyerPhone = toLocal(req.body?.buyerPhone || "");
+  const paymentRef = req.body?.paymentRef || null;
   if (!tier && !promoTypeId) return res.status(400).json({ error: "Missing tier or promoTypeId" });
+  // Verify Paystack payment before creating gift card as paid
+  if (PAYSTACK_SECRET_GC && paymentRef) {
+    const paid = await verifyPaystackPayment(paymentRef);
+    if (!paid) return res.status(402).json({ error: "Payment not verified" });
+  }
 
   let amount, codePrefix, promoLabel = null;
 

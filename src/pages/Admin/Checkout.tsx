@@ -644,7 +644,7 @@ const Checkout = () => {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 phone: clientPhone,
-                message: SMS.feedbackRequest(clientName, booking.service_name || "service"),
+                message: SMS.feedbackRequest(clientName, booking.service_name || "service", booking.booking_ref || booking.id?.slice(0,8).toUpperCase()),
                 booking_id: booking.id,
                 delay_minutes: 45,
               }),

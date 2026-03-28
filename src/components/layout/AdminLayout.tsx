@@ -144,6 +144,8 @@ const AdminDashboard = () => {
   const handleFilterChange = (filter: DateFilterType, range: DateRange) => {
     setDateFilter(filter);
     setDateRange(range);
+    // Force refresh — bypass cache when filter changes
+    lastFetchRef.current = 0;
   };
 
   const fetchStats = async (force = false) => {

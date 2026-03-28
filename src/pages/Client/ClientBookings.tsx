@@ -45,6 +45,8 @@ export default function ClientBookings() {
   const [search, setSearch]           = useState("");
   const [cancelling, setCancelling]   = useState<string | null>(null);
   const [confirmId, setConfirmId]     = useState<string | null>(null);
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [rescheduleNote, setRescheduleNote] = useState("");
 
   useEffect(() => {
     if (clientBookings) { setBookings(clientBookings); setLoading(false); return; }
@@ -55,6 +57,34 @@ export default function ClientBookings() {
       .order("preferred_date", { ascending: false })
       .then(({ data }: any) => { setBookings(data || []); setLoading(false); });
   }, [client]);
+
+  const handleRescheduleRequest = async (bookingId: string) => {
+    const b = bookings.find(x => x.id === bookingId);
+    if (!b) return;
+    const msg = [
+      `Reschedule request from client.`,
+      ``,
+      `Client: ${b.client_name || "Unknown"}`,
+      `Service: ${b.service_name || "Unknown"}`,
+      `Current: ${b.preferred_date || ""} at ${(b.preferred_time || "").slice(0,5)}`,
+      `Ref: ${b.booking_ref || bookingId.slice(0,8).toUpperCase()}`,
+      rescheduleNote ? `Note: ${rescheduleNote}` : "",
+      ``,
+      `Please contact client to confirm new time.`,
+    ].filter(Boolean).join("\n");
+    try {
+      const { data: s } = await supabase.from("settings").select("business_phone").limit(1).maybeSingle();
+      const bizPhone = (s as any)?.business_phone || "0594365314";
+      await fetch("/api/queue-pending-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: bizPhone, message: msg, delay_minutes: 0 }),
+      });
+      toast.success("Reschedule request sent. We will contact you to confirm a new time.");
+    } catch { toast.error("Could not send request. Please call 0594365314."); }
+    setRescheduleId(null);
+    setRescheduleNote("");
+  };
 
   const handleCancel = async (bookingId: string) => {
     setCancelling(bookingId);
@@ -79,11 +109,15 @@ export default function ClientBookings() {
           `Date: ${b.preferred_date || ""} at ${(b.preferred_time || "").slice(0,5)}`,
           `Ref: ${b.booking_ref || bookingId.slice(0,8).toUpperCase()}`,
         ].join("\n");
-        fetch("/api/queue-pending-sms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: "0594365314", message: msg, delay_minutes: 0 }),
-        }).catch(() => {});
+        // Get business phone dynamically from settings
+        supabase.from("settings").select("business_phone").limit(1).maybeSingle().then(({ data: s }) => {
+          const bizPhone = s?.business_phone || "0594365314";
+          fetch("/api/queue-pending-sms", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: bizPhone, message: msg, delay_minutes: 0 }),
+          }).catch(() => {});
+        });
       }
     } catch {
       toast.error("Could not cancel. Please call us on 0594365314.");
@@ -203,12 +237,36 @@ export default function ClientBookings() {
                   )}
                 </div>
                 {/* Cancel option — only for upcoming bookings with 24h+ notice */}
+                {rescheduleId === b.id && (
+                  <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input
+                      placeholder="Optional: preferred new time or note"
+                      value={rescheduleNote}
+                      onChange={e => setRescheduleNote(e.target.value)}
+                      style={{ flex: 1, minWidth: 180, fontSize: 11, padding: "6px 10px", borderRadius: 8, border: `1px solid ${BORDER}`, outline: "none", fontFamily: "'Montserrat',sans-serif" }}
+                    />
+                    <button onClick={() => handleRescheduleRequest(b.id)}
+                      style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: G_DARK, border: "none", borderRadius: 16, padding: "6px 14px", cursor: "pointer" }}>
+                      Send Request
+                    </button>
+                    <button onClick={() => { setRescheduleId(null); setRescheduleNote(""); }}
+                      style={{ fontSize: 10, color: TXT_S, background: "none", border: "none", cursor: "pointer" }}>
+                      Cancel
+                    </button>
+                  </div>
+                )}
                 {["pending","confirmed"].includes(b.status) && b.preferred_date >= today && (
                   canClientCancel(b.preferred_date, b.preferred_time) ? (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button onClick={() => { setRescheduleId(b.id); setRescheduleNote(""); }}
+                      style={{ fontSize: 10, fontWeight: 700, color: G_DARK, background: "rgba(200,169,126,0.08)", border: `1px solid rgba(200,169,126,0.25)`, borderRadius: 20, padding: "4px 12px", cursor: "pointer" }}>
+                      Reschedule
+                    </button>
                     <button onClick={() => setConfirmId(b.id)} disabled={cancelling === b.id}
                       style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: "#EF4444", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 20, padding: "4px 12px", cursor: "pointer" }}>
                       <X size={9} /> Cancel Booking
                     </button>
+                    </div>
                   ) : (
                     <div style={{ marginTop: 8, fontSize: 10, color: TXT_S }}>
                       Less than 24h away — call 0594365314 to cancel

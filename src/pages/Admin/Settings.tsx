@@ -244,9 +244,15 @@ export default function Settings() {
         .filter((m:any) => m?.enabled === true)
         .map((m:any) => m?.id || m);
 
+      // Include auth token so save-settings can validate admin role
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token || "";
       const res = await fetch("/api/save-settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authToken}`,
+        },
         body: JSON.stringify(payload),
       });
 
