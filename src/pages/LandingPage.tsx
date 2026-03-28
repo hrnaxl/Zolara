@@ -126,17 +126,11 @@ supabase.from("settings").select("open_time, close_time, closed_dates, landing_s
     // Load visible reviews from DB
 (supabase as any).from("reviews").select("*").eq("visible", true).order("created_at", { ascending: false })
       .then(({ data }: any) => { if (data && data.length > 0) setDbReviews(data); });
-    // Load active promotional gift card types
-    (supabase as any).from("promo_gift_card_types").select("*").eq("is_active", true)
-      .then(({ data }: any) => {
-        const now = new Date();
-        const active = (data || []).filter((p: any) => {
-          if (p.expires_at && new Date(p.expires_at) < now) return false;
-          if (p.max_uses && p.uses_count >= p.max_uses) return false;
-          return true;
-        });
-        setPromoGiftCards(active);
-      });
+    // Load active promotional gift card types — use API (service key) not anon client
+    fetch("/api/public-promo-cards")
+      .then(r => r.json())
+      .then((data: any) => { if (Array.isArray(data)) setPromoGiftCards(data); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
