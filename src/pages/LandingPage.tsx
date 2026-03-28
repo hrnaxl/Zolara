@@ -1144,7 +1144,7 @@ supabase.from("services").select("id,name,category,price,description,is_active")
               <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>Exclusive occasion-themed gift experiences</p>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:"24px" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,280px))", gap:"20px", justifyContent:"center" }}>
               {promoGiftCards.map((pt: any) => {
                 const theme = (pt.theme || "gold").toLowerCase();
                 const d = PROMO_THEMES[theme] || PROMO_THEMES.gold;
