@@ -1217,6 +1217,17 @@ supabase.from("services").select("id,name,category,price,description,is_active")
           );
         })()}
 
+        {/* Separator between special and standard cards */}
+        <div style={{ maxWidth:"1100px", margin:"0 auto 40px", position:"relative", zIndex:1 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+            <div style={{ flex:1, height:"1px", background:"linear-gradient(90deg, transparent, rgba(200,169,126,0.25))" }} />
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 20px", borderRadius:30, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(200,169,126,0.15)" }}>
+              <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:9, fontWeight:700, letterSpacing:"0.24em", color:"rgba(200,169,126,0.6)" }}>STANDARD GIFT CARDS</span>
+            </div>
+            <div style={{ flex:1, height:"1px", background:"linear-gradient(90deg, rgba(200,169,126,0.25), transparent)" }} />
+          </div>
+        </div>
+
         {/* Tier cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "20px", maxWidth: "1100px", margin: "0 auto 64px", position: "relative", zIndex: 1 }}>
           {(() => {
