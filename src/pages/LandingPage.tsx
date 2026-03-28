@@ -1120,44 +1120,102 @@ supabase.from("services").select("id,name,category,price,description,is_active")
         </div>
 
         {/* Promotional Gift Cards: shown first if any active */}
-        {promoGiftCards.length > 0 && (
-          <div style={{ maxWidth:"1100px", margin:"0 auto 32px", position:"relative", zIndex:1 }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:20 }}>
-              <span style={{ color: gold, fontSize:12 }}>✦</span>
-              <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.22em", color: gold, margin:0 }}>SPECIAL EDITIONS</p>
-              <span style={{ color: gold, fontSize:12 }}>✦</span>
+        {promoGiftCards.length > 0 && (() => {
+          const PROMO_THEMES: Record<string,{ bg:string; border:string; accent:string; emojis:string[]; tagline:string }> = {
+            valentine:  { bg:"linear-gradient(135deg,#4A0010 0%,#8B0000 40%,#C41E3A 70%,#FF4458 100%)", border:"#FF6B8A", accent:"#FFB3C1", emojis:["❤️","💕","🌹","💝"], tagline:"A gift of love & beauty" },
+            valentines: { bg:"linear-gradient(135deg,#4A0010 0%,#8B0000 40%,#C41E3A 70%,#FF4458 100%)", border:"#FF6B8A", accent:"#FFB3C1", emojis:["❤️","💕","🌹","💝"], tagline:"A gift of love & beauty" },
+            christmas:  { bg:"linear-gradient(135deg,#021A0A 0%,#0D3B1E 40%,#1B5E20 75%,#2E7D32 100%)", border:"#FFD700", accent:"#FFD700", emojis:["🎄","⭐","🎁","❄️"], tagline:"Season's greetings & beauty" },
+            graduation: { bg:"linear-gradient(135deg,#0A0F2E 0%,#1A237E 45%,#283593 75%,#3949AB 100%)", border:"#FFD700", accent:"#FFD700", emojis:["🎓","⭐","🏆","🎉"], tagline:"Celebrate your achievement" },
+            birthday:   { bg:"linear-gradient(135deg,#1A0030 0%,#4A148C 40%,#6A1B9A 75%,#9C27B0 100%)", border:"#F8BBD0", accent:"#F8BBD0", emojis:["🎂","🎉","🎈","✨"], tagline:"Make her birthday unforgettable" },
+            mothersday: { bg:"linear-gradient(135deg,#3A0020 0%,#880E4F 45%,#AD1457 75%,#E91E8C 100%)", border:"#FCE4EC", accent:"#FCE4EC", emojis:["🌸","💐","💗","👑"], tagline:"Pamper the woman you love" },
+            mothers:    { bg:"linear-gradient(135deg,#3A0020 0%,#880E4F 45%,#AD1457 75%,#E91E8C 100%)", border:"#FCE4EC", accent:"#FCE4EC", emojis:["🌸","💐","💗","👑"], tagline:"Pamper the woman you love" },
+            eid:        { bg:"linear-gradient(135deg,#001A3A 0%,#1E3A5F 45%,#2563EB 80%,#3B82F6 100%)", border:"#93C5FD", accent:"#DBEAFE", emojis:["🌙","⭐","🕌","✨"], tagline:"Blessed celebrations" },
+            gold:       { bg:"linear-gradient(135deg,#1C0E00 0%,#5A3C00 40%,#8B6914 75%,#C8A97E 100%)", border:"#C8A97E", accent:"#FFF8DC", emojis:["✨","💛","👑","🌟"], tagline:"A luxurious special offer" },
+          };
+          return (
+          <div style={{ maxWidth:"1100px", margin:"0 auto 48px", position:"relative", zIndex:1 }}>
+            {/* Section header — different from normal cards */}
+            <div style={{ textAlign:"center", marginBottom:28 }}>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:"linear-gradient(135deg,rgba(200,169,126,0.1),rgba(200,169,126,0.05))", border:"1px solid rgba(200,169,126,0.25)", borderRadius:30, padding:"8px 20px", marginBottom:12 }}>
+                <span style={{ fontSize:14 }}>🎁</span>
+                <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:9, fontWeight:700, letterSpacing:"0.28em", color:"#C8A97E" }}>LIMITED SPECIAL EDITIONS</span>
+                <span style={{ fontSize:14 }}>🎁</span>
+              </div>
+              <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>Exclusive occasion-themed gift experiences</p>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:"20px" }}>
+
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:"24px" }}>
               {promoGiftCards.map((pt: any) => {
-                const THEME_GRADS: Record<string,string> = {
-                  valentines:"linear-gradient(145deg,#7F1D1D,#E11D48,#FB7185)",
-                  christmas:"linear-gradient(145deg,#14532D,#16A34A,#DC2626)",
-                  eid:"linear-gradient(145deg,#1E3A5F,#2563EB,#60A5FA)",
-                  birthday:"linear-gradient(145deg,#4C1D95,#A855F7,#F0ABFC)",
-                  mothers:"linear-gradient(145deg,#831843,#EC4899,#FBCFE8)",
-                  graduation:"linear-gradient(145deg,#1E3A5F,#B8975A,#D4AF6A)",
-                  gold:"linear-gradient(145deg,#6B4E0A,#C8A97E,#D4AF6A)",
-                  custom:"linear-gradient(145deg,#1C160E,#3A2D1A,#C8A97E)",
-                };
-                const grad = THEME_GRADS[pt.theme] || THEME_GRADS.gold;
+                const theme = (pt.theme || "gold").toLowerCase();
+                const d = PROMO_THEMES[theme] || PROMO_THEMES.gold;
                 return (
-                  <div key={pt.id} className="gc-tier-card" style={{ background: grad, boxShadow:"0 20px 48px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.3)", animation:"cardFloat 5.5s ease-in-out infinite" }}>
-                    <div style={{ position:"absolute", top:-20, right:-20, width:80, height:80, borderRadius:"50%", background:"rgba(255,255,255,0.06)" }} />
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"20px", position:"relative" }}>
-                      <div>
-                        <div className="sans" style={{ fontSize:"8px", letterSpacing:"0.22em", color:"rgba(255,255,255,0.5)", marginBottom:"8px", fontWeight:600 }}>SPECIAL EDITION</div>
-                        <div className="gc-chip" style={{ background:"rgba(255,255,255,0.15)", color:"rgba(255,255,255,0.85)", border:"1px solid rgba(255,255,255,0.25)" }}>{pt.emoji} {pt.name}</div>
+                  <a key={pt.id} href="/buy-gift-card"
+                    style={{ textDecoration:"none", display:"block", borderRadius:24, overflow:"hidden",
+                      background: d.bg,
+                      border:`1.5px solid ${d.border}40`,
+                      boxShadow:`0 0 0 1px ${d.border}20, 0 24px 64px rgba(0,0,0,0.5), 0 0 40px ${d.border}15`,
+                      transition:"transform 0.3s ease, box-shadow 0.3s ease",
+                      position:"relative",
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-8px)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1.5px ${d.border}60, 0 32px 80px rgba(0,0,0,0.6), 0 0 60px ${d.border}25`; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1px ${d.border}20, 0 24px 64px rgba(0,0,0,0.5), 0 0 40px ${d.border}15`; }}
+                  >
+                    {/* Large emoji background decoration */}
+                    <div style={{ position:"absolute", top:-10, right:-10, fontSize:90, opacity:0.07, pointerEvents:"none", lineHeight:1 }}>{d.emojis[0]}</div>
+                    <div style={{ position:"absolute", bottom:10, left:5, fontSize:50, opacity:0.06, pointerEvents:"none", transform:"rotate(-15deg)" }}>{d.emojis[1]}</div>
+
+                    {/* Shimmer bar */}
+                    <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:`linear-gradient(90deg, transparent, ${d.border}80, transparent)` }} />
+
+                    <div style={{ padding:"28px 26px 24px", position:"relative" }}>
+                      {/* Top row */}
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
+                        <div>
+                          <div style={{ display:"flex", gap:4, marginBottom:10 }}>
+                            {d.emojis.slice(0,3).map((e:string, i:number) => (
+                              <span key={i} style={{ fontSize:16 }}>{e}</span>
+                            ))}
+                          </div>
+                          <div style={{ display:"inline-block", padding:"4px 12px", borderRadius:20, background:`${d.border}20`, border:`1px solid ${d.border}50` }}>
+                            <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:8, fontWeight:700, letterSpacing:"0.2em", color:d.accent }}>{(pt.name || "SPECIAL").toUpperCase()}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign:"right" }}>
+                          <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:7, letterSpacing:"0.2em", color:`${d.accent}70`, marginBottom:2, fontWeight:600 }}>LIMITED OFFER</div>
+                          <div style={{ width:8, height:8, borderRadius:"50%", background:d.border, marginLeft:"auto", boxShadow:`0 0 8px ${d.border}` }} />
+                        </div>
+                      </div>
+
+                      {/* Amount — larger, more prominent than normal cards */}
+                      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(36px,4vw,48px)", fontWeight:300, color:"white", lineHeight:1, marginBottom:6, letterSpacing:"-0.02em" }}>
+                        GHS {pt.amount.toLocaleString()}
+                      </div>
+                      <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, color:`${d.accent}80`, marginBottom:16, letterSpacing:"0.06em" }}>GIFT CARD VALUE</div>
+
+                      {/* Divider with accent color */}
+                      <div style={{ height:1, background:`linear-gradient(90deg, ${d.border}60, ${d.border}20, transparent)`, marginBottom:14 }} />
+
+                      {/* Description */}
+                      <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11.5, color:"rgba(255,255,255,0.65)", lineHeight:1.7, margin:"0 0 20px", fontWeight:400 }}>
+                        {pt.description || d.tagline}
+                      </p>
+
+                      {/* CTA */}
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                        <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.12em", color:d.accent }}>PURCHASE NOW →</span>
+                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                          <div style={{ width:4, height:4, borderRadius:"50%", background:d.border, opacity:0.6 }} />
+                          <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:8, color:`${d.accent}60`, letterSpacing:"0.1em" }}>12 MONTHS VALID</span>
+                        </div>
                       </div>
                     </div>
-                    <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(28px,3vw,38px)", fontWeight:300, color:"white", lineHeight:1, marginBottom:"14px" }}>GHS {pt.amount.toLocaleString()}</div>
-                    <div style={{ height:"1px", background:"rgba(255,255,255,0.12)", marginBottom:"14px" }} />
-                    <p className="sans" style={{ fontSize:"12px", color:"rgba(255,255,255,0.62)", lineHeight:1.65, margin:0 }}>{pt.description || "A special gift for a special occasion."}</p>
-                  </div>
+                  </a>
                 );
               })}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* Tier cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: "20px", maxWidth: "1100px", margin: "0 auto 64px", position: "relative", zIndex: 1 }}>
