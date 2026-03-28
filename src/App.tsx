@@ -3,23 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState, lazy, Suspense } from "react";
-
-function PageTransition({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    setVisible(false);
-    const t = setTimeout(() => setVisible(true), 20);
-    return () => clearTimeout(t);
-  }, [location.pathname]);
-  return (
-    <div style={{ opacity: visible ? 1 : 0, transition: "opacity 0.3s ease", minHeight: "100vh" }}>
-      {children}
-    </div>
-  );
-}
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, lazy, Suspense } from "react";
 
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -85,7 +70,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-        <PageTransition>
         <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#F5EFE6"}}><div style={{width:40,height:40,borderRadius:"50%",border:"3px solid #EDE8E0",borderTop:"3px solid #C8A97E",animation:"spin 0.8s linear infinite"}}/><style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style></div>}>
         <Routes>
           {/* =================== PUBLIC ROUTES =================== */}
@@ -214,7 +198,6 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
-        </PageTransition>
         </BrowserRouter>
       </SettingsProvider>
       </CatalogProvider>
