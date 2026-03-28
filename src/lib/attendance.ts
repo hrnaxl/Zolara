@@ -23,8 +23,8 @@ export type ShiftSettings = {
 };
 
 export const DEFAULT_SHIFT: ShiftSettings = {
-  start: "09:00",
-  end: "17:00",
+  start: "08:30",
+  end: "20:00",
   graceMinutes: 15,
 };
 
@@ -46,7 +46,20 @@ export function calcTotalHours(checkInIso?: string | null, checkOutIso?: string 
   return Math.max(0, Math.round(diff * 100) / 100); // hours, 2 decimals
 }
 
-export function calcOvertime(totalHours: number, shiftHours = 8) {
+// Overtime = time worked past shift end, not past N hours from check-in
+// checkOutIso: actual checkout time, shift: the shift settings
+export function calcOvertime(totalHours: number, shiftHours = 11.5, checkOutIso?: string | null, shift: ShiftSettings = DEFAULT_SHIFT) {
+  // If we have the actual checkout time, calculate overtime from shift end
+  if (checkOutIso) {
+    const out = new Date(checkOutIso);
+    const [endH, endM] = shift.end.split(":").map(Number);
+    const shiftEnd = new Date(out);
+    shiftEnd.setHours(endH, endM, 0, 0);
+    if (out <= shiftEnd) return 0;
+    const otMinutes = (out.getTime() - shiftEnd.getTime()) / 60000;
+    return Math.round((otMinutes / 60) * 100) / 100;
+  }
+  // Fallback: use total hours vs full shift length (8:30–20:00 = 11.5h)
   return totalHours > shiftHours ? Math.round((totalHours - shiftHours) * 100) / 100 : 0;
 }
 

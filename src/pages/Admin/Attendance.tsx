@@ -154,7 +154,7 @@ export default function Attendance() {
     return staffList.map((s) => {
       const record = attendanceRecords.find((r) => r.staff_id === s.id);
       const total = calcTotalHours(record?.check_in, record?.check_out);
-      const overtime = calcOvertime(total);
+      const overtime = calcOvertime(total, 11.5, record?.check_out, DEFAULT_SHIFT);
       const lateFlag = isLate(record?.check_in, DEFAULT_SHIFT);
       const earlyFlag = record?.check_out ? isEarlyCheckout(record.check_out, DEFAULT_SHIFT) : false;
       const halfDay = isHalfDay(total);
