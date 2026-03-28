@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 // Use browser crypto for client-side UUID — avoids needing SELECT after INSERT (RLS blocks anon select)
 const genId = () => crypto.randomUUID();
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -87,7 +87,7 @@ export default function PublicBooking() {
   const [bookedPromoSaving, setBookedPromoSaving] = useState(0);
   const [bookedTime, setBookedTime] = useState("");
   const [pendingMeta, setPendingMeta] = useState<any>(null); // stored in sessionStorage for fallback
-  const bookingIdRef = React.useRef<string>("");
+  const bookingIdRef = useRef<string>("");
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
