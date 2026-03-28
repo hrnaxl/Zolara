@@ -87,6 +87,7 @@ export default function PublicBooking() {
   const [bookedPromoSaving, setBookedPromoSaving] = useState(0);
   const [bookedTime, setBookedTime] = useState("");
   const [pendingMeta, setPendingMeta] = useState<any>(null); // stored in sessionStorage for fallback
+  const bookingIdRef = React.useRef<string>("");
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -335,6 +336,7 @@ export default function PublicBooking() {
       const cleanPhone = phone.replace(/\s/g,"");
       const bRef = `ZB${Date.now().toString(36).toUpperCase()}`;
       const bookingId = genId();
+      bookingIdRef.current = bookingId;
       const depositAmount = Number((settings as any)?.deposit_amount ?? 50);
       const notesFull = [
         notes,
@@ -388,8 +390,9 @@ export default function PublicBooking() {
       // Resolve client_id in background — update booking after if needed
       findOrCreateClient({ name: safeName, phone: cleanPhone, email: email?.trim() || null })
         .then(cid => {
-          if (cid && bookingId) {
-            (supabase as any).from("bookings").update({ client_id: cid }).eq("id", bookingId).catch(() => {});
+          const _bid = bookingIdRef.current;
+          if (cid && _bid) {
+            (supabase as any).from("bookings").update({ client_id: cid }).eq("id", _bid).catch(() => {});
           }
         })
         .catch(() => {});
@@ -556,8 +559,9 @@ export default function PublicBooking() {
         },
         onClose: () => {
           // User closed without paying — delete the orphaned booking
-          if (bookingId) {
-            (supabase as any).from("bookings").delete().eq("id", bookingId).then(() => {});
+          const _bid = bookingIdRef.current;
+          if (_bid) {
+            (supabase as any).from("bookings").delete().eq("id", _bid).then(() => {});
           }
           setStep("form");
           toast.error("Payment was not completed. Your slot has not been reserved.");
@@ -566,9 +570,9 @@ export default function PublicBooking() {
 
     } catch (err: any) {
       console.error("Deposit error:", err);
-      // If booking was already inserted before the error, delete it to avoid orphan
-      if (bookingId) {
-        (supabase as any).from("bookings").delete().eq("id", bookingId).then(() => {});
+      const _bid = bookingIdRef.current;
+      if (_bid) {
+        (supabase as any).from("bookings").delete().eq("id", _bid).then(() => {});
       }
       toast.error(err.message || "Something went wrong. Please try again.");
       setStep("form");
