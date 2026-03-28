@@ -290,7 +290,10 @@ export default function BuyGiftCard() {
                 }),
               });
               const d = await r.json().catch(() => ({}));
-              if (r.ok && d.card) {
+              if (!r.ok || !d.card) {
+                console.error("Gift card creation failed:", d);
+                toast.error("Payment received but card creation failed. Please contact us on 0594365314 with your payment reference: " + paymentRef);
+              } else {
                 const emailTo = form.recipientEmail || form.buyerEmail;
                 // Send gift card code to recipient
                 if (emailTo) sendGiftCardEmail({
