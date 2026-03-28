@@ -527,14 +527,14 @@ export default function BuyGiftCard() {
                   <DarkField label="Recipient Name" value={form.recipientName} onChange={v => setForm(p => ({ ...p, recipientName: v }))} placeholder="Who is this for?" />
                   <DarkField label="Recipient Phone" value={form.recipientPhone} onChange={v => setForm(p => ({ ...p, recipientPhone: v }))} placeholder="0XX XXX XXXX" type="tel" icon="📱" />
                   <p style={{ fontSize: 11, color: "#6B5D52", margin: 0, lineHeight: 1.5 }}>Their phone links this card to their Zolara account.</p>
-                  {deliveryType === "email" && !selectedPromo && (
+                  {deliveryType === "email" && (
                     <DarkField label="Recipient Email" value={form.recipientEmail} onChange={v => setForm(p => ({ ...p, recipientEmail: v }))} placeholder="The card will be sent here" type="email" icon="✉" />
                   )}
                 </div>
               </div>
 
               {/* Section: Message (email only) */}
-              {deliveryType === "email" && !selectedPromo && (
+              {deliveryType === "email" && (
                 <>
                   <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #E8E0D4, transparent)", margin: "0 28px" }} />
                   <div style={{ padding: "24px 28px 28px" }}>
