@@ -11,6 +11,7 @@ import { useSlotLock } from "@/hooks/useSlotLock";
 import { Loader2, Calendar, Clock, User, Phone, Mail, Tag, CheckCircle2, ArrowLeft, Sparkles, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeNotes } from "@/lib/sanitize";
+import { findOrCreateClient } from "@/lib/clientDedup";
 import { useSettings } from "@/context/SettingsContext";
 import AmandaWidget from "@/components/AmandaWidget";
 
