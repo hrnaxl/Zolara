@@ -188,41 +188,13 @@ export default function BuyGiftCard() {
         setPricesLoaded(true);
       })
       .catch(() => setPricesLoaded(true));
-    // Try service-role API first, fallback to direct Supabase if it fails
+    // Load active promo gift card types from API (uses service key, bypasses RLS)
     fetch("/api/public-promo-cards")
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => {
-        const promos = Array.isArray(data) ? data : [];
-        if (promos.length === 0) {
-          // Fallback: try direct query (works if RLS allows public read)
-          return (supabase as any)
-            .from("promo_gift_card_types")
-            .select("*")
-            .then(({ data: d }: any) => {
-              const now = new Date();
-              setPromoTypes((d || []).filter((p: any) => {
-                if (p.is_active === false) return false;
-                if (p.expires_at && new Date(p.expires_at) < now) return false;
-                if (p.max_uses && p.uses_count >= p.max_uses) return false;
-                return true;
-              }));
-            });
-        }
-        setPromoTypes(promos);
+      .then(r => r.json())
+      .then((data: any) => {
+        if (Array.isArray(data) && data.length > 0) setPromoTypes(data);
       })
-      .catch(() => {
-        // Final fallback: direct Supabase
-        (supabase as any).from("promo_gift_card_types").select("*")
-          .then(({ data: d }: any) => {
-            const now = new Date();
-            setPromoTypes((d || []).filter((p: any) => {
-              if (p.is_active === false) return false;
-              if (p.expires_at && new Date(p.expires_at) < now) return false;
-              if (p.max_uses && p.uses_count >= p.max_uses) return false;
-              return true;
-            }));
-          }).catch(() => {});
-      });
+      .catch(() => {});
   }, []);
 
   const getTierValue = (tier: string) => {
@@ -391,7 +363,7 @@ export default function BuyGiftCard() {
 
         {/* STEP: SELECT */}
         {step === "select" && (
-          <div style={{ animation: "fadeUp 0.35s ease" }}>
+          <div>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.22em", color: "#C8A97E", marginBottom: 12 }}>✦ GIFT OF LUXURY ✦</div>
               <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(30px,6vw,48px)", fontWeight: 300, color: "#F5EFE6", margin: "0 0 12px", lineHeight: 1.1 }}>
