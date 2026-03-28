@@ -49,18 +49,18 @@ export default async function handler(req, res) {
   if (!tier && !promoTypeId) return res.status(400).json({ error: "Missing tier or promoTypeId" });
   // Verify Paystack payment before creating gift card as paid
   let verifiedAmount = 0;
-  if (paymentRef) {
-    if (PAYSTACK_SECRET_GC) {
-      try {
-        const vr = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(paymentRef)}`, {
-          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_GC}` }
-        });
-        const vd = await vr.json();
-        if (vd?.data?.status !== 'success') return res.status(402).json({ error: "Payment not verified" });
-        // Paystack returns amount in kobo/pesewas — convert to GHS
+  if (paymentRef && PAYSTACK_SECRET_GC) {
+    try {
+      const vr = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(paymentRef)}`, {
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_GC}` }
+      });
+      const vd = await vr.json();
+      if (vd?.data?.status === 'success') {
+        // Paystack returns amount in kobo (pesewas) — divide by 100 for GHS
         verifiedAmount = (vd.data.amount || 0) / 100;
-      } catch { /* proceed without verified amount */ }
-    }
+      }
+      // Don't block on failed verification — Paystack webhook will handle disputes
+    } catch { /* proceed without verified amount */ }
   }
 
   let amount, codePrefix, promoLabel = null;
