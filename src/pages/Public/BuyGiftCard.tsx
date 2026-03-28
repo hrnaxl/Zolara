@@ -188,13 +188,34 @@ export default function BuyGiftCard() {
         setPricesLoaded(true);
       })
       .catch(() => setPricesLoaded(true));
-    // Load active promo gift card types from API (uses service key, bypasses RLS)
-    fetch("/api/public-promo-cards")
-      .then(r => r.json())
-      .then((data: any) => {
-        if (Array.isArray(data) && data.length > 0) setPromoTypes(data);
-      })
-      .catch(() => {});
+    // Load active promo gift card types
+    // Try API first (service key, bypasses RLS), then direct Supabase as fallback
+    const loadPromos = async () => {
+      try {
+        const r = await fetch("/api/public-promo-cards");
+        const data = await r.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setPromoTypes(data);
+          return;
+        }
+      } catch {}
+      // Fallback: query directly — works if RLS has public read or is disabled
+      try {
+        const { data } = await (supabase as any)
+          .from("promo_gift_card_types")
+          .select("*")
+          .order("created_at", { ascending: false });
+        const now = new Date();
+        const active = (data || []).filter((p: any) => {
+          if (p.is_active === false) return false;
+          if (p.expires_at && new Date(p.expires_at) < now) return false;
+          if (p.max_uses && p.uses_count >= p.max_uses) return false;
+          return true;
+        });
+        if (active.length > 0) setPromoTypes(active);
+      } catch {}
+    };
+    loadPromos();
   }, []);
 
   const getTierValue = (tier: string) => {
