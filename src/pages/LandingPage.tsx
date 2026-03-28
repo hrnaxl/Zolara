@@ -1144,22 +1144,24 @@ supabase.from("services").select("id,name,category,price,description,is_active")
               <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>Exclusive occasion-themed gift experiences</p>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,280px))", gap:"20px", justifyContent:"center" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:"20px" }}>
               {promoGiftCards.map((pt: any) => {
                 const theme = (pt.theme || "gold").toLowerCase();
                 const d = PROMO_THEMES[theme] || PROMO_THEMES.gold;
                 return (
                   <a key={pt.id} href="/buy-gift-card"
-                    style={{ textDecoration:"none", display:"block", borderRadius:24, overflow:"hidden",
+                    style={{ textDecoration:"none", display:"block", borderRadius:20, overflow:"hidden",
                       background: d.bg,
-                      border:`1.5px solid ${d.border}40`,
-                      boxShadow:`0 0 0 1px ${d.border}20, 0 24px 64px rgba(0,0,0,0.5), 0 0 40px ${d.border}15`,
+                      border:`1.5px solid ${d.border}50`,
+                      boxShadow:`0 0 0 1px ${d.border}20, 0 20px 48px rgba(0,0,0,0.5), 0 0 30px ${d.border}18`,
                       transition:"transform 0.3s ease, box-shadow 0.3s ease",
-                      position:"relative",
+                      position:"relative", aspectRatio:"3/4",
                     }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-8px)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1.5px ${d.border}60, 0 32px 80px rgba(0,0,0,0.6), 0 0 60px ${d.border}25`; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1px ${d.border}20, 0 24px 64px rgba(0,0,0,0.5), 0 0 40px ${d.border}15`; }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-6px) scale(1.02)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1.5px ${d.border}80, 0 28px 64px rgba(0,0,0,0.6), 0 0 50px ${d.border}30`; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0) scale(1)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1px ${d.border}20, 0 20px 48px rgba(0,0,0,0.5), 0 0 30px ${d.border}18`; }}
                   >
+                    {/* Corner ribbon */}
+                    <div style={{ position:"absolute", top:12, right:-22, background:`${d.border}`, color:"#000", fontSize:7, fontWeight:800, letterSpacing:"0.15em", padding:"3px 28px", transform:"rotate(45deg)", zIndex:10, fontFamily:"'Montserrat',sans-serif", boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>SPECIAL</div>
                     {/* Large emoji background decoration */}
                     <div style={{ position:"absolute", top:-10, right:-10, fontSize:90, opacity:0.07, pointerEvents:"none", lineHeight:1 }}>{d.emojis[0]}</div>
                     <div style={{ position:"absolute", bottom:10, left:5, fontSize:50, opacity:0.06, pointerEvents:"none", transform:"rotate(-15deg)" }}>{d.emojis[1]}</div>
@@ -1167,7 +1169,7 @@ supabase.from("services").select("id,name,category,price,description,is_active")
                     {/* Shimmer bar */}
                     <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:`linear-gradient(90deg, transparent, ${d.border}80, transparent)` }} />
 
-                    <div style={{ padding:"28px 26px 24px", position:"relative" }}>
+                    <div style={{ padding:"22px 20px 18px", position:"relative", height:"100%", boxSizing:"border-box", display:"flex", flexDirection:"column" }}>
                       {/* Top row */}
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
                         <div>
