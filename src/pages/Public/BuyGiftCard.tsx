@@ -151,7 +151,156 @@ function GiftCard({
         {/* Row 4: validity badge */}
         <div style={{ marginTop:16, display:"flex", alignItems:"center", gap:6 }}>
           <div style={{ width:5, height:5, borderRadius:"50%", background:accent, opacity:0.7 }} />
-          <span style={{ fontSize:8.5, letterSpacing:"0.14em", color:subColor, fontFamily:"Montserrat,sans-serif", fontWeight:600 }}>VALID 12 MONTHS · ZOLARA.COM</span>
+          <span style={{ fontSize:8.5, letterSpacing:"0.14em", color:subColor, fontFamily:"Montserrat,sans-serif", fontWeight:600 }}>VALID 12 MONTHS · ZOLARASALON.COM</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// Maps promo themes to their occasion-specific card designs
+const PROMO_DESIGNS: Record<string, {
+  bg: string;
+  emojis: string[];
+  accent: string;
+  subColor: string;
+  textColor: string;
+  chipBg: string;
+  tagline: string;
+}> = {
+  valentine: {
+    bg: "linear-gradient(135deg, #8B0000 0%, #C41E3A 40%, #FF1744 100%)",
+    emojis: ["❤️", "💕", "🌹", "💝", "💫"],
+    accent: "#FFB3C1",
+    subColor: "rgba(255,200,210,0.85)",
+    textColor: "#fff",
+    chipBg: "rgba(255,23,68,0.3)",
+    tagline: "A gift of love & beauty",
+  },
+  christmas: {
+    bg: "linear-gradient(135deg, #0D3B1E 0%, #1B5E20 50%, #2E7D32 100%)",
+    emojis: ["🎄", "⭐", "🎁", "❄️", "🦌"],
+    accent: "#FFD700",
+    subColor: "rgba(255,220,100,0.85)",
+    textColor: "#fff",
+    chipBg: "rgba(255,215,0,0.2)",
+    tagline: "Season's greetings & beauty",
+  },
+  graduation: {
+    bg: "linear-gradient(135deg, #1A237E 0%, #283593 50%, #3949AB 100%)",
+    emojis: ["🎓", "⭐", "🏆", "✨", "🎉"],
+    accent: "#FFD700",
+    subColor: "rgba(255,220,100,0.85)",
+    textColor: "#fff",
+    chipBg: "rgba(255,215,0,0.2)",
+    tagline: "Celebrate your achievement",
+  },
+  birthday: {
+    bg: "linear-gradient(135deg, #4A148C 0%, #6A1B9A 50%, #9C27B0 100%)",
+    emojis: ["🎂", "🎉", "🎈", "✨", "🎁"],
+    accent: "#F8BBD0",
+    subColor: "rgba(248,187,208,0.85)",
+    textColor: "#fff",
+    chipBg: "rgba(248,187,208,0.2)",
+    tagline: "Make her birthday unforgettable",
+  },
+  mothersday: {
+    bg: "linear-gradient(135deg, #880E4F 0%, #AD1457 50%, #E91E8C 100%)",
+    emojis: ["🌸", "💐", "💗", "🌺", "👑"],
+    accent: "#FCE4EC",
+    subColor: "rgba(252,228,236,0.85)",
+    textColor: "#fff",
+    chipBg: "rgba(233,30,140,0.25)",
+    tagline: "Pamper the woman you love",
+  },
+  gold: {
+    bg: "linear-gradient(135deg, #7B5E00 0%, #B8860B 50%, #DAA520 100%)",
+    emojis: ["✨", "💛", "⭐", "🌟", "👑"],
+    accent: "#FFF8DC",
+    subColor: "rgba(255,248,220,0.85)",
+    textColor: "#fff",
+    chipBg: "rgba(255,248,220,0.15)",
+    tagline: "A luxurious special offer",
+  },
+};
+
+const EMOJI_POSITIONS = [
+  { top: "8%", left: "82%" },
+  { top: "55%", left: "5%" },
+  { top: "10%", left: "70%" },
+  { top: "72%", left: "18%" },
+  { top: "40%", left: "88%" },
+];
+const EMOJI_SIZES = [22, 16, 28, 14, 20];
+const EMOJI_OPACITIES = [0.15, 0.12, 0.18, 0.1, 0.14];
+const EMOJI_ROTATIONS = ["15deg", "-10deg", "20deg", "-15deg", "10deg"];
+
+function PromoGiftCard({ pt, selected }: { pt: any; selected: boolean }) {
+  const theme = (pt.theme || "gold").toLowerCase();
+  const design = PROMO_DESIGNS[theme] || PROMO_DESIGNS.gold;
+
+  return (
+    <div style={{
+      position: "relative", overflow: "hidden", borderRadius: 20,
+      padding: "24px 22px 20px",
+      background: design.bg,
+      boxShadow: selected
+        ? `0 28px 56px rgba(0,0,0,0.6), 0 0 0 2.5px ${design.accent}`
+        : "0 16px 40px rgba(0,0,0,0.4)",
+      transform: selected ? "translateY(-10px) scale(1.03)" : "none",
+      transition: "transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s ease",
+      cursor: "pointer", minHeight: 210,
+    }}>
+      {/* Floating emoji decorations */}
+      {design.emojis.map((e: string, i: number) => (
+        <div key={i} style={{
+          position: "absolute",
+          fontSize: EMOJI_SIZES[i],
+          opacity: EMOJI_OPACITIES[i],
+          top: EMOJI_POSITIONS[i].top,
+          left: EMOJI_POSITIONS[i].left,
+          pointerEvents: "none", zIndex: 1,
+          transform: `rotate(${EMOJI_ROTATIONS[i]})`,
+        }}>{e}</div>
+      ))}
+      {/* Shimmer */}
+      <div style={{ position:"absolute", inset:0, background:"linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.12) 50%, transparent 70%)", opacity: selected ? 1 : 0.6, pointerEvents:"none", zIndex:1 }} />
+      {/* Bottom gradient */}
+      <div style={{ position:"absolute", bottom:0, left:0, right:0, height:60, background:"linear-gradient(180deg, transparent, rgba(0,0,0,0.3))", pointerEvents:"none", zIndex:1 }} />
+
+      {/* Content */}
+      <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column", gap:0 }}>
+        {/* Top row */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14 }}>
+          <div>
+            <div style={{ fontSize:7, letterSpacing:"0.32em", color:design.subColor, fontWeight:700, textTransform:"uppercase", marginBottom:8, fontFamily:"Montserrat,sans-serif" }}>
+              Special Edition
+            </div>
+            <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"4px 12px", borderRadius:20, background:design.chipBg, border:`1px solid ${design.accent}55` }}>
+              <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", color:design.accent, fontFamily:"Montserrat,sans-serif" }}>{(pt.name || "SPECIAL").toUpperCase()}</span>
+            </div>
+          </div>
+          <div style={{ fontSize:26 }}>{design.emojis[0]}</div>
+        </div>
+
+        {/* Amount */}
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(30px,4vw,42px)", fontWeight:300, color:design.textColor, lineHeight:1, letterSpacing:"-0.02em", marginBottom:14 }}>
+          GH₵ {(pt.amount || 0).toLocaleString()}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height:1, background:`linear-gradient(90deg, ${design.accent}55, ${design.accent}20, transparent)`, marginBottom:12 }} />
+
+        {/* Tagline */}
+        <p style={{ fontFamily:"Montserrat,sans-serif", fontSize:11, color:design.subColor, lineHeight:1.65, fontWeight:400, margin:0, flex:1 }}>
+          {pt.description || design.tagline}
+        </p>
+
+        {/* Footer */}
+        <div style={{ marginTop:14, display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ width:5, height:5, borderRadius:"50%", background:design.accent, opacity:0.7 }} />
+          <span style={{ fontSize:8.5, letterSpacing:"0.14em", color:design.subColor, fontFamily:"Montserrat,sans-serif", fontWeight:600 }}>VALID 12 MONTHS · ZOLARASALON.COM</span>
         </div>
       </div>
     </div>
@@ -413,10 +562,7 @@ export default function BuyGiftCard() {
                     return (
                       <div key={pt.id} className="gc-card-wrap"
                         onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); setDeliveryType("email"); }}>
-                        <GiftCard
-                          promoGrad={grad}
-                          label={pt.name} amount={pt.amount} selected={sel} promo promoDesc={pt.description || "A special gift for a special occasion."}
-                        />
+                        <PromoGiftCard pt={pt} selected={sel} />
                         <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
                           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{pt.name}</span>
                           <span style={{ fontSize: 9, fontWeight: 700, color: "#C8A97E", background: "rgba(200,169,126,0.12)", padding: "3px 8px", borderRadius: 8, letterSpacing: "0.06em" }}>✉️ DIGITAL</span>
