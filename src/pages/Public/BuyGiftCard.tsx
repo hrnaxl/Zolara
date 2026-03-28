@@ -277,23 +277,44 @@ export default function BuyGiftCard() {
         onSuccess: async (paymentRef: string) => {
           try {
             const tierValue = selectedPromo ? getPromoValue(selectedPromo) : getTierValue(selectedTier!);
-            if (isEmail && !selectedPromo) {
+            const tierLabel = selectedPromo ? (selectedPromo.name || "Special Edition") : selectedTier!;
+
+            if (isEmail) {
+              // ── EMAIL DELIVERY: same flow for regular AND promo cards ──
+              // create-gift-card generates a digital code and marks it paid
               const r = await fetch("/api/create-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tier: selectedTier, amount: tierValue, buyerName: form.senderName, buyerEmail: form.buyerEmail, buyerPhone: form.recipientPhone, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail, message: form.message || null }),
+                body: JSON.stringify({
+                  tier: selectedPromo ? "Gold" : selectedTier,
+                  promoTypeId: selectedPromo?.id || null,
+                  paymentRef,
+                  buyerName: form.senderName,
+                  buyerEmail: form.buyerEmail,
+                  buyerPhone: form.recipientPhone,
+                  recipientName: form.recipientName,
+                  recipientEmail: form.recipientEmail || form.buyerEmail,
+                  message: form.message || null,
+                }),
               });
               const d = await r.json().catch(() => ({}));
               if (r.ok && d.card) {
-                // Mark as sold so it shows correctly in admin
-                fetch("/api/mark-gift-card-sold", {
-                  method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: d.card.id }),
-                }).catch(() => {});
                 const emailTo = form.recipientEmail || form.buyerEmail;
-                if (emailTo) sendGiftCardEmail({ id: d.card.id, tier: selectedTier!, amount: tierValue, code: d.card.code, recipient_name: form.recipientName, recipient_email: emailTo, buyer_name: form.senderName, message: form.message || undefined }).catch(console.error);
-                if (form.buyerEmail) sendPurchaseReceiptEmail({ buyerName: form.senderName, buyerEmail: form.buyerEmail, tier: selectedTier!, amount: tierValue, cardCode: d.card.code, paymentRef: paymentRef || "", isDigital: true, recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail }).catch(console.error);
+                // Send gift card code to recipient
+                if (emailTo) sendGiftCardEmail({
+                  id: d.card.id, tier: selectedPromo ? "Gold" : selectedTier!, amount: tierValue,
+                  code: d.card.code, recipient_name: form.recipientName,
+                  recipient_email: emailTo, buyer_name: form.senderName, message: form.message || undefined,
+                }).catch(console.error);
+                // Send purchase receipt to buyer
+                if (form.buyerEmail) sendPurchaseReceiptEmail({
+                  buyerName: form.senderName, buyerEmail: form.buyerEmail,
+                  tier: tierLabel, amount: tierValue, cardCode: d.card.code,
+                  paymentRef: paymentRef || "", isDigital: true,
+                  recipientName: form.recipientName, recipientEmail: form.recipientEmail || form.buyerEmail,
+                }).catch(console.error);
               }
             } else {
+              // ── PHYSICAL PICKUP: claim a pre-printed card ──
               const r = await fetch("/api/claim-gift-card", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -307,13 +328,11 @@ export default function BuyGiftCard() {
                 }),
               });
               const d = await r.json().catch(() => ({}));
-              // Always send pickup email — card may be pre-printed or a placeholder
+              // Send pickup receipt
               if (form.buyerEmail) {
                 sendPickupReceiptEmail({
-                  buyerName: form.senderName,
-                  buyerEmail: form.buyerEmail,
-                  tier: selectedPromo ? (selectedPromo.name || "Special Edition") : selectedTier!,
-                  amount: tierValue,
+                  buyerName: form.senderName, buyerEmail: form.buyerEmail,
+                  tier: tierLabel, amount: tierValue,
                   cardCode: d.card?.code || "PENDING",
                   serialNumber: d.card?.serial_number || undefined,
                   paymentRef: paymentRef || "",
