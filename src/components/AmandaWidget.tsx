@@ -1,3 +1,4 @@
+import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useEffect } from "react";
 
@@ -177,7 +178,7 @@ const QUICK_ACTIONS = [
 ];
 
 
-function renderInline(text: string): React.ReactNode[] {
+function renderInline(text: string): (string | JSX.Element)[] {
   // Bold phone numbers directly — no markdown needed
   const phonePattern = /(059[\s]?436[\s]?5314|020[\s]?884[\s]?8707)/g;
   const parts = text.split(phonePattern);
