@@ -48,9 +48,19 @@ export default async function handler(req, res) {
   const paymentRef = req.body?.paymentRef || null;
   if (!tier && !promoTypeId) return res.status(400).json({ error: "Missing tier or promoTypeId" });
   // Verify Paystack payment before creating gift card as paid
-  if (PAYSTACK_SECRET_GC && paymentRef) {
-    const paid = await verifyPaystackPayment(paymentRef);
-    if (!paid) return res.status(402).json({ error: "Payment not verified" });
+  let verifiedAmount = 0;
+  if (paymentRef) {
+    if (PAYSTACK_SECRET_GC) {
+      try {
+        const vr = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(paymentRef)}`, {
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_GC}` }
+        });
+        const vd = await vr.json();
+        if (vd?.data?.status !== 'success') return res.status(402).json({ error: "Payment not verified" });
+        // Paystack returns amount in kobo/pesewas — convert to GHS
+        verifiedAmount = (vd.data.amount || 0) / 100;
+      } catch { /* proceed without verified amount */ }
+    }
   }
 
   let amount, codePrefix, promoLabel = null;
@@ -71,11 +81,15 @@ export default async function handler(req, res) {
       body: JSON.stringify({ uses_count: (pt.uses_count || 0) + 1 }),
     });
   } else {
-    // Validate amount matches the tier — never trust client-submitted amount
-    const expectedAmount = TV[tier] || 0;
-    if (!expectedAmount) return res.status(400).json({ error: "Invalid tier" });
-    // Allow a small tolerance (e.g. settings-based price) but never let client set arbitrary amount
-    amount = expectedAmount;
+    if (!tier) return res.status(400).json({ error: "Invalid tier" });
+    // Use the verified Paystack amount if available, else fall back to tier default
+    // This respects admin-configured prices in settings
+    if (verifiedAmount && verifiedAmount > 0) {
+      amount = verifiedAmount;
+    } else {
+      amount = TV[tier] || 0;
+      if (!amount) return res.status(400).json({ error: "Invalid tier" });
+    }
     codePrefix = tier.substring(0, 3).toUpperCase();
   }
 

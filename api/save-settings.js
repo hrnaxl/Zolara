@@ -26,8 +26,21 @@ res.setHeader("Access-Control-Allow-Origin", allowed.includes(origin) ? origin :
     });
     if (!userRes.ok) return res.status(401).json({ error: 'Unauthorized' });
     const userData = await userRes.json();
-    // Only allow owner/admin roles — check app_metadata
-    const role = userData?.app_metadata?.role || userData?.user_metadata?.role || '';
+    const userId = userData?.id;
+    // Check role from app_metadata or user_metadata
+    let role = userData?.app_metadata?.role || userData?.user_metadata?.role || '';
+    // Also check user_roles table as fallback
+    if (!['owner', 'admin'].includes(role) && userId) {
+      const SB_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
+      const roleRes = await fetch(
+        `${SB_URL_CHECK}/rest/v1/user_roles?user_id=eq.${userId}&select=role&limit=1`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      ).catch(() => null);
+      if (roleRes?.ok) {
+        const roleData = await roleRes.json().catch(() => []);
+        role = (Array.isArray(roleData) && roleData[0]?.role) || role;
+      }
+    }
     if (!['owner', 'admin'].includes(role)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
