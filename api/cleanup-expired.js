@@ -1,7 +1,7 @@
 // Daily cleanup of expired OTP codes and sessions
 // Cron: 0 2 * * * (2am UTC daily)
-const SB_URL = process.env.SUPABASE_URL;
-const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
+const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SB_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY) || process.env.VITE_SUPABASE_SERVICE_KEY;
 
 const H = {
   "Content-Type": "application/json",

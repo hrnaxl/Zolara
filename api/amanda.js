@@ -1,7 +1,7 @@
 // Persistent rate limiter using amanda_rate_log table in Supabase
 // Falls back to allowing request if DB check fails — never block on DB error
-const SB_RL = process.env.SUPABASE_URL;
-const SK_RL = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
+const SB_RL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SK_RL = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY) || process.env.VITE_SUPABASE_SERVICE_KEY;
 async function checkRateLimit(ip) {
   try {
     const windowStart = new Date(Date.now() - 60 * 1000).toISOString();

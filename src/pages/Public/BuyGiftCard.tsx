@@ -388,14 +388,14 @@ export default function BuyGiftCard() {
                     const grad = PROMO_GRADS[pt.theme] || PROMO_GRADS.gold;
                     return (
                       <div key={pt.id} className="gc-card-wrap"
-                        onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); setDeliveryType("physical"); }}>
+                        onClick={() => { setSelectedPromo(sel ? null : pt); setSelectedTier(null); setDeliveryType("email"); }}>
                         <GiftCard
                           promoGrad={grad}
                           label={pt.name} amount={pt.amount} selected={sel} promo promoDesc={pt.description || "A special gift for a special occasion."}
                         />
                         <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
                           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{pt.name}</span>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: "#C8A97E", background: "rgba(200,169,126,0.12)", padding: "3px 8px", borderRadius: 8, letterSpacing: "0.06em" }}>🏪 PICKUP</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: "#C8A97E", background: "rgba(200,169,126,0.12)", padding: "3px 8px", borderRadius: 8, letterSpacing: "0.06em" }}>✉️ DIGITAL</span>
                         </div>
                       </div>
                     );
@@ -413,7 +413,7 @@ export default function BuyGiftCard() {
               </div>
             )}
 
-            <div key={`tiers-${JSON.stringify(tierPrices)}`} style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 36 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 36 }}>
               {(Object.keys(GIFT_CARD_TIERS) as GiftCardTier[]).map(tier => {
                 const s = TIER_STYLES[tier];
                 const val = getTierValue(tier);

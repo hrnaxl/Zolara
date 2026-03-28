@@ -1,5 +1,5 @@
-const SB_URL = process.env.SUPABASE_URL;
-const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SB_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
 
 function sbHeaders() {
   return {

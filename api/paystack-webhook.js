@@ -2,8 +2,8 @@
 // Set this URL in your Paystack dashboard: https://zolarasalon.com/api/paystack-webhook
 import crypto from "crypto";
 
-const SB_URL = process.env.SUPABASE_URL;
-const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
+const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SB_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY) || process.env.VITE_SUPABASE_SERVICE_KEY;
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
 const H = {

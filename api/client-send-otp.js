@@ -1,5 +1,5 @@
-const SB_URL = process.env.SUPABASE_URL;
-const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SB_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY);
 const ARKESEL_KEY = process.env.ARKESEL_KEY;
 
 function sbHeaders() {
@@ -73,7 +73,7 @@ res.setHeader("Access-Control-Allow-Origin", allowedOrigins.includes(origin) ? o
     // Rate limit: max 3 OTP requests per phone per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const rateLimitRes = await fetch(
-      process.env.SUPABASE_URL + `/rest/v1/client_otp_codes?phone=eq.${encodeURIComponent(normalizedLocal)}&created_at=gte.${encodeURIComponent(oneHourAgo)}&select=id`,
+      (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) + `/rest/v1/client_otp_codes?phone=eq.${encodeURIComponent(normalizedLocal)}&created_at=gte.${encodeURIComponent(oneHourAgo)}&select=id`,
       { headers: sbHeaders() }
     );
     const recentOTPs = await rateLimitRes.json().catch(() => []);
