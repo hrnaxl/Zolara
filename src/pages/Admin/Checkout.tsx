@@ -60,6 +60,8 @@ const Checkout = () => {
   const [redeemedCard, setRedeemedCard] = useState<{ id: string; value: number } | null>(null);
   const [finalAmountCharged, setFinalAmountCharged] = useState<number>(0);
   const [promoCode, setPromoCode] = useState<string>("");
+  const [studentDiscount, setStudentDiscount] = useState(false);
+  const [studentDiscountAmount, setStudentDiscountAmount] = useState(0);
   const [bookingUsedPromo, setBookingUsedPromo] = useState<string | null>(null); // promo used at booking time
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
@@ -384,6 +386,9 @@ const Checkout = () => {
       const grace = tierConfig?.grace ?? 0;
       const dep2 = depositPaid ? depositAmount : 0;
       const baseAfterDeposit = Math.max(0, originalPrice - dep2);
+      const studentPct = Number((settings as any)?.student_discount ?? 10);
+      const studentAmt = studentDiscount ? Math.round((originalPrice * studentPct) / 100 * 100) / 100 : 0;
+      if (studentAmt !== studentDiscountAmount) setStudentDiscountAmount(studentAmt);
       // Card covers up to its balance + grace; but we only deduct actual balance from card
       const coversUpTo = value + grace;
       const applied = coversUpTo >= baseAfterDeposit ? baseAfterDeposit : value;
@@ -433,7 +438,8 @@ const Checkout = () => {
     const prodTotal = lineItems.filter(i => i.type === "product").reduce((s, i) => s + i.unitPrice * i.quantity, 0);
     const effectivePrice = originalPrice + prodTotal;
     const afterDep = Math.max(0, originalPrice - dep) + prodTotal;
-    const afterPromo = Math.max(0, afterDep - promoDiscount);
+    const studentAmt = studentDiscount ? Math.round((originalPrice * Number((settings as any)?.student_discount ?? 10)) / 100 * 100) / 100 : 0;
+    const afterPromo = Math.max(0, afterDep - promoDiscount - studentAmt);
     const amountToCharge = Math.max(0, afterPromo - giftValue);
 
     const enabled = ["cash", "mobile_money", "card", "bank_transfer", "gift_card"];
@@ -464,6 +470,7 @@ const Checkout = () => {
         notes || "Payment at checkout",
         dep > 0 ? `Deposit GHS ${dep} included` : null,
         promoDiscount > 0 ? `Promo ${appliedPromo?.code || ""} saved GHS ${promoDiscount}` : null,
+        studentDiscount ? `Student discount ${(settings as any)?.student_discount ?? 10}% (GHS ${studentAmt.toFixed(2)})` : null,
         giftValue > 0 ? `Gift card GHS ${giftValue} applied` : null,
       ].filter(Boolean).join(" | ");
 
@@ -943,6 +950,12 @@ const Checkout = () => {
               <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EDEBE5" }}>
                 <span style={{ fontSize: "12px", color: "#16A34A" }}>Deposit Paid</span>
                 <span style={{ fontSize: "12px", fontWeight: 600, color: "#16A34A" }}>- GHS {depositAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {studentDiscount && studentDiscountAmount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "12px", color: "#2563EB" }}>Student Discount ({(settings as any)?.student_discount ?? 10}%)</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563EB" }}>- GHS {studentDiscountAmount.toFixed(2)}</span>
               </div>
             )}
             {promoDiscount > 0 && (
