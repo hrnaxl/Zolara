@@ -1149,67 +1149,86 @@ supabase.from("services").select("id,name,category,price,description,is_active")
                 const theme = (pt.theme || "gold").toLowerCase();
                 const d = PROMO_THEMES[theme] || PROMO_THEMES.gold;
                 return (
-                  <a key={pt.id} href="/buy-gift-card"
-                    style={{ textDecoration:"none", display:"block", borderRadius:20, overflow:"hidden",
-                      background: d.bg,
-                      border:`1.5px solid ${d.border}50`,
-                      boxShadow:`0 0 0 1px ${d.border}20, 0 20px 48px rgba(0,0,0,0.5), 0 0 30px ${d.border}18`,
+<a key={pt.id} href="/buy-gift-card"
+                    style={{ textDecoration:"none", display:"block", borderRadius:16, overflow:"hidden",
+                      background: d.bg, border:`1px solid ${d.border}35`,
+                      boxShadow:`0 0 0 1px ${d.border}15, 0 16px 48px rgba(0,0,0,0.55), 0 0 28px ${d.border}12`,
                       transition:"transform 0.3s ease, box-shadow 0.3s ease",
                       position:"relative", aspectRatio:"5/3",
                     }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-6px) scale(1.02)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1.5px ${d.border}80, 0 28px 64px rgba(0,0,0,0.6), 0 0 50px ${d.border}30`; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0) scale(1)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1px ${d.border}20, 0 20px 48px rgba(0,0,0,0.5), 0 0 30px ${d.border}18`; }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-5px) scale(1.02)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1.5px ${d.border}70, 0 24px 64px rgba(0,0,0,0.65), 0 0 48px ${d.border}25`; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0) scale(1)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1px ${d.border}15, 0 16px 48px rgba(0,0,0,0.55), 0 0 28px ${d.border}12`; }}
                   >
-                    {/* Corner ribbon */}
-                    <div style={{ position:"absolute", top:12, right:-22, background:`${d.border}`, color:"#000", fontSize:7, fontWeight:800, letterSpacing:"0.15em", padding:"3px 28px", transform:"rotate(45deg)", zIndex:10, fontFamily:"'Montserrat',sans-serif", boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>SPECIAL</div>
-                    {/* Large emoji background decoration */}
-                    <div style={{ position:"absolute", top:-10, right:-10, fontSize:90, opacity:0.07, pointerEvents:"none", lineHeight:1 }}>{d.emojis[0]}</div>
-                    <div style={{ position:"absolute", bottom:10, left:5, fontSize:50, opacity:0.06, pointerEvents:"none", transform:"rotate(-15deg)" }}>{d.emojis[1]}</div>
+                    {/* Top shimmer line */}
+                    <div style={{ position:"absolute", top:0, left:0, right:0, height:"2px", background:`linear-gradient(90deg, transparent 0%, ${d.border}90 30%, ${d.border} 50%, ${d.border}90 70%, transparent 100%)`, zIndex:5 }} />
 
-                    {/* Shimmer bar */}
-                    <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:`linear-gradient(90deg, transparent, ${d.border}80, transparent)` }} />
+                    {/* Subtle radial spotlight center-right */}
+                    <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at 75% 50%, ${d.border}18 0%, transparent 65%)`, pointerEvents:"none", zIndex:1 }} />
 
-                    <div style={{ padding:"22px 20px 18px", position:"relative", height:"100%", boxSizing:"border-box", display:"flex", flexDirection:"column" }}>
-                      {/* Top row */}
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
-                        <div>
-                          <div style={{ display:"flex", gap:4, marginBottom:10 }}>
-                            {d.emojis.slice(0,3).map((e:string, i:number) => (
-                              <span key={i} style={{ fontSize:16 }}>{e}</span>
-                            ))}
+                    {/* Occasion-specific subtle background SVG pattern */}
+                    <div style={{ position:"absolute", inset:0, opacity:0.045, pointerEvents:"none", zIndex:1,
+                      backgroundImage:`url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='white' fill-opacity='1'%3E%3Ctext x='10' y='30' font-size='18'%3E${encodeURIComponent(d.emojis[0])}%3C/text%3E%3C/g%3E%3C/svg%3E")`,
+                      backgroundSize:"60px 60px",
+                    }} />
+
+                    {/* Large faded emoji — far right bg */}
+                    <div style={{ position:"absolute", right:-8, top:"50%", transform:"translateY(-50%)", fontSize:110, opacity:0.06, pointerEvents:"none", lineHeight:1, zIndex:1 }}>{d.emojis[0]}</div>
+
+                    {/* Card content */}
+                    <div style={{ position:"relative", zIndex:2, padding:"20px 22px", height:"100%", boxSizing:"border-box", display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+
+                      {/* TOP: logo + name chip */}
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                          {/* Logo + brand */}
+                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                            <div style={{ width:28, height:28, borderRadius:"50%", overflow:"hidden", border:`1.5px solid ${d.border}60`, background:"#fff", flexShrink:0 }}>
+                              <img src={LOGO} alt="Zolara" style={{ width:"100%", height:"100%", objectFit:"cover" }} loading="lazy" />
+                            </div>
+                            <div>
+                              <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:7, fontWeight:700, letterSpacing:"0.25em", color:`${d.accent}90` }}>ZOLARA BEAUTY</div>
+                              <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:6, letterSpacing:"0.18em", color:`${d.accent}55` }}>TAMALE, GHANA</div>
+                            </div>
                           </div>
-                          <div style={{ display:"inline-block", padding:"4px 12px", borderRadius:20, background:`${d.border}20`, border:`1px solid ${d.border}50` }}>
-                            <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:8, fontWeight:700, letterSpacing:"0.2em", color:d.accent }}>{(pt.name || "SPECIAL").toUpperCase()}</span>
+                          {/* Occasion chip */}
+                          <div style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:20, background:`${d.border}18`, border:`1px solid ${d.border}45`, width:"fit-content" }}>
+                            <span style={{ fontSize:10 }}>{d.emojis[0]}</span>
+                            <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:7.5, fontWeight:700, letterSpacing:"0.18em", color:d.accent }}>{(pt.name || "SPECIAL").toUpperCase()}</span>
                           </div>
                         </div>
-                        <div style={{ textAlign:"right" }}>
-                          <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:7, letterSpacing:"0.2em", color:`${d.accent}70`, marginBottom:2, fontWeight:600 }}>LIMITED OFFER</div>
-                          <div style={{ width:8, height:8, borderRadius:"50%", background:d.border, marginLeft:"auto", boxShadow:`0 0 8px ${d.border}` }} />
+
+                        {/* Right: SPECIAL EDITION badge */}
+                        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+                          <div style={{ padding:"3px 9px", borderRadius:6, background:`${d.border}25`, border:`1px solid ${d.border}50` }}>
+                            <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:6.5, fontWeight:800, letterSpacing:"0.2em", color:d.accent }}>SPECIAL EDITION</span>
+                          </div>
+                          {/* Glowing dot */}
+                          <div style={{ width:6, height:6, borderRadius:"50%", background:d.border, boxShadow:`0 0 6px ${d.border}, 0 0 12px ${d.border}80` }} />
                         </div>
                       </div>
 
-                      {/* Amount — larger, more prominent than normal cards */}
-                      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(36px,4vw,48px)", fontWeight:300, color:"white", lineHeight:1, marginBottom:6, letterSpacing:"-0.02em" }}>
-                        GHS {pt.amount.toLocaleString()}
+                      {/* MIDDLE: amount */}
+                      <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"clamp(30px,3.5vw,42px)", fontWeight:300, color:"white", lineHeight:1, letterSpacing:"-0.02em" }}>
+                          GHS {pt.amount.toLocaleString()}
+                        </div>
+                        <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:8, color:`${d.accent}70`, letterSpacing:"0.1em", fontWeight:600 }}>GIFT VALUE</div>
                       </div>
-                      <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, color:`${d.accent}80`, marginBottom:16, letterSpacing:"0.06em" }}>GIFT CARD VALUE</div>
 
-                      {/* Divider with accent color */}
-                      <div style={{ height:1, background:`linear-gradient(90deg, ${d.border}60, ${d.border}20, transparent)`, marginBottom:14 }} />
-
-                      {/* Description */}
-                      <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11.5, color:"rgba(255,255,255,0.65)", lineHeight:1.7, margin:"0 0 20px", fontWeight:400 }}>
-                        {pt.description || d.tagline}
-                      </p>
-
-                      {/* CTA */}
-                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                        <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, fontWeight:700, letterSpacing:"0.12em", color:d.accent }}>PURCHASE NOW →</span>
-                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                          <div style={{ width:4, height:4, borderRadius:"50%", background:d.border, opacity:0.6 }} />
-                          <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:8, color:`${d.accent}60`, letterSpacing:"0.1em" }}>12 MONTHS VALID</span>
+                      {/* BOTTOM: divider + description + CTA */}
+                      <div>
+                        <div style={{ height:"1px", background:`linear-gradient(90deg, ${d.border}55, ${d.border}15, transparent)`, marginBottom:10 }} />
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
+                          <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, color:"rgba(255,255,255,0.55)", lineHeight:1.55, margin:0, maxWidth:"65%", fontWeight:400 }}>
+                            {pt.description || d.tagline}
+                          </p>
+                          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3 }}>
+                            <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:9, fontWeight:700, letterSpacing:"0.1em", color:d.accent }}>BUY NOW →</span>
+                            <span style={{ fontFamily:"'Montserrat',sans-serif", fontSize:7, color:`${d.accent}50`, letterSpacing:"0.1em" }}>VALID 12 MONTHS</span>
+                          </div>
                         </div>
                       </div>
+
                     </div>
                   </a>
                 );
