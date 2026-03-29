@@ -1191,6 +1191,18 @@ const Checkout = () => {
                 {redeemedCard && <p style={{ fontSize: "11px", color: "#16A34A", marginTop: "4px" }}>GHS {redeemedCard.value.toFixed(2)} off</p>}
               </div>
 
+              {/* Student Discount Toggle */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: studentDiscount ? "rgba(37,99,235,0.06)" : CREAM, borderRadius: "10px", border: `1px solid ${studentDiscount ? "rgba(37,99,235,0.25)" : BORDER}`, cursor: "pointer" }}
+                onClick={() => setStudentDiscount(p => !p)}>
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: 700, color: studentDiscount ? "#2563EB" : TXT, fontFamily: "Montserrat,sans-serif" }}>🎓 Student Discount</div>
+                  <div style={{ fontSize: "10px", color: TXT_M, marginTop: 2 }}>Valid student ID verified · {(settings as any)?.student_discount ?? 10}% off · Mon–Thu only</div>
+                </div>
+                <div style={{ width: 36, height: 20, borderRadius: 10, background: studentDiscount ? "#2563EB" : "#D1D5DB", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                  <div style={{ position: "absolute", top: 2, left: studentDiscount ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                </div>
+              </div>
+
               <div>
                 <label style={lbl}>Promo Code</label>
                 {bookingUsedPromo && (
