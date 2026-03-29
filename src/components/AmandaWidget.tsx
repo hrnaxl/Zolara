@@ -82,7 +82,7 @@ async function buildSystemPrompt(): Promise<string> {
       (supabase as any).from("service_variants").select("service_id, name, price_adjustment").eq("is_active", true).order("sort_order"),
       (supabase as any).from("service_addons").select("service_id, name, price").eq("is_active", true).order("sort_order"),
       supabase.from("settings").select("gift_card_prices").limit(1).maybeSingle(),
-      (supabase as any).from("promo_codes").select("code, discount_type, discount_value, description").eq("is_active", true).limit(20),
+      (supabase as any).from("promo_codes").select("code, discount_type, discount_value, description, expires_at").eq("is_active", true).limit(20),
     ]);
 
     const services = svcRes.data || [];
@@ -144,9 +144,13 @@ ${cat.toUpperCase()}:
     giftBlock += "Gift cards are valid for 12 months and redeemable for any service at Zolara. They can be purchased online at zolarasalon.com/buy-gift-card and either emailed digitally or collected in store. They make excellent gifts for birthdays, anniversaries, and special occasions.\n";
 
     let promoBlock = "";
-    if (promoRes.data && promoRes.data.length > 0) {
-      promoBlock = "\nACTIVE PROMO CODES (share only when asked):\n";
-      for (const p of promoRes.data) {
+    const now = new Date();
+    const activePromos = (promoRes.data || []).filter((p: any) =>
+      !p.expires_at || new Date(p.expires_at) > now
+    );
+    if (activePromos.length > 0) {
+      promoBlock = "\nACTIVE PROMO CODES (share only when asked or when genuinely relevant):\n";
+      for (const p of activePromos) {
         const disc = p.discount_type === "percentage" ? `${p.discount_value}% off` : `GHS ${p.discount_value} off`;
         promoBlock += `- ${p.code}: ${disc}${p.description ? ` (${p.description})` : ""}\n`;
       }
