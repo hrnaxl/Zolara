@@ -1144,7 +1144,7 @@ supabase.from("services").select("id,name,category,price,description,is_active")
               <p style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, color:"rgba(255,255,255,0.35)", margin:0 }}>Exclusive occasion-themed gift experiences</p>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:"20px" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:"20px" }}>
               {promoGiftCards.map((pt: any) => {
                 const theme = (pt.theme || "gold").toLowerCase();
                 const d = PROMO_THEMES[theme] || PROMO_THEMES.gold;
@@ -1155,7 +1155,7 @@ supabase.from("services").select("id,name,category,price,description,is_active")
                       border:`1.5px solid ${d.border}50`,
                       boxShadow:`0 0 0 1px ${d.border}20, 0 20px 48px rgba(0,0,0,0.5), 0 0 30px ${d.border}18`,
                       transition:"transform 0.3s ease, box-shadow 0.3s ease",
-                      position:"relative", aspectRatio:"3/4",
+                      position:"relative", aspectRatio:"5/3",
                     }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform="translateY(-6px) scale(1.02)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1.5px ${d.border}80, 0 28px 64px rgba(0,0,0,0.6), 0 0 50px ${d.border}30`; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform="translateY(0) scale(1)"; (e.currentTarget as HTMLElement).style.boxShadow=`0 0 0 1px ${d.border}20, 0 20px 48px rgba(0,0,0,0.5), 0 0 30px ${d.border}18`; }}
